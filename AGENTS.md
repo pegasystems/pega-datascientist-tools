@@ -250,6 +250,29 @@ python -m build --sdist --wheel --outdir dist/ .
   ```
 - Reviewers should flag Google/RST-style blocks in PRs and ask for a
   conversion before merge — left in place they spread by example.
+- **For AutoAPI-documented classes, document attributes at the declaration
+  site.** If a field / accessor / namespace attribute already exists as a
+  real class attribute (`plot`, `aggregates`, dataclass fields, lazily-set
+  typed attributes, etc.), put its description immediately after the
+  declaration:
+
+  ```python
+  plot: Plots
+  """Plot accessor for visualization methods."""
+  ```
+
+  This renders cleanly in the generated docs and avoids duplicate object
+  warnings from repeating the same attribute in a class-level `Attributes`
+  block.
+- **Don't use class docstrings as method inventories.** If a class-level
+  `Notes` block only restates what `from_pdc()`, `get_df()`, `plot.foo()`,
+  etc. already document individually, delete the inventory. Keep class-level
+  prose for cross-cutting concepts only (for example, sample-vs-full-data
+  semantics or lifecycle/instantiation guidance that spans multiple methods).
+- **When removing a class-level inventory, preserve any unique information.**
+  If the old class docstring contained examples, parameter semantics, return
+  shape details, or caveats that were *not* already present on the method,
+  move that content onto the relevant method docstring instead of dropping it.
 
 ### Types and typing
 - Use type hints for public APIs and complex internal functions.

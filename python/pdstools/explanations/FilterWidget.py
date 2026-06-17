@@ -45,11 +45,12 @@ class FilterWidget(LazyNamespace):
 
     def interactive(self):
         """Initializes the interactive filter widget and displays it.
+
         This is used in combination with explanations.plot.contributions() to allow users to
         filter by context if required.
         Select the context from the list of contexts for plotting contributions for selected context else
         the overall contributions will be plotted.
-        Alternatively, the context can be set using `set_selected_context()` method.
+        Alternatively, the context can be set using ``set_selected_context()``.
         """
         try:
             self.explanations.aggregate.validate_folder()
@@ -69,11 +70,11 @@ class FilterWidget(LazyNamespace):
         Parameters
         ----------
         context_info : ContextInfo | None
-            If None, initializes the selected context with 'Any' for all keys.
-            i.e overall model contributions
+            If ``None``, initializes the selected context with ``"Any"`` for all keys,
+            i.e. overall model contributions.
             If provided, sets the selected context to the given context information.
-            Context is passed as a dictionary
-            Eg. context_info =
+            Context is passed as a dictionary::
+
                 {
                     "pyChannel": "channel1",
                     "pyDirection": "direction1",
@@ -87,9 +88,7 @@ class FilterWidget(LazyNamespace):
             self._selected_context_key = cast("dict[str, str]", context_info)
 
     def is_context_selected(self) -> bool:
-        """Method returns True only if all context keys
-        are selected with a value other than 'Any'.
-        """
+        """Return True only if all context keys are selected with a value other than ``"Any"``."""
         if self._selected_context_key is None:
             return False
         return all(value != self._ANY_CONTEXT for value in self._selected_context_key.values())

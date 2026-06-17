@@ -151,51 +151,18 @@ class ContextOperations(LazyNamespace):
 
     Parameters
     ----------
-        aggregate (Aggregate): The aggregate object to operate on.
-
-    Attributes
-    ----------
-        aggregate (Aggregate): The aggregate object.
-        _df (pl.DataFrame | None): DataFrame containing context information.
-        _context_keys (list[str] | None): list of context keys.
-        initialized (bool): Flag indicating if the context operations have been initialized.
-
-    Methods
-    -------
-        get_context_keys():
-            Returns the list of context keys from loaded data.
-            Eg. ['pyChannel', 'pyDirection', ...]
-
-        get_df(context_infos=None, with_partition_col=False):
-            Returns a DataFrame containing unique contexts
-            If `with_partition_col` is True, includes the partition column.
-            If `context_infos` is None, returns the full unique contexts,
-            else filtered by the context
-            Eg. with partition column:
-            | pyChannel | pyDirection | ... | partition |
-            |-----------|-------------|-----|-----------|
-            | channel1  | direction1  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction1"}} |
-            | channel1  | direction2  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction2"}} |
-
-        get_list(context_infos=None, with_partition_col=False):
-            Returns a list[ContextInfo] containing unique contexts
-            If `with_partition_col` is True, includes the partition column.
-            If `context_infos` is None, returns the full unique contexts,
-            else filtered by the context
-            Eg. without partition column:
-            [
-                {"pyChannel": "channel1", "pyDirection": "direction1", ...},
-                {"pyChannel": "channel1", "pyDirection": "direction2", ...},
-            ]
-
-        get_context_info_str(context_info, sep="-"):
-            Returns a string representation of a single context information.
-            Eg. channel1-direction1-...
+    aggregate : Aggregate
+        The aggregate object to operate on.
 
     """
 
     dependencies: ClassVar[list[str]] = ["polars"]
     dependency_group = "explanations"
+    aggregate: "Aggregate"
+    """Parent aggregate object used to load contextual data."""
+
+    initialized: bool
+    """Whether the contextual data cache has been loaded."""
 
     def __init__(self, aggregate: "Aggregate"):
         self.aggregate = aggregate
@@ -228,7 +195,13 @@ class ContextOperations(LazyNamespace):
         self.initialized = True
 
     def get_context_keys(self) -> list[str]:
-        """Get context keys."""
+        """Return the contextual key columns available in the loaded data.
+
+        Returns
+        -------
+        list[str]
+            Context key names such as ``["pyChannel", "pyDirection", ...]``.
+        """
         self._load()
         assert self._context_keys is not None
         return self._context_keys
@@ -238,7 +211,22 @@ class ContextOperations(LazyNamespace):
         context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
     ) -> pl.DataFrame:
-        """Get the DataFrame filtered by the provided context information."""
+        """Return unique contexts as a DataFrame.
+
+        Parameters
+        ----------
+        context_infos : list[ContextInfo] | None, default None
+            Optional context filters. When omitted, returns all unique contexts.
+        with_partition_col : bool, default False
+            Whether to include the raw partition column alongside the expanded
+            context keys.
+
+        Returns
+        -------
+        pl.DataFrame
+            A DataFrame of unique contexts. When ``with_partition_col`` is
+            ``True``, the partition column is retained in the result.
+        """
         self._load()
         assert self._df is not None
         df = self._df if with_partition_col else self._get_clean_df(self._df)
@@ -253,7 +241,21 @@ class ContextOperations(LazyNamespace):
         context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
     ) -> list[ContextInfo]:
-        """Get the list of context information filtered by the provided context information."""
+        """Return unique contexts as dictionaries.
+
+        Parameters
+        ----------
+        context_infos : list[ContextInfo] | None, default None
+            Optional context filters. When omitted, returns all unique contexts.
+        with_partition_col : bool, default False
+            Whether to include the raw partition column in each returned item.
+
+        Returns
+        -------
+        list[ContextInfo]
+            Unique context dictionaries, optionally filtered by the provided
+            context information.
+        """
         self._load()
         df = self.get_df(context_infos, with_partition_col)
         return cast(
@@ -291,5 +293,18 @@ class ContextOperations(LazyNamespace):
 
     @staticmethod
     def get_context_info_str(context_info: ContextInfo, sep: str = "-") -> str:
-        """Get context info str."""
+        """Format a context dictionary as a single string.
+
+        Parameters
+        ----------
+        context_info : ContextInfo
+            Context values to format.
+        sep : str, default "-"
+            Separator inserted between context values.
+
+        Returns
+        -------
+        str
+            A compact context string such as ``channel1-direction1-...``.
+        """
         return sep.join(f"{value}".strip() for value in context_info.values())

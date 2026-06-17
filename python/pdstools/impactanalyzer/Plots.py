@@ -26,15 +26,11 @@ class Plots(LazyNamespace):
     :class:`~pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer` instance.
 
     All plot methods support:
+
     - Custom titles via `title` parameter
     - Data filtering via `query` parameter
     - Faceting by dimension via `facet` parameter
     - Returning underlying data via `return_df=True`
-
-    Attributes
-    ----------
-    ia : ImpactAnalyzer
-        Reference to the parent ImpactAnalyzer instance.
 
     See Also
     --------
@@ -50,6 +46,8 @@ class Plots(LazyNamespace):
 
     dependencies: ClassVar[list[str]] = ["plotly"]
     dependency_group = "adm"
+    ia: "ImpactAnalyzer_Class"
+    """Reference to the parent ImpactAnalyzer instance."""
 
     def __init__(self, ia: "ImpactAnalyzer_Class"):
         """Initialize a Plots instance.

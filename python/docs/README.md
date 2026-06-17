@@ -69,6 +69,11 @@ The workflow checks out that tag for the build, publishes into the normalized
 slug (`4.7.1/` for `V4.7.1`), and then refreshes `versions.json` plus the root
 redirect.
 
+Backfilled versions use the tagged repository contents for code and notebooks,
+but the build overlays the current docs publishing scaffolding (`conf.py` plus
+the version-switcher assets/templates). That keeps historical API/content
+accurate while still giving older published versions the modern switcher UI.
+
 ### Local testing of the switcher
 
 `make html` produces a self-contained build under `build/html/`. The switcher

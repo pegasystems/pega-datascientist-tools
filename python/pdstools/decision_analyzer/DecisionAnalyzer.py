@@ -30,6 +30,7 @@ from ..utils.namespaces import LazyNamespace
 
 if TYPE_CHECKING:
     import os
+    from .plots import Plot
 
 logger = logging.getLogger(__name__)
 
@@ -87,21 +88,6 @@ class DecisionAnalyzer:
     - :meth:`from_explainability_extract`: Load from an Explainability Extract file.
     - :meth:`from_decision_analyzer`: Load from a Decision Analyzer (EEV2) file.
     - Direct ``__init__``: Auto-detects format from the data schema.
-
-    Attributes
-    ----------
-    decision_data : pl.LazyFrame
-        Interaction-level decision data (with global filters applied if any).
-    extract_type : str
-        Either ``"explainability_extract"`` or ``"decision_analyzer"``.
-    plot : Plot
-        Plot accessor for visualization methods.
-    aggregates : Aggregates
-        Accessor for aggregation queries (funnel, distribution,
-        optionality, action variation, …).
-    scoring : Scoring
-        Accessor for re-ranking, sensitivity, win/loss and lever
-        analysis.
 
     Examples
     --------
@@ -170,6 +156,20 @@ class DecisionAnalyzer:
     # Lazily-set attribute populated when ``sample`` is first accessed.
     # Declared here so type-checkers see it on the class.
     _num_sample_interactions: int
+    decision_data: pl.LazyFrame
+    """Interaction-level decision data (with global filters applied if any)."""
+
+    extract_type: str
+    """Either ``"explainability_extract"`` or ``"decision_analyzer"``."""
+
+    plot: "Plot | _PlotPlotlyMissing"
+    """Plot accessor for visualization methods."""
+
+    aggregates: Aggregates
+    """Accessor for aggregation queries such as funnel and distribution views."""
+
+    scoring: Scoring
+    """Accessor for re-ranking, sensitivity, and win/loss analysis."""
 
     @classmethod
     def from_explainability_extract(
@@ -297,9 +297,12 @@ class DecisionAnalyzer:
         raw_data : pl.LazyFrame
             Raw decision data containing interaction-level records from Explainability Extract.
         level : str, default "Stage Group"
-            Granularity level for stage analysis. Options:
-            - "Stage Group": Groups stages into categories (recommended)
-            - "Stage": Individual stage-level analysis
+            Granularity level for stage analysis.
+
+            Options:
+
+            - ``"Stage Group"``: Groups stages into categories (recommended)
+            - ``"Stage"``: Individual stage-level analysis
         sample_size : int, default 50000
             Maximum number of unique interactions to sample for analysis. Larger values
             provide more statistical accuracy but slower performance. Minimum 1000.
@@ -313,13 +316,14 @@ class DecisionAnalyzer:
             The expression should return True/False values that get converted to 1/0.
             Actions with is_mandatory=1 get FIRST rank in the ranking function.
 
-            Example: `pl.col("Issue") == "Service"` results in:
+            Example: ``pl.col("Issue") == "Service"`` results in:
             - Service actions: is_mandatory = 1 (ranked first)
             - Non-Service actions: is_mandatory = 0 (ranked by other criteria)
 
             Other examples:
-            - `(pl.col("Group") == "Credit") & (pl.col("Priority") > 0.8)`
-            - `pl.col("Action").is_in(["CriticalAction1", "CriticalAction2"])`
+
+            - ``(pl.col("Group") == "Credit") & (pl.col("Priority") > 0.8)``
+            - ``pl.col("Action").is_in(["CriticalAction1", "CriticalAction2"])``
 
             When ``None`` (the default), mandatory rows are auto-detected from
             the ``Priority`` column using
@@ -329,7 +333,7 @@ class DecisionAnalyzer:
             Additional columns to include in processing beyond the standard table definition.
             Dictionary mapping column names to their polars data types.
 
-            Example: additional_columns = {"non_standard_column" : pl.Utf8}
+            Example: ``additional_columns = {"non_standard_column": pl.Utf8}``
 
         Notes
         -----
@@ -340,7 +344,8 @@ class DecisionAnalyzer:
         ``Priority`` using :data:`MANDATORY_PRIORITY_THRESHOLD`. If the
         ``Priority`` column is unavailable, all rows are treated as
         non-mandatory.
-        The expression gets applied as: `raw_data.with_columns(is_mandatory=mandatory_expr)`
+        The expression gets applied as:
+        ``raw_data.with_columns(is_mandatory=mandatory_expr)``.
 
         Examples
         --------
@@ -581,10 +586,13 @@ class DecisionAnalyzer:
         -------
         dict[str, dict[str, str]]
             Nested dictionary mapping dimension names to color dictionaries.
-            Example: {
-                "Issue": {"Retention": "#001F5F", "Sales": "#10A5AC"},
-                "Group": {"CreditCards": "#001F5F", "Loans": "#10A5AC"},
-            }
+
+            Example::
+
+                {
+                    "Issue": {"Retention": "#001F5F", "Sales": "#10A5AC"},
+                    "Group": {"CreditCards": "#001F5F", "Loans": "#10A5AC"},
+                }
 
         Notes
         -----

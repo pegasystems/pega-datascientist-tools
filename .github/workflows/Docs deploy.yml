@@ -64,7 +64,23 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          ref: ${{ steps.version.outputs.checkout_ref }}
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Prepare build tree
+        id: build_tree
+        env:
+          SOURCE_REF: ${{ github.event.inputs.source_ref }}
+          CHECKOUT_REF: ${{ steps.version.outputs.checkout_ref }}
+        run: |
+          build_root="."
+          if [ -n "${SOURCE_REF}" ]; then
+            python3 python/docs/prepare_versioned_docs_source.py \
+              --source-ref "${CHECKOUT_REF}" \
+              --output-dir build-source
+            build_root="build-source"
+          fi
+          echo "build_root=${build_root}" >> "$GITHUB_OUTPUT"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
@@ -77,7 +93,7 @@ jobs:
         run: uv python install 3.11
 
       - name: Install the project
-        run: uv sync --extra docs --extra all
+        run: uv sync --project "${{ steps.build_tree.outputs.build_root }}" --extra docs --extra all
 
       - name: System dependencies
         run: |
@@ -85,18 +101,20 @@ jobs:
           sudo apt-get install -y pandoc graphviz
 
       - name: Build Python documentation
-        working-directory: python/docs
+        working-directory: ${{ steps.build_tree.outputs.build_root }}/python/docs
         env:
           PDSTOOLS_DOCS_VERSION: ${{ steps.version.outputs.slug }}
+          SPHINXOPTS: -W --keep-going
         run: make html
 
       - name: Stage published tree
         env:
           SLUG: ${{ steps.version.outputs.slug }}
+          BUILD_ROOT: ${{ steps.build_tree.outputs.build_root }}
         run: |
           set -euo pipefail
           mkdir -p "public/${SLUG}"
-          cp -r python/docs/build/html/. "public/${SLUG}/"
+          cp -r "${BUILD_ROOT}/python/docs/build/html/." "public/${SLUG}/"
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
