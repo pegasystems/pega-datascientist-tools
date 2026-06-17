@@ -31,6 +31,26 @@ dependencies and execution.
   `logger.debug()` / `logger.info()` instead. Never overload `verbose`
   to control non-output behaviour (e.g. cache invalidation, retry
   policy) — that's a separate parameter.
+- **`show` parameters on plot methods are an anti-pattern.** Plot
+  methods must only build and return the figure; the caller decides how
+  to display it. Adding `show: bool = True` that calls `fig.show()`
+  internally causes Jupyter to render the figure twice (once from
+  `fig.show()`, once from the cell's implicit display of the return
+  value). Never add `show` to a plot method. For non-Plotly objects
+  that Jupyter cannot auto-render (e.g. `pydot.Graph`), unconditionally
+  call `display()` when IPython is available, without gating on a
+  `show` parameter.
+- **Plotly label/title clipping checklist.** Always do a visual check
+  on exported HTML; Plotly's default margins are tight and common
+  causes of clipping are:
+  - Long y-axis tick labels on horizontal bar charts → add
+    `yaxis_automargin=True` to `update_layout()`.
+  - Left y-axis title (rotated text) cut off → `margin=dict(l=90)`.
+  - Right secondary y-axis title cut off → `margin=dict(r=120)`.
+  - `updatemenus` button bar overlapping the chart title → lower the
+    button `y` anchor (e.g. `1.3` → `1.15`).
+  These are layout defaults that belong in the library method, not
+  caller-side `.update_layout()` patches.
 - **Prefer Polars over Pandas** for all data processing.
 
 ## Quick orientation
@@ -124,6 +144,40 @@ Docs live in `python/docs` and use Sphinx.
 
 ```bash
 cd python/docs && make html
+```
+
+### Exporting notebooks to HTML (with plots)
+
+**Problem:** system `jupyter` / `nbconvert` (e.g. from Homebrew) uses a
+different Python than the project venv. The kernel spawned during `--execute`
+won't have `pdstools` installed and will either fail with `AttributeError` or
+die immediately with "Kernel died before replying to kernel_info".
+
+**Solution — one-time setup** (only needed when the venv is freshly created):
+
+```bash
+# 1. Install nbconvert into the project venv
+uv add --dev nbconvert
+
+# 2. Fix the venv kernel spec to use the absolute venv Python path
+python_path=$(realpath .venv/bin/python)
+cat > .venv/share/jupyter/kernels/python3/kernel.json << EOF
+{
+ "argv": ["$python_path", "-m", "ipykernel_launcher", "-f", "{connection_file}"],
+ "display_name": "Python 3 (ipykernel)",
+ "language": "python",
+ "metadata": {"debugger": true}
+}
+EOF
+```
+
+**Exporting** (use `.venv/bin/python -m nbconvert`, never the system `jupyter`):
+
+```bash
+.venv/bin/python -m nbconvert --to html --execute \
+  examples/articles/AGBExplained.ipynb \
+  --output AGBExplained.html --output-dir . \
+  --ExecutePreprocessor.timeout=300
 ```
 
 ### Package build (release workflow)

@@ -28,7 +28,7 @@ basePath = pathlib.Path(__file__).parent.parent.parent
         "examples/articles/thompsonsampling.ipynb",
         "examples/articles/explanations/agb_global_explanations.ipynb",
         # ADM analysis notebooks
-        "examples/adm/AGBModelVisualisation.ipynb",
+        "examples/articles/AGBExplained.ipynb",
         # "examples/adm/ADMBinningInsights.ipynb",  # Missing BinAggregator import
         # "examples/adm/ADM_ActionDiscrimination_Metric.ipynb",  # Import issues
     ],
