@@ -249,4 +249,8 @@ jobs:
         # isn't worth a second upload + merge (same rationale as StreamlitTests).
         shell: bash
         run: |
-          uv run pytest $(cat python/tests/torch_test_files.txt)
+          torch_tests=()
+          while IFS= read -r test_file || [[ -n "$test_file" ]]; do
+            torch_tests+=("${test_file%$'\r'}")
+          done < python/tests/torch_test_files.txt
+          uv run pytest "${torch_tests[@]}"
