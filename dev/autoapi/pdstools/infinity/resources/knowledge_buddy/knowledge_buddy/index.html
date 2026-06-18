@@ -222,10 +222,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/AGBModelVisualisation.html">Deep Dive into ADM Gradient Boosting Models</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/AGBExplained.html">Adaptive Gradient Boosting (AGB) Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
@@ -463,28 +463,28 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.TextInput" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.TextInput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextInput</span></code></a></p></td>
-<td><p>dict() -&gt; new empty dictionary</p></td>
+<td><p>Free-text input passed to a Knowledge Buddy variable.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.FilterAttributes" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.FilterAttributes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FilterAttributes</span></code></a></p></td>
-<td><p>dict() -&gt; new empty dictionary</p></td>
+<td><p>Filter attribute payload used to restrict semantic search results.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AttributeValue" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AttributeValue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AttributeValue</span></code></a></p></td>
-<td><p>!!! abstract &quot;Usage Documentation&quot;</p></td>
+<td><p>A single attribute value returned in a search result chunk.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.Attribute" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.Attribute"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Attribute</span></code></a></p></td>
-<td><p>!!! abstract &quot;Usage Documentation&quot;</p></td>
+<td><p>A named attribute attached to a search result chunk.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.Chunk" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.Chunk"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Chunk</span></code></a></p></td>
-<td><p>!!! abstract &quot;Usage Documentation&quot;</p></td>
+<td><p>A chunk of retrieved content plus its filterable attributes.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.SearchResultValue" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.SearchResultValue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SearchResultValue</span></code></a></p></td>
-<td><p>!!! abstract &quot;Usage Documentation&quot;</p></td>
+<td><p>Structured search-result payload returned by Knowledge Buddy.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.SearchResult" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.SearchResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SearchResult</span></code></a></p></td>
-<td><p>!!! abstract &quot;Usage Documentation&quot;</p></td>
+<td><p>A single search result entry returned by Knowledge Buddy.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.BuddyResponse" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.BuddyResponse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BuddyResponse</span></code></a></p></td>
-<td><p>!!! abstract &quot;Usage Documentation&quot;</p></td>
+<td><p>Response payload returned for a Knowledge Buddy question.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.KnowledgeBuddy" title="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.KnowledgeBuddy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KnowledgeBuddy</span></code></a></p></td>
 <td><p>Knowledge Buddy business logic — defined once.</p></td>
@@ -502,21 +502,7 @@
 <dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.TextInput">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">TextInput</span></span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.TextInput" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">TypedDict</span></code></p>
-<p>dict() -&gt; new empty dictionary
-dict(mapping) -&gt; new dictionary initialized from a mapping object’s</p>
-<blockquote>
-<div><p>(key, value) pairs</p>
-</div></blockquote>
-<dl>
-<dt>dict(iterable) -&gt; new dictionary initialized as if via:</dt><dd><p>d = {}
-for k, v in iterable:</p>
-<blockquote>
-<div><p>d[k] = v</p>
-</div></blockquote>
-</dd>
-<dt>dict(<a href="#id1"><span class="problematic" id="id2">**</span></a>kwargs) -&gt; new dictionary initialized with the name=value pairs</dt><dd><p>in the keyword argument list.  For example:  dict(one=1, two=2)</p>
-</dd>
-</dl>
+<p>Free-text input passed to a Knowledge Buddy variable.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.TextInput.name">
 <span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.TextInput.name" title="Link to this definition">¶</a></dt>
@@ -533,21 +519,7 @@ for k, v in iterable:</p>
 <dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.FilterAttributes">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">FilterAttributes</span></span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.FilterAttributes" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">TypedDict</span></code></p>
-<p>dict() -&gt; new empty dictionary
-dict(mapping) -&gt; new dictionary initialized from a mapping object’s</p>
-<blockquote>
-<div><p>(key, value) pairs</p>
-</div></blockquote>
-<dl>
-<dt>dict(iterable) -&gt; new dictionary initialized as if via:</dt><dd><p>d = {}
-for k, v in iterable:</p>
-<blockquote>
-<div><p>d[k] = v</p>
-</div></blockquote>
-</dd>
-<dt>dict(<a href="#id3"><span class="problematic" id="id4">**</span></a>kwargs) -&gt; new dictionary initialized with the name=value pairs</dt><dd><p>in the keyword argument list.  For example:  dict(one=1, two=2)</p>
-</dd>
-</dl>
+<p>Filter attribute payload used to restrict semantic search results.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.FilterAttributes.name">
 <span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.FilterAttributes.name" title="Link to this definition">¶</a></dt>
@@ -565,43 +537,7 @@ for k, v in iterable:</p>
 <dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AttributeValue">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">AttributeValue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AttributeValue" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p>
-<dl class="simple">
-<dt>!!! abstract “Usage Documentation”</dt><dd><p>[Models](../concepts/models.md)</p>
-</dd>
-</dl>
-<p>A base class for creating Pydantic models.</p>
-<dl>
-<dt>Attributes:</dt><dd><p>__class_vars__: The names of the class variables defined on the model.
-__private_attributes__: Metadata about the private attributes of the model.
-__signature__: The synthesized <cite>__init__</cite> [<cite>Signature</cite>][inspect.Signature] of the model.</p>
-<p>__pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-__pydantic_core_schema__: The core schema of the model.
-__pydantic_custom_init__: Whether the model has a custom <cite>__init__</cite> function.
-__pydantic_decorators__: Metadata containing the decorators defined on the model.</p>
-<blockquote>
-<div><p>This replaces <cite>Model.__validators__</cite> and <cite>Model.__root_validators__</cite> from Pydantic V1.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>__pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.</dt><dd><p>The <cite>origin</cite> and <cite>args</cite> items map to the [<cite>__origin__</cite>][genericalias.__origin__]
-and [<cite>__args__</cite>][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-and the <cite>parameter</cite> item maps to the <cite>__parameter__</cite> attribute of generic classes.</p>
-</dd>
-</dl>
-<p>__pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-__pydantic_post_init__: The name of the post-init method for the model, if defined.
-__pydantic_root_model__: Whether the model is a [<cite>RootModel</cite>][pydantic.root_model.RootModel].
-__pydantic_serializer__: The <cite>pydantic-core</cite> <cite>SchemaSerializer</cite> used to dump instances of the model.
-__pydantic_validator__: The <cite>pydantic-core</cite> <cite>SchemaValidator</cite> used to validate instances of the model.</p>
-<p>__pydantic_fields__: A dictionary of field names and their corresponding [<cite>FieldInfo</cite>][pydantic.fields.FieldInfo] objects.
-__pydantic_computed_fields__: A dictionary of computed field names and their corresponding [<cite>ComputedFieldInfo</cite>][pydantic.fields.ComputedFieldInfo] objects.</p>
-<dl class="simple">
-<dt>__pydantic_extra__: A dictionary containing extra values, if [<cite>extra</cite>][pydantic.config.ConfigDict.extra]</dt><dd><p>is set to <cite>‘allow’</cite>.</p>
-</dd>
-</dl>
-<p>__pydantic_fields_set__: The names of fields explicitly set during instantiation.
-__pydantic_private__: Values of private attributes set on the model instance.</p>
-</dd>
-</dl>
+<p>A single attribute value returned in a search result chunk.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>data</strong> (<em>Any</em>)</p>
@@ -618,43 +554,7 @@ __pydantic_private__: Values of private attributes set on the model instance.</p
 <dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.Attribute">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Attribute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.Attribute" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p>
-<dl class="simple">
-<dt>!!! abstract “Usage Documentation”</dt><dd><p>[Models](../concepts/models.md)</p>
-</dd>
-</dl>
-<p>A base class for creating Pydantic models.</p>
-<dl>
-<dt>Attributes:</dt><dd><p>__class_vars__: The names of the class variables defined on the model.
-__private_attributes__: Metadata about the private attributes of the model.
-__signature__: The synthesized <cite>__init__</cite> [<cite>Signature</cite>][inspect.Signature] of the model.</p>
-<p>__pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-__pydantic_core_schema__: The core schema of the model.
-__pydantic_custom_init__: Whether the model has a custom <cite>__init__</cite> function.
-__pydantic_decorators__: Metadata containing the decorators defined on the model.</p>
-<blockquote>
-<div><p>This replaces <cite>Model.__validators__</cite> and <cite>Model.__root_validators__</cite> from Pydantic V1.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>__pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.</dt><dd><p>The <cite>origin</cite> and <cite>args</cite> items map to the [<cite>__origin__</cite>][genericalias.__origin__]
-and [<cite>__args__</cite>][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-and the <cite>parameter</cite> item maps to the <cite>__parameter__</cite> attribute of generic classes.</p>
-</dd>
-</dl>
-<p>__pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-__pydantic_post_init__: The name of the post-init method for the model, if defined.
-__pydantic_root_model__: Whether the model is a [<cite>RootModel</cite>][pydantic.root_model.RootModel].
-__pydantic_serializer__: The <cite>pydantic-core</cite> <cite>SchemaSerializer</cite> used to dump instances of the model.
-__pydantic_validator__: The <cite>pydantic-core</cite> <cite>SchemaValidator</cite> used to validate instances of the model.</p>
-<p>__pydantic_fields__: A dictionary of field names and their corresponding [<cite>FieldInfo</cite>][pydantic.fields.FieldInfo] objects.
-__pydantic_computed_fields__: A dictionary of computed field names and their corresponding [<cite>ComputedFieldInfo</cite>][pydantic.fields.ComputedFieldInfo] objects.</p>
-<dl class="simple">
-<dt>__pydantic_extra__: A dictionary containing extra values, if [<cite>extra</cite>][pydantic.config.ConfigDict.extra]</dt><dd><p>is set to <cite>‘allow’</cite>.</p>
-</dd>
-</dl>
-<p>__pydantic_fields_set__: The names of fields explicitly set during instantiation.
-__pydantic_private__: Values of private attributes set on the model instance.</p>
-</dd>
-</dl>
+<p>A named attribute attached to a search result chunk.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>data</strong> (<em>Any</em>)</p>
@@ -676,43 +576,7 @@ __pydantic_private__: Values of private attributes set on the model instance.</p
 <dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.Chunk">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Chunk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.Chunk" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p>
-<dl class="simple">
-<dt>!!! abstract “Usage Documentation”</dt><dd><p>[Models](../concepts/models.md)</p>
-</dd>
-</dl>
-<p>A base class for creating Pydantic models.</p>
-<dl>
-<dt>Attributes:</dt><dd><p>__class_vars__: The names of the class variables defined on the model.
-__private_attributes__: Metadata about the private attributes of the model.
-__signature__: The synthesized <cite>__init__</cite> [<cite>Signature</cite>][inspect.Signature] of the model.</p>
-<p>__pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-__pydantic_core_schema__: The core schema of the model.
-__pydantic_custom_init__: Whether the model has a custom <cite>__init__</cite> function.
-__pydantic_decorators__: Metadata containing the decorators defined on the model.</p>
-<blockquote>
-<div><p>This replaces <cite>Model.__validators__</cite> and <cite>Model.__root_validators__</cite> from Pydantic V1.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>__pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.</dt><dd><p>The <cite>origin</cite> and <cite>args</cite> items map to the [<cite>__origin__</cite>][genericalias.__origin__]
-and [<cite>__args__</cite>][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-and the <cite>parameter</cite> item maps to the <cite>__parameter__</cite> attribute of generic classes.</p>
-</dd>
-</dl>
-<p>__pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-__pydantic_post_init__: The name of the post-init method for the model, if defined.
-__pydantic_root_model__: Whether the model is a [<cite>RootModel</cite>][pydantic.root_model.RootModel].
-__pydantic_serializer__: The <cite>pydantic-core</cite> <cite>SchemaSerializer</cite> used to dump instances of the model.
-__pydantic_validator__: The <cite>pydantic-core</cite> <cite>SchemaValidator</cite> used to validate instances of the model.</p>
-<p>__pydantic_fields__: A dictionary of field names and their corresponding [<cite>FieldInfo</cite>][pydantic.fields.FieldInfo] objects.
-__pydantic_computed_fields__: A dictionary of computed field names and their corresponding [<cite>ComputedFieldInfo</cite>][pydantic.fields.ComputedFieldInfo] objects.</p>
-<dl class="simple">
-<dt>__pydantic_extra__: A dictionary containing extra values, if [<cite>extra</cite>][pydantic.config.ConfigDict.extra]</dt><dd><p>is set to <cite>‘allow’</cite>.</p>
-</dd>
-</dl>
-<p>__pydantic_fields_set__: The names of fields explicitly set during instantiation.
-__pydantic_private__: Values of private attributes set on the model instance.</p>
-</dd>
-</dl>
+<p>A chunk of retrieved content plus its filterable attributes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>data</strong> (<em>Any</em>)</p>
@@ -734,43 +598,7 @@ __pydantic_private__: Values of private attributes set on the model instance.</p
 <dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.SearchResultValue">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">SearchResultValue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.SearchResultValue" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p>
-<dl class="simple">
-<dt>!!! abstract “Usage Documentation”</dt><dd><p>[Models](../concepts/models.md)</p>
-</dd>
-</dl>
-<p>A base class for creating Pydantic models.</p>
-<dl>
-<dt>Attributes:</dt><dd><p>__class_vars__: The names of the class variables defined on the model.
-__private_attributes__: Metadata about the private attributes of the model.
-__signature__: The synthesized <cite>__init__</cite> [<cite>Signature</cite>][inspect.Signature] of the model.</p>
-<p>__pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-__pydantic_core_schema__: The core schema of the model.
-__pydantic_custom_init__: Whether the model has a custom <cite>__init__</cite> function.
-__pydantic_decorators__: Metadata containing the decorators defined on the model.</p>
-<blockquote>
-<div><p>This replaces <cite>Model.__validators__</cite> and <cite>Model.__root_validators__</cite> from Pydantic V1.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>__pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.</dt><dd><p>The <cite>origin</cite> and <cite>args</cite> items map to the [<cite>__origin__</cite>][genericalias.__origin__]
-and [<cite>__args__</cite>][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-and the <cite>parameter</cite> item maps to the <cite>__parameter__</cite> attribute of generic classes.</p>
-</dd>
-</dl>
-<p>__pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-__pydantic_post_init__: The name of the post-init method for the model, if defined.
-__pydantic_root_model__: Whether the model is a [<cite>RootModel</cite>][pydantic.root_model.RootModel].
-__pydantic_serializer__: The <cite>pydantic-core</cite> <cite>SchemaSerializer</cite> used to dump instances of the model.
-__pydantic_validator__: The <cite>pydantic-core</cite> <cite>SchemaValidator</cite> used to validate instances of the model.</p>
-<p>__pydantic_fields__: A dictionary of field names and their corresponding [<cite>FieldInfo</cite>][pydantic.fields.FieldInfo] objects.
-__pydantic_computed_fields__: A dictionary of computed field names and their corresponding [<cite>ComputedFieldInfo</cite>][pydantic.fields.ComputedFieldInfo] objects.</p>
-<dl class="simple">
-<dt>__pydantic_extra__: A dictionary containing extra values, if [<cite>extra</cite>][pydantic.config.ConfigDict.extra]</dt><dd><p>is set to <cite>‘allow’</cite>.</p>
-</dd>
-</dl>
-<p>__pydantic_fields_set__: The names of fields explicitly set during instantiation.
-__pydantic_private__: Values of private attributes set on the model instance.</p>
-</dd>
-</dl>
+<p>Structured search-result payload returned by Knowledge Buddy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>data</strong> (<em>Any</em>)</p>
@@ -787,43 +615,7 @@ __pydantic_private__: Values of private attributes set on the model instance.</p
 <dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.SearchResult">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">SearchResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.SearchResult" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p>
-<dl class="simple">
-<dt>!!! abstract “Usage Documentation”</dt><dd><p>[Models](../concepts/models.md)</p>
-</dd>
-</dl>
-<p>A base class for creating Pydantic models.</p>
-<dl>
-<dt>Attributes:</dt><dd><p>__class_vars__: The names of the class variables defined on the model.
-__private_attributes__: Metadata about the private attributes of the model.
-__signature__: The synthesized <cite>__init__</cite> [<cite>Signature</cite>][inspect.Signature] of the model.</p>
-<p>__pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-__pydantic_core_schema__: The core schema of the model.
-__pydantic_custom_init__: Whether the model has a custom <cite>__init__</cite> function.
-__pydantic_decorators__: Metadata containing the decorators defined on the model.</p>
-<blockquote>
-<div><p>This replaces <cite>Model.__validators__</cite> and <cite>Model.__root_validators__</cite> from Pydantic V1.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>__pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.</dt><dd><p>The <cite>origin</cite> and <cite>args</cite> items map to the [<cite>__origin__</cite>][genericalias.__origin__]
-and [<cite>__args__</cite>][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-and the <cite>parameter</cite> item maps to the <cite>__parameter__</cite> attribute of generic classes.</p>
-</dd>
-</dl>
-<p>__pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-__pydantic_post_init__: The name of the post-init method for the model, if defined.
-__pydantic_root_model__: Whether the model is a [<cite>RootModel</cite>][pydantic.root_model.RootModel].
-__pydantic_serializer__: The <cite>pydantic-core</cite> <cite>SchemaSerializer</cite> used to dump instances of the model.
-__pydantic_validator__: The <cite>pydantic-core</cite> <cite>SchemaValidator</cite> used to validate instances of the model.</p>
-<p>__pydantic_fields__: A dictionary of field names and their corresponding [<cite>FieldInfo</cite>][pydantic.fields.FieldInfo] objects.
-__pydantic_computed_fields__: A dictionary of computed field names and their corresponding [<cite>ComputedFieldInfo</cite>][pydantic.fields.ComputedFieldInfo] objects.</p>
-<dl class="simple">
-<dt>__pydantic_extra__: A dictionary containing extra values, if [<cite>extra</cite>][pydantic.config.ConfigDict.extra]</dt><dd><p>is set to <cite>‘allow’</cite>.</p>
-</dd>
-</dl>
-<p>__pydantic_fields_set__: The names of fields explicitly set during instantiation.
-__pydantic_private__: Values of private attributes set on the model instance.</p>
-</dd>
-</dl>
+<p>A single search result entry returned by Knowledge Buddy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>data</strong> (<em>Any</em>)</p>
@@ -845,43 +637,7 @@ __pydantic_private__: Values of private attributes set on the model instance.</p
 <dt class="sig sig-object py" id="pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.BuddyResponse">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">BuddyResponse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.BuddyResponse" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p>
-<dl class="simple">
-<dt>!!! abstract “Usage Documentation”</dt><dd><p>[Models](../concepts/models.md)</p>
-</dd>
-</dl>
-<p>A base class for creating Pydantic models.</p>
-<dl>
-<dt>Attributes:</dt><dd><p>__class_vars__: The names of the class variables defined on the model.
-__private_attributes__: Metadata about the private attributes of the model.
-__signature__: The synthesized <cite>__init__</cite> [<cite>Signature</cite>][inspect.Signature] of the model.</p>
-<p>__pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-__pydantic_core_schema__: The core schema of the model.
-__pydantic_custom_init__: Whether the model has a custom <cite>__init__</cite> function.
-__pydantic_decorators__: Metadata containing the decorators defined on the model.</p>
-<blockquote>
-<div><p>This replaces <cite>Model.__validators__</cite> and <cite>Model.__root_validators__</cite> from Pydantic V1.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>__pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.</dt><dd><p>The <cite>origin</cite> and <cite>args</cite> items map to the [<cite>__origin__</cite>][genericalias.__origin__]
-and [<cite>__args__</cite>][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-and the <cite>parameter</cite> item maps to the <cite>__parameter__</cite> attribute of generic classes.</p>
-</dd>
-</dl>
-<p>__pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-__pydantic_post_init__: The name of the post-init method for the model, if defined.
-__pydantic_root_model__: Whether the model is a [<cite>RootModel</cite>][pydantic.root_model.RootModel].
-__pydantic_serializer__: The <cite>pydantic-core</cite> <cite>SchemaSerializer</cite> used to dump instances of the model.
-__pydantic_validator__: The <cite>pydantic-core</cite> <cite>SchemaValidator</cite> used to validate instances of the model.</p>
-<p>__pydantic_fields__: A dictionary of field names and their corresponding [<cite>FieldInfo</cite>][pydantic.fields.FieldInfo] objects.
-__pydantic_computed_fields__: A dictionary of computed field names and their corresponding [<cite>ComputedFieldInfo</cite>][pydantic.fields.ComputedFieldInfo] objects.</p>
-<dl class="simple">
-<dt>__pydantic_extra__: A dictionary containing extra values, if [<cite>extra</cite>][pydantic.config.ConfigDict.extra]</dt><dd><p>is set to <cite>‘allow’</cite>.</p>
-</dd>
-</dl>
-<p>__pydantic_fields_set__: The names of fields explicitly set during instantiation.
-__pydantic_private__: Values of private attributes set on the model instance.</p>
-</dd>
-</dl>
+<p>Response payload returned for a Knowledge Buddy question.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>data</strong> (<em>Any</em>)</p>

@@ -222,10 +222,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBModelVisualisation.html">Deep Dive into ADM Gradient Boosting Models</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBExplained.html">Adaptive Gradient Boosting (AGB) Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
@@ -482,66 +482,6 @@
 customer interaction data from Pega’s Customer Decision Hub. It supports
 engagement, conversion, and open rate metrics through customizable
 outcome label mappings.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>data</strong> (<em>polars.LazyFrame</em>)</p>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.ih.IH.IH.data">
-<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#pdstools.ih.IH.IH.data" title="Link to this definition">¶</a></dt>
-<dd><p>The underlying interaction history data.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pl.LazyFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.ih.IH.IH.aggregates">
-<span class="sig-name descname"><span class="pre">aggregates</span></span><a class="headerlink" href="#pdstools.ih.IH.IH.aggregates" title="Link to this definition">¶</a></dt>
-<dd><p>Aggregation methods accessor.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="../Aggregates/index.html#pdstools.ih.Aggregates.Aggregates" title="pdstools.ih.Aggregates.Aggregates">Aggregates</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.ih.IH.IH.plot">
-<span class="sig-name descname"><span class="pre">plot</span></span><a class="headerlink" href="#pdstools.ih.IH.IH.plot" title="Link to this definition">¶</a></dt>
-<dd><p>Plot accessor for visualization methods.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="../../adm/Plots/index.html#pdstools.adm.Plots.Plots" title="pdstools.adm.Plots.Plots">Plots</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.ih.IH.IH.positive_outcome_labels">
-<span class="sig-name descname"><span class="pre">positive_outcome_labels</span></span><a class="headerlink" href="#pdstools.ih.IH.IH.positive_outcome_labels" title="Link to this definition">¶</a></dt>
-<dd><p>Mapping of metric types to positive outcome labels.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.ih.IH.IH.negative_outcome_labels">
-<span class="sig-name descname"><span class="pre">negative_outcome_labels</span></span><a class="headerlink" href="#pdstools.ih.IH.IH.negative_outcome_labels" title="Link to this definition">¶</a></dt>
-<dd><p>Mapping of metric types to negative outcome labels.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
-</dd>
-</dl>
-</dd></dl>
-
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
@@ -558,10 +498,16 @@ outcome label mappings.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">ih</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">response_count_trend</span><span class="p">()</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>polars.LazyFrame</em>)</p>
+</dd>
+</dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="id0">
-<span class="sig-name descname"><span class="pre">data</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></span><a class="headerlink" href="#id0" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="pdstools.ih.IH.IH.data">
+<span class="sig-name descname"><span class="pre">data</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></span><a class="headerlink" href="#pdstools.ih.IH.IH.data" title="Link to this definition">¶</a></dt>
+<dd><p>The underlying interaction history data.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.ih.IH.IH.outcome_labels_used">
@@ -569,26 +515,28 @@ outcome label mappings.</p>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="id1">
-<span class="sig-name descname"><span class="pre">positive_outcome_labels</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#id1" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pdstools.ih.IH.IH.aggregates">
+<span class="sig-name descname"><span class="pre">aggregates</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../Aggregates/index.html#pdstools.ih.Aggregates.Aggregates" title="pdstools.ih.Aggregates.Aggregates"><span class="pre">pdstools.ih.Aggregates.Aggregates</span></a></span><a class="headerlink" href="#pdstools.ih.IH.IH.aggregates" title="Link to this definition">¶</a></dt>
+<dd><p>Aggregation methods accessor.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.ih.IH.IH.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../Plots/index.html#pdstools.ih.Plots.Plots" title="pdstools.ih.Plots.Plots"><span class="pre">pdstools.ih.Plots.Plots</span></a></span><a class="headerlink" href="#pdstools.ih.IH.IH.plot" title="Link to this definition">¶</a></dt>
+<dd><p>Plot accessor for visualization methods.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.ih.IH.IH.positive_outcome_labels">
+<span class="sig-name descname"><span class="pre">positive_outcome_labels</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.ih.IH.IH.positive_outcome_labels" title="Link to this definition">¶</a></dt>
 <dd><p>Mapping of metric types to positive outcome labels.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="id2">
-<span class="sig-name descname"><span class="pre">negative_outcome_labels</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#id2" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pdstools.ih.IH.IH.negative_outcome_labels">
+<span class="sig-name descname"><span class="pre">negative_outcome_labels</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.ih.IH.IH.negative_outcome_labels" title="Link to this definition">¶</a></dt>
 <dd><p>Mapping of metric types to negative outcome labels.</p>
 </dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id3">
-<span class="sig-name descname"><span class="pre">aggregates</span></span><a class="headerlink" href="#id3" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id4">
-<span class="sig-name descname"><span class="pre">plot</span></span><a class="headerlink" href="#id4" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ih.IH.IH.from_ds_export">
@@ -906,16 +854,11 @@ in predicting positive outcomes.</p>
 <li><a class="reference internal" href="#pdstools.ih.IH.logger"><code class="docutils literal notranslate"><span class="pre">logger</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ih.IH.IH"><code class="docutils literal notranslate"><span class="pre">IH</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.ih.IH.IH.data"><code class="docutils literal notranslate"><span class="pre">data</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.ih.IH.IH.outcome_labels_used"><code class="docutils literal notranslate"><span class="pre">outcome_labels_used</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ih.IH.IH.aggregates"><code class="docutils literal notranslate"><span class="pre">aggregates</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ih.IH.IH.plot"><code class="docutils literal notranslate"><span class="pre">plot</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ih.IH.IH.positive_outcome_labels"><code class="docutils literal notranslate"><span class="pre">positive_outcome_labels</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ih.IH.IH.negative_outcome_labels"><code class="docutils literal notranslate"><span class="pre">negative_outcome_labels</span></code></a></li>
-<li><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">data</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.ih.IH.IH.outcome_labels_used"><code class="docutils literal notranslate"><span class="pre">outcome_labels_used</span></code></a></li>
-<li><a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">positive_outcome_labels</span></code></a></li>
-<li><a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">negative_outcome_labels</span></code></a></li>
-<li><a class="reference internal" href="#id3"><code class="docutils literal notranslate"><span class="pre">aggregates</span></code></a></li>
-<li><a class="reference internal" href="#id4"><code class="docutils literal notranslate"><span class="pre">plot</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ih.IH.IH.from_ds_export"><code class="docutils literal notranslate"><span class="pre">from_ds_export()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ih.IH.IH.from_s3"><code class="docutils literal notranslate"><span class="pre">from_s3()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ih.IH.IH.from_mock_data"><code class="docutils literal notranslate"><span class="pre">from_mock_data()</span></code></a></li>

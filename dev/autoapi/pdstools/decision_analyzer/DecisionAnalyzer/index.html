@@ -222,10 +222,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBModelVisualisation.html">Deep Dive into ADM Gradient Boosting Models</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBExplained.html">Adaptive Gradient Boosting (AGB) Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
@@ -512,75 +512,6 @@ information, filter component names, and detailed strategy tracking.</p></li>
 <li><p><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_decision_analyzer" title="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_decision_analyzer"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_decision_analyzer()</span></code></a>: Load from a Decision Analyzer (EEV2) file.</p></li>
 <li><p>Direct <code class="docutils literal notranslate"><span class="pre">__init__</span></code>: Auto-detects format from the data schema.</p></li>
 </ul>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>raw_data</strong> (<em>polars.LazyFrame</em>)</p></li>
-<li><p><strong>level</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
-<li><p><strong>sample_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
-<li><p><strong>mandatory_expr</strong> (<em>polars.Expr</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>additional_columns</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>polars.DataType</em><em>] </em><em>| </em><em>None</em>)</p></li>
-<li><p><strong>num_samples</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.decision_data">
-<span class="sig-name descname"><span class="pre">decision_data</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.decision_data" title="Link to this definition">¶</a></dt>
-<dd><p>Interaction-level decision data (with global filters applied if any).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pl.LazyFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.extract_type">
-<span class="sig-name descname"><span class="pre">extract_type</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.extract_type" title="Link to this definition">¶</a></dt>
-<dd><p>Either <code class="docutils literal notranslate"><span class="pre">&quot;explainability_extract&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;decision_analyzer&quot;</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.plot">
-<span class="sig-name descname"><span class="pre">plot</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.plot" title="Link to this definition">¶</a></dt>
-<dd><p>Plot accessor for visualization methods.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="../plots/index.html#pdstools.decision_analyzer.plots.Plot" title="pdstools.decision_analyzer.plots.Plot">Plot</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.aggregates">
-<span class="sig-name descname"><span class="pre">aggregates</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.aggregates" title="Link to this definition">¶</a></dt>
-<dd><p>Accessor for aggregation queries (funnel, distribution,
-optionality, action variation, …).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="../../ih/Aggregates/index.html#pdstools.ih.Aggregates.Aggregates" title="pdstools.ih.Aggregates.Aggregates">Aggregates</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.scoring">
-<span class="sig-name descname"><span class="pre">scoring</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.scoring" title="Link to this definition">¶</a></dt>
-<dd><p>Accessor for re-ranking, sensitivity, win/loss and lever
-analysis.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Scoring</p>
-</dd>
-</dl>
-</dd></dl>
-
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pdstools</span><span class="w"> </span><span class="kn">import</span> <span class="n">DecisionAnalyzer</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">da</span> <span class="o">=</span> <span class="n">DecisionAnalyzer</span><span class="o">.</span><span class="n">from_explainability_extract</span><span class="p">(</span><span class="s2">&quot;data/sample_explainability_extract.parquet&quot;</span><span class="p">)</span>
@@ -641,6 +572,36 @@ sensitivity / threshold / win-loss methods on <code class="xref py py-class docu
 operate on the downsampled <code class="docutils literal notranslate"><span class="pre">self.sample</span></code> (≤ <code class="docutils literal notranslate"><span class="pre">sample_size</span></code>
 interactions) for performance. <code class="docutils literal notranslate"><span class="pre">self.decision_data</span></code> is the full
 LazyFrame; <code class="docutils literal notranslate"><span class="pre">self.sample</span></code> is the small one.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.decision_data">
+<span class="sig-name descname"><span class="pre">decision_data</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.decision_data" title="Link to this definition">¶</a></dt>
+<dd><p>Interaction-level decision data (with global filters applied if any).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.extract_type">
+<span class="sig-name descname"><span class="pre">extract_type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.extract_type" title="Link to this definition">¶</a></dt>
+<dd><p>Either <code class="docutils literal notranslate"><span class="pre">&quot;explainability_extract&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;decision_analyzer&quot;</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../plots/index.html#pdstools.decision_analyzer.plots.Plot" title="pdstools.decision_analyzer.plots.Plot"><span class="pre">Plot</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_PlotPlotlyMissing</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.plot" title="Link to this definition">¶</a></dt>
+<dd><p>Plot accessor for visualization methods.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.aggregates">
+<span class="sig-name descname"><span class="pre">aggregates</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pdstools.decision_analyzer._aggregates.Aggregates</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.aggregates" title="Link to this definition">¶</a></dt>
+<dd><p>Accessor for aggregation queries such as funnel and distribution views.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.scoring">
+<span class="sig-name descname"><span class="pre">scoring</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pdstools.decision_analyzer._scoring.Scoring</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.scoring" title="Link to this definition">¶</a></dt>
+<dd><p>Accessor for re-ranking, sensitivity, and win/loss analysis.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_explainability_extract">
 <span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_explainability_extract</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.14)"><span class="pre">os.PathLike</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Stage</span> <span class="pre">Group'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">DEFAULT_SAMPLE_SIZE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mandatory_expr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">polars.DataType</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer" title="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer"><span class="pre">DecisionAnalyzer</span></a></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_explainability_extract" title="Link to this definition">¶</a></dt>
@@ -708,21 +669,6 @@ LazyFrame; <code class="docutils literal notranslate"><span class="pre">self.sam
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="id0">
-<span class="sig-name descname"><span class="pre">plot</span></span><a class="headerlink" href="#id0" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id1">
-<span class="sig-name descname"><span class="pre">aggregates</span></span><a class="headerlink" href="#id1" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id2">
-<span class="sig-name descname"><span class="pre">scoring</span></span><a class="headerlink" href="#id2" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.level">
 <span class="sig-name descname"><span class="pre">level</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Stage</span> <span class="pre">Group'</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.level" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -733,18 +679,8 @@ LazyFrame; <code class="docutils literal notranslate"><span class="pre">self.sam
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="id3">
-<span class="sig-name descname"><span class="pre">extract_type</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'decision_analyzer'</span></span><a class="headerlink" href="#id3" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.validation_error">
 <span class="sig-name descname"><span class="pre">validation_error</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'The</span> <span class="pre">following</span> <span class="pre">default</span> <span class="pre">columns</span> <span class="pre">are</span> <span class="pre">missing:</span> <span class="pre">'</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.validation_error" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id4">
-<span class="sig-name descname"><span class="pre">decision_data</span></span><a class="headerlink" href="#id4" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -823,13 +759,14 @@ column is available.</p>
 consistent throughout the session regardless of filtering.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p><p>Nested dictionary mapping dimension names to color dictionaries.
-Example: {</p>
-<blockquote>
-<div><p>”Issue”: {“Retention”: “#001F5F”, “Sales”: “#10A5AC”},
-“Group”: {“CreditCards”: “#001F5F”, “Loans”: “#10A5AC”},</p>
-</div></blockquote>
-<p>}</p>
+<dd class="field-odd"><p><p>Nested dictionary mapping dimension names to color dictionaries.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;Issue&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;Retention&quot;</span><span class="p">:</span> <span class="s2">&quot;#001F5F&quot;</span><span class="p">,</span> <span class="s2">&quot;Sales&quot;</span><span class="p">:</span> <span class="s2">&quot;#10A5AC&quot;</span><span class="p">},</span>
+    <span class="s2">&quot;Group&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;CreditCards&quot;</span><span class="p">:</span> <span class="s2">&quot;#001F5F&quot;</span><span class="p">,</span> <span class="s2">&quot;Loans&quot;</span><span class="p">:</span> <span class="s2">&quot;#10A5AC&quot;</span><span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 </p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1026,6 +963,18 @@ the full data).</p>
 </dd></dl>
 
 </section>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>raw_data</strong> (<em>polars.LazyFrame</em>)</p></li>
+<li><p><strong>level</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>sample_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+<li><p><strong>mandatory_expr</strong> (<em>polars.Expr</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>additional_columns</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>polars.DataType</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>num_samples</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -1108,14 +1057,9 @@ the full data).</p>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.scoring"><code class="docutils literal notranslate"><span class="pre">scoring</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_explainability_extract"><code class="docutils literal notranslate"><span class="pre">from_explainability_extract()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_decision_analyzer"><code class="docutils literal notranslate"><span class="pre">from_decision_analyzer()</span></code></a></li>
-<li><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">plot</span></code></a></li>
-<li><a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">aggregates</span></code></a></li>
-<li><a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">scoring</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.level"><code class="docutils literal notranslate"><span class="pre">level</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.sample_size"><code class="docutils literal notranslate"><span class="pre">sample_size</span></code></a></li>
-<li><a class="reference internal" href="#id3"><code class="docutils literal notranslate"><span class="pre">extract_type</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.validation_error"><code class="docutils literal notranslate"><span class="pre">validation_error</span></code></a></li>
-<li><a class="reference internal" href="#id4"><code class="docutils literal notranslate"><span class="pre">decision_data</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.fields_for_data_filtering"><code class="docutils literal notranslate"><span class="pre">fields_for_data_filtering</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.preaggregation_columns"><code class="docutils literal notranslate"><span class="pre">preaggregation_columns</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.max_win_rank"><code class="docutils literal notranslate"><span class="pre">max_win_rank</span></code></a></li>

@@ -42,15 +42,10 @@ Module Contents
    :class:`~pdstools.ih.IH.IH` instance.
 
    All aggregation methods support:
+
    - Grouping by dimensions via `by` parameter
    - Time bucketing via `every` parameter
    - Data filtering via `query` parameter
-
-   .. attribute:: ih
-
-      Reference to the parent IH instance.
-
-      :type: IH
 
    .. seealso::
 
@@ -68,6 +63,9 @@ Module Contents
 
 
    .. py:attribute:: ih
+      :type:  pdstools.ih.IH.IH
+
+      Reference to the parent IH instance.
 
 
    .. py:method:: summarize_by_interaction(by: str | collections.abc.Sequence[str | polars.Expr] | polars.Expr | None = None, every: str | datetime.timedelta | None = None, query: pdstools.utils.types.QUERY | None = None, debug: bool = False) -> polars.LazyFrame

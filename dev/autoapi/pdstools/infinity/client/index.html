@@ -222,10 +222,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBModelVisualisation.html">Deep Dive into ADM Gradient Boosting Models</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBExplained.html">Adaptive Gradient Boosting (AGB) Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
@@ -469,7 +469,7 @@
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">from_client_id_and_secret()</span></code> constructors over calling
 <code class="docutils literal notranslate"><span class="pre">Infinity(...)</span></code> directly — they handle auth construction for you.</p>
 <p>The Pega version is resolved lazily on first access of
-<a href="#id1"><span class="problematic" id="id2">:pyattr:`version`</span></a>. When <code class="docutils literal notranslate"><span class="pre">pega_version=</span></code> is passed explicitly, no
+<code class="docutils literal notranslate"><span class="pre">version</span></code>. When <code class="docutils literal notranslate"><span class="pre">pega_version=</span></code> is passed explicitly, no
 HTTP request is ever made; otherwise the first read of
 <code class="docutils literal notranslate"><span class="pre">client.version</span></code> (or any version-dependent resource such as
 <code class="docutils literal notranslate"><span class="pre">client.prediction_studio</span></code>) issues a single
@@ -533,7 +533,7 @@ methods that can be awaited directly.</p>
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">from_client_id_and_secret()</span></code> constructors over calling
 <code class="docutils literal notranslate"><span class="pre">AsyncInfinity(...)</span></code> directly.</p>
 <p>The Pega version is resolved lazily on first access of
-<a href="#id3"><span class="problematic" id="id4">:pyattr:`version`</span></a>. When <code class="docutils literal notranslate"><span class="pre">pega_version=</span></code> is passed explicitly, no
+<code class="docutils literal notranslate"><span class="pre">version</span></code>. When <code class="docutils literal notranslate"><span class="pre">pega_version=</span></code> is passed explicitly, no
 HTTP request is ever made; otherwise the first read of
 <code class="docutils literal notranslate"><span class="pre">client.version</span></code> (or any version-dependent resource such as
 <code class="docutils literal notranslate"><span class="pre">client.prediction_studio</span></code>) issues a single HTTP probe and caches

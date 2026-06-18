@@ -42,16 +42,11 @@ Module Contents
    :class:`~pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer` instance.
 
    All plot methods support:
+
    - Custom titles via `title` parameter
    - Data filtering via `query` parameter
    - Faceting by dimension via `facet` parameter
    - Returning underlying data via `return_df=True`
-
-   .. attribute:: ia
-
-      Reference to the parent ImpactAnalyzer instance.
-
-      :type: ImpactAnalyzer
 
    .. seealso::
 
@@ -77,6 +72,9 @@ Module Contents
 
 
    .. py:attribute:: ia
+      :type:  pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer
+
+      Reference to the parent ImpactAnalyzer instance.
 
 
    .. py:method:: overview(*, title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., metric: str = ..., facet: str | None = ..., return_df: Literal[False] = ...) -> pdstools.utils.plot_utils.Figure

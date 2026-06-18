@@ -39,36 +39,6 @@ Module Contents
    engagement, conversion, and open rate metrics through customizable
    outcome label mappings.
 
-   .. attribute:: data
-
-      The underlying interaction history data.
-
-      :type: pl.LazyFrame
-
-   .. attribute:: aggregates
-
-      Aggregation methods accessor.
-
-      :type: Aggregates
-
-   .. attribute:: plot
-
-      Plot accessor for visualization methods.
-
-      :type: Plots
-
-   .. attribute:: positive_outcome_labels
-
-      Mapping of metric types to positive outcome labels.
-
-      :type: dict
-
-   .. attribute:: negative_outcome_labels
-
-      Mapping of metric types to negative outcome labels.
-
-      :type: dict
-
    .. seealso::
 
       :py:obj:`pdstools.adm.ADMDatamart`
@@ -88,9 +58,23 @@ Module Contents
    .. py:attribute:: data
       :type:  polars.LazyFrame
 
+      The underlying interaction history data.
+
 
    .. py:attribute:: outcome_labels_used
       :type:  dict | None
+
+
+   .. py:attribute:: aggregates
+      :type:  pdstools.ih.Aggregates.Aggregates
+
+      Aggregation methods accessor.
+
+
+   .. py:attribute:: plot
+      :type:  pdstools.ih.Plots.Plots
+
+      Plot accessor for visualization methods.
 
 
    .. py:attribute:: positive_outcome_labels
@@ -103,12 +87,6 @@ Module Contents
       :type:  ClassVar[dict[str, list[str]]]
 
       Mapping of metric types to negative outcome labels.
-
-
-   .. py:attribute:: aggregates
-
-
-   .. py:attribute:: plot
 
 
    .. py:method:: from_ds_export(ih_filename: os.PathLike | str, *, query: pdstools.utils.types.QUERY | None = None) -> IH

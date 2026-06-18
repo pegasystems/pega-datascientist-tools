@@ -222,10 +222,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBModelVisualisation.html">Deep Dive into ADM Gradient Boosting Models</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBExplained.html">Adaptive Gradient Boosting (AGB) Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
@@ -550,53 +550,21 @@ level.</p></li>
 <dd><p>Structured representation of a statistical formula.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.Formula.name">
-<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.Formula.name" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.Formula.name" title="Link to this definition">¶</a></dt>
 <dd><p>Short identifier, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;accept_rate&quot;</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.Formula.latex">
-<span class="sig-name descname"><span class="pre">latex</span></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.Formula.latex" title="Link to this definition">¶</a></dt>
-<dd><p>Raw LaTeX expression (no placeholder substitution — the UI
-renders the symbolic form alongside a separate substitution
-block showing the numeric values).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
-</dd>
-</dl>
+<span class="sig-name descname"><span class="pre">latex</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.Formula.latex" title="Link to this definition">¶</a></dt>
+<dd><p>Raw LaTeX expression for the statistic.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.Formula.description">
-<span class="sig-name descname"><span class="pre">description</span></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.Formula.description" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">description</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.Formula.description" title="Link to this definition">¶</a></dt>
 <dd><p>One-line plain-English description.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
-</dd>
-</dl>
 </dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id0">
-<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#id0" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id1">
-<span class="sig-name descname"><span class="pre">latex</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#id1" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id2">
-<span class="sig-name descname"><span class="pre">description</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#id2" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
 
 </dd></dl>
 
@@ -609,125 +577,51 @@ block showing the numeric values).</p>
 <dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">LiftResult</span></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult" title="Link to this definition">¶</a></dt>
 <dd><p>Result of a lift calculation with standard error.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.lift">
-<span class="sig-name descname"><span class="pre">lift</span></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult.lift" title="Link to this definition">¶</a></dt>
-<dd><p>Relative lift <code class="docutils literal notranslate"><span class="pre">(test</span> <span class="pre">-</span> <span class="pre">control)</span> <span class="pre">/</span> <span class="pre">control</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.se">
-<span class="sig-name descname"><span class="pre">se</span></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult.se" title="Link to this definition">¶</a></dt>
-<dd><p>Delta-method standard error for <em>lift</em>.  This is the
-full-precision SE <strong>without</strong> any <em>z</em>-multiplier.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.significant">
-<span class="sig-name descname"><span class="pre">significant</span></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult.significant" title="Link to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">True</span></code> when the CI does not cross zero.  The check uses
-<code class="docutils literal notranslate"><span class="pre">lift</span> <span class="pre">±</span> <span class="pre">z</span> <span class="pre">*</span> <span class="pre">se</span></code> where <code class="docutils literal notranslate"><span class="pre">z</span> <span class="pre">=</span> <span class="pre">1.96</span></code> (95 % level) after
-rounding <code class="docutils literal notranslate"><span class="pre">se</span></code> to 4 decimal places, matching Pega’s
-<code class="docutils literal notranslate"><span class="pre">Math.round(error</span> <span class="pre">*</span> <span class="pre">10000.0)</span> <span class="pre">/</span> <span class="pre">10000.0</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.test_rate">
-<span class="sig-name descname"><span class="pre">test_rate</span></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult.test_rate" title="Link to this definition">¶</a></dt>
-<dd><p>Observed test-group rate (accept rate or value per impression).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.control_rate">
-<span class="sig-name descname"><span class="pre">control_rate</span></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult.control_rate" title="Link to this definition">¶</a></dt>
-<dd><p>Observed control-group rate.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.test_se">
-<span class="sig-name descname"><span class="pre">test_se</span></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult.test_se" title="Link to this definition">¶</a></dt>
-<dd><p>Standard error of the test rate.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.control_se">
-<span class="sig-name descname"><span class="pre">control_se</span></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult.control_se" title="Link to this definition">¶</a></dt>
-<dd><p>Standard error of the control rate.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
-</dd>
-</dl>
-</dd></dl>
-
 <p class="rubric">Notes</p>
 <p>Pega stores <strong>standard errors</strong>, not confidence intervals.  The
 <code class="docutils literal notranslate"><span class="pre">se</span></code> field is the raw SE.  Call <a class="reference internal" href="#pdstools.impactanalyzer.statistics.LiftResult.ci_95" title="pdstools.impactanalyzer.statistics.LiftResult.ci_95"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ci_95()</span></code></a> to obtain the
 95 % CI half-width (<code class="docutils literal notranslate"><span class="pre">Z_95</span> <span class="pre">*</span> <span class="pre">se</span></code>).</p>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="id3">
-<span class="sig-name descname"><span class="pre">lift</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#id3" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.lift">
+<span class="sig-name descname"><span class="pre">lift</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult.lift" title="Link to this definition">¶</a></dt>
+<dd><p>Relative lift <code class="docutils literal notranslate"><span class="pre">(test</span> <span class="pre">-</span> <span class="pre">control)</span> <span class="pre">/</span> <span class="pre">control</span></code>.</p>
+</dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="id4">
-<span class="sig-name descname"><span class="pre">se</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#id4" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.se">
+<span class="sig-name descname"><span class="pre">se</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult.se" title="Link to this definition">¶</a></dt>
+<dd><p>Delta-method standard error for <code class="docutils literal notranslate"><span class="pre">lift</span></code> without any z-multiplier.</p>
+</dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="id5">
-<span class="sig-name descname"><span class="pre">significant</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><a class="headerlink" href="#id5" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.significant">
+<span class="sig-name descname"><span class="pre">significant</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult.significant" title="Link to this definition">¶</a></dt>
+<dd><p>Whether the confidence interval excludes zero.</p>
+</dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="id6">
-<span class="sig-name descname"><span class="pre">test_rate</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#id6" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.test_rate">
+<span class="sig-name descname"><span class="pre">test_rate</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult.test_rate" title="Link to this definition">¶</a></dt>
+<dd><p>Observed test-group rate.</p>
+</dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="id7">
-<span class="sig-name descname"><span class="pre">control_rate</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#id7" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.control_rate">
+<span class="sig-name descname"><span class="pre">control_rate</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult.control_rate" title="Link to this definition">¶</a></dt>
+<dd><p>Observed control-group rate.</p>
+</dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="id8">
-<span class="sig-name descname"><span class="pre">test_se</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#id8" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.test_se">
+<span class="sig-name descname"><span class="pre">test_se</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult.test_se" title="Link to this definition">¶</a></dt>
+<dd><p>Standard error of the test rate.</p>
+</dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="id9">
-<span class="sig-name descname"><span class="pre">control_se</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#id9" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.control_se">
+<span class="sig-name descname"><span class="pre">control_se</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><a class="headerlink" href="#pdstools.impactanalyzer.statistics.LiftResult.control_se" title="Link to this definition">¶</a></dt>
+<dd><p>Standard error of the control rate.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.impactanalyzer.statistics.LiftResult.ci_95">
@@ -1101,9 +995,6 @@ allocation) is more common.</p></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.statistics.Formula.name"><code class="docutils literal notranslate"><span class="pre">name</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.statistics.Formula.latex"><code class="docutils literal notranslate"><span class="pre">latex</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.statistics.Formula.description"><code class="docutils literal notranslate"><span class="pre">description</span></code></a></li>
-<li><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">name</span></code></a></li>
-<li><a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">latex</span></code></a></li>
-<li><a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">description</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.statistics.FORMULAS"><code class="docutils literal notranslate"><span class="pre">FORMULAS</span></code></a></li>
@@ -1115,13 +1006,6 @@ allocation) is more common.</p></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.statistics.LiftResult.control_rate"><code class="docutils literal notranslate"><span class="pre">control_rate</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.statistics.LiftResult.test_se"><code class="docutils literal notranslate"><span class="pre">test_se</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.statistics.LiftResult.control_se"><code class="docutils literal notranslate"><span class="pre">control_se</span></code></a></li>
-<li><a class="reference internal" href="#id3"><code class="docutils literal notranslate"><span class="pre">lift</span></code></a></li>
-<li><a class="reference internal" href="#id4"><code class="docutils literal notranslate"><span class="pre">se</span></code></a></li>
-<li><a class="reference internal" href="#id5"><code class="docutils literal notranslate"><span class="pre">significant</span></code></a></li>
-<li><a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">test_rate</span></code></a></li>
-<li><a class="reference internal" href="#id7"><code class="docutils literal notranslate"><span class="pre">control_rate</span></code></a></li>
-<li><a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">test_se</span></code></a></li>
-<li><a class="reference internal" href="#id9"><code class="docutils literal notranslate"><span class="pre">control_se</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.statistics.LiftResult.ci_95"><code class="docutils literal notranslate"><span class="pre">ci_95()</span></code></a></li>
 </ul>
 </li>

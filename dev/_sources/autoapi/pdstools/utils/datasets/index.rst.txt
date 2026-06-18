@@ -30,7 +30,13 @@ Module Contents
 
 .. py:function:: sample_trees()
 
-   Sample trees.
+   Load the anonymized AGB sample model (100 trees, with sampleCount).
+
+   :returns: An :class:`~pdstools.adm.trees.ADMTreesModel` loaded from the
+             bundled ``data/agb/ModelExportWithSampleCount.json`` file (dev
+             environment) or from the canonical GitHub raw URL (installed
+             package).
+   :rtype: ADMTreesModel
 
 
 .. py:function:: sample_value_finder(threshold: float | None = None) -> pdstools.valuefinder.ValueFinder.ValueFinder

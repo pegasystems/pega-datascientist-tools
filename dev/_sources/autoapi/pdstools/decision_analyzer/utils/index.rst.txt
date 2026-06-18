@@ -57,39 +57,35 @@ Module Contents
    Resolves column mappings between raw data and a standardized schema.
 
    Raw decision data can come from multiple sources with different schemas:
+
    - Explainability Extract vs Decision Analyzer exports
    - Inbound vs Outbound channel data
 
    For example, channel information may appear as:
+
    - 'Channel' (already using the display name)
    - 'pyChannel' (an alias for the display name)
    - 'Primary_ContainerPayload_Channel' (raw name needing rename)
    - Both raw key and display_name present (conflict requiring resolution)
 
    This class normalizes these variations by:
+
    - Mapping raw column names to standardized display names
    - Resolving conflicts when both raw and display_name columns exist
    - Building the final schema with consistent column names
 
-   .. attribute:: table_definition
-
-      Column definitions with 'display_name', 'default', and 'type' keys
-
-      :type: dict
-
-   .. attribute:: raw_columns
-
-      Column names present in the raw data
-
-      :type: set[str]
 
 
    .. py:attribute:: table_definition
       :type:  dict
 
+      Column definitions with display names, defaults, and target dtypes.
+
 
    .. py:attribute:: raw_columns
       :type:  set[str]
+
+      Column names present in the raw data.
 
 
    .. py:attribute:: rename_mapping
@@ -232,12 +228,15 @@ Module Contents
    :param selected_action: Currently selected action (optional)
    :type selected_action: str | None
 
-   :returns: dict with structure:
-             {
-                 "issues": {"options": [...], "index": 0},
-                 "groups": {"options": ["All", ...], "index": 0},
-                 "actions": {"options": ["All", ...], "index": 0}
-             }
+   :returns:
+
+             Dict with structure::
+
+                 {
+                     "issues": {"options": [...], "index": 0},
+                     "groups": {"options": ["All", ...], "index": 0},
+                     "actions": {"options": ["All", ...], "index": 0},
+                 }
    :rtype: dict[str, dict[str, list[str] | int]]
 
 

@@ -222,10 +222,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBModelVisualisation.html">Deep Dive into ADM Gradient Boosting Models</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBExplained.html">Adaptive Gradient Boosting (AGB) Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
@@ -482,26 +482,12 @@
 <p>This class provides aggregation capabilities for summarizing customer
 interaction data. It is accessed through the <cite>aggregates</cite> attribute of an
 <a class="reference internal" href="../IH/index.html#pdstools.ih.IH.IH" title="pdstools.ih.IH.IH"><code class="xref py py-class docutils literal notranslate"><span class="pre">IH</span></code></a> instance.</p>
-<p>All aggregation methods support:
-- Grouping by dimensions via <cite>by</cite> parameter
-- Time bucketing via <cite>every</cite> parameter
-- Data filtering via <cite>query</cite> parameter</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>ih</strong> (<a class="reference internal" href="../IH/index.html#pdstools.ih.IH.IH" title="pdstools.ih.IH.IH"><em>pdstools.ih.IH.IH</em></a>)</p>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.ih.Aggregates.Aggregates.ih">
-<span class="sig-name descname"><span class="pre">ih</span></span><a class="headerlink" href="#pdstools.ih.Aggregates.Aggregates.ih" title="Link to this definition">¶</a></dt>
-<dd><p>Reference to the parent IH instance.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="../IH/index.html#pdstools.ih.IH.IH" title="pdstools.ih.IH.IH">IH</a></p>
-</dd>
-</dl>
-</dd></dl>
-
+<p>All aggregation methods support:</p>
+<ul class="simple">
+<li><p>Grouping by dimensions via <cite>by</cite> parameter</p></li>
+<li><p>Time bucketing via <cite>every</cite> parameter</p></li>
+<li><p>Data filtering via <cite>query</cite> parameter</p></li>
+</ul>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
@@ -517,10 +503,16 @@ interaction data. It is accessed through the <cite>aggregates</cite> attribute o
 <span class="gp">&gt;&gt;&gt; </span><span class="n">ih</span><span class="o">.</span><span class="n">aggregates</span><span class="o">.</span><span class="n">summary_outcomes</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="s2">&quot;1w&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ih</strong> (<a class="reference internal" href="../IH/index.html#pdstools.ih.IH.IH" title="pdstools.ih.IH.IH"><em>pdstools.ih.IH.IH</em></a>)</p>
+</dd>
+</dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="id0">
-<span class="sig-name descname"><span class="pre">ih</span></span><a class="headerlink" href="#id0" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="pdstools.ih.Aggregates.Aggregates.ih">
+<span class="sig-name descname"><span class="pre">ih</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../IH/index.html#pdstools.ih.IH.IH" title="pdstools.ih.IH.IH"><span class="pre">pdstools.ih.IH.IH</span></a></span><a class="headerlink" href="#pdstools.ih.Aggregates.Aggregates.ih" title="Link to this definition">¶</a></dt>
+<dd><p>Reference to the parent IH instance.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.ih.Aggregates.Aggregates.summarize_by_interaction">
@@ -744,7 +736,6 @@ of outcomes across dimensions or time periods.</p>
 <li><a class="reference internal" href="#pdstools.ih.Aggregates.logger"><code class="docutils literal notranslate"><span class="pre">logger</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ih.Aggregates.Aggregates"><code class="docutils literal notranslate"><span class="pre">Aggregates</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.ih.Aggregates.Aggregates.ih"><code class="docutils literal notranslate"><span class="pre">ih</span></code></a></li>
-<li><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">ih</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ih.Aggregates.Aggregates.summarize_by_interaction"><code class="docutils literal notranslate"><span class="pre">summarize_by_interaction()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ih.Aggregates.Aggregates.summary_success_rates"><code class="docutils literal notranslate"><span class="pre">summary_success_rates()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.ih.Aggregates.Aggregates.summary_outcomes"><code class="docutils literal notranslate"><span class="pre">summary_outcomes()</span></code></a></li>

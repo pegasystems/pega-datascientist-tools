@@ -55,69 +55,8 @@ Module Contents
 
    Context related operations such as to filter unique contexts.
 
-   :param aggregate (Aggregate):
-   :type aggregate (Aggregate): The aggregate object to operate on.
-
-   .. attribute:: aggregate (Aggregate)
-
-      
-
-      :type: The aggregate object.
-
-   .. attribute:: _df (pl.DataFrame | None)
-
-      
-
-      :type: DataFrame containing context information.
-
-   .. attribute:: _context_keys (list[str] | None)
-
-      
-
-      :type: list of context keys.
-
-   .. attribute:: initialized (bool)
-
-      
-
-      :type: Flag indicating if the context operations have been initialized.
-
-   .. method:: get_context_keys():
-
-      Returns the list of context keys from loaded data.
-      Eg. ['pyChannel', 'pyDirection', ...]
-      
-
-   .. method:: get_df(context_infos=None, with_partition_col=False):
-
-      Returns a DataFrame containing unique contexts
-      If `with_partition_col` is True, includes the partition column.
-      If `context_infos` is None, returns the full unique contexts,
-      else filtered by the context
-      Eg. with partition column:
-      | pyChannel | pyDirection | ... | partition |
-      |-----------|-------------|-----|-----------|
-      | channel1  | direction1  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction1"}} |
-      | channel1  | direction2  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction2"}} |
-      
-
-   .. method:: get_list(context_infos=None, with_partition_col=False):
-
-      Returns a list[ContextInfo] containing unique contexts
-      If `with_partition_col` is True, includes the partition column.
-      If `context_infos` is None, returns the full unique contexts,
-      else filtered by the context
-      Eg. without partition column:
-      [
-          {"pyChannel": "channel1", "pyDirection": "direction1", ...},
-          {"pyChannel": "channel1", "pyDirection": "direction2", ...},
-      ]
-      
-
-   .. method:: get_context_info_str(context_info, sep="-"):
-
-      Returns a string representation of a single context information.
-      Eg. channel1-direction1-...
+   :param aggregate: The aggregate object to operate on.
+   :type aggregate: Aggregate
 
 
    .. py:attribute:: dependencies
@@ -132,28 +71,54 @@ Module Contents
 
 
    .. py:attribute:: aggregate
+      :type:  pdstools.explanations.Aggregate.Aggregate
+
+      Parent aggregate object used to load contextual data.
 
 
    .. py:attribute:: initialized
-      :value: False
+      :type:  bool
 
+      Whether the contextual data cache has been loaded.
 
 
    .. py:method:: get_context_keys() -> list[str]
 
-      Get context keys.
+      Return the contextual key columns available in the loaded data.
+
+      :returns: Context key names such as ``["pyChannel", "pyDirection", ...]``.
+      :rtype: list[str]
 
 
 
    .. py:method:: get_df(context_infos: list[ContextInfo] | None = None, with_partition_col: bool = False) -> polars.DataFrame
 
-      Get the DataFrame filtered by the provided context information.
+      Return unique contexts as a DataFrame.
+
+      :param context_infos: Optional context filters. When omitted, returns all unique contexts.
+      :type context_infos: list[ContextInfo] | None, default None
+      :param with_partition_col: Whether to include the raw partition column alongside the expanded
+                                 context keys.
+      :type with_partition_col: bool, default False
+
+      :returns: A DataFrame of unique contexts. When ``with_partition_col`` is
+                ``True``, the partition column is retained in the result.
+      :rtype: pl.DataFrame
 
 
 
    .. py:method:: get_list(context_infos: list[ContextInfo] | None = None, with_partition_col: bool = False) -> list[ContextInfo]
 
-      Get the list of context information filtered by the provided context information.
+      Return unique contexts as dictionaries.
+
+      :param context_infos: Optional context filters. When omitted, returns all unique contexts.
+      :type context_infos: list[ContextInfo] | None, default None
+      :param with_partition_col: Whether to include the raw partition column in each returned item.
+      :type with_partition_col: bool, default False
+
+      :returns: Unique context dictionaries, optionally filtered by the provided
+                context information.
+      :rtype: list[ContextInfo]
 
 
 
@@ -161,7 +126,15 @@ Module Contents
       :staticmethod:
 
 
-      Get context info str.
+      Format a context dictionary as a single string.
+
+      :param context_info: Context values to format.
+      :type context_info: ContextInfo
+      :param sep: Separator inserted between context values.
+      :type sep: str, default "-"
+
+      :returns: A compact context string such as ``channel1-direction1-...``.
+      :rtype: str
 
 
 

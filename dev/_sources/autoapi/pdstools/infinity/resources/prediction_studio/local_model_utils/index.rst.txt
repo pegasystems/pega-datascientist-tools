@@ -50,42 +50,7 @@ Module Contents
    Bases: :py:obj:`enum.Enum`
 
 
-   Create a collection of name/value pairs.
-
-   Example enumeration:
-
-   >>> class Color(Enum):
-   ...     RED = 1
-   ...     BLUE = 2
-   ...     GREEN = 3
-
-   Access them by:
-
-   - attribute access::
-
-   >>> Color.RED
-   <Color.RED: 1>
-
-   - value lookup:
-
-   >>> Color(1)
-   <Color.RED: 1>
-
-   - name lookup:
-
-   >>> Color['RED']
-   <Color.RED: 1>
-
-   Enumerations can be iterated over, and know how many members they have:
-
-   >>> len(Color)
-   3
-
-   >>> list(Color)
-   [<Color.RED: 1>, <Color.BLUE: 2>, <Color.GREEN: 3>]
-
-   Methods can be added to enumerations, and members can have their own
-   attributes -- see the documentation for details.
+   Supported outcome types for local Prediction Studio model metadata.
 
 
    .. py:attribute:: BINARY
@@ -172,38 +137,7 @@ Module Contents
    Bases: :py:obj:`pydantic.BaseModel`
 
 
-   !!! abstract "Usage Documentation"
-       [Models](../concepts/models.md)
-
-   A base class for creating Pydantic models.
-
-   Attributes:
-       __class_vars__: The names of the class variables defined on the model.
-       __private_attributes__: Metadata about the private attributes of the model.
-       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
-
-       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-       __pydantic_core_schema__: The core schema of the model.
-       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
-       __pydantic_decorators__: Metadata containing the decorators defined on the model.
-           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
-       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
-           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
-           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
-       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-       __pydantic_post_init__: The name of the post-init method for the model, if defined.
-       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
-       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
-       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
-
-       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
-       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
-
-       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
-           is set to `'allow'`.
-       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
-       __pydantic_private__: Values of private attributes set on the model instance.
+   Model output metadata stored in the embedded Pega metadata block.
 
 
    .. py:attribute:: possible_values
@@ -244,38 +178,7 @@ Module Contents
    Bases: :py:obj:`pydantic.BaseModel`
 
 
-   !!! abstract "Usage Documentation"
-       [Models](../concepts/models.md)
-
-   A base class for creating Pydantic models.
-
-   Attributes:
-       __class_vars__: The names of the class variables defined on the model.
-       __private_attributes__: Metadata about the private attributes of the model.
-       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
-
-       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-       __pydantic_core_schema__: The core schema of the model.
-       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
-       __pydantic_decorators__: Metadata containing the decorators defined on the model.
-           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
-       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
-           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
-           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
-       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-       __pydantic_post_init__: The name of the post-init method for the model, if defined.
-       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
-       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
-       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
-
-       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
-       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
-
-       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
-           is set to `'allow'`.
-       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
-       __pydantic_private__: Values of private attributes set on the model instance.
+   Top-level Pega metadata embedded in an ONNX model.
 
 
    .. py:attribute:: type
@@ -419,15 +322,17 @@ Module Contents
       Build a predictor list from feature names or Pega property paths.
 
       This is the **recommended** one‑liner for constructing
-      predictors.  Each entry in *features* can be:
+      predictors.
 
-      * A **Pega property path** starting with ``"."``
-        (e.g. ``".Customer.Age"``).  The leaf segment becomes the
-        predictor ``name`` (``"Age"``) and the full path is stored as
-        ``pega_property`` so Pega Prediction Studio auto‑maps the
-        field on upload.
-      * A **plain feature name** (e.g. ``"Age"``).  Used as‑is for
-        ``name``; ``pega_property`` is left unset.
+      Each entry in ``features`` can be a **Pega property path** starting
+      with ``"."`` (for example ``".Customer.Age"``). The leaf segment
+      becomes the predictor ``name`` (``"Age"``) and the full path is
+      stored as ``pega_property`` so Pega Prediction Studio auto-maps the
+      field on upload.
+
+      Each entry can also be a **plain feature name** (for example
+      ``"Age"``). In that case the value is used as-is for ``name`` and
+      ``pega_property`` is left unset.
 
       Indices are assigned automatically (1‑based) in the order the
       features appear.
@@ -436,14 +341,14 @@ Module Contents
                        match the column order in the ONNX input tensor.  Accepts
                        any mix of plain names and Pega property paths.
       :param input_name: Name of the ONNX input node.  Default ``"features"``.
-      :param data_types: Optional type annotations for features.  Accepts either:
+      :param data_types: Optional type annotations for features.
 
-                         * A **list** of ``"Numeric"`` / ``"Symbolic"`` values,
-                           one per feature (must match *features* length).
-                         * A **dict** mapping feature *names* (the leaf segment for
-                           Pega paths) to ``"Numeric"`` or ``"Symbolic"``.  Only the
-                           features present in the dict are overridden; the rest
-                           default to ``"Numeric"``.
+                         Accepts either a **list** of ``"Numeric"`` / ``"Symbolic"``
+                         values, one per feature and matching ``features`` length, or a
+                         **dict** mapping feature *names* (the leaf segment for Pega
+                         paths) to ``"Numeric"`` or ``"Symbolic"``. Only the features
+                         present in the dict are overridden; the rest default to
+                         ``"Numeric"``.
 
                          When ``None`` every feature defaults to ``"Numeric"``.
 
@@ -489,38 +394,7 @@ Module Contents
    Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.base.LocalModel`
 
 
-   !!! abstract "Usage Documentation"
-       [Models](../concepts/models.md)
-
-   A base class for creating Pydantic models.
-
-   Attributes:
-       __class_vars__: The names of the class variables defined on the model.
-       __private_attributes__: Metadata about the private attributes of the model.
-       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
-
-       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-       __pydantic_core_schema__: The core schema of the model.
-       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
-       __pydantic_decorators__: Metadata containing the decorators defined on the model.
-           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
-       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
-           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
-           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
-       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-       __pydantic_post_init__: The name of the post-init method for the model, if defined.
-       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
-       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
-       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
-
-       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
-       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
-
-       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
-           is set to `'allow'`.
-       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
-       __pydantic_private__: Values of private attributes set on the model instance.
+   Wrapper around a PMML file path.
 
 
    .. py:attribute:: file_path
@@ -541,38 +415,7 @@ Module Contents
    Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.base.LocalModel`
 
 
-   !!! abstract "Usage Documentation"
-       [Models](../concepts/models.md)
-
-   A base class for creating Pydantic models.
-
-   Attributes:
-       __class_vars__: The names of the class variables defined on the model.
-       __private_attributes__: Metadata about the private attributes of the model.
-       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
-
-       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-       __pydantic_core_schema__: The core schema of the model.
-       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
-       __pydantic_decorators__: Metadata containing the decorators defined on the model.
-           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
-       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
-           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
-           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
-       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-       __pydantic_post_init__: The name of the post-init method for the model, if defined.
-       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
-       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
-       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
-
-       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
-       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
-
-       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
-           is set to `'allow'`.
-       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
-       __pydantic_private__: Values of private attributes set on the model instance.
+   Wrapper around an H2O model file path.
 
 
    .. py:attribute:: file_path
@@ -593,38 +436,7 @@ Module Contents
    Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.base.LocalModel`
 
 
-   !!! abstract "Usage Documentation"
-       [Models](../concepts/models.md)
-
-   A base class for creating Pydantic models.
-
-   Attributes:
-       __class_vars__: The names of the class variables defined on the model.
-       __private_attributes__: Metadata about the private attributes of the model.
-       __signature__: The synthesized `__init__` [`Signature`][inspect.Signature] of the model.
-
-       __pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-       __pydantic_core_schema__: The core schema of the model.
-       __pydantic_custom_init__: Whether the model has a custom `__init__` function.
-       __pydantic_decorators__: Metadata containing the decorators defined on the model.
-           This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.
-       __pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.
-           The `origin` and `args` items map to the [`__origin__`][genericalias.__origin__]
-           and [`__args__`][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-           and the `parameter` item maps to the `__parameter__` attribute of generic classes.
-       __pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-       __pydantic_post_init__: The name of the post-init method for the model, if defined.
-       __pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].
-       __pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.
-       __pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.
-
-       __pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.
-       __pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.
-
-       __pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]
-           is set to `'allow'`.
-       __pydantic_fields_set__: The names of fields explicitly set during instantiation.
-       __pydantic_private__: Values of private attributes set on the model instance.
+   Wrapper around an in-memory ONNX model plus Pega metadata helpers.
 
 
    .. py:method:: from_onnx_proto(model: onnx.ModelProto) -> ONNXModel
@@ -711,8 +523,8 @@ Module Contents
 
       Validates an ONNX model.
 
-      :raises ImportError: If the optional dependencies for ONNX Validation are not installed.:
-      :raises ONNXModelValidationError: If the model is invalid or if the validation process fails.:
+      :raises ImportError: If the optional dependencies for ONNX Validation are not installed.
+      :raises ONNXModelValidationError: If the model is invalid or if the validation process fails.
 
 
 
@@ -720,17 +532,25 @@ Module Contents
 
       Run the prediction using the provided test data.
 
-      :param test_data: The test data to be used for prediction. It is a dictionary where each key is a column name from the dataset, and each value is a NumPy array representing the column data as a vector. For example:
-
-                        {
-                            'column1': array([[value1], [value2], [value3]]),
-                            'column2': array([[value4], [value5], [value6]]),
-                            'column3': array([[value7], [value8], [value9]])
-                        }
+      :param test_data: The test data to be used for prediction. It is a dictionary where
+                        each key is a column name from the dataset, and each value is a
+                        NumPy array representing the column data as a vector.
       :type test_data: dict
 
       :returns: The prediction result.
       :rtype: Any
+
+      .. rubric:: Examples
+
+      ``test_data`` should look like:
+
+      .. code-block:: python
+
+          {
+              "column1": array([[value1], [value2], [value3]]),
+              "column2": array([[value4], [value5], [value6]]),
+              "column3": array([[value7], [value8], [value9]]),
+          }
 
 
 
@@ -741,7 +561,7 @@ Module Contents
       :param onnx_file_path: The file path where the ONNX model should be saved.
       :type onnx_file_path: str
 
-      :raises ImportError: If the optional dependencies for ONNX Conversion are not installed.:
+      :raises ImportError: If the optional dependencies for ONNX Conversion are not installed.
 
 
 

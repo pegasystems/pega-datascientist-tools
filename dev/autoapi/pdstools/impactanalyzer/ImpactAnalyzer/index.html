@@ -222,10 +222,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBModelVisualisation.html">Deep Dive into ADM Gradient Boosting Models</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBExplained.html">Adaptive Gradient Boosting (AGB) Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
@@ -506,33 +506,6 @@ Interaction History data. Not yet implemented.</p></li>
 <div class="math notranslate nohighlight">
 \[\text{Value Lift} = \frac{\text{ValueCapture}_{test} - \text{ValueCapture}_{control}}{\text{ValueCapture}_{control}}\]</div>
 </div>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>raw_data</strong> (<em>polars.LazyFrame</em>)</p>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.ia_data">
-<span class="sig-name descname"><span class="pre">ia_data</span></span><a class="headerlink" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.ia_data" title="Link to this definition">¶</a></dt>
-<dd><p>The underlying experiment data containing control group metrics.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pl.LazyFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.plot">
-<span class="sig-name descname"><span class="pre">plot</span></span><a class="headerlink" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.plot" title="Link to this definition">¶</a></dt>
-<dd><p>Plot accessor for visualization methods.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="../../adm/Plots/index.html#pdstools.adm.Plots.Plots" title="pdstools.adm.Plots.Plots">Plots</a></p>
-</dd>
-</dl>
-</dd></dl>
-
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
@@ -549,10 +522,16 @@ Interaction History data. Not yet implemented.</p></li>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">ia</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">overview</span><span class="p">()</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>raw_data</strong> (<em>polars.LazyFrame</em>)</p>
+</dd>
+</dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="id0">
-<span class="sig-name descname"><span class="pre">ia_data</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></span><a class="headerlink" href="#id0" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.ia_data">
+<span class="sig-name descname"><span class="pre">ia_data</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></span><a class="headerlink" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.ia_data" title="Link to this definition">¶</a></dt>
+<dd><p>The underlying experiment data containing control group metrics.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.outcome_labels_used">
@@ -560,12 +539,18 @@ Interaction History data. Not yet implemented.</p></li>
 <dd></dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../Plots/index.html#pdstools.impactanalyzer.Plots.Plots" title="pdstools.impactanalyzer.Plots.Plots"><span class="pre">pdstools.impactanalyzer.Plots.Plots</span></a></span><a class="headerlink" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.plot" title="Link to this definition">¶</a></dt>
+<dd><p>Plot accessor for visualization methods.</p>
+</dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.default_ia_experiments">
 <span class="sig-name descname"><span class="pre">default_ia_experiments</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.default_ia_experiments" title="Link to this definition">¶</a></dt>
 <dd><p>Default experiments mapping experiment names to (control, test) group tuples.</p>
 <p>Names and ordering match the Pega Infinity Impact Analyzer product UI.
 Insertion order is the canonical display order — see
-<cite>summarize_experiments</cite> for how it is preserved through aggregation.</p>
+<a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summarize_experiments" title="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.summarize_experiments"><code class="xref py py-meth docutils literal notranslate"><span class="pre">summarize_experiments()</span></code></a> for how it is preserved through aggregation.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -577,11 +562,6 @@ Insertion order is the canonical display order — see
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.default_ia_controlgroups">
 <span class="sig-name descname"><span class="pre">default_ia_controlgroups</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.default_ia_controlgroups" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id1">
-<span class="sig-name descname"><span class="pre">plot</span></span><a class="headerlink" href="#id1" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -724,8 +704,8 @@ against multiple control experiments and would otherwise be double
 counted).</p>
 <p>The Channel field is built as <code class="docutils literal notranslate"><span class="pre">&quot;&lt;Channel&gt;/&lt;Direction&gt;&quot;</span></code> to match the
 convention used by <a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_vbd" title="pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_vbd"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_vbd()</span></code></a>.</p>
-<p>Excel reading is handled by polars’ built-in <code class="docutils literal notranslate"><span class="pre">calamine</span></code> engine
-through <code class="xref py py-func docutils literal notranslate"><span class="pre">pdstools.pega_io.File._read_excel()</span></code>.</p>
+<p>Excel reading is handled by the internal Excel reader built on
+polars’ <code class="docutils literal notranslate"><span class="pre">calamine</span></code> engine.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -836,7 +816,7 @@ control group, optionally grouped by additional dimensions.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>by</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><em>pl.Expr</em><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>pl.Expr</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – Column name(s) or expression(s) to group by in addition to
 ControlGroup. Default is None (aggregate all data).</p></li>
-<li><p><strong>drop_internal_cols</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, drop internal columns prefixed with ‘<a href="#id2"><span class="problematic" id="id3">Pega_</span></a>’.
+<li><p><strong>drop_internal_cols</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, drop internal columns prefixed with <code class="docutils literal notranslate"><span class="pre">Pega_</span></code>.
 Default is True.</p></li>
 </ul>
 </dd>
@@ -982,13 +962,11 @@ for all metrics (Impressions, Accepts, CTR_Lift, Value_Lift, etc.).</p>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.logger"><code class="docutils literal notranslate"><span class="pre">logger</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer"><code class="docutils literal notranslate"><span class="pre">ImpactAnalyzer</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.ia_data"><code class="docutils literal notranslate"><span class="pre">ia_data</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.plot"><code class="docutils literal notranslate"><span class="pre">plot</span></code></a></li>
-<li><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">ia_data</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.outcome_labels_used"><code class="docutils literal notranslate"><span class="pre">outcome_labels_used</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.plot"><code class="docutils literal notranslate"><span class="pre">plot</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.default_ia_experiments"><code class="docutils literal notranslate"><span class="pre">default_ia_experiments</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.outcome_labels"><code class="docutils literal notranslate"><span class="pre">outcome_labels</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.default_ia_controlgroups"><code class="docutils literal notranslate"><span class="pre">default_ia_controlgroups</span></code></a></li>
-<li><a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">plot</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_pdc"><code class="docutils literal notranslate"><span class="pre">from_pdc()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_vbd"><code class="docutils literal notranslate"><span class="pre">from_vbd()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer.from_ih"><code class="docutils literal notranslate"><span class="pre">from_ih()</span></code></a></li>

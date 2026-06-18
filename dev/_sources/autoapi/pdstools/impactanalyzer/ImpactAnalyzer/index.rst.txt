@@ -59,18 +59,6 @@ Module Contents
 
        \text{Value Lift} = \frac{\text{ValueCapture}_{test} - \text{ValueCapture}_{control}}{\text{ValueCapture}_{control}}
 
-   .. attribute:: ia_data
-
-      The underlying experiment data containing control group metrics.
-
-      :type: pl.LazyFrame
-
-   .. attribute:: plot
-
-      Plot accessor for visualization methods.
-
-      :type: Plots
-
    .. seealso::
 
       :py:obj:`pdstools.adm.ADMDatamart`
@@ -90,9 +78,17 @@ Module Contents
    .. py:attribute:: ia_data
       :type:  polars.LazyFrame
 
+      The underlying experiment data containing control group metrics.
+
 
    .. py:attribute:: outcome_labels_used
       :type:  dict | None
+
+
+   .. py:attribute:: plot
+      :type:  pdstools.impactanalyzer.Plots.Plots
+
+      Plot accessor for visualization methods.
 
 
    .. py:attribute:: default_ia_experiments
@@ -102,7 +98,7 @@ Module Contents
 
       Names and ordering match the Pega Infinity Impact Analyzer product UI.
       Insertion order is the canonical display order — see
-      `summarize_experiments` for how it is preserved through aggregation.
+      :meth:`summarize_experiments` for how it is preserved through aggregation.
 
 
    .. py:attribute:: outcome_labels
@@ -113,9 +109,6 @@ Module Contents
 
    .. py:attribute:: default_ia_controlgroups
       :type:  ClassVar[dict[str, list[str | None]]]
-
-
-   .. py:attribute:: plot
 
 
    .. py:method:: from_pdc(pdc_source: str | pathlib.Path | os.PathLike | list[str] | list[pathlib.Path] | list[os.PathLike], *, reader: collections.abc.Callable | None = None, query: pdstools.utils.types.QUERY | None = None, return_wide_df: Literal[True], return_df: bool = ...) -> polars.LazyFrame
@@ -251,8 +244,8 @@ Module Contents
       The Channel field is built as ``"<Channel>/<Direction>"`` to match the
       convention used by :meth:`from_vbd`.
 
-      Excel reading is handled by polars' built-in ``calamine`` engine
-      through :func:`pdstools.pega_io.File._read_excel`.
+      Excel reading is handled by the internal Excel reader built on
+      polars' ``calamine`` engine.
 
       :param excel_source: Path to the ``.xlsx`` file.
       :type excel_source: Union[str, Path, os.PathLike]
@@ -344,7 +337,7 @@ Module Contents
       :param by: Column name(s) or expression(s) to group by in addition to
                  ControlGroup. Default is None (aggregate all data).
       :type by: Optional[Union[list[str], list[pl.Expr], str, pl.Expr]], optional
-      :param drop_internal_cols: If True, drop internal columns prefixed with 'Pega_'.
+      :param drop_internal_cols: If True, drop internal columns prefixed with ``Pega_``.
                                  Default is True.
       :type drop_internal_cols: bool, optional
 

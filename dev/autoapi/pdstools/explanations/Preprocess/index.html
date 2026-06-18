@@ -222,10 +222,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBModelVisualisation.html">Deep Dive into ADM Gradient Boosting Models</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBExplained.html">Adaptive Gradient Boosting (AGB) Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
@@ -582,28 +582,26 @@
 <dd><p>Process explanation parquet files and save calculated aggregates.</p>
 <p>This method reads the explanation data from the provided location and creates
 aggregates for multiple contexts which are used to create global explanation plots.</p>
-<p>The different context aggregates are as follows:
-i) Overall Numeric Predictor Contributions</p>
-<blockquote>
-<div><p>The average contribution towards predicted model propensity
+<p>The different context aggregates are as follows:</p>
+<ol class="arabic">
+<li><p>Overall Numeric Predictor Contributions</p>
+<p>The average contribution towards predicted model propensity
 for each numeric predictor value decile.</p>
-</div></blockquote>
-<ol class="lowerroman simple" start="2">
-<li><p>Overal Symbolic Predictor Contributions
-The average contribution towards predicted model propensity
-for each symoblic predictor value.</p></li>
-<li><p>Context Specific Numeric Predictor Contributions</p></li>
-</ol>
-<blockquote>
-<div><p>The average contribution towards predicted model propensity
+</li>
+<li><p>Overall Symbolic Predictor Contributions</p>
+<p>The average contribution towards predicted model propensity
+for each symbolic predictor value.</p>
+</li>
+<li><p>Context Specific Numeric Predictor Contributions</p>
+<p>The average contribution towards predicted model propensity
 for each numeric predictor value decile, grouped by context key partition.</p>
-</div></blockquote>
-<ol class="lowerroman simple" start="4">
-<li><p>Overal Symbolic Predictor Contributions
-The average contribution towards predicted model propensity
-for each symoblic predictor value, grouped by context key partition.</p></li>
+</li>
+<li><p>Overall Symbolic Predictor Contributions</p>
+<p>The average contribution towards predicted model propensity
+for each symbolic predictor value, grouped by context key partition.</p>
+</li>
 </ol>
-<p>Each of the aggregates are written to parquet files to a temporary output dirtectory</p>
+<p>Each aggregate is written to parquet files in a temporary output directory.</p>
 </dd></dl>
 
 </dd></dl>

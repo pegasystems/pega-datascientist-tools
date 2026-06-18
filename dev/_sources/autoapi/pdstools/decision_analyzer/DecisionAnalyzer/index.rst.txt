@@ -60,38 +60,6 @@ Module Contents
    - :meth:`from_decision_analyzer`: Load from a Decision Analyzer (EEV2) file.
    - Direct ``__init__``: Auto-detects format from the data schema.
 
-   .. attribute:: decision_data
-
-      Interaction-level decision data (with global filters applied if any).
-
-      :type: pl.LazyFrame
-
-   .. attribute:: extract_type
-
-      Either ``"explainability_extract"`` or ``"decision_analyzer"``.
-
-      :type: str
-
-   .. attribute:: plot
-
-      Plot accessor for visualization methods.
-
-      :type: Plot
-
-   .. attribute:: aggregates
-
-      Accessor for aggregation queries (funnel, distribution,
-      optionality, action variation, …).
-
-      :type: Aggregates
-
-   .. attribute:: scoring
-
-      Accessor for re-ranking, sensitivity, win/loss and lever
-      analysis.
-
-      :type: Scoring
-
    .. rubric:: Examples
 
    >>> from pdstools import DecisionAnalyzer
@@ -156,6 +124,36 @@ Module Contents
    LazyFrame; ``self.sample`` is the small one.
 
 
+   .. py:attribute:: decision_data
+      :type:  polars.LazyFrame
+
+      Interaction-level decision data (with global filters applied if any).
+
+
+   .. py:attribute:: extract_type
+      :type:  str
+
+      Either ``"explainability_extract"`` or ``"decision_analyzer"``.
+
+
+   .. py:attribute:: plot
+      :type:  Plot | _PlotPlotlyMissing
+
+      Plot accessor for visualization methods.
+
+
+   .. py:attribute:: aggregates
+      :type:  pdstools.decision_analyzer._aggregates.Aggregates
+
+      Accessor for aggregation queries such as funnel and distribution views.
+
+
+   .. py:attribute:: scoring
+      :type:  pdstools.decision_analyzer._scoring.Scoring
+
+      Accessor for re-ranking, sensitivity, and win/loss analysis.
+
+
    .. py:method:: from_explainability_extract(source: str | os.PathLike, *, level: str = 'Stage Group', sample_size: int = DEFAULT_SAMPLE_SIZE, mandatory_expr: polars.Expr | None = None, additional_columns: dict[str, polars.DataType] | None = None, num_samples: int = 1) -> DecisionAnalyzer
       :classmethod:
 
@@ -212,15 +210,6 @@ Module Contents
 
 
 
-   .. py:attribute:: plot
-
-
-   .. py:attribute:: aggregates
-
-
-   .. py:attribute:: scoring
-
-
    .. py:attribute:: level
       :value: 'Stage Group'
 
@@ -231,17 +220,9 @@ Module Contents
 
 
 
-   .. py:attribute:: extract_type
-      :value: 'decision_analyzer'
-
-
-
    .. py:attribute:: validation_error
       :value: 'The following default columns are missing: '
 
-
-
-   .. py:attribute:: decision_data
 
 
    .. py:attribute:: fields_for_data_filtering
@@ -311,10 +292,13 @@ Module Contents
       consistent throughout the session regardless of filtering.
 
       :returns: Nested dictionary mapping dimension names to color dictionaries.
-                Example: {
-                    "Issue": {"Retention": "#001F5F", "Sales": "#10A5AC"},
-                    "Group": {"CreditCards": "#001F5F", "Loans": "#10A5AC"},
-                }
+
+                Example::
+
+                    {
+                        "Issue": {"Retention": "#001F5F", "Sales": "#10A5AC"},
+                        "Group": {"CreditCards": "#001F5F", "Loans": "#10A5AC"},
+                    }
       :rtype: dict[str, dict[str, str]]
 
       .. rubric:: Notes

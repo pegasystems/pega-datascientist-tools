@@ -222,10 +222,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/AGBModelVisualisation.html">Deep Dive into ADM Gradient Boosting Models</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/AGBExplained.html">Adaptive Gradient Boosting (AGB) Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
@@ -478,25 +478,25 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType" title="pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OutcomeType</span></code></a></p></td>
-<td><p>Create a collection of name/value pairs.</p></td>
+<td><p>Supported outcome types for local Prediction Studio model metadata.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Predictor</span></code></a></p></td>
 <td><p>A single predictor (feature) in an ONNX model.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Output"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Output</span></code></a></p></td>
-<td><p>!!! abstract &quot;Usage Documentation&quot;</p></td>
+<td><p>Model output metadata stored in the embedded Pega metadata block.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Metadata</span></code></a></p></td>
-<td><p>!!! abstract &quot;Usage Documentation&quot;</p></td>
+<td><p>Top-level Pega metadata embedded in an ONNX model.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel" title="pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PMMLModel</span></code></a></p></td>
-<td><p>!!! abstract &quot;Usage Documentation&quot;</p></td>
+<td><p>Wrapper around a PMML file path.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel" title="pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">H2OModel</span></code></a></p></td>
-<td><p>!!! abstract &quot;Usage Documentation&quot;</p></td>
+<td><p>Wrapper around an H2O model file path.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ONNXModel</span></code></a></p></td>
-<td><p>!!! abstract &quot;Usage Documentation&quot;</p></td>
+<td><p>Wrapper around an in-memory ONNX model plus Pega metadata helpers.</p></td>
 </tr>
 </tbody>
 </table>
@@ -518,47 +518,7 @@
 <dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">OutcomeType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
-<p>Create a collection of name/value pairs.</p>
-<p>Example enumeration:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span><span class="w"> </span><span class="nc">Color</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="n">RED</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="gp">... </span>    <span class="n">BLUE</span> <span class="o">=</span> <span class="mi">2</span>
-<span class="gp">... </span>    <span class="n">GREEN</span> <span class="o">=</span> <span class="mi">3</span>
-</pre></div>
-</div>
-<p>Access them by:</p>
-<ul class="simple">
-<li><p>attribute access:</p></li>
-</ul>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Color</span><span class="o">.</span><span class="n">RED</span>
-<span class="go">&lt;Color.RED: 1&gt;</span>
-</pre></div>
-</div>
-<ul class="simple">
-<li><p>value lookup:</p></li>
-</ul>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Color</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="go">&lt;Color.RED: 1&gt;</span>
-</pre></div>
-</div>
-<ul class="simple">
-<li><p>name lookup:</p></li>
-</ul>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Color</span><span class="p">[</span><span class="s1">&#39;RED&#39;</span><span class="p">]</span>
-<span class="go">&lt;Color.RED: 1&gt;</span>
-</pre></div>
-</div>
-<p>Enumerations can be iterated over, and know how many members they have:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">Color</span><span class="p">)</span>
-<span class="go">3</span>
-</pre></div>
-</div>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">Color</span><span class="p">)</span>
-<span class="go">[&lt;Color.RED: 1&gt;, &lt;Color.BLUE: 2&gt;, &lt;Color.GREEN: 3&gt;]</span>
-</pre></div>
-</div>
-<p>Methods can be added to enumerations, and members can have their own
-attributes – see the documentation for details.</p>
+<p>Supported outcome types for local Prediction Studio model metadata.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType.BINARY">
 <span class="sig-name descname"><span class="pre">BINARY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'binary'</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType.BINARY" title="Link to this definition">¶</a></dt>
@@ -651,43 +611,7 @@ guarantees correct field mapping on upload without any manual work.</p>
 <dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Output">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p>
-<dl class="simple">
-<dt>!!! abstract “Usage Documentation”</dt><dd><p>[Models](../concepts/models.md)</p>
-</dd>
-</dl>
-<p>A base class for creating Pydantic models.</p>
-<dl>
-<dt>Attributes:</dt><dd><p>__class_vars__: The names of the class variables defined on the model.
-__private_attributes__: Metadata about the private attributes of the model.
-__signature__: The synthesized <cite>__init__</cite> [<cite>Signature</cite>][inspect.Signature] of the model.</p>
-<p>__pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-__pydantic_core_schema__: The core schema of the model.
-__pydantic_custom_init__: Whether the model has a custom <cite>__init__</cite> function.
-__pydantic_decorators__: Metadata containing the decorators defined on the model.</p>
-<blockquote>
-<div><p>This replaces <cite>Model.__validators__</cite> and <cite>Model.__root_validators__</cite> from Pydantic V1.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>__pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.</dt><dd><p>The <cite>origin</cite> and <cite>args</cite> items map to the [<cite>__origin__</cite>][genericalias.__origin__]
-and [<cite>__args__</cite>][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-and the <cite>parameter</cite> item maps to the <cite>__parameter__</cite> attribute of generic classes.</p>
-</dd>
-</dl>
-<p>__pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-__pydantic_post_init__: The name of the post-init method for the model, if defined.
-__pydantic_root_model__: Whether the model is a [<cite>RootModel</cite>][pydantic.root_model.RootModel].
-__pydantic_serializer__: The <cite>pydantic-core</cite> <cite>SchemaSerializer</cite> used to dump instances of the model.
-__pydantic_validator__: The <cite>pydantic-core</cite> <cite>SchemaValidator</cite> used to validate instances of the model.</p>
-<p>__pydantic_fields__: A dictionary of field names and their corresponding [<cite>FieldInfo</cite>][pydantic.fields.FieldInfo] objects.
-__pydantic_computed_fields__: A dictionary of computed field names and their corresponding [<cite>ComputedFieldInfo</cite>][pydantic.fields.ComputedFieldInfo] objects.</p>
-<dl class="simple">
-<dt>__pydantic_extra__: A dictionary containing extra values, if [<cite>extra</cite>][pydantic.config.ConfigDict.extra]</dt><dd><p>is set to <cite>‘allow’</cite>.</p>
-</dd>
-</dl>
-<p>__pydantic_fields_set__: The names of fields explicitly set during instantiation.
-__pydantic_private__: Values of private attributes set on the model instance.</p>
-</dd>
-</dl>
+<p>Model output metadata stored in the embedded Pega metadata block.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>data</strong> (<em>Any</em>)</p>
@@ -729,43 +653,7 @@ __pydantic_private__: Values of private attributes set on the model instance.</p
 <dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p>
-<dl class="simple">
-<dt>!!! abstract “Usage Documentation”</dt><dd><p>[Models](../concepts/models.md)</p>
-</dd>
-</dl>
-<p>A base class for creating Pydantic models.</p>
-<dl>
-<dt>Attributes:</dt><dd><p>__class_vars__: The names of the class variables defined on the model.
-__private_attributes__: Metadata about the private attributes of the model.
-__signature__: The synthesized <cite>__init__</cite> [<cite>Signature</cite>][inspect.Signature] of the model.</p>
-<p>__pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-__pydantic_core_schema__: The core schema of the model.
-__pydantic_custom_init__: Whether the model has a custom <cite>__init__</cite> function.
-__pydantic_decorators__: Metadata containing the decorators defined on the model.</p>
-<blockquote>
-<div><p>This replaces <cite>Model.__validators__</cite> and <cite>Model.__root_validators__</cite> from Pydantic V1.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>__pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.</dt><dd><p>The <cite>origin</cite> and <cite>args</cite> items map to the [<cite>__origin__</cite>][genericalias.__origin__]
-and [<cite>__args__</cite>][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-and the <cite>parameter</cite> item maps to the <cite>__parameter__</cite> attribute of generic classes.</p>
-</dd>
-</dl>
-<p>__pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-__pydantic_post_init__: The name of the post-init method for the model, if defined.
-__pydantic_root_model__: Whether the model is a [<cite>RootModel</cite>][pydantic.root_model.RootModel].
-__pydantic_serializer__: The <cite>pydantic-core</cite> <cite>SchemaSerializer</cite> used to dump instances of the model.
-__pydantic_validator__: The <cite>pydantic-core</cite> <cite>SchemaValidator</cite> used to validate instances of the model.</p>
-<p>__pydantic_fields__: A dictionary of field names and their corresponding [<cite>FieldInfo</cite>][pydantic.fields.FieldInfo] objects.
-__pydantic_computed_fields__: A dictionary of computed field names and their corresponding [<cite>ComputedFieldInfo</cite>][pydantic.fields.ComputedFieldInfo] objects.</p>
-<dl class="simple">
-<dt>__pydantic_extra__: A dictionary containing extra values, if [<cite>extra</cite>][pydantic.config.ConfigDict.extra]</dt><dd><p>is set to <cite>‘allow’</cite>.</p>
-</dd>
-</dl>
-<p>__pydantic_fields_set__: The names of fields explicitly set during instantiation.
-__pydantic_private__: Values of private attributes set on the model instance.</p>
-</dd>
-</dl>
+<p>Top-level Pega metadata embedded in an ONNX model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>data</strong> (<em>Any</em>)</p>
@@ -909,16 +797,15 @@ __pydantic_private__: Values of private attributes set on the model instance.</p
 <span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">build_predictor_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'features'</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor"><span class="pre">Predictor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.build_predictor_list" title="Link to this definition">¶</a></dt>
 <dd><p>Build a predictor list from feature names or Pega property paths.</p>
 <p>This is the <strong>recommended</strong> one‑liner for constructing
-predictors.  Each entry in <em>features</em> can be:</p>
-<ul class="simple">
-<li><p>A <strong>Pega property path</strong> starting with <code class="docutils literal notranslate"><span class="pre">&quot;.&quot;</span></code>
-(e.g. <code class="docutils literal notranslate"><span class="pre">&quot;.Customer.Age&quot;</span></code>).  The leaf segment becomes the
-predictor <code class="docutils literal notranslate"><span class="pre">name</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;Age&quot;</span></code>) and the full path is stored as
-<code class="docutils literal notranslate"><span class="pre">pega_property</span></code> so Pega Prediction Studio auto‑maps the
-field on upload.</p></li>
-<li><p>A <strong>plain feature name</strong> (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;Age&quot;</span></code>).  Used as‑is for
-<code class="docutils literal notranslate"><span class="pre">name</span></code>; <code class="docutils literal notranslate"><span class="pre">pega_property</span></code> is left unset.</p></li>
-</ul>
+predictors.</p>
+<p>Each entry in <code class="docutils literal notranslate"><span class="pre">features</span></code> can be a <strong>Pega property path</strong> starting
+with <code class="docutils literal notranslate"><span class="pre">&quot;.&quot;</span></code> (for example <code class="docutils literal notranslate"><span class="pre">&quot;.Customer.Age&quot;</span></code>). The leaf segment
+becomes the predictor <code class="docutils literal notranslate"><span class="pre">name</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;Age&quot;</span></code>) and the full path is
+stored as <code class="docutils literal notranslate"><span class="pre">pega_property</span></code> so Pega Prediction Studio auto-maps the
+field on upload.</p>
+<p>Each entry can also be a <strong>plain feature name</strong> (for example
+<code class="docutils literal notranslate"><span class="pre">&quot;Age&quot;</span></code>). In that case the value is used as-is for <code class="docutils literal notranslate"><span class="pre">name</span></code> and
+<code class="docutils literal notranslate"><span class="pre">pega_property</span></code> is left unset.</p>
 <p>Indices are assigned automatically (1‑based) in the order the
 features appear.</p>
 <dl class="field-list simple">
@@ -928,15 +815,13 @@ features appear.</p>
 match the column order in the ONNX input tensor.  Accepts
 any mix of plain names and Pega property paths.</p></li>
 <li><p><strong>input_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Name of the ONNX input node.  Default <code class="docutils literal notranslate"><span class="pre">&quot;features&quot;</span></code>.</p></li>
-<li><p><strong>data_types</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>] </em><em>| </em><em>None</em>) – <p>Optional type annotations for features.  Accepts either:</p>
-<ul>
-<li><p>A <strong>list</strong> of <code class="docutils literal notranslate"><span class="pre">&quot;Numeric&quot;</span></code> / <code class="docutils literal notranslate"><span class="pre">&quot;Symbolic&quot;</span></code> values,
-one per feature (must match <em>features</em> length).</p></li>
-<li><p>A <strong>dict</strong> mapping feature <em>names</em> (the leaf segment for
-Pega paths) to <code class="docutils literal notranslate"><span class="pre">&quot;Numeric&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;Symbolic&quot;</span></code>.  Only the
-features present in the dict are overridden; the rest
-default to <code class="docutils literal notranslate"><span class="pre">&quot;Numeric&quot;</span></code>.</p></li>
-</ul>
+<li><p><strong>data_types</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>] </em><em>| </em><em>None</em>) – <p>Optional type annotations for features.</p>
+<p>Accepts either a <strong>list</strong> of <code class="docutils literal notranslate"><span class="pre">&quot;Numeric&quot;</span></code> / <code class="docutils literal notranslate"><span class="pre">&quot;Symbolic&quot;</span></code>
+values, one per feature and matching <code class="docutils literal notranslate"><span class="pre">features</span></code> length, or a
+<strong>dict</strong> mapping feature <em>names</em> (the leaf segment for Pega
+paths) to <code class="docutils literal notranslate"><span class="pre">&quot;Numeric&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;Symbolic&quot;</span></code>. Only the features
+present in the dict are overridden; the rest default to
+<code class="docutils literal notranslate"><span class="pre">&quot;Numeric&quot;</span></code>.</p>
 <p>When <code class="docutils literal notranslate"><span class="pre">None</span></code> every feature defaults to <code class="docutils literal notranslate"><span class="pre">&quot;Numeric&quot;</span></code>.</p>
 </p></li>
 </ul>
@@ -986,43 +871,7 @@ default to <code class="docutils literal notranslate"><span class="pre">&quot;Nu
 <dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">PMMLModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.resources.prediction_studio.base.LocalModel</span></code></p>
-<dl class="simple">
-<dt>!!! abstract “Usage Documentation”</dt><dd><p>[Models](../concepts/models.md)</p>
-</dd>
-</dl>
-<p>A base class for creating Pydantic models.</p>
-<dl>
-<dt>Attributes:</dt><dd><p>__class_vars__: The names of the class variables defined on the model.
-__private_attributes__: Metadata about the private attributes of the model.
-__signature__: The synthesized <cite>__init__</cite> [<cite>Signature</cite>][inspect.Signature] of the model.</p>
-<p>__pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-__pydantic_core_schema__: The core schema of the model.
-__pydantic_custom_init__: Whether the model has a custom <cite>__init__</cite> function.
-__pydantic_decorators__: Metadata containing the decorators defined on the model.</p>
-<blockquote>
-<div><p>This replaces <cite>Model.__validators__</cite> and <cite>Model.__root_validators__</cite> from Pydantic V1.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>__pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.</dt><dd><p>The <cite>origin</cite> and <cite>args</cite> items map to the [<cite>__origin__</cite>][genericalias.__origin__]
-and [<cite>__args__</cite>][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-and the <cite>parameter</cite> item maps to the <cite>__parameter__</cite> attribute of generic classes.</p>
-</dd>
-</dl>
-<p>__pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-__pydantic_post_init__: The name of the post-init method for the model, if defined.
-__pydantic_root_model__: Whether the model is a [<cite>RootModel</cite>][pydantic.root_model.RootModel].
-__pydantic_serializer__: The <cite>pydantic-core</cite> <cite>SchemaSerializer</cite> used to dump instances of the model.
-__pydantic_validator__: The <cite>pydantic-core</cite> <cite>SchemaValidator</cite> used to validate instances of the model.</p>
-<p>__pydantic_fields__: A dictionary of field names and their corresponding [<cite>FieldInfo</cite>][pydantic.fields.FieldInfo] objects.
-__pydantic_computed_fields__: A dictionary of computed field names and their corresponding [<cite>ComputedFieldInfo</cite>][pydantic.fields.ComputedFieldInfo] objects.</p>
-<dl class="simple">
-<dt>__pydantic_extra__: A dictionary containing extra values, if [<cite>extra</cite>][pydantic.config.ConfigDict.extra]</dt><dd><p>is set to <cite>‘allow’</cite>.</p>
-</dd>
-</dl>
-<p>__pydantic_fields_set__: The names of fields explicitly set during instantiation.
-__pydantic_private__: Values of private attributes set on the model instance.</p>
-</dd>
-</dl>
+<p>Wrapper around a PMML file path.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
@@ -1053,43 +902,7 @@ __pydantic_private__: Values of private attributes set on the model instance.</p
 <dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">H2OModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.resources.prediction_studio.base.LocalModel</span></code></p>
-<dl class="simple">
-<dt>!!! abstract “Usage Documentation”</dt><dd><p>[Models](../concepts/models.md)</p>
-</dd>
-</dl>
-<p>A base class for creating Pydantic models.</p>
-<dl>
-<dt>Attributes:</dt><dd><p>__class_vars__: The names of the class variables defined on the model.
-__private_attributes__: Metadata about the private attributes of the model.
-__signature__: The synthesized <cite>__init__</cite> [<cite>Signature</cite>][inspect.Signature] of the model.</p>
-<p>__pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-__pydantic_core_schema__: The core schema of the model.
-__pydantic_custom_init__: Whether the model has a custom <cite>__init__</cite> function.
-__pydantic_decorators__: Metadata containing the decorators defined on the model.</p>
-<blockquote>
-<div><p>This replaces <cite>Model.__validators__</cite> and <cite>Model.__root_validators__</cite> from Pydantic V1.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>__pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.</dt><dd><p>The <cite>origin</cite> and <cite>args</cite> items map to the [<cite>__origin__</cite>][genericalias.__origin__]
-and [<cite>__args__</cite>][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-and the <cite>parameter</cite> item maps to the <cite>__parameter__</cite> attribute of generic classes.</p>
-</dd>
-</dl>
-<p>__pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-__pydantic_post_init__: The name of the post-init method for the model, if defined.
-__pydantic_root_model__: Whether the model is a [<cite>RootModel</cite>][pydantic.root_model.RootModel].
-__pydantic_serializer__: The <cite>pydantic-core</cite> <cite>SchemaSerializer</cite> used to dump instances of the model.
-__pydantic_validator__: The <cite>pydantic-core</cite> <cite>SchemaValidator</cite> used to validate instances of the model.</p>
-<p>__pydantic_fields__: A dictionary of field names and their corresponding [<cite>FieldInfo</cite>][pydantic.fields.FieldInfo] objects.
-__pydantic_computed_fields__: A dictionary of computed field names and their corresponding [<cite>ComputedFieldInfo</cite>][pydantic.fields.ComputedFieldInfo] objects.</p>
-<dl class="simple">
-<dt>__pydantic_extra__: A dictionary containing extra values, if [<cite>extra</cite>][pydantic.config.ConfigDict.extra]</dt><dd><p>is set to <cite>‘allow’</cite>.</p>
-</dd>
-</dl>
-<p>__pydantic_fields_set__: The names of fields explicitly set during instantiation.
-__pydantic_private__: Values of private attributes set on the model instance.</p>
-</dd>
-</dl>
+<p>Wrapper around an H2O model file path.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
@@ -1120,43 +933,7 @@ __pydantic_private__: Values of private attributes set on the model instance.</p
 <dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">ONNXModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">onnx.ModelProto</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.resources.prediction_studio.base.LocalModel</span></code></p>
-<dl class="simple">
-<dt>!!! abstract “Usage Documentation”</dt><dd><p>[Models](../concepts/models.md)</p>
-</dd>
-</dl>
-<p>A base class for creating Pydantic models.</p>
-<dl>
-<dt>Attributes:</dt><dd><p>__class_vars__: The names of the class variables defined on the model.
-__private_attributes__: Metadata about the private attributes of the model.
-__signature__: The synthesized <cite>__init__</cite> [<cite>Signature</cite>][inspect.Signature] of the model.</p>
-<p>__pydantic_complete__: Whether model building is completed, or if there are still undefined fields.
-__pydantic_core_schema__: The core schema of the model.
-__pydantic_custom_init__: Whether the model has a custom <cite>__init__</cite> function.
-__pydantic_decorators__: Metadata containing the decorators defined on the model.</p>
-<blockquote>
-<div><p>This replaces <cite>Model.__validators__</cite> and <cite>Model.__root_validators__</cite> from Pydantic V1.</p>
-</div></blockquote>
-<dl class="simple">
-<dt>__pydantic_generic_metadata__: A dictionary containing metadata about generic Pydantic models.</dt><dd><p>The <cite>origin</cite> and <cite>args</cite> items map to the [<cite>__origin__</cite>][genericalias.__origin__]
-and [<cite>__args__</cite>][genericalias.__args__] attributes of [generic aliases][types-genericalias],
-and the <cite>parameter</cite> item maps to the <cite>__parameter__</cite> attribute of generic classes.</p>
-</dd>
-</dl>
-<p>__pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.
-__pydantic_post_init__: The name of the post-init method for the model, if defined.
-__pydantic_root_model__: Whether the model is a [<cite>RootModel</cite>][pydantic.root_model.RootModel].
-__pydantic_serializer__: The <cite>pydantic-core</cite> <cite>SchemaSerializer</cite> used to dump instances of the model.
-__pydantic_validator__: The <cite>pydantic-core</cite> <cite>SchemaValidator</cite> used to validate instances of the model.</p>
-<p>__pydantic_fields__: A dictionary of field names and their corresponding [<cite>FieldInfo</cite>][pydantic.fields.FieldInfo] objects.
-__pydantic_computed_fields__: A dictionary of computed field names and their corresponding [<cite>ComputedFieldInfo</cite>][pydantic.fields.ComputedFieldInfo] objects.</p>
-<dl class="simple">
-<dt>__pydantic_extra__: A dictionary containing extra values, if [<cite>extra</cite>][pydantic.config.ConfigDict.extra]</dt><dd><p>is set to <cite>‘allow’</cite>.</p>
-</dd>
-</dl>
-<p>__pydantic_fields_set__: The names of fields explicitly set during instantiation.
-__pydantic_private__: Values of private attributes set on the model instance.</p>
-</dd>
-</dl>
+<p>Wrapper around an in-memory ONNX model plus Pega metadata helpers.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>model</strong> (<em>onnx.ModelProto</em>)</p>
@@ -1277,8 +1054,8 @@ resulting ONNX file is accepted by Pega Prediction Studio.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.14)"><strong>ImportError</strong></a> – If the optional dependencies for ONNX Validation are not installed.:</p></li>
-<li><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelValidationError" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelValidationError"><strong>ONNXModelValidationError</strong></a> – If the model is invalid or if the validation process fails.:</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.14)"><strong>ImportError</strong></a> – If the optional dependencies for ONNX Validation are not installed.</p></li>
+<li><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelValidationError" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelValidationError"><strong>ONNXModelValidationError</strong></a> – If the model is invalid or if the validation process fails.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1293,15 +1070,9 @@ resulting ONNX file is accepted by Pega Prediction Studio.</p>
 <dd><p>Run the prediction using the provided test data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>test_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – <p>The test data to be used for prediction. It is a dictionary where each key is a column name from the dataset, and each value is a NumPy array representing the column data as a vector. For example:</p>
-<dl class="simple">
-<dt>{</dt><dd><p>‘column1’: array([[value1], [value2], [value3]]),
-‘column2’: array([[value4], [value5], [value6]]),
-‘column3’: array([[value7], [value8], [value9]])</p>
-</dd>
-</dl>
-<p>}</p>
-</p>
+<dd class="field-odd"><p><strong>test_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – The test data to be used for prediction. It is a dictionary where
+each key is a column name from the dataset, and each value is a
+NumPy array representing the column data as a vector.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The prediction result.</p>
@@ -1310,6 +1081,15 @@ resulting ONNX file is accepted by Pega Prediction Studio.</p>
 <dd class="field-odd"><p>Any</p>
 </dd>
 </dl>
+<p class="rubric">Examples</p>
+<p><code class="docutils literal notranslate"><span class="pre">test_data</span></code> should look like:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;column1&quot;</span><span class="p">:</span> <span class="n">array</span><span class="p">([[</span><span class="n">value1</span><span class="p">],</span> <span class="p">[</span><span class="n">value2</span><span class="p">],</span> <span class="p">[</span><span class="n">value3</span><span class="p">]]),</span>
+    <span class="s2">&quot;column2&quot;</span><span class="p">:</span> <span class="n">array</span><span class="p">([[</span><span class="n">value4</span><span class="p">],</span> <span class="p">[</span><span class="n">value5</span><span class="p">],</span> <span class="p">[</span><span class="n">value6</span><span class="p">]]),</span>
+    <span class="s2">&quot;column3&quot;</span><span class="p">:</span> <span class="n">array</span><span class="p">([[</span><span class="n">value7</span><span class="p">],</span> <span class="p">[</span><span class="n">value8</span><span class="p">],</span> <span class="p">[</span><span class="n">value9</span><span class="p">]]),</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py method">
@@ -1321,7 +1101,7 @@ resulting ONNX file is accepted by Pega Prediction Studio.</p>
 <dd class="field-odd"><p><strong>onnx_file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The file path where the ONNX model should be saved.</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.14)"><strong>ImportError</strong></a> – If the optional dependencies for ONNX Conversion are not installed.:</p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.14)"><strong>ImportError</strong></a> – If the optional dependencies for ONNX Conversion are not installed.</p>
 </dd>
 </dl>
 </dd></dl>

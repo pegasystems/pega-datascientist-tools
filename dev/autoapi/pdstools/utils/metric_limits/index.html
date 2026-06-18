@@ -222,10 +222,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBModelVisualisation.html">Deep Dive into ADM Gradient Boosting Models</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Articles</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBExplained.html">Adaptive Gradient Boosting (AGB) Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
@@ -902,7 +902,7 @@ GREEN if all are standard single-channel configurations.</p>
 <dt class="sig sig-object py" id="pdstools.utils.metric_limits.add_rag_columns">
 <span class="sig-name descname"><span class="pre">add_rag_columns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_to_metric</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#pdstools.utils.metric_limits.MetricSpec" title="pdstools.utils.metric_limits.MetricSpec"><span class="pre">MetricSpec</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_metric_validation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.utils.metric_limits.add_rag_columns" title="Link to this definition">¶</a></dt>
 <dd><p>Add RAG status columns to a DataFrame.</p>
-<p>For each column, adds a new column with suffix ‘_RAG’ containing the
+<p>For each column, adds a new column with suffix <code class="docutils literal notranslate"><span class="pre">_RAG</span></code> containing the
 RAG status (RED/AMBER/YELLOW/GREEN or None).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -911,10 +911,10 @@ RAG status (RED/AMBER/YELLOW/GREEN or None).</p>
 <li><p><strong>column_to_metric</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – <p>Mapping from column names (or tuples of column names) to one of:</p>
 <ul>
 <li><p><strong>str</strong>: metric ID to look up in MetricLimits.csv</p></li>
-<li><p><strong>callable</strong>: function(value) -&gt; “RED”|”AMBER”|”YELLOW”|”GREEN”<a href="#id1"><span class="problematic" id="id2">|</span></a>None</p></li>
+<li><p><strong>callable</strong>: <code class="docutils literal notranslate"><span class="pre">function(value)</span> <span class="pre">-&gt;</span> <span class="pre">&quot;RED&quot;|&quot;AMBER&quot;|&quot;YELLOW&quot;|&quot;GREEN&quot;|None</span></code></p></li>
 <li><p><strong>tuple</strong>: (metric_id, value_mapping) where value_mapping is a dict
 that maps column values to metric values before evaluation.
-Supports tuple keys: {(“Yes”, “yes”): True, “No”: False}</p></li>
+Supports tuple keys such as <code class="docutils literal notranslate"><span class="pre">{(&quot;Yes&quot;,</span> <span class="pre">&quot;yes&quot;):</span> <span class="pre">True,</span> <span class="pre">&quot;No&quot;:</span> <span class="pre">False}</span></code>.</p></li>
 </ul>
 <p>If a column is not in this dict, its name is used as the metric ID.</p>
 </p></li>

@@ -42,15 +42,10 @@ Module Contents
    :class:`~pdstools.ih.IH.IH` instance.
 
    All plot methods support:
+
    - Custom titles via `title` parameter
    - Data filtering via `query` parameter
    - Returning underlying data via `return_df=True`
-
-   .. attribute:: ih
-
-      Reference to the parent IH instance.
-
-      :type: IH
 
    .. seealso::
 
@@ -79,6 +74,9 @@ Module Contents
 
 
    .. py:attribute:: ih
+      :type:  pdstools.ih.IH.IH
+
+      Reference to the parent IH instance.
 
 
    .. py:method:: overall_gauges(condition: str | polars.Expr, *, metric: str = ..., by: str = ..., reference_values: dict[str, float] | None = ..., title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[False] = ...) -> pdstools.utils.plot_utils.Figure

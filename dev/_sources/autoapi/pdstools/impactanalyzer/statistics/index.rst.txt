@@ -78,37 +78,23 @@ Module Contents
 
    Structured representation of a statistical formula.
 
-   .. attribute:: name
-
-      Short identifier, e.g. ``"accept_rate"``.
-
-      :type: str
-
-   .. attribute:: latex
-
-      Raw LaTeX expression (no placeholder substitution — the UI
-      renders the symbolic form alongside a separate substitution
-      block showing the numeric values).
-
-      :type: str
-
-   .. attribute:: description
-
-      One-line plain-English description.
-
-      :type: str
-
 
    .. py:attribute:: name
       :type:  str
+
+      Short identifier, e.g. ``"accept_rate"``.
 
 
    .. py:attribute:: latex
       :type:  str
 
+      Raw LaTeX expression for the statistic.
+
 
    .. py:attribute:: description
       :type:  str
+
+      One-line plain-English description.
 
 
 .. py:data:: FORMULAS
@@ -117,52 +103,6 @@ Module Contents
 .. py:class:: LiftResult
 
    Result of a lift calculation with standard error.
-
-   .. attribute:: lift
-
-      Relative lift ``(test - control) / control``.
-
-      :type: float
-
-   .. attribute:: se
-
-      Delta-method standard error for *lift*.  This is the
-      full-precision SE **without** any *z*-multiplier.
-
-      :type: float
-
-   .. attribute:: significant
-
-      ``True`` when the CI does not cross zero.  The check uses
-      ``lift ± z * se`` where ``z = 1.96`` (95 % level) after
-      rounding ``se`` to 4 decimal places, matching Pega's
-      ``Math.round(error * 10000.0) / 10000.0``.
-
-      :type: bool
-
-   .. attribute:: test_rate
-
-      Observed test-group rate (accept rate or value per impression).
-
-      :type: float
-
-   .. attribute:: control_rate
-
-      Observed control-group rate.
-
-      :type: float
-
-   .. attribute:: test_se
-
-      Standard error of the test rate.
-
-      :type: float
-
-   .. attribute:: control_se
-
-      Standard error of the control rate.
-
-      :type: float
 
    .. rubric:: Notes
 
@@ -174,29 +114,43 @@ Module Contents
    .. py:attribute:: lift
       :type:  float
 
+      Relative lift ``(test - control) / control``.
+
 
    .. py:attribute:: se
       :type:  float
+
+      Delta-method standard error for ``lift`` without any z-multiplier.
 
 
    .. py:attribute:: significant
       :type:  bool
 
+      Whether the confidence interval excludes zero.
+
 
    .. py:attribute:: test_rate
       :type:  float
+
+      Observed test-group rate.
 
 
    .. py:attribute:: control_rate
       :type:  float
 
+      Observed control-group rate.
+
 
    .. py:attribute:: test_se
       :type:  float
 
+      Standard error of the test rate.
+
 
    .. py:attribute:: control_se
       :type:  float
+
+      Standard error of the control rate.
 
 
    .. py:method:: ci_95() -> float
