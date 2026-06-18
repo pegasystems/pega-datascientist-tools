@@ -143,6 +143,7 @@ def test_repository(prediction_studio_client, mocker):
                 "modeling_technique",
                 "source",
                 "status",
+                "component_name",
                 "last_update_time",
                 "updated_by",
                 "performance",
@@ -173,7 +174,7 @@ def test_list_models(
     if return_df:
         assert len(result) == expected_length
         assert result.columns == expected_columns
-        assert result.shape == (2, 10)
+        assert result.shape == (2, 11)
         assert result[0]["model_id"][0] == "@BASECLASS!TESTMODEL_FALCONS"
         assert result[0]["label"][0] == "testModel_falcons"
         assert result[0]["last_update_time"][0] == datetime.datetime(
@@ -223,9 +224,6 @@ def test_get_model(prediction_studio_client, mocker, fetch_type, fetch_value):
                 "subject",
                 "status",
                 "last_update_time",
-                "type",
-                "performance",
-                "performance_measure",
             ],
         ),
     ],
@@ -251,6 +249,7 @@ def test_list_predictions(
     if return_df:
         assert len(result) == expected_length
         assert result.columns == expected_columns
+        assert result.shape == (2, 6)
 
 
 @pytest.mark.parametrize(
@@ -442,3 +441,62 @@ def test_list_predictions_endpoint(prediction_studio_client, mocker):
     mock_request.assert_called_once()
     call_args = mock_request.call_args
     assert call_args[0][1] == "/prweb/api/PredictionStudio/v3/predictions"
+
+
+def test_models_property_lookup_by_label(prediction_studio_client, mocker):
+    """ps.models is a label-addressable PaginatedList."""
+    mocker.patch.object(
+        prediction_studio_client._client,
+        "request",
+        return_value=mock_response_model,
+    )
+    models = prediction_studio_client.models
+
+    assert isinstance(models, PaginatedList)
+    assert models["testModel_falcons"].label == "testModel_falcons"
+    assert models["Accept"].label == "Accept"
+    assert "Accept" in models
+    assert "nonexistent" not in models
+    assert set(models.keys()) == {"testModel_falcons", "Accept"}
+
+
+def test_models_property_lookup_by_id(prediction_studio_client, mocker):
+    """ps.models still resolves by model id (id takes precedence over label)."""
+    mocker.patch.object(
+        prediction_studio_client._client,
+        "request",
+        return_value=mock_response_model,
+    )
+    model = prediction_studio_client.models["@BASECLASS!TESTMODEL_FALCONS"]
+    assert model.label == "testModel_falcons"
+
+
+def test_predictions_property_lookup_by_label(prediction_studio_client, mocker):
+    """ps.predictions is a label-addressable PaginatedList."""
+    mocker.patch.object(
+        prediction_studio_client._client,
+        "request",
+        return_value=mock_response_predictions,
+    )
+    predictions = prediction_studio_client.predictions
+
+    assert isinstance(predictions, PaginatedList)
+    assert predictions["Predict Cards Acceptance"].label == "Predict Cards Acceptance"
+    assert "Predict Action Propensity" in predictions
+    assert set(predictions.keys()) == {
+        "Predict Cards Acceptance",
+        "Predict Action Propensity",
+    }
+
+
+def test_property_missing_label_raises_with_available_keys(prediction_studio_client, mocker):
+    """Missing key raises an actionable KeyError listing available labels."""
+    mocker.patch.object(
+        prediction_studio_client._client,
+        "request",
+        return_value=mock_response_model,
+    )
+    with pytest.raises(KeyError) as exc_info:
+        prediction_studio_client.models["Does Not Exist"]
+    message = str(exc_info.value)
+    assert "Accept" in message

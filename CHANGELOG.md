@@ -22,6 +22,13 @@ guide.
 ### Added
 
 - Python 3.14 support (#416). CI now runs against 3.10–3.14.
+- Prediction Studio now has a Pydantic-backed data layer for models,
+  predictions, model instances, and notifications. `return_df=True`
+  paths now emit schema-locked Polars frames even for empty / all-null
+  payloads, and the v26.1 model-instances endpoint is wrapped in the
+  Python client. The data models are also re-exported from
+  `pdstools.infinity` for direct validation / schema introspection
+  (#825).
 - `ADMDatamart.from_s3` is now implemented (was a no-op stub). Downloads
   model + predictor data from S3 to a temporary directory and delegates
   to `from_ds_export`. `boto3` is gated via `MissingDependenciesException`
@@ -63,11 +70,18 @@ guide.
 - `pdstools.valuefinder.__init__` now re-exports `ValueFinder` (was empty).
 - `CHANGELOG.md` (this file).
 - `docs/migration-v4-to-v5.md`.
+- `ADMTreesModel` gains training-timeline / gain-analysis plots backed by
+  per-node `sampleCount` data, and pdstools now ships a bundled local AGB
+  sample export plus the new **AGB Explained** notebook instead of relying
+  on a remote sample URL (#833).
 - AppTest-based smoke tests for all three Streamlit apps under
   `python/tests/streamlit_apps/` — covers Decision Analyzer (Home + 10
   sub-pages), Health Check (Home + 3 sub-pages) and Impact Analyzer
   (Home + 3 sub-pages). Uses seeded fixtures so pages render the
   populated branch, not the upload-prompt branch.
+- AppTest state-transition coverage for Streamlit widgets: Decision
+  Analyzer threshold sliders and arbitration scope selector, plus Health
+  Check report generation and dataframe filter widgets (#823).
 - Unit tests for `cdh_utils.get_latest_pdstools_version` covering the
   happy path, network failure and malformed-response paths.
 
@@ -87,10 +101,6 @@ guide.
   `Explanations(root_dir="...")` followed by manual
   `aggregate.data_folderpath = "..."` should drop the `root_dir`
   argument and call `Explanations()` with no arguments.
-- **BREAKING:** `ADMDatamart.from_pdc` and `Prediction.from_pdc` no
-  longer accept `return_df`. Both methods now always return the
-  initialised analyzer; access the transformed frame via
-  `dm.model_data` / `pred.predictions` instead.
 - **BREAKING:** `IH.from_ds_export`'s `query` parameter is now
   keyword-only. Update positional callers to
   `IH.from_ds_export(path, query=...)`.

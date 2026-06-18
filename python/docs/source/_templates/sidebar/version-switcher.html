@@ -1,0 +1,9 @@
+{#-
+    Sidebar version switcher populated at runtime from versions.json.
+-#}
+<div class="version-switcher" data-current-version="{{ docs_version }}">
+  <label for="pdstools-version-select">Version</label>
+  <select id="pdstools-version-select" aria-label="Select documentation version">
+    <option value="">{{ docs_version }}</option>
+  </select>
+</div>

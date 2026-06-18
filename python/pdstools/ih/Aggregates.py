@@ -28,14 +28,10 @@ class Aggregates(LazyNamespace):
     :class:`~pdstools.ih.IH.IH` instance.
 
     All aggregation methods support:
+
     - Grouping by dimensions via `by` parameter
     - Time bucketing via `every` parameter
     - Data filtering via `query` parameter
-
-    Attributes
-    ----------
-    ih : IH
-        Reference to the parent IH instance.
 
     See Also
     --------
@@ -49,6 +45,9 @@ class Aggregates(LazyNamespace):
     >>> ih.aggregates.summary_outcomes(every="1w").collect()
 
     """
+
+    ih: "IH_Class"
+    """Reference to the parent IH instance."""
 
     def __init__(self, ih: "IH_Class"):
         """Initialize an Aggregates instance.

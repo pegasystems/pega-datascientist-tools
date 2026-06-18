@@ -98,6 +98,10 @@ class Node:
     All nodes carry a ``score`` (the leaf prediction or root prior).
     Internal nodes additionally carry a parsed :class:`Split` and a
     ``gain``.  Leaves have ``split=None`` and ``gain=0.0``.
+
+    ``sampleCount`` is the number of training examples that reached this
+    node.  Present only in exports from Prediction Studio that include
+    streaming-regime data; ``None`` otherwise.
     """
 
     depth: int
@@ -105,6 +109,7 @@ class Node:
     is_leaf: bool
     split: Split | None
     gain: float
+    sample_count: int | None = None
 
 
 def _iter_nodes(tree: dict, depth: int = 1) -> Iterator[Node]:
@@ -121,6 +126,7 @@ def _iter_nodes(tree: dict, depth: int = 1) -> Iterator[Node]:
         is_leaf=is_leaf,
         split=split,
         gain=tree.get("gain", 0.0) if not is_leaf else 0.0,
+        sample_count=tree.get("sampleCount"),
     )
     if "left" in tree:
         yield from _iter_nodes(tree["left"], depth + 1)
