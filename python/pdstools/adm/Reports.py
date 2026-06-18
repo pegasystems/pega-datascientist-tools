@@ -414,7 +414,7 @@ class Reports(LazyNamespace):
             if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
                 shutil.rmtree(temp_dir, ignore_errors=True)
 
-    def health_check_agent(
+    def health_check_markdown(
         self,
         name: str | None = None,
         *,
@@ -425,7 +425,7 @@ class Reports(LazyNamespace):
         disclaimer: str = "",
         output_dir: str | PathLike[str] | None = None,
     ) -> Path:
-        """Generate an agent-ready Markdown health check report.
+        """Generate a Markdown health check report.
 
         Unlike :meth:`health_check`, this method does not use Quarto. It renders
         a lightweight GitHub-flavored Markdown document directly from

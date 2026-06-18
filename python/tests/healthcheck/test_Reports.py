@@ -149,11 +149,11 @@ def test_full_embed_integration():
         assert results["cdn"]["size"] < results["embedded"]["size"], "CDN should be smaller than embedded"
 
 
-def test_health_check_agent_writes_markdown(tmp_path):
+def test_health_check_markdown_writes_markdown(tmp_path):
     datamart = datasets.cdh_sample()
     reports = Reports(datamart)
 
-    output_path = reports.health_check_agent(
+    output_path = reports.health_check_markdown(
         name="agent_health_check",
         output_dir=tmp_path,
     )
@@ -169,11 +169,11 @@ def test_health_check_agent_writes_markdown(tmp_path):
     assert "Health:" in content
 
 
-def test_health_check_agent_respects_title_subtitle_and_disclaimer(tmp_path):
+def test_health_check_markdown_respects_title_subtitle_and_disclaimer(tmp_path):
     datamart = datasets.cdh_sample()
     reports = Reports(datamart)
 
-    output_path = reports.health_check_agent(
+    output_path = reports.health_check_markdown(
         output_dir=tmp_path,
         title="Custom Title",
         subtitle="Custom Subtitle",
