@@ -77,6 +77,17 @@ def dq(sample_df: pl.DataFrame) -> TopicDataQuality:
     return TopicDataQuality.from_dataframe(df=sample_df, text_col="text", topic_col="topic")
 
 
+@pytest.fixture
+def singleton_topic_dq() -> TopicDataQuality:
+    df = pl.DataFrame(
+        {
+            "text": ["alpha sample", "beta sample", "gamma sample"],
+            "topic": ["a", "a", "b"],
+        }
+    )
+    return TopicDataQuality.from_dataframe(df=df, text_col="text", topic_col="topic")
+
+
 # ------------------------------------------------------------------
 # Basic properties
 # ------------------------------------------------------------------
@@ -251,6 +262,22 @@ class TestHealthScore:
         health = dq.health.calculate_health_score()
         assert health["status"] in {"Excellent", "Good", "Fair", "Needs Improvement"}
         assert health["color"] in {"GREEN", "YELLOW", "ORANGE", "RED"}
+
+
+class TestCrossValidatedDiagnostics:
+    def test_cv_warning_for_singleton_topic(self, singleton_topic_dq: TopicDataQuality) -> None:
+        assert singleton_topic_dq.compute.cross_validated_checks_warning() == (
+            "Cleanlab audit and topic learnability are skipped because every topic "
+            "needs at least 2 samples for cross-validated diagnostics."
+        )
+
+    def test_cleanlab_audit_raises_for_singleton_topic(self, singleton_topic_dq: TopicDataQuality) -> None:
+        with pytest.raises(ValueError, match="every topic needs at least 2 samples"):
+            singleton_topic_dq.compute.cleanlab_audit()
+
+    def test_topic_learnability_raises_for_singleton_topic(self, singleton_topic_dq: TopicDataQuality) -> None:
+        with pytest.raises(ValueError, match="every topic needs at least 2 samples"):
+            singleton_topic_dq.compute.topic_learnability()
 
 
 # ------------------------------------------------------------------

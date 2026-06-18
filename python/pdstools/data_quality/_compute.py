@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from typing import TYPE_CHECKING, ClassVar
 
 import polars as pl
@@ -123,6 +124,66 @@ class Compute(LazyNamespace):
         return self.parent._sim_df
 
     # ------------------------------------------------------------------
+    # Cross-validated diagnostics readiness
+    # ------------------------------------------------------------------
+
+    def cross_validated_checks_warning(self) -> str | None:
+        """Return a warning when CV-based diagnostics cannot run safely.
+
+        Cleanlab audit and topic learnability both rely on stratified
+        cross-validation. That requires at least two topics and at least
+        two samples in every topic; otherwise one training fold ends up
+        single-class and the classifier fit fails.
+
+        Returns
+        -------
+        str | None
+            User-facing warning text when the diagnostics should be
+            skipped, otherwise ``None``.
+        """
+        topic_counts = Counter(self.parent.df.get_column(self.parent.topic_col).to_list())
+        if len(topic_counts) < 2:
+            return (
+                "Cleanlab audit and topic learnability are skipped because the dataset "
+                "needs at least 2 topics for cross-validated diagnostics."
+            )
+
+        min_class_count = min(topic_counts.values())
+        if min_class_count < 2:
+            return (
+                "Cleanlab audit and topic learnability are skipped because every topic "
+                "needs at least 2 samples for cross-validated diagnostics."
+            )
+
+        return None
+
+    def _validated_cross_validation_folds(self, *, max_folds: int = 5) -> int:
+        """Return a safe stratified CV fold count or raise a clear error.
+
+        Parameters
+        ----------
+        max_folds : int, default 5
+            Upper bound for the number of folds.
+
+        Returns
+        -------
+        int
+            Fold count safe for stratified cross-validation.
+
+        Raises
+        ------
+        ValueError
+            If the dataset does not have enough class support for
+            cross-validated diagnostics.
+        """
+        warning = self.cross_validated_checks_warning()
+        if warning is not None:
+            raise ValueError(warning)
+
+        topic_counts = Counter(self.parent.df.get_column(self.parent.topic_col).to_list())
+        return min(max_folds, min(topic_counts.values()))
+
+    # ------------------------------------------------------------------
     # Cleanlab audit
     # ------------------------------------------------------------------
 
@@ -149,17 +210,10 @@ class Compute(LazyNamespace):
         from sklearn.linear_model import LogisticRegression
         from sklearn.model_selection import cross_val_predict
 
-        embeddings = self.embeddings()
         labels = self.parent.df.get_column(self.parent.topic_col).to_list()
         texts = self.parent.df.get_column(self.parent.text_col).to_list()
-
-        # cross_val_predict defaults to 5-fold stratified CV, which fails on
-        # rare classes (< 5 members). Clamp to the smallest class so we
-        # degrade gracefully on imbalanced or tiny datasets.
-        from collections import Counter
-
-        min_class_count = min(Counter(labels).values())
-        cv = max(2, min(5, min_class_count))
+        cv = self._validated_cross_validation_folds(max_folds=5)
+        embeddings = self.embeddings()
 
         # Out-of-sample predicted probabilities via cross-validation
         model = LogisticRegression(max_iter=400)
@@ -210,12 +264,7 @@ class Compute(LazyNamespace):
         le = LabelEncoder()
         y = le.fit_transform(labels)
         classes = le.classes_
-
-        # StratifiedKFold needs at least n_splits members in every class.
-        # Clamp to the smallest class size so we degrade gracefully on
-        # imbalanced or tiny datasets instead of raising ValueError.
-        min_class_count = int(np.bincount(y).min())
-        effective_folds = max(2, min(n_folds, min_class_count))
+        effective_folds = self._validated_cross_validation_folds(max_folds=n_folds)
         skf = StratifiedKFold(n_splits=effective_folds, shuffle=True, random_state=42)
         # per-class F1 per fold: shape (n_folds, n_classes)
         fold_f1s = []
