@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import polars as pl
 import pytest
 from pdstools import ADMDatamart, datasets
-from pdstools.adm.Analysis import Analysis, Finding, _gini
+from pdstools.adm.Analysis import Analysis, Finding, _format_markdown_value, _gini
 
 
 def _make_dm(rows: list[dict]) -> ADMDatamart:
@@ -147,6 +147,22 @@ class TestGini:
         assert _gini([42]) == 0.0
 
 
+class TestMarkdownFormattingHelpers:
+    def test_format_markdown_value_handles_common_types(self):
+        assert _format_markdown_value(None) == "N/A"
+        assert _format_markdown_value(True) == "Yes"
+        assert _format_markdown_value(False) == "No"
+        assert _format_markdown_value(0.0) == "0"
+        assert _format_markdown_value(12.3456) == "12.35"
+        assert _format_markdown_value(0.123456) == "0.1235"
+        assert _format_markdown_value("a|b\nc") == "a\\|b c"
+
+    def test_format_markdown_value_handles_lists(self):
+        value = _format_markdown_value([1, 2, 3, 4, 5, 6])
+        assert value.startswith("1, 2, 3")
+        assert "(+1 more)" in value
+
+
 # ── Analysis namespace ──────────────────────────────────────────────────
 
 
@@ -199,6 +215,81 @@ class TestAnalysisNamespace:
     def test_markdown_includes_disclaimer(self, analysis):
         markdown = analysis.markdown(disclaimer="Use with caution")
         assert "> **Disclaimer:** Use with caution" in markdown
+
+    def test_markdown_handles_summary_only(self, analysis):
+        summary = Finding(
+            severity="success",
+            category="summary",
+            title="Health: HEALTHY - no issues detected",
+            detail="Everything looks good.",
+            data={"avg_auc": 0.71},
+        )
+        last_data = _make_last_data([{}])
+        with (
+            patch.object(analysis, "findings", return_value=[summary]),
+            patch.object(analysis, "_get_last_data", return_value=last_data),
+            patch.object(analysis, "_estate_snapshot_sections", return_value=[]),
+        ):
+            markdown = analysis.markdown()
+        assert "## Findings" in markdown
+        assert "No findings were generated." in markdown
+
+    def test_key_metrics_table_handles_active_filter_and_predictor_errors(self, sample_dm):
+        findings = [
+            Finding(
+                severity="success",
+                category="summary",
+                title="Health: HEALTHY - AUC 71.0",
+                detail="Everything looks good.",
+                data={"avg_auc": 0.71},
+            )
+        ]
+        last_data = sample_dm.analysis._get_last_data()
+        with patch.object(
+            sample_dm.aggregates,
+            "predictors_global_overview",
+            side_effect=RuntimeError("boom"),
+        ):
+            table = sample_dm.analysis._key_metrics_table(
+                last_data,
+                findings,
+                pl.col("does_not_exist") > 0,
+            )
+        values = dict(table.iter_rows())
+        assert values["Active models"] == "N/A"
+        assert values["Predictors"] == "N/A"
+
+    def test_estate_snapshot_sections_handle_aggregate_failures(self, sample_dm):
+        with (
+            patch.object(sample_dm.aggregates, "summary_by_channel", side_effect=RuntimeError("boom")),
+            patch.object(sample_dm.aggregates, "summary_by_configuration", side_effect=RuntimeError("boom")),
+            patch.object(sample_dm.aggregates, "predictors_global_overview", side_effect=RuntimeError("boom")),
+        ):
+            sections = sample_dm.analysis._estate_snapshot_sections(pl.lit(True))
+        assert sections == []
+
+    def test_estate_snapshot_sections_include_predictor_categories(self, sample_dm):
+        with patch.object(
+            sample_dm.aggregates,
+            "summary_by_configuration",
+            return_value=pl.DataFrame(
+                [
+                    {
+                        "Configuration": "Cfg1",
+                        "Channel": "Web",
+                        "Direction": "Inbound",
+                        "ResponseCount": 1000,
+                        "Positives": 50,
+                        "Performance": 0.65,
+                    }
+                ]
+            ).lazy(),
+        ):
+            sections = sample_dm.analysis._estate_snapshot_sections(pl.lit(True))
+        titles = [title for title, _ in sections]
+        assert "Top Channels by Responses" in titles
+        assert "Top Configurations by Responses" in titles
+        assert "Predictor Categories" in titles
 
     def test_findings_have_valid_severity(self, analysis):
         for f in analysis.findings():
