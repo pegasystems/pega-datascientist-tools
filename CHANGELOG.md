@@ -6,7 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-(Pre-release notes accumulate here until the next tag.)
+- Impact Analyzer Streamlit app: restructured pages into **Channel
+  Performance** (was *Overall Summary*) and **Details** (was *Channels*).
+  Both pages share a single sidebar **Channel / Direction** filter. The
+  Details page is now a flat per-experiment metrics table; previous
+  per-channel visuals (lift bar chart, response-rate heatmap, impression
+  redistribution) were removed pending a redesign.
 
 ## [5.0.0] — TBD
 
@@ -17,6 +22,13 @@ guide.
 ### Added
 
 - Python 3.14 support (#416). CI now runs against 3.10–3.14.
+- Prediction Studio now has a Pydantic-backed data layer for models,
+  predictions, model instances, and notifications. `return_df=True`
+  paths now emit schema-locked Polars frames even for empty / all-null
+  payloads, and the v26.1 model-instances endpoint is wrapped in the
+  Python client. The data models are also re-exported from
+  `pdstools.infinity` for direct validation / schema introspection
+  (#825).
 - `ADMDatamart.from_s3` is now implemented (was a no-op stub). Downloads
   model + predictor data from S3 to a temporary directory and delegates
   to `from_ds_export`. `boto3` is gated via `MissingDependenciesException`
@@ -25,13 +37,18 @@ guide.
   list of column names for `by`, in addition to the existing single-string
   form — enables grouping by Channel × Direction etc. in Health Check /
   Model Reports (#700).
-- `ImpactAnalyzer.from_excel` classmethod reads PDC Excel exports
-  (`.xlsx`) using polars' built-in calamine engine (no extra deps). The
-  Streamlit app and `--data-path` CLI flag accept `.xlsx` uploads with
-  auto-detection (#685).
+- `ImpactAnalyzer.from_excel` classmethod reads the **Pega Infinity Impact
+  Analyzer Excel export** — specifically the `Data` sheet, which carries
+  one row per (Date × Channel × Direction × Action × Treatment ×
+  Experiment) with pre-paired Test/Control counts. Rows are exploded
+  into the long IA format (`from_vbd`-style); NBA test traffic that
+  appears across multiple NBA-vs-X experiments is deduplicated to avoid
+  double-counting. Date and number parsing is locale-tolerant
+  (handles ISO/US/EU formats and Excel serial dates). Uses polars'
+  built-in calamine engine; no extra deps required. The Streamlit app
+  and `--data-path` CLI flag accept `.xlsx` uploads with auto-detection.
 - `pega_io.read_data` now recognises `.xlsx` / `.xls` and owns the
-  `fastexcel` optional-dependency shim. `ImpactAnalyzer.from_excel`
-  delegates the file load to `read_data` (#694).
+  `fastexcel` optional-dependency shim.
 - `Prediction.from_s3(bucket, key, *, region=None, ...)` is now
   implemented (was a no-op stub). Mirrors `ADMDatamart.from_s3` for the
   single-file case; `boto3` is gated via `MissingDependenciesException`
@@ -53,11 +70,18 @@ guide.
 - `pdstools.valuefinder.__init__` now re-exports `ValueFinder` (was empty).
 - `CHANGELOG.md` (this file).
 - `docs/migration-v4-to-v5.md`.
+- `ADMTreesModel` gains training-timeline / gain-analysis plots backed by
+  per-node `sampleCount` data, and pdstools now ships a bundled local AGB
+  sample export plus the new **AGB Explained** notebook instead of relying
+  on a remote sample URL (#833).
 - AppTest-based smoke tests for all three Streamlit apps under
   `python/tests/streamlit_apps/` — covers Decision Analyzer (Home + 10
   sub-pages), Health Check (Home + 3 sub-pages) and Impact Analyzer
   (Home + 3 sub-pages). Uses seeded fixtures so pages render the
   populated branch, not the upload-prompt branch.
+- AppTest state-transition coverage for Streamlit widgets: Decision
+  Analyzer threshold sliders and arbitration scope selector, plus Health
+  Check report generation and dataframe filter widgets (#823).
 - Unit tests for `cdh_utils.get_latest_pdstools_version` covering the
   happy path, network failure and malformed-response paths.
 
@@ -86,10 +110,6 @@ guide.
   `Explanations(root_dir="...")` followed by manual
   `aggregate.data_folderpath = "..."` should drop the `root_dir`
   argument and call `Explanations()` with no arguments.
-- **BREAKING:** `ADMDatamart.from_pdc` and `Prediction.from_pdc` no
-  longer accept `return_df`. Both methods now always return the
-  initialised analyzer; access the transformed frame via
-  `dm.model_data` / `pred.predictions` instead.
 - **BREAKING:** `IH.from_ds_export`'s `query` parameter is now
   keyword-only. Update positional callers to
   `IH.from_ds_export(path, query=...)`.
@@ -227,6 +247,11 @@ guide.
 - `pdstools.infinity.internal._base_client._infer_version` now logs
   warnings via the module logger (with `exc_info`) instead of `print()`
   (#736).
+- `_infer_version` now returns `"26"` (the latest version) for any Pega
+  `'25`+ system instead of `"25"`. Both v25 and v26 resource classes
+  share the same API surface, so the latest version is always a safe
+  default. Users who need the v25 resource explicitly can still pass
+  `pega_version="25"` to `Infinity()` / `AsyncInfinity()`.
 - Optional-dependency handling tightened: `MissingDependenciesException`
   is now raised consistently across pdstools instead of bare
   `ImportError`s, and the Quarto `standalone` flag is now wired through
@@ -273,7 +298,7 @@ guide.
 
 - Better diagnostic information when Health Check report generation
   hits a `PermissionDenied` from Quarto on Windows; Infinity API
-  client now supports Pega `'25.1`; Decision Analyzer no longer
+  client now supports Pega `'25`; Decision Analyzer no longer
   crashes with `ColumnNotFoundError: "Stage Group"` when the dataset
   only contains `Stage` — `__init__` now validates `level` against
   `available_levels` and falls back when needed (#642, closes #439,

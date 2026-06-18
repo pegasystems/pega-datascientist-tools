@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # python/pdstools/decision_analyzer/column_schema.py
 from typing import TypedDict
 
@@ -7,6 +9,8 @@ import polars as pl
 
 
 class TableConfig(TypedDict):
+    """Table config."""
+
     display_name: str
     default: bool
     type: type[pl.DataType]

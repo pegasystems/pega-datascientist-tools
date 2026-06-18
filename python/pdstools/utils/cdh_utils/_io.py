@@ -1,17 +1,21 @@
 """I/O, logging, working-directory and version-check helpers."""
 
+from __future__ import annotations
+
 import datetime
 import io
 import logging
 import tempfile
 import zipfile
 from io import StringIO
-from os import PathLike
 from pathlib import Path
-
-import polars as pl
+from typing import TYPE_CHECKING
 
 from ._common import logger
+
+if TYPE_CHECKING:
+    import polars as pl
+    from os import PathLike
 
 
 def process_files_to_bytes(
@@ -131,42 +135,87 @@ def create_working_and_temp_dir(
     return working_dir, Path(temp_dir_name)
 
 
-# Reads PDC data. TODO: generalize the arg to be a File, string, or LazyFrame etc.
-def _read_pdc(pdc_data: pl.LazyFrame):
-    required_cols = set(
-        [
-            "ModelType",
-            "ModelClass",
-            "ModelName",
-            "ModelID",
-            "Performance",
-            "Name",
-            "SnapshotTime",
-            "Positives",
-            "Negatives",
-            "ResponseCount",
-            "TotalPositives",
-            "TotalResponses",
-        ],
-    )
-    optional_cols = set(
-        [
-            "Channel",
-            "Direction",
-            "Name",
-            "Group",
-            "Issue",
-            "ADMModelType",  # introduced later see US-648869
-        ],
-    )
+# Full expected schema of the Databricks vw_gold_ml_models_predictions_summary view.
+# When the view schema changes, update this set only.
+_DATABRICKS_PREDICTION_COLUMNS = frozenset(
+    {
+        "PacID",
+        "EnvironmentName",
+        "Configuration",
+        "AppliesToClass",
+        "SnapshotDate",
+        "Positives",
+        "Negatives",
+        "ResponseCount",
+        "Performance",
+        "ModelType",
+    }
+)
 
-    df_cols = set(pdc_data.collect_schema().names())
-    if not required_cols.issubset(df_cols):
-        raise ValueError(
-            f"Required columns missing: {required_cols.difference(df_cols)}",
+# Full expected schema of the Databricks vw_gold_ml_models_snapshots_summary view.
+# When the view schema changes, update this set only.
+_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS = frozenset(
+    {
+        "PacID",
+        "EnvironmentName",
+        "ModelID",
+        "Channel",
+        "Direction",
+        "Issue",
+        "Group",
+        "Name",
+        "Treatment",
+        "ExtraContextKeys",
+        "Positives",
+        "Negatives",
+        "ResponseCount",
+        "Performance",
+        "SnapshotDate",
+        "Configuration",
+        "AppliesToClass",
+        "ModelTechnique",
+    }
+)
+
+
+def _validate_databricks_schema(df: pl.LazyFrame, schema: set, view_name: str, schema_const_name: str) -> pl.LazyFrame:
+    df_cols = set(df.collect_schema().names())
+    if missing := schema - df_cols:
+        raise ValueError(f"Required columns missing from Databricks {view_name} view: {missing}")
+    if extra := df_cols - schema:
+        logger.warning(
+            "Unexpected columns in Databricks %s view: %s. The view schema may have changed — update %s in pdstools.",
+            view_name,
+            extra,
+            schema_const_name,
         )
-    pdc_data = pdc_data.select(required_cols.union(optional_cols.intersection(df_cols)))
-    if "ADMModelType" not in df_cols:
-        pdc_data = pdc_data.with_columns(ADMModelType=pl.lit(None))
+    return df
 
-    return pdc_data
+
+def _validate_databricks_model_snapshots(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Validate the schema of the Databricks model snapshots view LazyFrame."""
+    return _validate_databricks_schema(
+        df, _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS, "model snapshots", "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS"
+    )
+
+
+def _validate_databricks_predictions(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Validate the schema of the Databricks predictions view LazyFrame."""
+    return _validate_databricks_schema(
+        df, _DATABRICKS_PREDICTION_COLUMNS, "predictions", "_DATABRICKS_PREDICTION_COLUMNS"
+    )
+
+
+def _validate_databricks_rename_map(
+    rename_map: dict[str, str],
+    schema: set,
+    view_name: str,
+    schema_const_name: str,
+) -> None:
+    """Validate that a Databricks rename map only uses known source columns."""
+
+    invalid_keys = set(rename_map) - schema
+    if invalid_keys:
+        raise ValueError(
+            f"Databricks {view_name} rename map contains keys not present in {schema_const_name}: {sorted(invalid_keys)}"
+        )

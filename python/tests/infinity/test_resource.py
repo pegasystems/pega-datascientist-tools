@@ -26,8 +26,7 @@ class _GreetMixin:
 
     @api_method
     async def greet(self, name: str) -> str:
-        result = await self._a_get(f"/hello/{name}")
-        return result
+        return await self._a_get(f"/hello/{name}")
 
     async def _internal_helper(self) -> str:
         """Plain async helper — should NOT be wrapped by __init_subclass__."""

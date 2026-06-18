@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ._async import AsyncPredictionStudio
 from ._mixin import _PredictionStudioV24_2Mixin
 from ._sync import PredictionStudio

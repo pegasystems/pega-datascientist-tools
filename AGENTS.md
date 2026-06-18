@@ -31,6 +31,26 @@ dependencies and execution.
   `logger.debug()` / `logger.info()` instead. Never overload `verbose`
   to control non-output behaviour (e.g. cache invalidation, retry
   policy) — that's a separate parameter.
+- **`show` parameters on plot methods are an anti-pattern.** Plot
+  methods must only build and return the figure; the caller decides how
+  to display it. Adding `show: bool = True` that calls `fig.show()`
+  internally causes Jupyter to render the figure twice (once from
+  `fig.show()`, once from the cell's implicit display of the return
+  value). Never add `show` to a plot method. For non-Plotly objects
+  that Jupyter cannot auto-render (e.g. `pydot.Graph`), unconditionally
+  call `display()` when IPython is available, without gating on a
+  `show` parameter.
+- **Plotly label/title clipping checklist.** Always do a visual check
+  on exported HTML; Plotly's default margins are tight and common
+  causes of clipping are:
+  - Long y-axis tick labels on horizontal bar charts → add
+    `yaxis_automargin=True` to `update_layout()`.
+  - Left y-axis title (rotated text) cut off → `margin=dict(l=90)`.
+  - Right secondary y-axis title cut off → `margin=dict(r=120)`.
+  - `updatemenus` button bar overlapping the chart title → lower the
+    button `y` anchor (e.g. `1.3` → `1.15`).
+  These are layout defaults that belong in the library method, not
+  caller-side `.update_layout()` patches.
 - **Prefer Polars over Pandas** for all data processing.
 
 ## Quick orientation
@@ -126,6 +146,40 @@ Docs live in `python/docs` and use Sphinx.
 cd python/docs && make html
 ```
 
+### Exporting notebooks to HTML (with plots)
+
+**Problem:** system `jupyter` / `nbconvert` (e.g. from Homebrew) uses a
+different Python than the project venv. The kernel spawned during `--execute`
+won't have `pdstools` installed and will either fail with `AttributeError` or
+die immediately with "Kernel died before replying to kernel_info".
+
+**Solution — one-time setup** (only needed when the venv is freshly created):
+
+```bash
+# 1. Install nbconvert into the project venv
+uv add --dev nbconvert
+
+# 2. Fix the venv kernel spec to use the absolute venv Python path
+python_path=$(realpath .venv/bin/python)
+cat > .venv/share/jupyter/kernels/python3/kernel.json << EOF
+{
+ "argv": ["$python_path", "-m", "ipykernel_launcher", "-f", "{connection_file}"],
+ "display_name": "Python 3 (ipykernel)",
+ "language": "python",
+ "metadata": {"debugger": true}
+}
+EOF
+```
+
+**Exporting** (use `.venv/bin/python -m nbconvert`, never the system `jupyter`):
+
+```bash
+.venv/bin/python -m nbconvert --to html --execute \
+  examples/articles/AGBExplained.ipynb \
+  --output AGBExplained.html --output-dir . \
+  --ExecutePreprocessor.timeout=300
+```
+
 ### Package build (release workflow)
 
 ```bash
@@ -140,7 +194,15 @@ python -m build --sdist --wheel --outdir dist/ .
 - Keep imports at top of file; use `# noqa: F401` for intentional re-exports.
 - **Optional dependencies**: use lazy imports inside the method that needs
   them (see `local_model_utils.py` for the pattern). Do not use
-  module-level `try/except ImportError` blocks.
+  module-level `try/except ImportError` blocks. For sub-namespace
+  classes whose **methods** depend on optional packages (plotting, ML
+  extras, cloud SDKs), extend `LazyNamespace`
+  (`pdstools.utils.namespaces`) and declare
+  `dependencies = ["..."]` + `dependency_group = "<extras-group>"`. It
+  wraps every public method with a dependency check that raises
+  `MissingDependenciesException` with a friendly install hint, and
+  attribute access on missing methods triggers the same check — no
+  per-class missing-dep stand-in needed.
 
 ### Formatting
 - Use ruff-format (black-compatible). Do not hand-format.
@@ -188,6 +250,29 @@ python -m build --sdist --wheel --outdir dist/ .
   ```
 - Reviewers should flag Google/RST-style blocks in PRs and ask for a
   conversion before merge — left in place they spread by example.
+- **For AutoAPI-documented classes, document attributes at the declaration
+  site.** If a field / accessor / namespace attribute already exists as a
+  real class attribute (`plot`, `aggregates`, dataclass fields, lazily-set
+  typed attributes, etc.), put its description immediately after the
+  declaration:
+
+  ```python
+  plot: Plots
+  """Plot accessor for visualization methods."""
+  ```
+
+  This renders cleanly in the generated docs and avoids duplicate object
+  warnings from repeating the same attribute in a class-level `Attributes`
+  block.
+- **Don't use class docstrings as method inventories.** If a class-level
+  `Notes` block only restates what `from_pdc()`, `get_df()`, `plot.foo()`,
+  etc. already document individually, delete the inventory. Keep class-level
+  prose for cross-cutting concepts only (for example, sample-vs-full-data
+  semantics or lifecycle/instantiation guidance that spans multiple methods).
+- **When removing a class-level inventory, preserve any unique information.**
+  If the old class docstring contained examples, parameter semantics, return
+  shape details, or caveats that were *not* already present on the method,
+  move that content onto the relevant method docstring instead of dropping it.
 
 ### Types and typing
 - Use type hints for public APIs and complex internal functions.
@@ -416,10 +501,9 @@ sidebar logo and title (sub-pages re-apply it automatically).
 ### Testing widget interactions, not just initial renders
 
 `streamlit.testing.v1.AppTest` is the right tool for *both* "page
-renders" smoke tests *and* state-transition tests. We have plenty of
-the first, and (historically) almost none of the second. That gap is
-how the v5.0.0 launcher shipped with two P1 upload-flow regressions
-that the existing AppTest suite happily green-lit:
+renders" smoke tests *and* state-transition tests. The v5.0.0 launcher
+shipped with two P1 upload-flow regressions that the existing AppTest
+suite happily green-lit, because it only covered initial renders:
 
 - HC: switching the data-source dropdown to "Direct file upload"
   rendered no uploaders at all.
@@ -431,8 +515,12 @@ deletes a key, the next-run guard then trips). They're invisible to
 sub-page tests that pre-seed `st.session_state["dm"]` /
 `st.session_state["decision_data"]` to bypass the home page entirely.
 
-**Rule:** every widget on a launcher home page whose `on_change`
-mutates session state needs a state-transition AppTest. Pattern:
+**Rule:** any widget whose interaction mutates session state in a
+non-trivial way — `on_change` callbacks, buttons that store results,
+sliders/selectboxes that drive subsequent renders — needs a
+state-transition AppTest. This applies to home pages **and** sub-pages.
+
+Pattern for a selectbox / slider:
 
 ```python
 at = AppTest.from_file(str(home_py)).run()
@@ -440,16 +528,26 @@ at.selectbox(key="data_source").set_value("Direct file upload").run()
 assert len(at.file_uploader) >= 1
 ```
 
-Same for uploaders: simulate a value change, then assert the
-*post-state* (loaded analyzer's row count, detected format, etc.),
-not just that the file widget is present. See
-`tests/streamlit_apps/decision_analyzer/test_upload_replaces_autoload.py`
-and `tests/streamlit_apps/health_check/test_direct_upload_renders.py`
-for the reference pattern.
+Pattern for a button that stores results:
 
-If you change a launcher home page's data-source flow, autoload guard,
-or uploader handler, add (or update) one of these tests in the same
-PR.
+```python
+gen_button = next(b for b in at.button if b.label == "Generate Health Check")
+gen_button.click().run()
+assert any("Health Check" in getattr(b, "label", "") for b in at.get("download_button"))
+assert "file" in at.session_state["run"][at.session_state["runID"]]
+```
+
+Reference implementations:
+- Home-page upload flow: `test_upload_replaces_autoload.py`,
+  `test_direct_upload_renders.py`
+- Sub-page sliders: `test_threshold_sliders.py`
+- Sub-page selectbox: `test_arbitration_scope_selectbox.py`
+- Button → download flow: `test_generate_button.py`
+- Multiselect filter pipeline: `test_data_filters.py`
+
+If you change a widget's key, its `on_change` handler, or any session-
+state key it reads/writes, add or update the matching state-transition
+test in the same PR.
 
 ### General Streamlit rules
 - Never use `st.experimental_*` APIs — they have been removed. Use
@@ -573,6 +671,29 @@ network, and S3 I/O lives in alternative constructors named
 `from_dataflow_export`, `from_pdc`). This mirrors the
 `pl.read_csv` / `pl.scan_csv` idiom and makes the class trivially
 testable with synthesized data — no monkey-patching required.
+
+Inside `from_<source>` classmethods, **delegate path resolution to
+`pdstools.pega_io.File.read_data`** for anything path-like. It already
+handles single files, directories (Hive-partitioned layouts),
+archives (zip / tar / gzip), `BytesIO` uploads, and glob patterns
+(`"data/**/*.parquet"`). If you discover a new input shape that isn't
+covered, **extend `read_data`** rather than rolling a local resolver
+on the analyzer class — every analyzer benefits and the entry point
+stays singular. Use the more specialised `read_ds_export` only when
+you need its ADM-specific smart-name lookup (`"model_data"`,
+`"predictor_data"`) or remote-URL fetching.
+
+The whole `pdstools.pega_io` module is the single funnel for
+user-facing path → polars reads (CodeQL `py/path-injection` is
+suppressed there at config level on that basis). Inside the funnel,
+**`_scan_by_extension` is the one place `pl.scan_*` / `pl.read_*` is
+actually called** for a leaf path. New format-specific helpers
+(`scan_parquet_path`, future `scan_csv_path`, …) and reader modules
+(`action_analysis.py`, future per-format helpers) should delegate to
+`_scan_by_extension` rather than calling `pl.scan_*` themselves —
+otherwise we end up with parallel "single sources of truth" and the
+generic CSV/JSON defaults (null values, date parsing, `pxResults`
+fallback) drift between callers.
 
 When the source is a cloud service (S3, GCS, Azure Blob), keep the
 heavy SDK (`boto3`, `google-cloud-storage`, …) as a **lazy import

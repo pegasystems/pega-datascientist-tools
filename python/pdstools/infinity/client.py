@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = ["AsyncInfinity", "Infinity"]
 
 from importlib.util import find_spec
@@ -21,7 +23,7 @@ class Infinity(SyncAPIClient):
     ``Infinity(...)`` directly — they handle auth construction for you.
 
     The Pega version is resolved lazily on first access of
-    :pyattr:`version`. When ``pega_version=`` is passed explicitly, no
+    ``version``. When ``pega_version=`` is passed explicitly, no
     HTTP request is ever made; otherwise the first read of
     ``client.version`` (or any version-dependent resource such as
     ``client.prediction_studio``) issues a single
@@ -64,7 +66,7 @@ class Infinity(SyncAPIClient):
 
     @property
     def version(self) -> str | None:
-        """The Pega platform version (e.g. ``"24.2"``).
+        """The Pega platform version (e.g. ``"26.1"``).
 
         Resolved lazily on first access by calling the prediction-studio
         repository endpoint. Returns ``None`` if the version could not be
@@ -81,21 +83,19 @@ class Infinity(SyncAPIClient):
 
     def __getattr__(self, name: str):
         if name in self._VERSION_DEPENDENT_RESOURCES:
-            version = self.version
-            if version:
-                from . import resources
+            from . import resources
 
-                resource_cls = resources.prediction_studio.get(version)
-                if resource_cls is not None:
-                    instance = resource_cls(client=self)
-                    object.__setattr__(self, name, instance)
-                    return instance
-            raise AttributeError(
-                f"'{name}' is not available because the Pega version could "
-                "not be determined. Pass 'pega_version' explicitly when "
-                "constructing the client, e.g.:\n"
-                "  Infinity.from_client_id_and_secret(..., pega_version='25.1')",
-            )
+            version = self.version
+            if version is None:
+                raise AttributeError(
+                    "Could not determine the Pega platform version — the system "
+                    "may be unreachable or returned an unexpected response. "
+                    "Pass pega_version= explicitly to skip version detection."
+                )
+            resource_cls = resources.prediction_studio.get(version)
+            instance = resource_cls(client=self)
+            object.__setattr__(self, name, instance)
+            return instance
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'",
         )
@@ -114,7 +114,7 @@ class AsyncInfinity(AsyncAPIClient):
     ``AsyncInfinity(...)`` directly.
 
     The Pega version is resolved lazily on first access of
-    :pyattr:`version`. When ``pega_version=`` is passed explicitly, no
+    ``version``. When ``pega_version=`` is passed explicitly, no
     HTTP request is ever made; otherwise the first read of
     ``client.version`` (or any version-dependent resource such as
     ``client.prediction_studio``) issues a single HTTP probe and caches
@@ -156,7 +156,7 @@ class AsyncInfinity(AsyncAPIClient):
 
     @property
     def version(self) -> str | None:
-        """The Pega platform version (e.g. ``"24.2"``).
+        """The Pega platform version (e.g. ``"26.1"``).
 
         Resolved lazily on first access. The underlying
         ``_infer_version`` helper bridges to the async HTTP client via a
@@ -173,21 +173,19 @@ class AsyncInfinity(AsyncAPIClient):
 
     def __getattr__(self, name: str):
         if name in self._VERSION_DEPENDENT_RESOURCES:
-            version = self.version
-            if version:
-                from . import resources
+            from . import resources
 
-                resource_cls = resources.prediction_studio.get_async(version)
-                if resource_cls is not None:
-                    instance = resource_cls(client=self)
-                    object.__setattr__(self, name, instance)
-                    return instance
-            raise AttributeError(
-                f"'{name}' is not available because the Pega version could "
-                "not be determined. Pass 'pega_version' explicitly when "
-                "constructing the client, e.g.:\n"
-                "  AsyncInfinity.from_client_id_and_secret(..., pega_version='25.1')",
-            )
+            version = self.version
+            if version is None:
+                raise AttributeError(
+                    "Could not determine the Pega platform version — the system "
+                    "may be unreachable or returned an unexpected response. "
+                    "Pass pega_version= explicitly to skip version detection."
+                )
+            resource_cls = resources.prediction_studio.get_async(version)
+            instance = resource_cls(client=self)
+            object.__setattr__(self, name, instance)
+            return instance
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'",
         )

@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
 
 import polars as pl
 
 from ...utils import cdh_utils
-from ...utils.plot_utils import Figure
-from ...utils.types import QUERY
 from ._base import _PlotsBase
 from ._helpers import add_metric_limit_lines, requires
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...utils.types import QUERY
+    from ...utils.plot_utils import Figure
+    from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +147,7 @@ class _PerformancePlotsMixin(_PlotsBase):
 
         df = (
             df.with_columns(pl.col("SnapshotTime"))
-            .group_by(grouping_columns + ["SnapshotTime"])
+            .group_by([*grouping_columns, "SnapshotTime"])
             .agg(agg_expr)
             .sort("SnapshotTime", by_col)
         )
@@ -419,7 +422,7 @@ class _PerformancePlotsMixin(_PlotsBase):
         )
 
         # Configure axes and layout
-        fig = (
+        return (
             fig.update_yaxes(scaleanchor="x", scaleratio=1)
             .update_layout(
                 autosize=False,
@@ -430,8 +433,6 @@ class _PerformancePlotsMixin(_PlotsBase):
             .update_xaxes(tickformat=",.0%", constrain="domain", title="% of Population")
             .update_yaxes(tickformat=",.0%")
         )
-
-        return fig
 
     def performance_volume_distribution(
         self,
@@ -512,7 +513,7 @@ class _PerformancePlotsMixin(_PlotsBase):
                 .cut(breaks=[p for p in range(50, 100, bin_width)], left_closed=True)
                 .alias("PerformanceBinned"),
             )
-            .group_by(group_cols + ["PerformanceBinned"])
+            .group_by([*group_cols, "PerformanceBinned"])
             .agg(
                 pl.sum("ResponseCount"),
                 (pl.min("Performance") * 100).round(2).alias("break_label"),
@@ -527,7 +528,7 @@ class _PerformancePlotsMixin(_PlotsBase):
         else:
             df = df.with_columns((pl.col("ResponseCount") / pl.col("ResponseCount").sum()).alias("Proportion"))
 
-        collected_df: pl.DataFrame = df.sort(group_cols + ["PerformanceBinned", "Proportion"]).collect()
+        collected_df: pl.DataFrame = df.sort([*group_cols, "PerformanceBinned", "Proportion"]).collect()
 
         if return_df:
             return collected_df.lazy()
@@ -578,6 +579,4 @@ class _PerformancePlotsMixin(_PlotsBase):
         )
 
         # Apply legend color ordering
-        fig = cdh_utils.legend_color_order(fig)
-
-        return fig
+        return cdh_utils.legend_color_order(fig)

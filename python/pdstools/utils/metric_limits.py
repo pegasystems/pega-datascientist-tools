@@ -10,9 +10,11 @@ that turn metric values into "RAG" indicators that can be used to highlight
 values in tables.
 """
 
+from __future__ import annotations
+
 import difflib
 import re
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 from collections.abc import Callable
 
 import polars as pl
@@ -47,6 +49,7 @@ class MetricLimits:
     _limits_df: pl.DataFrame | None
 
     def __new__(cls) -> "MetricLimits":
+        """New."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._limits_df = None
@@ -470,12 +473,14 @@ def exclusive_0_1_range_rag(value: float) -> RAGValue | None:
 
 
 def positive_values(value: float) -> RAGValue | None:
+    """Positive values."""
     if value is None:
         return None
     return "GREEN" if value >= 0 else "RED"
 
 
 def strict_positive_values(value: float) -> RAGValue | None:
+    """Strict positive values."""
     if value is None:
         return None
     return "GREEN" if value > 0 else "RED"
@@ -493,7 +498,7 @@ def add_rag_columns(
 ) -> pl.DataFrame:
     """Add RAG status columns to a DataFrame.
 
-    For each column, adds a new column with suffix '_RAG' containing the
+    For each column, adds a new column with suffix ``_RAG`` containing the
     RAG status (RED/AMBER/YELLOW/GREEN or None).
 
     Parameters
@@ -504,10 +509,10 @@ def add_rag_columns(
         Mapping from column names (or tuples of column names) to one of:
 
         - **str**: metric ID to look up in MetricLimits.csv
-        - **callable**: function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None
+        - **callable**: ``function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None``
         - **tuple**: (metric_id, value_mapping) where value_mapping is a dict
           that maps column values to metric values before evaluation.
-          Supports tuple keys: {("Yes", "yes"): True, "No": False}
+          Supports tuple keys such as ``{("Yes", "yes"): True, "No": False}``.
 
         If a column is not in this dict, its name is used as the metric ID.
     strict_metric_validation : bool, default True
@@ -614,7 +619,7 @@ class MetricFormats:
 
     """
 
-    _FORMATS: dict[str, NumberFormat] = {
+    _FORMATS: ClassVar[dict[str, NumberFormat]] = {
         "ModelPerformance": NumberFormat(decimals=2, scale_by=100),
         "EngagementLift": NumberFormat(decimals=0, scale_by=100, suffix="%"),
         "OmniChannelPercentage": NumberFormat(decimals=1, scale_by=100, suffix="%"),

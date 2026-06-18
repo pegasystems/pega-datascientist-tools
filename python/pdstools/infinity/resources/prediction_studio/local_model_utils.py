@@ -20,6 +20,8 @@ PEGA_METADATA = "pegaMetadata"
 
 
 class OutcomeType(Enum):
+    """Supported outcome types for local Prediction Studio model metadata."""
+
     BINARY = "binary"
     CATEGORICAL = "categorical"
     CONTINUOUS = "continuous"
@@ -102,6 +104,8 @@ class Predictor(BaseModel):
 
 
 class Output(BaseModel):
+    """Model output metadata stored in the embedded Pega metadata block."""
+
     possible_values: list[str | int | float] = Field(default_factory=list)
     label_name: str | None = Field(default=None, validate_default=True)
     score_name: str | None = Field(default=None)
@@ -118,6 +122,8 @@ class Output(BaseModel):
 
 
 class Metadata(BaseModel):
+    """Top-level Pega metadata embedded in an ONNX model."""
+
     type: OutcomeType | None = Field(default=None, validate_default=True)
     predictor_list: list[Predictor] = Field(default_factory=list)
     output: Output | None = Field(default=None, validate_default=True)
@@ -245,15 +251,17 @@ class Metadata(BaseModel):
         """Build a predictor list from feature names or Pega property paths.
 
         This is the **recommended** one‑liner for constructing
-        predictors.  Each entry in *features* can be:
+        predictors.
 
-        * A **Pega property path** starting with ``"."``
-          (e.g. ``".Customer.Age"``).  The leaf segment becomes the
-          predictor ``name`` (``"Age"``) and the full path is stored as
-          ``pega_property`` so Pega Prediction Studio auto‑maps the
-          field on upload.
-        * A **plain feature name** (e.g. ``"Age"``).  Used as‑is for
-          ``name``; ``pega_property`` is left unset.
+        Each entry in ``features`` can be a **Pega property path** starting
+        with ``"."`` (for example ``".Customer.Age"``). The leaf segment
+        becomes the predictor ``name`` (``"Age"``) and the full path is
+        stored as ``pega_property`` so Pega Prediction Studio auto-maps the
+        field on upload.
+
+        Each entry can also be a **plain feature name** (for example
+        ``"Age"``). In that case the value is used as-is for ``name`` and
+        ``pega_property`` is left unset.
 
         Indices are assigned automatically (1‑based) in the order the
         features appear.
@@ -267,14 +275,14 @@ class Metadata(BaseModel):
         input_name
             Name of the ONNX input node.  Default ``"features"``.
         data_types
-            Optional type annotations for features.  Accepts either:
+            Optional type annotations for features.
 
-            * A **list** of ``"Numeric"`` / ``"Symbolic"`` values,
-              one per feature (must match *features* length).
-            * A **dict** mapping feature *names* (the leaf segment for
-              Pega paths) to ``"Numeric"`` or ``"Symbolic"``.  Only the
-              features present in the dict are overridden; the rest
-              default to ``"Numeric"``.
+            Accepts either a **list** of ``"Numeric"`` / ``"Symbolic"``
+            values, one per feature and matching ``features`` length, or a
+            **dict** mapping feature *names* (the leaf segment for Pega
+            paths) to ``"Numeric"`` or ``"Symbolic"``. Only the features
+            present in the dict are overridden; the rest default to
+            ``"Numeric"``.
 
             When ``None`` every feature defaults to ``"Numeric"``.
 
@@ -381,6 +389,8 @@ class ONNXModelValidationError(ModelValidationError):
 
 
 class PMMLModel(LocalModel):
+    """Wrapper around a PMML file path."""
+
     file_path: str
 
     def __init__(self, file_path: str):
@@ -391,6 +401,8 @@ class PMMLModel(LocalModel):
 
 
 class H2OModel(LocalModel):
+    """Wrapper around an H2O model file path."""
+
     file_path: str
 
     def __init__(self, file_path: str):
@@ -401,6 +413,8 @@ class H2OModel(LocalModel):
 
 
 class ONNXModel(LocalModel):
+    """Wrapper around an in-memory ONNX model plus Pega metadata helpers."""
+
     _model: ModelProto
 
     def __init__(self, model: ModelProto):
@@ -522,7 +536,7 @@ class ONNXModel(LocalModel):
             raise MissingDependenciesException(
                 ["torch"],
                 namespace="ONNXModel.from_pytorch",
-            )
+            ) from None
 
         import io as _io
 
@@ -570,7 +584,7 @@ class ONNXModel(LocalModel):
         Parameters
         ----------
         proto
-            An ``onnx.ModelProto`` — **modified in place**.
+            An ``onnx.ModelProto`` modified in place.
         batch_size
             The integer value to substitute.  Default ``1``.
 
@@ -623,8 +637,10 @@ class ONNXModel(LocalModel):
 
         Raises
         ------
-            ImportError: If the optional dependencies for ONNX Validation are not installed.
-            ONNXModelValidationError: If the model is invalid or if the validation process fails.
+        ImportError
+            If the optional dependencies for ONNX Validation are not installed.
+        ONNXModelValidationError
+            If the model is invalid or if the validation process fails.
 
         """
         session = None
@@ -640,7 +656,7 @@ class ONNXModel(LocalModel):
         except Exception as e:
             raise ONNXModelValidationError(
                 f"Unable to create inference session: {e!s}",
-            )
+            ) from e
         metadata = session.get_modelmeta().custom_metadata_map
 
         if PEGA_METADATA not in metadata:
@@ -680,18 +696,26 @@ class ONNXModel(LocalModel):
         Parameters
         ----------
         test_data : dict
-            The test data to be used for prediction. It is a dictionary where each key is a column name from the dataset, and each value is a NumPy array representing the column data as a vector. For example:
-
-            {
-                'column1': array([[value1], [value2], [value3]]),
-                'column2': array([[value4], [value5], [value6]]),
-                'column3': array([[value7], [value8], [value9]])
-            }
+            The test data to be used for prediction. It is a dictionary where
+            each key is a column name from the dataset, and each value is a
+            NumPy array representing the column data as a vector.
 
         Returns
         -------
         Any
             The prediction result.
+
+        Examples
+        --------
+        ``test_data`` should look like:
+
+        .. code-block:: python
+
+            {
+                "column1": array([[value1], [value2], [value3]]),
+                "column2": array([[value4], [value5], [value6]]),
+                "column3": array([[value7], [value8], [value9]]),
+            }
 
         """
         session = None
@@ -712,7 +736,8 @@ class ONNXModel(LocalModel):
 
         Raises
         ------
-            ImportError: If the optional dependencies for ONNX Conversion are not installed.
+        ImportError
+            If the optional dependencies for ONNX Conversion are not installed.
 
         """
         import onnx

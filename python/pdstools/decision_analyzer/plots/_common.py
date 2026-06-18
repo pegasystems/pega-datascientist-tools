@@ -1,5 +1,7 @@
 """Shared constants and helpers for decision-analyzer plot submodules."""
 
+from __future__ import annotations
+
 DEFAULT_BOXPLOT_POINT_CAP = 20000
 
 

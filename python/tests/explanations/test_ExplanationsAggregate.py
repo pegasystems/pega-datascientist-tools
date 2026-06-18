@@ -121,6 +121,29 @@ class TestAggregateLoadData:
         )
         assert (bin_counts["bin_count"] > 1).all()
 
+    def test_single_bin_numeric_interval_not_null(self, aggregate):
+        """Single-bin numeric predictors have a valid interval after the COALESCE fix.
+
+        When ``include_numeric_single_bin=True``, the SQL COALESCE ensures
+        ``bin_contents`` renders as ``[min:max]`` (not ``null`` or empty).
+        """
+        aggregate._load_data()
+        # get_predictor_value_contributions returns bin_contents; use all predictors
+        all_predictors = (
+            aggregate.get_df_overall().select("predictor_name").unique().collect()["predictor_name"].to_list()
+        )
+        df = aggregate.get_predictor_value_contributions(predictors=all_predictors, include_numeric_single_bin=True)
+        numeric_rows = df.filter((pl.col("predictor_type") == "NUMERIC") & (pl.col("bin_contents") != "MISSING"))
+
+        if numeric_rows.is_empty():
+            pytest.skip("No numeric predictor bins in test data")
+
+        assert numeric_rows["bin_contents"].null_count() == 0, (
+            "Numeric predictor bins should not have null bin_contents after COALESCE fix"
+        )
+        for val in numeric_rows["bin_contents"].to_list():
+            assert val != "", f"bin_contents should not be empty, got: {val!r}"
+
     def test_load_data_folder_does_not_exist(self, aggregate):
         """Test handling of non-existent aggregates folder."""
         aggregate.initialized = False
@@ -405,7 +428,7 @@ class TestFilterKwargsDefaults:
 
 
 class TestAggregateFrequencyPct:
-    """Test cases for add_frequency_pct_to_df."""
+    """Test cases for add_frequency_pct_to_df and add_context_frequency_pct_to_df."""
 
     def test_add_frequency_pct_to_df(self, aggregate):
         """Test that frequency_pct column is added correctly."""
@@ -420,6 +443,62 @@ class TestAggregateFrequencyPct:
         result = aggregate.add_frequency_pct_to_df(df, group_by=["partition"]).collect()
         assert (result["frequency_pct"] >= 0.0).all()
         assert (result["frequency_pct"] <= 100.0).all()
+
+    def test_add_context_frequency_pct_exact_values(self, aggregate):
+        """Verify context frequency as a share of the overall model.
+
+        Uses a small context DataFrame with known frequencies and asserts
+        exact expected values of ``context_freq / overall_freq * 100``.
+        """
+        aggregate._load_data()
+
+        overall_df = aggregate.get_df_overall().collect()
+        join_cols = [_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
+        overall_totals = overall_df.group_by(join_cols).agg(
+            pl.sum(_COL.FREQUENCY.value).alias("expected_overall_total")
+        )
+
+        first_two = overall_totals.head(2)
+        context_rows = []
+        for row in first_two.to_dicts():
+            context_rows.append(
+                {
+                    _COL.PREDICTOR_NAME.value: row[_COL.PREDICTOR_NAME.value],
+                    _COL.PREDICTOR_TYPE.value: row[_COL.PREDICTOR_TYPE.value],
+                    _COL.FREQUENCY.value: 50,
+                }
+            )
+
+        context_df = pl.DataFrame(context_rows)
+        result = aggregate.add_context_frequency_pct_to_df(context_df, join_on=join_cols)
+
+        assert "frequency_pct" in result.columns
+        for row in result.to_dicts():
+            name = row[_COL.PREDICTOR_NAME.value]
+            ptype = row[_COL.PREDICTOR_TYPE.value]
+            overall_total = overall_totals.filter(
+                (pl.col(_COL.PREDICTOR_NAME.value) == name) & (pl.col(_COL.PREDICTOR_TYPE.value) == ptype)
+            )["expected_overall_total"][0]
+            expected_pct = round(50 / overall_total * 100, 4)
+            assert row["frequency_pct"] == expected_pct, (
+                f"frequency_pct for {name}/{ptype}: expected {expected_pct}, got {row['frequency_pct']}"
+            )
+
+    def test_add_context_frequency_pct_zero_overall(self, aggregate):
+        """When overall frequency is zero, frequency_pct should be 0.0."""
+        aggregate._load_data()
+
+        context_df = pl.DataFrame(
+            {
+                _COL.PREDICTOR_NAME.value: ["NonExistentPredictor"],
+                _COL.PREDICTOR_TYPE.value: ["NUMERIC"],
+                _COL.FREQUENCY.value: [100],
+            }
+        )
+        join_cols = [_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
+        result = aggregate.add_context_frequency_pct_to_df(context_df, join_on=join_cols)
+
+        assert result["frequency_pct"][0] == 0.0
 
 
 class TestWeightedAverageComputation:

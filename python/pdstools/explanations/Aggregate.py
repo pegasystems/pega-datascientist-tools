@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 __all__ = ["Aggregate"]
 
 import logging
 import pathlib
-from typing import TYPE_CHECKING, cast
+from typing import ClassVar, TYPE_CHECKING, cast
 
 import polars as pl
 
+from ..pega_io import scan_parquet_path
 from ..utils.namespaces import LazyNamespace
 from .ExplanationsUtils import (
     _COL,
@@ -25,7 +28,9 @@ if TYPE_CHECKING:
 
 
 class Aggregate(LazyNamespace):
-    dependencies = ["polars"]
+    """Aggregate."""
+
+    dependencies: ClassVar[list[str]] = ["polars"]
     dependency_group = "explanations"
 
     def __init__(self, explanations: "Explanations"):
@@ -193,6 +198,7 @@ class Aggregate(LazyNamespace):
         context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
     ) -> list[ContextInfo]:
+        """Get unique contexts list."""
         return self.context_operations.get_list(context_infos, with_partition_col)
 
     def _load_data(self):
@@ -221,13 +227,13 @@ class Aggregate(LazyNamespace):
         context_ = f"{self.data_folderpath}/{self.data_pattern if self.data_pattern else '*_BATCH_*.parquet'}"
 
         self.df_contextual = (
-            pl.scan_parquet(context_)
+            scan_parquet_path(context_)
             .select(selected_columns)
             .filter(pl.col(_COL.CONTRIBUTION.value) != 0.0)
             .sort(by=_COL.PREDICTOR_NAME.value)
         )
         self.df_overall = (
-            pl.scan_parquet(f"{self.data_folderpath}/*_OVERALL.parquet")
+            scan_parquet_path(f"{self.data_folderpath}/*_OVERALL.parquet")
             .select(selected_columns)
             .filter(pl.col(_COL.CONTRIBUTION.value) != 0.0)
             .sort(by=_COL.PREDICTOR_NAME.value)
@@ -593,14 +599,54 @@ class Aggregate(LazyNamespace):
 
         return df_grouped.join(df, on=group_by, how="left")
 
-    def add_frequency_pct_to_df(self, df, group_by):
+    def add_frequency_pct_to_df(self, df, group_by) -> pl.LazyFrame:
         """Add a frequency percentage column to the dataframe based on the total frequency per group."""
 
         df_with_total_frequency = self._add_total_frequency_to_df(df, group_by)
         return df_with_total_frequency.with_columns(
             pl.when(pl.col(_SPECIAL.TOTAL_FREQUENCY.value) == 0)
             .then(0.0)
-            .otherwise((pl.col(_COL.FREQUENCY.value) / pl.col(_SPECIAL.TOTAL_FREQUENCY.value) * 100).round(1))
+            # round(4) to preserve very small frequency shares (e.g. 0.02%)
+            .otherwise((pl.col(_COL.FREQUENCY.value) / pl.col(_SPECIAL.TOTAL_FREQUENCY.value) * 100).round(4))
+            .alias("frequency_pct")
+        )
+
+    def add_context_frequency_pct_to_df(
+        self,
+        df: pl.DataFrame,
+        join_on: list[str],
+    ) -> pl.DataFrame:
+        """Add frequency_pct showing this context's share of the overall model.
+
+        For each row, computes
+        ``frequency_pct = df.frequency / overall_model_frequency * 100``
+        where the overall model frequency is summed over ``join_on`` columns
+        from the overall (non-contextual) dataset.
+
+        Parameters
+        ----------
+        df : pl.DataFrame
+            DataFrame with a ``frequency`` column (context data).
+        join_on : list[str]
+            Columns to join on, typically
+            ``[predictor_name, predictor_type]``.
+
+        Returns
+        -------
+        pl.DataFrame
+            *df* with an added ``frequency_pct`` column (0–100).
+        """
+        overall_freq = (
+            self.get_df_overall()
+            .group_by(join_on)
+            .agg(pl.sum(_COL.FREQUENCY.value).alias("overall_total_frequency"))
+            .collect()
+        )
+        df_joined = df.join(overall_freq, on=join_on, how="left")
+        return df_joined.with_columns(
+            pl.when(pl.col("overall_total_frequency").is_null() | (pl.col("overall_total_frequency") == 0))
+            .then(0.0)
+            .otherwise((pl.col(_COL.FREQUENCY.value) / pl.col("overall_total_frequency") * 100).round(4))
             .alias("frequency_pct")
         )
 

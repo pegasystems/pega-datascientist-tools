@@ -1,15 +1,19 @@
 """Polars expression and frame helpers (queries, sampling, schema, overlap)."""
 
+from __future__ import annotations
+
 import re
-from collections.abc import Iterable
-from typing import overload
+from typing import overload, TYPE_CHECKING
 
 import polars as pl
 
-from ..types import QUERY
 from ._common import F, logger
 from ._dates import parse_pega_date_time_formats
 from ._namespacing import _capitalize
+
+if TYPE_CHECKING:
+    from ..types import QUERY
+    from collections.abc import Iterable
 
 
 # Pattern for validating Polars duration strings (e.g., "1d", "2w", "1h30m")
@@ -115,11 +119,11 @@ def _combine_queries(existing_query: QUERY, new_query: pl.Expr) -> QUERY:
     if isinstance(existing_query, pl.Expr):
         return existing_query & new_query
     if isinstance(existing_query, list):
-        return existing_query + [new_query]
+        return [*existing_query, new_query]
     if isinstance(existing_query, dict):
         # Convert the dictionary to a list of expressions
         existing_exprs = [pl.col(k).is_in(v) for k, v in existing_query.items()]
-        return existing_exprs + [new_query]
+        return [*existing_exprs, new_query]
     raise ValueError("Unsupported query type")
 
 

@@ -4,7 +4,6 @@ import logging
 import random
 import string
 from typing import TYPE_CHECKING, Any
-from collections.abc import Callable
 
 from pydantic import validate_call
 
@@ -12,6 +11,9 @@ from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._resource import _maybe_await, api_method
 from ...types import AdmModelType
 from ..model_upload import UploadedModel
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +179,7 @@ class _ChampionChallengerV24_2Mixin:
         """
         if not self.cc_id:
             return "Active"
-        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.cc_id}"
+        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.cc_id}"
         return await self._a_get(endpoint)
 
     async def _introduce_model(
@@ -187,7 +189,7 @@ class _ChampionChallengerV24_2Mixin:
     ):
         if not self.cc_id:
             return "Model already introduced."
-        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.cc_id}"
+        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.cc_id}"
         if self.active_model.model_type.upper() != "SCORECARD":
             if champion_response_share == 1:
                 deployment_mode: dict[str, Any] = {"type": "Shadow"}
@@ -290,7 +292,7 @@ class _ChampionChallengerV24_2Mixin:
         """
         if not self.challenger_model:
             raise PegaMLopsError("Challenger model is not set.")
-        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.challenger_model.model_id}/Remove"
+        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.challenger_model.model_id}/Remove"
         data = {"contextName": self.context}
         try:
             response = await self._a_patch(endpoint, data=data)
@@ -299,7 +301,7 @@ class _ChampionChallengerV24_2Mixin:
                 "Error when deleting challenger model: " + str(e),
             ) from e
         await self._refresh_champion_challenger()
-        logging.info("Deleted challenger model: %s", response)
+        logger.info("Deleted challenger model: %s", response)
 
     @api_method
     async def promote_challenger_model(self):
@@ -317,16 +319,16 @@ class _ChampionChallengerV24_2Mixin:
         """
         if not self.challenger_model:
             raise PegaMLopsError("Challenger model is not set.")
-        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.challenger_model.model_id}/Promote"
+        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.challenger_model.model_id}/Promote"
         data = {"contextName": self.context}
-        response = await self._a_patch(endpoint, data=data)
         try:
+            response = await self._a_patch(endpoint, data=data)
             await self._refresh_champion_challenger()
         except PegaException as e:
             raise PegaMLopsError(
                 "Error when promoting challenger model: " + str(e),
             ) from e
-        logging.info("Promoted challenger model: %s", response)
+        logger.info("Promoted challenger model: %s", response)
 
     @api_method
     async def update_challenger_response_share(
@@ -363,13 +365,13 @@ class _ChampionChallengerV24_2Mixin:
             raise ValueError("Challenger model is not set.")
 
         if self.challenger_model.status.upper() == "SHADOW":
-            endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.challenger_model.model_id}/updatePattern"
+            endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.challenger_model.model_id}/updatePattern"
             data = {
                 "contextName": self.context,
                 "challengerPercentage": new_challenger_response_share * 100,
             }
         else:
-            endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.active_model.model_id}/distribution"
+            endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.active_model.model_id}/distribution"
             data = {
                 "contextName": self.context,
                 "championPercentage": float(1 - new_challenger_response_share) * 100,
@@ -570,7 +572,7 @@ class _ChampionChallengerV24_2Mixin:
         objective = None
         if not (0 <= challenger_response_share <= 1):
             raise ValueError("Percentage must be between 0 and 1.")
-        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/component/{self.active_model.component_name}"
+        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/component/{self.active_model.component_name}"
         data: dict[str, Any] = {}
         # Import here to avoid circular imports; use duck-typing for Model check
         if hasattr(new_model, "model_id") and not isinstance(new_model, UploadedModel):
@@ -607,10 +609,10 @@ class _ChampionChallengerV24_2Mixin:
 
         if "Approved" not in response["message"]:
             raise PegaMLopsError("Error when adding model")
-        logging.info("Add model: Refreshing Champion challenger configuration: ")
+        logger.info("Add model: Refreshing Champion challenger configuration: ")
         await self._sleep(1)
         await self._refresh_champion_challenger()
-        logging.info("Add model: %s", response)
+        logger.info("Add model: %s", response)
 
     @api_method
     @validate_call
@@ -664,7 +666,7 @@ class _ChampionChallengerV24_2Mixin:
             )
         if not (0 <= challenger_response_share <= 1):
             raise PegaMLopsError("Percentage must be between 0 and 1.")
-        endpoint = f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/component/{self.active_model.component_name}/clone"
+        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/component/{self.active_model.component_name}/clone"
         if model_label is None:
             unique_suffix = "".join(random.choices(string.ascii_uppercase, k=3))
             model_label = self.active_model.component_name + "_copy_" + unique_suffix
@@ -690,4 +692,4 @@ class _ChampionChallengerV24_2Mixin:
         if "Approved" not in response["message"]:
             raise PegaMLopsError("Error when adding model")
         await self._refresh_champion_challenger()
-        logging.info("Clone model: %s", response)
+        logger.info("Clone model: %s", response)

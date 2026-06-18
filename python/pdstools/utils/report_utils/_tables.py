@@ -1,5 +1,7 @@
 """RAG-coloured metric table builders (itables and great_tables)."""
 
+from __future__ import annotations
+
 import html
 from typing import Any
 

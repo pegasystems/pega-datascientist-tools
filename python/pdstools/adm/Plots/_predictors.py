@@ -7,9 +7,12 @@ import polars.selectors as cs
 
 from ...utils import cdh_utils
 from ...utils.plot_utils import get_colorscale
-from ...utils.types import QUERY
 from ._base import _PlotsBase
 from ._helpers import requires
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...utils.types import QUERY
 
 
 class _PredictorPlotsMixin(_PlotsBase):
@@ -80,7 +83,7 @@ class _PredictorPlotsMixin(_PlotsBase):
         legend_added = set()
 
         # Create a box plot for each predictor
-        for i, row in enumerate(pre_aggs.iter_rows(named=True)):
+        for _i, row in enumerate(pre_aggs.iter_rows(named=True)):
             show_in_legend = row[legend_col] not in legend_added
             if show_in_legend:
                 legend_added.add(row[legend_col])
@@ -376,7 +379,7 @@ class _PredictorPlotsMixin(_PlotsBase):
 
         import plotly.express as px
 
-        fig = px.bar(
+        return px.bar(
             df.collect(),
             x="Contribution",
             y=by,
@@ -385,7 +388,6 @@ class _PredictorPlotsMixin(_PlotsBase):
             template="pega",
             title="Contribution of different sources",
         )
-        return fig
 
     @requires(
         combined_columns={
@@ -500,7 +502,7 @@ class _PredictorPlotsMixin(_PlotsBase):
     def predictor_count(
         self,
         *,
-        by: str | list[str] = ["EntryType", "Type"],
+        by: str | list[str] | None = None,
         query: QUERY | None = None,
         return_df: bool = False,
     ):
@@ -532,6 +534,8 @@ class _PredictorPlotsMixin(_PlotsBase):
         >>> df = dm.plot.predictor_count(return_df=True)
 
         """
+        if by is None:
+            by = ["EntryType", "Type"]
         # Normalize to list[str] — if `by` is a bare string, treating it as
         # Iterable[str] would iterate over characters, giving wrong group_by keys.
         by_list: list[str] = [by] if isinstance(by, str) else by
@@ -541,13 +545,13 @@ class _PredictorPlotsMixin(_PlotsBase):
             query,
         ).filter(pl.col("EntryType") != "Classifier")
 
-        collected = df.group_by(["ModelID"] + by_list).agg(Count=pl.n_unique("PredictorName")).collect()
+        collected = df.group_by(["ModelID", *by_list]).agg(Count=pl.n_unique("PredictorName")).collect()
 
         if len(by_list) > 1:
             collected = pl.concat(
                 [
                     collected,
-                    collected.group_by(["ModelID"] + by_list[1:])
+                    collected.group_by(["ModelID", *by_list[1:]])
                     .agg(pl.col("Count").sum())
                     .with_columns(pl.lit("Overall").alias(by_list[0])),
                 ],

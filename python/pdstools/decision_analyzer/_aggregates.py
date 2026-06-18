@@ -65,13 +65,11 @@ class Aggregates:
             stage: aggregate_over_remaining_stages(df, stage, self.da.AvailableNBADStages[i:])
             for (i, stage) in enumerate(self.da.AvailableNBADStages)
         }
-        remaining_view = (
+        return (
             pl.concat(aggs.values())
             .with_columns(pl.col(self.da.level).cast(stage_orders.collect_schema()[self.da.level]))
             .join(stage_orders, on=self.da.level, how="left")
         )
-
-        return remaining_view
 
     def get_distribution_data(
         self,
@@ -95,7 +93,7 @@ class Aggregates:
         pl.LazyFrame
             Columns from *grouping_levels* plus ``Decisions``, sorted descending.
         """
-        distribution_data = (
+        return (
             apply_filter(self.da.preaggregated_remaining_view, additional_filters)
             .filter(pl.col(self.da.level) == stage)
             .group_by(grouping_levels)
@@ -104,11 +102,29 @@ class Aggregates:
             .filter(pl.col("Decisions") > 0)
         )
 
-        return distribution_data
-
     def get_funnel_data(
-        self, scope: str, additional_filters: pl.Expr | list[pl.Expr] | None = None
+        self,
+        scope: str = "Action",
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> tuple[pl.LazyFrame, pl.DataFrame, pl.DataFrame]:
+        """Per-stage funnel: ``(available, passing, filtered)`` triples.
+
+        Parameters
+        ----------
+        scope : str, default ``"Action"``
+            Granularity of the funnel — one of ``"Issue"``, ``"Group"`` or
+            ``"Action"`` (the typical pdstools default; the Streamlit app
+            uses the first available element of the scope hierarchy).
+        additional_filters : pl.Expr | list[pl.Expr] | None
+            Optional polars expressions ANDed together to filter the
+            pre-aggregated view before computing the funnel.
+
+        Returns
+        -------
+        tuple[pl.LazyFrame, pl.DataFrame, pl.DataFrame]
+            Available (entering each stage), passing (exiting each
+            stage), and filtered (removed at each stage) frames.
+        """
         filtered_df = apply_filter(self.da.preaggregated_filter_view, additional_filters)
 
         interaction_count_expr = (
@@ -326,9 +342,9 @@ class Aggregates:
             )
             summary = pl.concat([synthetic_row, summary], how="diagonal_relaxed")
 
-        display_stage_order = [synthetic_label] + stages
+        display_stage_order = [synthetic_label, *stages]
         display_stage_index = {name: idx for idx, name in enumerate(display_stage_order)}
-        summary = (
+        return (
             summary.with_columns(
                 (pl.col("Filtered Actions") / pl.col("Filtered Actions").sum() * 100)
                 .round(1)
@@ -354,7 +370,6 @@ class Aggregates:
                 "% Decisions without Actions",
             )
         )
-        return summary
 
     def get_optionality_data(self, df: pl.LazyFrame | None = None, by_day: bool = False) -> pl.LazyFrame:
         """Average number of actions per stage, optionally broken down by day.
@@ -411,14 +426,12 @@ class Aggregates:
             )
             .drop("interaction_count")
         )
-        optionality_data = pl.concat(
+        return pl.concat(
             [
                 per_offer_count_and_stage,
                 zero_actions.select(per_offer_count_and_stage.collect_schema().names()),
             ]
         ).sort("nOffers", descending=True)
-
-        return optionality_data
 
     def get_optionality_funnel(self, df: pl.LazyFrame | None = None) -> pl.LazyFrame:
         """Optionality funnel: interaction counts bucketed by available-action count.
@@ -437,7 +450,7 @@ class Aggregates:
         """
         if df is None:
             df = self.da.sample
-        optionality_funnel = (
+        return (
             self.get_optionality_data(df)
             .with_columns(
                 pl.when(pl.col("nOffers") >= 7)
@@ -452,7 +465,6 @@ class Aggregates:
             .agg(pl.sum("Interactions"))
             .sort([self.da.level, "available_actions"])
         )
-        return optionality_funnel
 
     def get_action_variation_data(
         self,
@@ -668,7 +680,7 @@ class Aggregates:
 
             # Add stage to all customers and join
             stage_customers = all_customers.with_columns(pl.lit(stage).cast(pl.Categorical).alias(self.da.level))
-            stage_df = stage_customers.join(stage_df, on=group_by + [self.da.level], how="left").with_columns(
+            stage_df = stage_customers.join(stage_df, on=[*group_by, self.da.level], how="left").with_columns(
                 pl.col(
                     "no_of_offers", "new_models", "poor_propensity_offers", "poor_priority_offers", "good_offers"
                 ).fill_null(0)
@@ -680,7 +692,7 @@ class Aggregates:
         # Determine if stage has propensity scores available (ActionPropensity and later)
         has_propensity = pl.col(self.da.level).is_in(self.da.stages_with_propensity)
 
-        stage_df = stage_df.with_columns(
+        return stage_df.with_columns(
             has_no_offers=pl.when(pl.col("no_of_offers") == 0).then(pl.lit(1)).otherwise(pl.lit(0)),
             # For stages WITH propensity: classify as relevant (green) or irrelevant (orange)
             atleast_one_relevant_action=pl.when(has_propensity & (pl.col("good_offers") >= 1))
@@ -696,7 +708,6 @@ class Aggregates:
             .then(pl.lit(1))
             .otherwise(pl.lit(0)),
         )
-        return stage_df
 
     def filtered_action_counts(
         self,
@@ -790,15 +801,13 @@ class Aggregates:
         stages = self.da.AvailableNBADStages[self.da.AvailableNBADStages.index(stage) :]
         group_by = ["day"] if scope is None else ["day", scope]
 
-        trend_data = (
+        return (
             apply_filter(self.da.sample, additional_filters)
             .filter(pl.col(self.da.level).is_in(stages))
             .group_by(group_by)
             .agg(pl.n_unique("Interaction ID").alias("Decisions"))
             .sort(group_by)
         )
-
-        return trend_data
 
     def get_filter_component_data(
         self, top_n: int, additional_filters: pl.Expr | list[pl.Expr] | None = None
@@ -836,7 +845,7 @@ class Aggregates:
             )
             .collect()
         )
-        result = pl.concat(
+        return pl.concat(
             pl.collect_all(
                 [
                     x.lazy().top_k(top_n, by="Filtered Decisions").sort("Filtered Decisions", descending=False)
@@ -844,8 +853,6 @@ class Aggregates:
                 ]
             )
         ).with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
-
-        return result
 
     def get_component_action_impact(
         self,
@@ -883,7 +890,7 @@ class Aggregates:
         scope_idx = scope_hierarchy.index(scope) if scope in scope_hierarchy else 2
         scope_cols = scope_hierarchy[: scope_idx + 1]
 
-        group_cols = ["Component Name", self.da.level] + scope_cols
+        group_cols = ["Component Name", self.da.level, *scope_cols]
         available = set(filtered_data.collect_schema().names())
         group_cols = [c for c in group_cols if c in available]
 
@@ -1006,9 +1013,8 @@ class Aggregates:
         stage_order = pl.DataFrame(
             {self.da.level: self.da.AvailableNBADStages, "_stage_order": list(range(len(self.da.AvailableNBADStages)))}
         )
-        tbl = (
+        return (
             tbl.join(stage_order, on=self.da.level, how="left")
             .sort("_stage_order", nulls_last=True)
             .drop("_stage_order")
         )
-        return tbl

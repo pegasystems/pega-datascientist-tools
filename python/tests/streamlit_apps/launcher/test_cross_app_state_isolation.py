@@ -24,10 +24,13 @@ should be upgraded to drive the real ``switch_page`` flow.
 
 from __future__ import annotations
 
-from pathlib import Path
 
 import pytest
 from streamlit.testing.v1 import AppTest
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_da_autoload_independent_of_hc_dm(da_app_dir: Path, hc_app_dir: Path) -> None:

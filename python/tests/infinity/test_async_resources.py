@@ -288,7 +288,7 @@ class TestAsyncPredictionStudio:
         async_client.request.return_value = mock_response_model
         result = await async_ps.list_models(return_df=True)
         assert isinstance(result, pl.DataFrame)
-        assert result.shape == (2, 8)
+        assert result.shape == (2, 9)
         assert result.columns == [
             "model_id",
             "label",
@@ -296,6 +296,7 @@ class TestAsyncPredictionStudio:
             "modeling_technique",
             "source",
             "status",
+            "component_name",
             "last_update_time",
             "updated_by",
         ]
@@ -624,9 +625,9 @@ class TestAsyncPrediction:
         )
 
         async_client.post.assert_awaited_once_with(
-            "prweb/api/PredictionStudio/v4/predictions/"
+            "/prweb/api/PredictionStudio/v4/predictions/"
             "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS/"
-            "category/Retention/models/@baseclass!testModel_falcons",
+            "category/Retention/models/%40baseclass%21testModel_falcons",
             data={"contextName": "NoContext"},
         )
         assert result is not None

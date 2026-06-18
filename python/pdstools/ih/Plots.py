@@ -3,19 +3,19 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
-from typing import TYPE_CHECKING, Literal, cast, overload
+from typing import ClassVar, Literal, TYPE_CHECKING, cast, overload
 
 import polars as pl
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 from ..utils.plot_utils import Figure, simplify_facet_titles
-from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    from datetime import timedelta
     from .IH import IH as IH_Class
 
 
@@ -27,14 +27,10 @@ class Plots(LazyNamespace):
     :class:`~pdstools.ih.IH.IH` instance.
 
     All plot methods support:
+
     - Custom titles via `title` parameter
     - Data filtering via `query` parameter
     - Returning underlying data via `return_df=True`
-
-    Attributes
-    ----------
-    ih : IH
-        Reference to the parent IH instance.
 
     See Also
     --------
@@ -49,8 +45,10 @@ class Plots(LazyNamespace):
 
     """
 
-    dependencies = ["plotly"]
+    dependencies: ClassVar[list[str]] = ["plotly"]
     dependency_group = "adm"
+    ih: "IH_Class"
+    """Reference to the parent IH instance."""
 
     def __init__(self, ih: "IH_Class"):
         """Initialize a Plots instance.
@@ -153,7 +151,7 @@ class Plots(LazyNamespace):
 
         cols = df[by].unique().shape[0]  # TODO can be None
         # TODO generalize to support pl expression, see ADM plots, eg facet in bubble chart
-        condition_col = cast(str, condition)
+        condition_col = cast("str", condition)
         rows = df[condition_col].unique().shape[0]
 
         fig = make_subplots(
@@ -287,7 +285,7 @@ class Plots(LazyNamespace):
 
         fig = px.treemap(
             plot_data.collect(),
-            path=[px.Constant("ALL")] + ["Outcome"] + by,
+            path=[px.Constant("ALL"), "Outcome", *by],
             values="Count",
             color="Count",
             branchvalues="total",
@@ -394,7 +392,7 @@ class Plots(LazyNamespace):
 
         fig = px.treemap(
             plot_data_collected,
-            path=[px.Constant("ALL")] + by,
+            path=[px.Constant("ALL"), *by],
             values="CTR_DisplayValue",
             color="CTR_DisplayValue",
             color_continuous_scale=px.colors.sequential.RdBu,

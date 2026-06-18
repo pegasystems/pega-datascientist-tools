@@ -1,47 +1,67 @@
-from typing import TYPE_CHECKING, Any, Literal, TypedDict
-from collections.abc import Callable
+from __future__ import annotations
 
-import httpx
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
+
 from pydantic import AliasChoices, BaseModel, Field, Json
 
 from ...internal._exceptions import InternalServerError, InvalidInputs, PegaException
 from ...internal._resource import AsyncAPIResource, SyncAPIResource, api_method
 
+if TYPE_CHECKING:
+    import httpx
+    from collections.abc import Callable
+
 
 class TextInput(TypedDict):
+    """Free-text input passed to a Knowledge Buddy variable."""
+
     name: str
     value: str
 
 
 class FilterAttributes(TypedDict):
+    """Filter attribute payload used to restrict semantic search results."""
+
     name: str
     values: list[dict[Literal["value"], str]]
 
 
 class AttributeValue(BaseModel):
+    """A single attribute value returned in a search result chunk."""
+
     value: str
 
 
 class Attribute(BaseModel):
+    """A named attribute attached to a search result chunk."""
+
     values: list[AttributeValue]
     name: str
 
 
 class Chunk(BaseModel):
+    """A chunk of retrieved content plus its filterable attributes."""
+
     attributes: list[Attribute]
     content: str
 
 
 class SearchResultValue(BaseModel):
+    """Structured search-result payload returned by Knowledge Buddy."""
+
     chunks: list[Chunk]
 
 
 class SearchResult(BaseModel):
+    """A single search result entry returned by Knowledge Buddy."""
+
     name: str
     value: Json[SearchResultValue] | SearchResultValue | str
 
 
 class BuddyResponse(BaseModel):
+    """Response payload returned for a Knowledge Buddy question."""
+
     question_id: str = Field(validation_alias=AliasChoices("questionID", "question_id"))
     answer: str
     status: str
@@ -94,31 +114,35 @@ class _KnowledgeBuddyMixin:
 
         Parameters
         ----------
-        question: str: (Required)
+        question : str
             Input the question.
-        buddy: str (Required)
+        buddy : str
             Input the buddy name.
             If you do not have the required role to access the buddy,
             an access error will be displayed.
-        include_search_results: bool (Default: False)
+        include_search_results : bool, default False
             If set to true, this property returns chunks of data related to each
             SEARCHRESULTS information variable that is defined for the Knowledge Buddy,
             which is the same information that is returned during a semantic search.
-        question_source: str (Optional)
+        question_source : str, optional
             Input a source for the question based on the use case.
             This information can be used for reporting purposes.
-        question_tag: str (Optional)
+        question_tag : str, optional
             Input a tag for the question based on the use case.
             This information can be used for reporting purposes.
-        additional_text_inputs: list[TextInput]: (Optional)
+        additional_text_inputs : list[TextInput], optional
             Input the search variable values, where key is the search variable name
             and value is the data that replaces the variable.
             Search variables are defined in the Information section of the Knowledge Buddy.
-        filter_attributes: list[FilterAttributes]: (Optional)
+        filter_attributes : list[FilterAttributes], optional
             Input the filter attributes to get the filtered chunks from the vector database.
             User-defined attributes ingested with content can be used as filters.
             Filters are recommended to improve the semantic search performance.
             Database indexes can be used further to enhance the search.
+        user_name : str, optional
+            User name associated with the question.
+        user_email : str, optional
+            User email associated with the question.
 
         """
         response = await self._a_post(
@@ -148,16 +172,16 @@ class _KnowledgeBuddyMixin:
 
         Parameters
         ----------
-        question_id: str: (Required)
+        question_id : str
             The Knowledge Buddy case Id that is required to capture the feedback.
-        helpful: str (Optional)
+        helpful : Literal["Yes", "No", "Unsure"], default "Unsure"
             Was this comment helpful? Valid values are Yes, No and Unsure.
             Empty value defaults to Unsure.
-        comments: str (Optional)
+        comments : str, optional
             Text of the comment.
 
         """
-        response = await self._a_put(
+        return await self._a_put(
             "/prweb/api/knowledgebuddy/v1/question/feedback",
             data=dict(
                 questionID=question_id,
@@ -165,7 +189,6 @@ class _KnowledgeBuddyMixin:
                 comments=comments,
             ),
         )
-        return response
 
     @staticmethod
     def _custom_exception_hook(

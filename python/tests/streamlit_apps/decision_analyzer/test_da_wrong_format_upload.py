@@ -9,10 +9,13 @@ error rather than crashing with a Python stack trace.
 
 from __future__ import annotations
 
-from pathlib import Path
 
 import pytest
 from streamlit.testing.v1 import AppTest
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_da_garbage_parquet_upload_handled_gracefully(da_app_dir: Path) -> None:

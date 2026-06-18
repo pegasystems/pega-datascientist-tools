@@ -1,20 +1,24 @@
+from __future__ import annotations
+
 __all__ = ["FilterWidget"]
 
 from collections import OrderedDict
-from typing import TYPE_CHECKING, cast
+from typing import ClassVar, TYPE_CHECKING, cast
 
 from IPython.display import display
 from ipywidgets import widgets
 
 from ..utils.namespaces import LazyNamespace
-from .ExplanationsUtils import ContextInfo, ContextOperations
 
 if TYPE_CHECKING:
+    from .ExplanationsUtils import ContextInfo, ContextOperations
     from .Explanations import Explanations
 
 
 class FilterWidget(LazyNamespace):
-    dependencies = ["ipywidgets"]
+    """Filter widget."""
+
+    dependencies: ClassVar[list[str]] = ["ipywidgets"]
     dependency_group = "explanations"
 
     _ANY_CONTEXT = "Any"
@@ -41,11 +45,12 @@ class FilterWidget(LazyNamespace):
 
     def interactive(self):
         """Initializes the interactive filter widget and displays it.
+
         This is used in combination with explanations.plot.contributions() to allow users to
         filter by context if required.
         Select the context from the list of contexts for plotting contributions for selected context else
         the overall contributions will be plotted.
-        Alternatively, the context can be set using `set_selected_context()` method.
+        Alternatively, the context can be set using ``set_selected_context()``.
         """
         try:
             self.explanations.aggregate.validate_folder()
@@ -65,11 +70,11 @@ class FilterWidget(LazyNamespace):
         Parameters
         ----------
         context_info : ContextInfo | None
-            If None, initializes the selected context with 'Any' for all keys.
-            i.e overall model contributions
+            If ``None``, initializes the selected context with ``"Any"`` for all keys,
+            i.e. overall model contributions.
             If provided, sets the selected context to the given context information.
-            Context is passed as a dictionary
-            Eg. context_info =
+            Context is passed as a dictionary::
+
                 {
                     "pyChannel": "channel1",
                     "pyDirection": "direction1",
@@ -83,9 +88,7 @@ class FilterWidget(LazyNamespace):
             self._selected_context_key = cast("dict[str, str]", context_info)
 
     def is_context_selected(self) -> bool:
-        """Method returns True only if all context keys
-        are selected with a value other than 'Any'.
-        """
+        """Return True only if all context keys are selected with a value other than ``"Any"``."""
         if self._selected_context_key is None:
             return False
         return all(value != self._ANY_CONTEXT for value in self._selected_context_key.values())
@@ -162,10 +165,12 @@ class FilterWidget(LazyNamespace):
 
     def _get_context_combobox_widgets(self) -> dict[str, widgets.Combobox]:
         ctx_options = {
-            ctx_key_name: [self._ANY_CONTEXT]
-            + sorted(
-                set(cast("dict[str, str]", context_info)[ctx_key_name] for context_info in self._filtered_list),
-            )
+            ctx_key_name: [
+                self._ANY_CONTEXT,
+                *sorted(
+                    set(cast("dict[str, str]", context_info)[ctx_key_name] for context_info in self._filtered_list)
+                ),
+            ]
             for ctx_key_name in (self._selected_context_key or {}).keys()
         }
 

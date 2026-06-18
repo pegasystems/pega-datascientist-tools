@@ -1,11 +1,123 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterator
-from typing import Any, Generic, TypeVar, overload
+from typing import Any, Generic, TypeVar, overload, TYPE_CHECKING
 
 import polars as pl
 
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Iterator
+
 T = TypeVar("T")
+
+
+class _MissingLookupKeyError(KeyError):
+    """Internal KeyError used for missing string-key lookups."""
+
+
+class _AmbiguousLabelKeyError(KeyError):
+    """Internal KeyError used for ambiguous label-based lookups."""
+
+
+def _resolve_id_field(content_class: Any) -> str:
+    """Return the attribute name used for string/``in`` lookups.
+
+    Resources backed by the Pydantic data layer declare ``_id_field`` (e.g.
+    ``"prediction_id"``). Anything else falls back to ``"id"``.
+    """
+    return getattr(content_class, "_id_field", "id")
+
+
+def _preferred_keys(items: list[Any], id_field: str) -> list[Any]:
+    """Return user-facing mapping keys for a resource collection.
+
+    Parameters
+    ----------
+    items : list[Any]
+        Collected resource items.
+    id_field : str
+        Attribute name used for id-based lookup.
+
+    Returns
+    -------
+    list[Any]
+        Labels when the collection exposes them, otherwise ids.
+
+    """
+    labels = [getattr(item, "label", None) for item in items if getattr(item, "label", None) is not None]
+    if labels:
+        return labels
+    return [getattr(item, id_field, None) for item in items]
+
+
+def _resolve_string_lookup(items: Any, key: str, id_field: str) -> Any:
+    """Resolve a string key by id first, then by label.
+
+    Parameters
+    ----------
+    items : iterable
+        Resource items to scan.
+    key : str
+        String key to resolve.
+    id_field : str
+        Attribute name used for id-based lookup.
+
+    Returns
+    -------
+    Any
+        The matching resource.
+
+    Raises
+    ------
+    _AmbiguousLabelKeyError
+        If multiple resources share the requested label.
+    _MissingLookupKeyError
+        If neither an id nor a label match is found.
+
+    """
+    label_matches: list[Any] = []
+    available_keys: list[Any] = []
+    has_labels = False
+
+    for element in items:
+        id_value = getattr(element, id_field, None)
+        if id_value == key:
+            return element
+
+        label_value = getattr(element, "label", None)
+        if label_value is not None:
+            has_labels = True
+            available_keys.append(label_value)
+            if label_value == key:
+                label_matches.append(element)
+        else:
+            available_keys.append(id_value)
+
+    if len(label_matches) == 1:
+        return label_matches[0]
+    if len(label_matches) > 1:
+        raise _AmbiguousLabelKeyError(
+            f"Label {key!r} is ambiguous; matched {len(label_matches)} resources. Use the id instead.",
+        )
+
+    visible_keys = available_keys[:5]
+    key_type = "labels" if has_labels else "ids"
+    raise _MissingLookupKeyError(
+        f"{key!r} was not found. Available {key_type}: {visible_keys}.",
+    )
+
+
+def _frame_from_resources(content_class: Any, items: Any) -> pl.DataFrame:
+    """Build a DataFrame from resource items with a locked schema when available.
+
+    Resources backed by the Pydantic data layer expose ``_public_schema()``,
+    which yields a stable column set and dtypes so that empty results,
+    all-null optionals, and forward-compatible extra fields don't change the
+    output schema. Resources that have not yet migrated fall back to Polars'
+    value inference (``schema=None``).
+    """
+    schema_fn = getattr(content_class, "_public_schema", None)
+    schema = schema_fn() if callable(schema_fn) else None
+    return pl.DataFrame((getattr(item, "_public_dict", {}) for item in items), schema=schema)
 
 
 class _Slice(Generic[T]):
@@ -32,19 +144,21 @@ class _Slice(Generic[T]):
             else:
                 return
 
-    def __getitem__(self, index: int) -> T | None:
+    def __getitem__(self, index: int) -> T:
+        if index < 0:
+            raise IndexError("Cannot negative index a PaginatedList slice")
         i: int = 0
         for e in self:
             if i == index:
                 return e
             i += 1
-        return None
+        raise IndexError(index)
 
     def _finished(self, index: int) -> bool:
         return self._stop is not None and index >= self._stop
 
     def as_df(self) -> pl.DataFrame:
-        return pl.DataFrame(getattr(prediction, "_public_dict", {}) for prediction in self)
+        return _frame_from_resources(self._list._content_class, self)
 
 
 class PaginatedList(Generic[T]):
@@ -94,14 +208,33 @@ class PaginatedList(Generic[T]):
             return self._elements[index]
         if isinstance(index, slice):
             return _Slice(self, index)
-        assert "id" in self._content_class, (
-            "To pass a string as index for a paginated list, the content class needs an 'id' field."
-        )
-        for element in self.__iter__():
-            if getattr(element, "id", None) == index:
-                return element
+        id_field = _resolve_id_field(self._content_class)
+        return _resolve_string_lookup(self.__iter__(), index, id_field)
 
-        raise IndexError(index)
+    def __contains__(self, key: object) -> bool:
+        """Perform mapping-style membership tests by id, then label.
+
+        ``"PREDICT_X" in client.prediction_studio.list_predictions()`` walks the
+        list (fetching pages as needed), first comparing each element's id field
+        and then falling back to ``label`` when the resource exposes one.
+        """
+        if not isinstance(key, str):
+            return False
+        id_field = _resolve_id_field(self._content_class)
+        try:
+            _resolve_string_lookup(iter(self), key, id_field)
+        except _MissingLookupKeyError:
+            return False
+        return True
+
+    def keys(self) -> list[Any]:
+        """Return mapping-style keys for every element.
+
+        String lookups try ids first and then labels, so this returns labels
+        when available and otherwise falls back to ids.
+        """
+        id_field = _resolve_id_field(self._content_class)
+        return _preferred_keys(list(self), id_field)
 
     @overload
     def get(self, __key: int | str, __default: str | None = None) -> T: ...
@@ -120,13 +253,14 @@ class PaginatedList(Generic[T]):
     ) -> T | _Slice[T] | Any:
         """Returns the specified key or default.
 
-        If string type provided as key, the content_class needs to be a Pydantic class,
-        with an attribute called 'id'.
+        If a string is provided as key, lookup first uses the content class id
+        field (``_id_field``, defaulting to ``"id"``) and then falls back to
+        ``label`` when available.
 
         Parameters
         ----------
         __key : int | slice | str
-            Can be a int (index), slice (start:end), or string (id attribute)
+            Can be an int (index), slice (start:end), or string (id/label)
         __default : str | None, optional
             The value to return if none found, by default None
 
@@ -161,6 +295,10 @@ class PaginatedList(Generic[T]):
     def __repr__(self) -> str:
         return f"<PaginatedList of type {self._content_class.__name__}>"
 
+    def as_df(self) -> pl.DataFrame:
+        """Collect all pages into a polars DataFrame."""
+        return _frame_from_resources(self._content_class, self)
+
     def _get_next_page(self) -> list[T]:
         response = self._client.request(
             self._request_method,
@@ -173,10 +311,18 @@ class PaginatedList(Generic[T]):
 
         content: list[T] = []
         if self._root:
-            try:
+            if self._root in response:
                 response = response[self._root]
-            except KeyError as e:
-                raise ValueError(f"Json format unexpected, {self._root} not found.{e}")
+            elif not response:
+                # An empty body (e.g. ``{}`` when there are no items) is an
+                # empty page, not a malformed payload — yield zero elements.
+                # A *populated* dict missing the root key is still a genuine
+                # format error and falls through to the raise below.
+                response = []
+            else:
+                raise ValueError(
+                    f"Json format unexpected, {self._root} not found.",
+                )
 
         for element in response:
             if element is not None:
@@ -252,10 +398,18 @@ class AsyncPaginatedList(Generic[T]):
 
         content: list[T] = []
         if self._root:
-            try:
+            if self._root in response:
                 response = response[self._root]
-            except KeyError as e:
-                raise ValueError(f"Json format unexpected, {self._root} not found.{e}")
+            elif not response:
+                # An empty body (e.g. ``{}`` when there are no items) is an
+                # empty page, not a malformed payload — yield zero elements.
+                # A *populated* dict missing the root key is still a genuine
+                # format error and falls through to the raise below.
+                response = []
+            else:
+                raise ValueError(
+                    f"Json format unexpected, {self._root} not found.",
+                )
 
         for element in response:
             if element is not None:
@@ -292,7 +446,11 @@ class AsyncPaginatedList(Generic[T]):
         __default: T | None = None,
         **kwargs: Any,
     ) -> T | None:
-        """Async version of PaginatedList.get()."""
+        """Async version of :meth:`PaginatedList.get`.
+
+        String lookup first uses the content class id field and then falls back
+        to ``label`` when available.
+        """
         if kwargs:
             async for element in self:
                 if all(getattr(element, name) == value for name, value in kwargs.items()):
@@ -303,14 +461,23 @@ class AsyncPaginatedList(Generic[T]):
                 if isinstance(__key, int):
                     return items[__key]
                 if isinstance(__key, str):
-                    for el in items:
-                        if getattr(el, "id", None) == __key:
-                            return el
+                    id_field = _resolve_id_field(self._content_class)
+                    return _resolve_string_lookup(items, __key, id_field)
             except (IndexError, KeyError, ValueError, AttributeError, TypeError):
                 pass
         return __default
 
+    async def keys(self) -> list[Any]:
+        """Return mapping-style keys for every element.
+
+        String lookups try ids first and then labels, so this returns labels
+        when available and otherwise falls back to ids.
+        """
+        id_field = _resolve_id_field(self._content_class)
+        items = await self.collect()
+        return _preferred_keys(items, id_field)
+
     async def as_df(self) -> pl.DataFrame:
         """Collect all pages into a polars DataFrame."""
         items = await self.collect()
-        return pl.DataFrame(getattr(item, "_public_dict", {}) for item in items)
+        return _frame_from_resources(self._content_class, items)

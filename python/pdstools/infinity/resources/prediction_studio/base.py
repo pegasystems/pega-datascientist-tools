@@ -1,18 +1,25 @@
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
 from typing import (
     Any,
+    ClassVar,
     Literal,
     TypedDict,
+    TYPE_CHECKING,
 )
 
-import polars as pl
 from pydantic import BaseModel
 
 from ...internal._exceptions import IncompatiblePegaVersionError
 from ...internal._resource import AsyncAPIResource, SyncAPIResource
+from .schemas import ModelData, ModelInstanceData, NotificationData, PredictionData
+
+logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    import polars as pl
 
 DEPLOYMENT_MODE = Literal["shadow", "champion/challenger"]
 
@@ -49,59 +56,94 @@ class ModelAttributes(TypedDict):
 
 
 class _ModelMixin(ABC):
-    def __init__(
-        self,
-        client,
-        *,
-        modelId: str,
-        label: str,
-        modelType: str,
-        status: str,
-        componentName: str | None = None,
-        source: str | None = None,
-        lastUpdateTime: str | None = None,
-        modelingTechnique: str | None = None,
-        updatedBy: str | None = None,
-    ):
+    """Behaviour wrapper around a :class:`ModelData` payload.
+
+    The raw API payload is validated into ``self._data`` (a Pydantic model).
+    Attribute reads fall through to ``_data`` via ``__getattr__``, so
+    ``model.model_id`` etc. keep working, while ``_public_dict`` /
+    ``_public_fields`` are sourced from ``_data`` so the ``return_df=True``
+    code paths (``list_models``) produce a stable, fully-populated schema.
+    """
+
+    _data: ModelData
+    _data_cls: type[ModelData] = ModelData
+    _id_field: ClassVar[str] = "model_id"
+
+    def __init__(self, client, **payload):
         super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO: combined with SyncAPIResource/AsyncAPIResource
-        self.model_id = modelId
-        self.label = label
-        self.model_type = modelType
-        self.modeling_technique = modelingTechnique
-        self.source = source
-        self.status = status
-        if componentName:
-            self.component_name = componentName
-        if lastUpdateTime:
-            self.last_update_time = datetime.strptime(
-                lastUpdateTime,
-                "%Y%m%dT%H%M%S.%f %Z",
-            )
-        self.updated_by = updatedBy
+        self._data = self._data_cls.model_validate(payload)
+
+    def __getattr__(self, name: str):
+        # __getattr__ only fires when normal attribute lookup fails, so real
+        # methods and instance attributes still win.  Use object.__getattribute__
+        # to fetch _data without re-entering __getattr__ (which would recurse
+        # before _data is assigned during __init__).
+        try:
+            data = object.__getattribute__(self, "_data")
+        except AttributeError:
+            raise AttributeError(name) from None
+        try:
+            return getattr(data, name)
+        except AttributeError:
+            raise AttributeError(name) from None
+
+    @property
+    def _public_dict(self) -> dict:
+        return self._data.public_dict
+
+    @property
+    def _public_fields(self) -> list[str]:
+        return list(type(self._data).model_fields)
+
+    @classmethod
+    def _public_schema(cls) -> dict:
+        """Polars schema for ``return_df=True`` results (locked column set)."""
+        return cls._data_cls.polars_schema()
 
     @abstractmethod
     def describe(self) -> ModelAttributes: ...
 
 
 class _PredictionMixin(ABC):
-    def __init__(
-        self,
-        client,
-        *,
-        predictionId: str,
-        label: str,
-        status: str,
-        lastUpdateTime: str,
-        objective: str | None = None,
-        subject: str | None = None,
-    ):
+    """Behaviour wrapper around a :class:`PredictionData` payload.
+
+    The raw API payload is validated into ``self._data`` (a Pydantic model).
+    Attribute reads fall through to ``_data`` via ``__getattr__``, so
+    ``prediction.prediction_id`` etc. keep working, while ``_public_dict`` /
+    ``_public_fields`` are sourced from ``_data`` so the ``return_df=True``
+    code paths (``list_predictions``) produce a stable, fully-populated schema.
+    """
+
+    _data: PredictionData
+    _data_cls: type[PredictionData] = PredictionData
+    _id_field: ClassVar[str] = "prediction_id"
+
+    def __init__(self, client, **payload):
         super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO
-        self.prediction_id = predictionId
-        self.label = label
-        self.objective = objective
-        self.subject = subject
-        self.status = status
-        self.last_update_time = datetime.strptime(lastUpdateTime, "%Y%m%dT%H%M%S.%f %Z")
+        self._data = self._data_cls.model_validate(payload)
+
+    def __getattr__(self, name: str):
+        try:
+            data = object.__getattribute__(self, "_data")
+        except AttributeError:
+            raise AttributeError(name) from None
+        try:
+            return getattr(data, name)
+        except AttributeError:
+            raise AttributeError(name) from None
+
+    @property
+    def _public_dict(self) -> dict:
+        return self._data.public_dict
+
+    @property
+    def _public_fields(self) -> list[str]:
+        return list(type(self._data).model_fields)
+
+    @classmethod
+    def _public_schema(cls) -> dict:
+        """Polars schema for ``return_df=True`` results (locked column set)."""
+        return cls._data_cls.polars_schema()
 
     @abstractmethod
     def get_metric(
@@ -116,38 +158,48 @@ class _PredictionMixin(ABC):
 
 
 class _NotificationMixin(ABC):
-    def __init__(
-        self,
-        client,
-        *,
-        description: str,
-        modelType: str,
-        notificationID: str,
-        notificationType: str,
-        notificationMnemonic: str,
-        context: str,
-        impact: str,
-        triggerTime: str,
-        modelID: str | None = None,
-        predictionID: str | None = None,
-    ):
+    """Behaviour wrapper around a :class:`NotificationData` payload.
+
+    The raw API payload is validated into ``self._data`` (a Pydantic model).
+    Attribute reads fall through to ``_data`` via ``__getattr__``, so
+    ``notification.notification_id`` etc. keep working, while ``_public_dict`` /
+    ``_public_fields`` are sourced from ``_data`` so the ``return_df=True``
+    code paths (``get_notifications``) produce a stable, fully-populated schema.
+    """
+
+    _data: NotificationData
+    _data_cls: type[NotificationData] = NotificationData
+    _id_field: ClassVar[str] = "notification_id"
+
+    def __init__(self, client, **payload):
         super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO
-        if modelID:
-            self.model_id = modelID
-        if predictionID:
-            self.prediction_id = predictionID
-        if context:
-            self.context = context
-        self.notification_type = notificationType
-        self.notification_id = notificationID
-        self.notification_mnemonic = notificationMnemonic
-        self.description = description
-        self.model_type = modelType
-        self.impact = impact
-        self.trigger_time = datetime.strptime(triggerTime, "%Y%m%dT%H%M%S.%f %Z")
+        self._data = self._data_cls.model_validate(payload)
+
+    def __getattr__(self, name: str):
+        try:
+            data = object.__getattribute__(self, "_data")
+        except AttributeError:
+            raise AttributeError(name) from None
+        try:
+            return getattr(data, name)
+        except AttributeError:
+            raise AttributeError(name) from None
+
+    @property
+    def _public_dict(self) -> dict:
+        return self._data.public_dict
+
+    @property
+    def _public_fields(self) -> list[str]:
+        return list(type(self._data).model_fields)
+
+    @classmethod
+    def _public_schema(cls) -> dict:
+        """Polars schema for ``return_df=True`` results (locked column set)."""
+        return cls._data_cls.polars_schema()
 
 
-class UploadedModel(ABC): ...
+class UploadedModel(ABC): ...  # noqa: B024 — ABC marker for subclass discovery
 
 
 class ModelValidationError(Exception):
@@ -184,7 +236,7 @@ class _RepositoryMixin(ABC):
         raise IncompatiblePegaVersionError("24.2", "Retrieving the S3 URL directly")
 
 
-class _DataMartExportMixin(ABC):
+class _DataMartExportMixin(ABC):  # noqa: B024 — ABC used for cooperative MRO with pydantic resources
     def __init__(self, client, **kwargs):
         super().__init__(client=client)
         self.referenceId = kwargs.get("referenceId")
@@ -273,3 +325,131 @@ class ChampionChallenger(_ChampionChallengerMixin, SyncAPIResource):
 
 class AsyncChampionChallenger(_ChampionChallengerMixin, AsyncAPIResource):
     pass
+
+
+class ChampionChallengerList(list):
+    """List-like container with label-based lookup for champion/challengers.
+
+    Notes
+    -----
+    Integer indexing, iteration, and list semantics are preserved. String
+    lookup first tries ``challenger_model.label`` and then falls back to
+    ``active_model.label``.
+    """
+
+    def __getitem__(self, index):
+        if isinstance(index, str):
+            return self._resolve_string_key(index)
+
+        return super().__getitem__(index)
+
+    def __contains__(self, item):
+        if isinstance(item, str):
+            try:
+                self._resolve_string_key(item)
+            except KeyError:
+                return False
+            return True
+        return super().__contains__(item)
+
+    def keys(self) -> list[str]:
+        """Return challenger labels, falling back to active labels when needed."""
+        labels: list[str] = []
+        for item in self:
+            challenger_model = getattr(item, "challenger_model", None)
+            challenger_label = getattr(challenger_model, "label", None)
+            if challenger_label is not None:
+                labels.append(challenger_label)
+                continue
+
+            active_model = getattr(item, "active_model", None)
+            active_label = getattr(active_model, "label", None)
+            if active_label is not None:
+                labels.append(active_label)
+        return labels
+
+    def _resolve_string_key(self, key: str):
+        challenger_matches = []
+        active_matches = []
+
+        for item in self:
+            challenger_model = getattr(item, "challenger_model", None)
+            challenger_label = getattr(challenger_model, "label", None)
+            if challenger_label == key:
+                challenger_matches.append(item)
+
+            active_model = getattr(item, "active_model", None)
+            active_label = getattr(active_model, "label", None)
+            if active_label == key:
+                active_matches.append(item)
+
+        if len(challenger_matches) == 1:
+            return challenger_matches[0]
+        if len(challenger_matches) > 1:
+            raise KeyError(
+                f"Label {key!r} is ambiguous; matched {len(challenger_matches)} challenger models. "
+                "Use the model id instead.",
+            )
+        if len(active_matches) == 1:
+            return active_matches[0]
+        if len(active_matches) > 1:
+            raise KeyError(
+                f"Label {key!r} is ambiguous; matched {len(active_matches)} active models. Use the model id instead.",
+            )
+
+        raise KeyError(
+            f"{key!r} was not found. Available challenger labels: {self.keys()[:5]}.",
+        )
+
+
+class _ModelInstanceMixin(ABC):
+    """Behaviour wrapper around a :class:`ModelInstanceData` payload.
+
+    The raw API payload is validated into ``self._data`` (a Pydantic model).
+    Attribute reads fall through to ``_data`` via ``__getattr__``, so
+    ``instance.instance_id`` etc. keep working, while ``_public_dict`` /
+    ``_public_fields`` are sourced from ``_data`` so the ``return_df=True``
+    code paths (``list_instances``) produce a stable, fully-populated schema.
+    """
+
+    _data: ModelInstanceData
+    _data_cls: type[ModelInstanceData] = ModelInstanceData
+    _id_field: ClassVar[str] = "instance_id"
+
+    def __init__(self, client, **payload):
+        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO: combined with SyncAPIResource/AsyncAPIResource
+        self._data = self._data_cls.model_validate(payload)
+
+    def __getattr__(self, name: str):
+        try:
+            data = object.__getattribute__(self, "_data")
+        except AttributeError:
+            raise AttributeError(name) from None
+        try:
+            return getattr(data, name)
+        except AttributeError:
+            raise AttributeError(name) from None
+
+    @property
+    def _public_dict(self) -> dict:
+        return self._data.public_dict
+
+    @property
+    def _public_fields(self) -> list[str]:
+        return list(type(self._data).model_fields)
+
+    @classmethod
+    def _public_schema(cls) -> dict:
+        """Polars schema for ``return_df=True`` results (locked column set)."""
+        return cls._data_cls.polars_schema()
+
+
+class ModelInstance(_ModelInstanceMixin, SyncAPIResource):
+    pass
+
+
+class AsyncModelInstance(_ModelInstanceMixin, AsyncAPIResource):
+    pass
+
+
+__all__ = ["AsyncModelInstance", "ModelInstance"]

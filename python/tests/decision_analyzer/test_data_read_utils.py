@@ -8,18 +8,16 @@ from io import BytesIO
 import polars as pl
 import pytest
 
-pl.enable_string_cache()
-
-from pdstools.decision_analyzer.column_schema import (  # noqa: E402
+from pdstools.decision_analyzer.column_schema import (
     DecisionAnalyzer,
     ExplainabilityExtract,
 )
-from pdstools.decision_analyzer.data_read_utils import (  # noqa: E402
+from pdstools.decision_analyzer.data_read_utils import (
     read_gzipped_data,
     read_nested_zip_files,
     validate_columns,
 )
-from pdstools.pega_io.File import read_data  # noqa: E402
+from pdstools.pega_io.File import read_data
 
 
 # ---------------------------------------------------------------------------
@@ -251,7 +249,7 @@ class TestValidateColumns:
     def test_display_name_columns_accepted(self):
         """validate_columns should accept display names as well as raw names."""
         cols = {}
-        for raw_col, config in DecisionAnalyzer.items():
+        for _raw_col, config in DecisionAnalyzer.items():
             if config["default"]:
                 display_name = config["display_name"]
                 dtype = config["type"]

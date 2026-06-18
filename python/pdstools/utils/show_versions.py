@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import importlib
+import importlib.metadata
 import logging
 import re
 import sys
 from typing import Literal, overload
 
-from .. import __version__
-
 package_name = "pdstools"
 logger = logging.getLogger(__name__)
+
+try:
+    __version__ = importlib.metadata.version(package_name)
+except importlib.metadata.PackageNotFoundError:  # pragma: no cover - editable installs should resolve
+    __version__ = "<unknown>"
 
 
 @overload
@@ -136,6 +140,8 @@ def _external_tool_status(tool: str) -> str:
 
 
 def expand_nested_deps(extras: dict[str, set[str]]) -> dict[str, set[str]]:
+    """Expand nested deps."""
+
     def expand_dep(dep: str, processed: set[str]) -> set[str]:
         if not dep.startswith(f"{package_name}["):
             return {dep}
@@ -165,6 +171,7 @@ def expand_nested_deps(extras: dict[str, set[str]]) -> dict[str, set[str]]:
 
 
 def grouped_dependencies() -> dict[str, set[str]]:
+    """Grouped dependencies."""
     extras: dict[str, set[str]] = {"required": set()}
     requires = importlib.metadata.distribution(package_name).requires
     if not requires:  # pragma: no cover
@@ -194,7 +201,7 @@ def _get_dependency_version(dep_name: str) -> str:
         logger.debug(f"Failed to import module {dep_name}: {e}")
         return "<not installed>"
 
-    if hasattr(module, "__version__"):
+    if hasattr(module, "__version__"):  # noqa: SIM108 — comment clarifies the fallback
         module_version = module.__version__
     else:
         # importlib.metadata was introduced in Python 3.8
@@ -213,15 +220,15 @@ def _dependency_table(public_only: bool = False):
             _ = dependencies.pop(private_dep_group)
     deps = [{"group": k, "deps": list(v.union(required))} for k, v in dependencies.items()]
     pivot = pl.DataFrame(deps).explode("deps").pivot(values="deps", index="group", on="deps")
-    pivotted = pivot.with_columns(
+    return pivot.with_columns(
         pl.when(pl.col(col).is_not_null()).then(pl.lit("√")).otherwise(pl.lit("X")).alias(col)
         for col in pivot.columns
         if col != "group"
     )
-    return pivotted
 
 
 def dependency_great_table(public_only: bool = True):
+    """Dependency great table."""
     import great_tables
 
     dependency_table = _dependency_table(public_only=public_only)
@@ -229,7 +236,7 @@ def dependency_great_table(public_only: bool = True):
     optional_deps = list(set(dependency_table.collect_schema().names()))
     optional_deps = [n for n in optional_deps if n not in [*required_deps, "required"]]
     dependency_table = dependency_table.select(*required_deps, *optional_deps)
-    tab = (
+    return (
         great_tables.GT(dependency_table)
         .tab_header("Optional dependencies")
         .tab_options(column_labels_hidden=False)
@@ -237,4 +244,3 @@ def dependency_great_table(public_only: bool = True):
         .tab_spanner(label="Required", columns=list(required_deps))
         .tab_spanner(label="Optional", columns=list(set(optional_deps)))
     )
-    return tab

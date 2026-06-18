@@ -1,9 +1,14 @@
 """Date and time helpers for Pega-formatted timestamps."""
 
+from __future__ import annotations
+
 import datetime
 
 import polars as pl
-from polars._typing import PolarsTemporalType
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from polars._typing import PolarsTemporalType
 
 
 def parse_pega_date_time_formats(

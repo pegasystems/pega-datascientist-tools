@@ -1,5 +1,7 @@
 """Funnel plots: optionality funnel, decision funnel, decisions-without-actions."""
 
+from __future__ import annotations
+
 import plotly.express as px
 import plotly.graph_objects as go
 import polars as pl
@@ -85,7 +87,7 @@ def decision_funnel(
     synthetic_first_stage = "Available Actions"
     passing_stage_order = stage_order
     if stage_order and stage_order[0] != synthetic_first_stage:
-        passing_stage_order = [synthetic_first_stage] + stage_order
+        passing_stage_order = [synthetic_first_stage, *stage_order]
 
     available_collected = available_df.with_columns(
         pl.col(self._decision_data.level).cast(pl.Utf8),

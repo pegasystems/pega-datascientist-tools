@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import polars as pl
 import streamlit as st
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
@@ -275,7 +277,7 @@ if st.session_state.local_filters != []:
             col_data = arb_data
             for prev in others_filters:
                 col_data = col_data.filter(prev)
-            options = ["All"] + sorted(col_data.select(col_name).unique().collect().get_column(col_name).to_list())
+            options = ["All", *sorted(col_data.select(col_name).unique().collect().get_column(col_name).to_list())]
             with selector_cols[idx]:
                 selected = st.selectbox(
                     col_name,

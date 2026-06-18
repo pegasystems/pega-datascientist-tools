@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ....internal._pagination import AsyncPaginatedList, PaginatedList
 from ....internal._resource import api_method
 from ..base import AsyncPredictionStudioBase, PredictionStudioBase
@@ -16,7 +18,18 @@ class _PredictionStudioV24_1Mixin:
 
 
 class PredictionStudio(_PredictionStudioV24_1Mixin, PredictionStudioBase):
-    def list_predictions(self) -> PaginatedList[Prediction]:
+    @property
+    def predictions(self) -> PaginatedList[Prediction]:
+        """All predictions, addressable by label or id.
+
+        Returns
+        -------
+        PaginatedList[Prediction]
+            A lazily-fetched, mapping-style collection. Supports
+            ``ps.predictions['My Prediction']`` (by label or id),
+            ``'My Prediction' in ps.predictions``, ``ps.predictions.keys()``
+            and iteration.
+        """
         endpoint = "/prweb/api/PredictionStudio/V2/predictions"
         return PaginatedList(
             Prediction,
@@ -26,6 +39,9 @@ class PredictionStudio(_PredictionStudioV24_1Mixin, PredictionStudioBase):
             _root="predictions",
         )
 
+    def list_predictions(self) -> PaginatedList[Prediction]:
+        return self.predictions
+
     def repository(self) -> Repository:
         endpoint = "/prweb/api/PredictionStudio/v3/predictions/repository"
         response = self._client.get(endpoint)
@@ -33,7 +49,17 @@ class PredictionStudio(_PredictionStudioV24_1Mixin, PredictionStudioBase):
 
 
 class AsyncPredictionStudio(_PredictionStudioV24_1Mixin, AsyncPredictionStudioBase):
-    async def list_predictions(self) -> AsyncPaginatedList[AsyncPrediction]:
+    @property
+    def predictions(self) -> AsyncPaginatedList[AsyncPrediction]:
+        """All predictions, addressable by label or id.
+
+        Returns
+        -------
+        AsyncPaginatedList[AsyncPrediction]
+            A lazily-fetched, mapping-style collection. Supports
+            ``await ps.predictions.get(label='My Prediction')`` and
+            ``async for p in ps.predictions``.
+        """
         endpoint = "/prweb/api/PredictionStudio/V2/predictions"
         return AsyncPaginatedList(
             AsyncPrediction,
@@ -42,6 +68,9 @@ class AsyncPredictionStudio(_PredictionStudioV24_1Mixin, AsyncPredictionStudioBa
             endpoint,
             _root="predictions",
         )
+
+    async def list_predictions(self) -> AsyncPaginatedList[AsyncPrediction]:
+        return self.predictions
 
     async def repository(self) -> AsyncRepository:
         endpoint = "/prweb/api/PredictionStudio/v3/predictions/repository"

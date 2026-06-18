@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ["Plots"]
 
 import logging
-from typing import TYPE_CHECKING, Literal, cast, overload
+from typing import ClassVar, Literal, TYPE_CHECKING, cast, overload
 
 import polars as pl
 
@@ -26,7 +26,9 @@ if TYPE_CHECKING:
 
 
 class Plots(LazyNamespace):
-    dependencies = ["numpy", "plotly"]
+    """Plots."""
+
+    dependencies: ClassVar[list[str]] = ["numpy", "plotly"]
     dependency_group = "explanations"
 
     X_AXIS_TITLE_DEFAULT = "Contribution"
@@ -112,8 +114,8 @@ class Plots(LazyNamespace):
                 **common_kwargs,
             )
 
-            plots = [overall_plot] + predictor_plots
-            for plot in [context_plot] + plots:
+            plots = [overall_plot, *predictor_plots]
+            for plot in [context_plot, *plots]:
                 plot.show()
 
             return context_plot, plots
@@ -137,7 +139,7 @@ class Plots(LazyNamespace):
             **common_kwargs,
         )
 
-        plots = [overall_plot] + predictor_plots
+        plots = [overall_plot, *predictor_plots]
         for plot in plots:
             plot.show()
 
@@ -186,6 +188,7 @@ class Plots(LazyNamespace):
         remaining: bool = True,
         include_numeric_single_bin: bool = False,
     ) -> tuple[go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
+        """Plot contributions for overall."""
         display_by_enum = _resolve_contribution_type(display_by)
         agg_kwargs = {
             "sort_by": sort_by,
@@ -278,6 +281,7 @@ class Plots(LazyNamespace):
         remaining: bool = True,
         include_numeric_single_bin: bool = False,
     ) -> tuple[go.Figure, go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
+        """Plot contributions by context."""
         display_by_enum = _resolve_contribution_type(display_by)
         agg_kwargs = {
             "sort_by": sort_by,
@@ -342,28 +346,36 @@ class Plots(LazyNamespace):
     def _build_hover_customdata(
         df: pl.DataFrame,
         x_col: str,
+        include_frequency: bool = True,
     ):
         """Build customdata array and hovertemplate for contribution plots.
 
-        Expects df to contain a ``frequency_pct`` column.
+        Args:
+            df: DataFrame. Must contain a ``frequency_pct`` column when
+                ``include_frequency=True``.
+            x_col: Column used as the contribution value.
+            include_frequency: When False, omits the frequency row from the
+                hover tooltip (e.g. for the whole-model view where it is always 100%).
 
-        Returns (customdata, hovertemplate) with columns:
-        predictor_name, predictor_type, contribution (x_col value), frequency_pct.
+        Returns (customdata, hovertemplate).
         """
-        customdata = df.select(
+        select_cols = [
             _COL.PREDICTOR_NAME.value,
             _COL.PREDICTOR_TYPE.value,
             pl.col(x_col).alias("contribution"),
-            "frequency_pct",
-        ).to_numpy()
+        ]
+        if include_frequency:
+            select_cols.append(pl.col("frequency_pct"))
+
+        customdata = df.select(select_cols).to_numpy()
 
         hovertemplate = (
-            "predictor_name: %{customdata[0]}<br>"
-            "predictor_type: %{customdata[1]}<br>"
-            "contribution: %{customdata[2]:.8f}<br>"
-            "frequency: %{customdata[3]}%"
-            "<extra></extra>"
+            "predictor_name: %{customdata[0]}<br>predictor_type: %{customdata[1]}<br>contribution: %{customdata[2]:.8f}"
         )
+        if include_frequency:
+            hovertemplate += "<br>frequency: %{customdata[3]}%"
+        hovertemplate += "<extra></extra>"
+
         return customdata, hovertemplate
 
     def _plot_overall_contributions(
@@ -380,11 +392,15 @@ class Plots(LazyNamespace):
         title = "Overall average predictor contributions for "
         if context is None:
             title += "the whole model"
+            customdata, hovertemplate = self._build_hover_customdata(df, x_col, include_frequency=False)
         else:
             title += "-".join([f"{v}" for k, v in context.items()])
-
-        df_with_pct = self.aggregate.add_frequency_pct_to_df(df, group_by=[_COL.PARTITON.value])
-        customdata, hovertemplate = self._build_hover_customdata(df_with_pct, x_col)
+            # Show each predictor's context frequency as a share of the overall model.
+            df_with_pct = self.aggregate.add_context_frequency_pct_to_df(
+                df,
+                join_on=[_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            )
+            customdata, hovertemplate = self._build_hover_customdata(df_with_pct, x_col)
 
         fig = go.Figure(
             data=[
@@ -423,7 +439,7 @@ class Plots(LazyNamespace):
         import plotly.graph_objects as go
 
         df_with_frequency_pct = self.aggregate.add_frequency_pct_to_df(
-            df, group_by=[_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
+            df, group_by=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
         )
 
         predictor_info = df.select([_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]).unique()

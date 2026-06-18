@@ -1,19 +1,21 @@
 from __future__ import annotations
 
-from typing import Literal, overload
+from typing import Literal, overload, TYPE_CHECKING
 
-import polars as pl
 
 from .....internal._exceptions import NoMonitoringExportError, PegaException
 from .....internal._pagination import PaginatedList
 from ...base import Notification
-from ...types import NotificationCategory
 from ...v24_1 import PredictionStudio as PredictionStudioPrevious
 from ..datamart_export import DatamartExport
 from ..model import Model
 from ..prediction import Prediction
 from ..repository import Repository
 from ._mixin import _PredictionStudioV24_2Mixin
+
+if TYPE_CHECKING:
+    import polars as pl
+    from ...types import NotificationCategory
 
 
 class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
@@ -70,7 +72,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
         if not return_df:
             return pages
 
-        return pl.DataFrame([mod._public_dict for mod in pages])
+        return pages.as_df()
 
     @overload  # type: ignore[override]  # intentionally widens parent signature with return_df
     def list_predictions(
@@ -109,7 +111,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
 
         if not return_df:
             return pages
-        return pl.DataFrame([pred._public_dict for pred in pages])
+        return pages.as_df()
 
     def get_prediction(
         self,
@@ -253,7 +255,5 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
             _root="notifications",
         )
         if return_df:
-            return pl.DataFrame(
-                [notification._public_dict for notification in notifications],
-            )
+            return notifications.as_df()
         return notifications

@@ -21,7 +21,10 @@ import pytest
 from polars.testing import assert_frame_equal
 
 from pdstools import datasets
-from pdstools.adm.BinAggregator import BinAggregator
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pdstools.adm.BinAggregator import BinAggregator
 
 
 @pytest.fixture(scope="module")
@@ -173,10 +176,7 @@ def _make_synthetic_case(seed: int, n_models: int, n_bins: int, *, disjoint: boo
                 prev = x
 
         nb = len(edges) - 1
-        if immature and m % 2 == 0:
-            responses = [0.0] * nb
-        else:
-            responses = [rng.uniform(0, 5000) for _ in range(nb)]
+        responses = [0.0] * nb if immature and m % 2 == 0 else [rng.uniform(0, 5000) for _ in range(nb)]
         lifts = [rng.uniform(-1.5, 2.0) for _ in range(nb)]
         mid = f"model_{seed}_{m}"
         sources.append(_make_source(mid, edges, lifts, responses))

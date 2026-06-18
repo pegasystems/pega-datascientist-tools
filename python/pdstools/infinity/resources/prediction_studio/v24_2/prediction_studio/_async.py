@@ -1,17 +1,21 @@
 from __future__ import annotations
 
-import polars as pl
 
 from .....internal._exceptions import NoMonitoringExportError, PegaException
 from .....internal._pagination import AsyncPaginatedList
 from ...base import AsyncNotification
-from ...types import NotificationCategory
 from ...v24_1 import AsyncPredictionStudio as AsyncPredictionStudioPrevious
 from ..datamart_export import AsyncDatamartExport
 from ..model import AsyncModel
 from ..prediction import AsyncPrediction
 from ..repository import AsyncRepository
 from ._mixin import _PredictionStudioV24_2Mixin
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    import polars as pl
+
+    from ...types import NotificationCategory
 
 
 class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPrevious):
@@ -118,8 +122,9 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
             uniques["prediction_id"] = prediction_id
         if label:
             uniques["label"] = label
-        pages = await self.list_predictions()
-        return await pages.get(**uniques)  # type: ignore[union-attr, return-value]  # return_df defaults False so pages is AsyncPaginatedList
+        # return_df defaults to False so list_predictions always returns the paginated list
+        pages = cast("AsyncPaginatedList[AsyncPrediction]", await self.list_predictions())
+        return await pages.get(**uniques)
 
     async def get_model(
         self,
@@ -146,8 +151,9 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
             uniques["model_id"] = model_id.upper()
         if label:
             uniques["label"] = label
-        pages = await self.list_models()
-        return await pages.get(**uniques)  # type: ignore[union-attr, return-value]  # return_df defaults False so pages is AsyncPaginatedList
+        # return_df defaults to False so list_models always returns the paginated list
+        pages = cast("AsyncPaginatedList[AsyncModel]", await self.list_models())
+        return await pages.get(**uniques)
 
     async def trigger_datamart_export(self) -> AsyncDatamartExport:
         """Initiates an export of model data to the Repository.

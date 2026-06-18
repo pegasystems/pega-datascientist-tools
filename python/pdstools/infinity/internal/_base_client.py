@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
 import warnings
-from collections.abc import Coroutine
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -19,7 +20,10 @@ from anyio import (
 )
 
 from ._auth import PegaOAuth, _read_client_credential_file
-from ._exceptions import APIConnectionError, APITimeoutError, handle_pega_exception
+from ._exceptions import APIConnectionError, APITimeoutError, PegaException, handle_pega_exception
+
+if TYPE_CHECKING:
+    from collections.abc import Coroutine
 
 _HttpxClientT = TypeVar("_HttpxClientT", bound=httpx.Client | httpx.AsyncClient)
 logger = logging.getLogger(__name__)
@@ -73,6 +77,9 @@ class BaseClient(Generic[_HttpxClientT]):
         self.pega_version = pega_version
         self.timeout = timeout
 
+    _MODEL_CATEGORIES_ENDPOINT = "/prweb/api/PredictionStudio/v3/predictions/modelCategories"
+    _REPOSITORY_ENDPOINT = "/prweb/api/PredictionStudio/v3/predictions/repository"
+
     def _enforce_trailing_slash(self, url: httpx.URL) -> httpx.URL:
         if url.raw_path.endswith(b"/"):
             return url
@@ -95,14 +102,19 @@ class BaseClient(Generic[_HttpxClientT]):
         )
 
     def _get_version(self, repo):
-        if len(repo) == 1 and "repository_name" in repo:
+        # Real systems return camelCase keys (repositoryName/repositoryType);
+        # some older/mocked responses use snake_case. Accept both.
+        has_name = "repository_name" in repo or "repositoryName" in repo
+        has_type = "repository_type" in repo or "repositoryType" in repo
+        if len(repo) == 1 and has_name:
             return "24.1"
-        if "repository_type" in repo:
+        if has_type:
             return "24.2"
         warnings.warn(
             """Could not infer Pega version automatically.
 For full compatibility, please supply the pega_version argument to the Infinity class.
 """,
+            stacklevel=2,
         )
         return None
 
@@ -125,8 +137,8 @@ For full compatibility, please supply the pega_version argument to the Infinity 
                 client_secret=client_secret,
                 verify=verify,
             ),
-            verify=verify,
             application_name=application_name,
+            verify=verify,
             pega_version=pega_version,
             timeout=timeout,
         )
@@ -182,8 +194,8 @@ For full compatibility, please supply the pega_version argument to the Infinity 
         return cls(
             base_url=base_url,
             auth=auth,
-            verify=verify,
             application_name=application_name,
+            verify=verify,
             pega_version=pega_version,
             timeout=timeout,
         )
@@ -204,6 +216,7 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         super().__init__(
             base_url=base_url,
             auth=auth,
+            application_name=application_name,
             verify=verify,
             pega_version=pega_version,
         )
@@ -213,11 +226,62 @@ class SyncAPIClient(BaseClient[httpx.Client]):
             verify=verify,
             timeout=timeout,
         )
-        self.application_name = application_name
 
     def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
+        # Probe 25-specific endpoint first; it does not exist on older systems.
+        # When the probe succeeds we return the latest known version ("26.1"):
+        # the v25.1 and v26.1 APIs are compatible, and v26.1 is the default for
+        # any 25+ system when an explicit pega_version is not supplied.
         try:
-            response = self.get("/prweb/api/PredictionStudio/v3/predictions/repository")
+            probe = self._request(method="get", endpoint=self._MODEL_CATEGORIES_ENDPOINT)
+            if probe.status_code == 200:
+                return "26.1"
+            if probe.status_code in (401, 403):
+                raise PegaException(
+                    str(self._base_url),
+                    self._MODEL_CATEGORIES_ENDPOINT,
+                    {},
+                    probe,
+                    override_message=(
+                        f"Authentication failed during version probe (HTTP {probe.status_code}). "
+                        "Check your credentials."
+                    ),
+                )
+            if probe.status_code >= 500:
+                raise PegaException(
+                    str(self._base_url),
+                    self._MODEL_CATEGORIES_ENDPOINT,
+                    {},
+                    probe,
+                    override_message=(
+                        f"Server error during version probe (HTTP {probe.status_code}). "
+                        "The Infinity system may be unavailable."
+                    ),
+                )
+            if probe.status_code != 404:
+                # The endpoint resolved but returned a client error other than
+                # 404 (e.g. 400 when the model-category data dictionary is
+                # absent). The v3 predictions API only exists on 25+/26
+                # systems — a pre-25 system returns 404 because the path
+                # itself is unknown — so its presence implies 26.1.
+                return "26.1"
+            # 404: endpoint absent on older systems, fall through.
+        except PegaException:
+            raise
+        except Exception as e:
+            if on_error == "warn":
+                logger.warning(
+                    "Could not validate connection to the Infinity system. Please check if the system is up.",
+                    exc_info=e,
+                )
+                return None
+            if on_error == "error":
+                raise e
+            return None
+
+        # Fall back to repository endpoint to distinguish 24.1 vs 24.2.
+        try:
+            response = self.get(self._REPOSITORY_ENDPOINT)
         except Exception as e:
             if on_error == "warn":
                 logger.warning(
@@ -252,9 +316,11 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         except httpx.TimeoutException as err:
             raise APITimeoutError(request=str(request)) from err
         except httpx.ConnectError as err:
-            raise Exception(str(err))
+            raise Exception(str(err)) from err
         except Exception as err:
-            raise APIConnectionError(request=str(request)) from err
+            raise APIConnectionError(
+                "Failed to connect to API. Please check network or endpoint configuration."
+            ) from err
         return response
 
     def handle_pega_exception(self, endpoint, params, response):
@@ -429,6 +495,7 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         super().__init__(
             base_url=base_url,
             auth=auth,
+            application_name=application_name,
             verify=verify,
             pega_version=pega_version,
         )
@@ -438,7 +505,6 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
             verify=verify,
             timeout=timeout,
         )
-        self.application_name = application_name
 
     def _collect_awaitable_blocking(
         self,
@@ -456,12 +522,65 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         return awaited[0]
 
     def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
+        # Probe 25-specific endpoint first; it does not exist on older systems.
         try:
-            repo = self._collect_awaitable_blocking(
-                self.get("/prweb/api/PredictionStudio/v3/predictions/repository"),
+            probe = self._collect_awaitable_blocking(
+                self._request(method="get", endpoint=self._MODEL_CATEGORIES_ENDPOINT),
             )
             # _collect_awaitable_blocking stores exceptions as return values
             # rather than raising them, so we need to re-raise here.
+            if isinstance(probe, Exception):
+                raise probe
+            if probe.status_code == 200:
+                return "26.1"
+            if probe.status_code in (401, 403):
+                raise PegaException(
+                    str(self._base_url),
+                    self._MODEL_CATEGORIES_ENDPOINT,
+                    {},
+                    probe,
+                    override_message=(
+                        f"Authentication failed during version probe (HTTP {probe.status_code}). "
+                        "Check your credentials."
+                    ),
+                )
+            if probe.status_code >= 500:
+                raise PegaException(
+                    str(self._base_url),
+                    self._MODEL_CATEGORIES_ENDPOINT,
+                    {},
+                    probe,
+                    override_message=(
+                        f"Server error during version probe (HTTP {probe.status_code}). "
+                        "The Infinity system may be unavailable."
+                    ),
+                )
+            if probe.status_code != 404:
+                # The endpoint resolved but returned a client error other than
+                # 404 (e.g. 400 when the model-category data dictionary is
+                # absent). The v3 predictions API only exists on 25+/26
+                # systems — a pre-25 system returns 404 because the path
+                # itself is unknown — so its presence implies 26.1.
+                return "26.1"
+            # 404: endpoint absent on older systems, fall through.
+        except PegaException:
+            raise
+        except Exception as e:
+            if on_error == "warn":
+                logger.warning(
+                    "Could not validate connection to the Infinity system. Please check if the system is up.",
+                    exc_info=e,
+                )
+                return None
+            if on_error == "error":
+                raise e
+            return None
+
+        # Fall back to repository endpoint to distinguish 24.1 vs 24.2.
+        try:
+            repo = self._collect_awaitable_blocking(
+                self.get(self._REPOSITORY_ENDPOINT),
+            )
             if isinstance(repo, Exception):
                 raise repo
         except Exception as e:
@@ -498,9 +617,11 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         except httpx.TimeoutException as err:
             raise APITimeoutError(request=str(request)) from err
         except httpx.ConnectError as err:
-            raise Exception(str(err))
+            raise Exception(str(err)) from err
         except Exception as err:
-            raise APIConnectionError(request=str(request)) from err
+            raise APIConnectionError(
+                "Failed to connect to API. Please check network or endpoint configuration."
+            ) from err
         return response
 
     def handle_pega_exception(self, endpoint, params, response):

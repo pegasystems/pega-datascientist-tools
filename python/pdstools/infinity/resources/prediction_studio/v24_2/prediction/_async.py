@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-import polars as pl
+from urllib.parse import quote as _quote
 
 from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._pagination import AsyncPaginatedList
 from ...base import AsyncNotification
-from ...types import NotificationCategory
 from ...v24_1.prediction import AsyncPrediction as AsyncPredictionPrevious
 from ._mixin import _PredictionV24_2Mixin
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ...types import NotificationCategory
+    import polars as pl
 
 
 class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
@@ -33,10 +37,9 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
             A list of notifications or a DataFrame.
 
         """
-        endpoint = f"prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/notifications"
+        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/notifications"
         if category is None:
             category = "All"
-        endpoint = f"{endpoint}?category={category}"
 
         notifications: AsyncPaginatedList[AsyncNotification] = AsyncPaginatedList(
             AsyncNotification,
@@ -44,6 +47,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
             "get",
             endpoint,
             _root="notifications",
+            category=category,
         )
         if return_df:
             return await notifications.as_df()
@@ -58,6 +62,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
             Champion-challenger pairs from a prediction.
 
         """
+        from ...base import ChampionChallengerList
         from ..champion_challenger import AsyncChampionChallenger
         from ..model import AsyncModel
 
@@ -90,7 +95,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                     context=model["contextName"],
                     category=model["categoryName"] if model.get("categoryName") is not None else None,
                     model_objective=model["model_type"],
-                    active_model=[
+                    active_model=next(
                         AsyncModel(
                             client=self._client,
                             modelId=mod["id"],
@@ -106,7 +111,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                         if model["activeModel"] is not None
                         and mod["id"] == model["activeModel"]
                         and mod["contextName"] == model["contextName"]
-                    ][0],
+                    ),
                 ),
             )
 
@@ -131,7 +136,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
                 ),
             )
 
-        return ccs
+        return ChampionChallengerList(ccs)
 
     async def add_conditional_model(
         self,
@@ -163,9 +168,7 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
             new_model = new_model.model_id
         if context is None:
             context = "NoContext"
-        endpoint = (
-            f"prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{category}/models/{new_model}"
-        )
+        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{_quote(category, safe='')}/models/{_quote(new_model, safe='')}"
         data = {}
         if context:
             data["contextName"] = context
@@ -182,7 +185,11 @@ class AsyncPrediction(_PredictionV24_2Mixin, AsyncPredictionPrevious):
             if cc.category is not None:
                 if (
                     cc.active_model.model_id.lower() == new_model.lower()
-                    and cc.context.lower() == context.lower()
+                    and (cc.context or "").lower() == context.lower()
                     and cc.category.lower() == category.lower()
                 ):
                     return cc
+        raise ValueError(
+            f"Model '{new_model}' was added but could not be found in champion challengers "
+            f"for category '{category}' and context '{context}'."
+        )

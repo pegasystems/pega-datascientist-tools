@@ -5,7 +5,12 @@ categorical dimensions across Streamlit applications. Color consistency is
 critical for user experience when filtering/interacting with visualizations.
 """
 
-import polars as pl
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import polars as pl
 
 
 def create_categorical_color_mappings(
@@ -39,10 +44,12 @@ def create_categorical_color_mappings(
     -------
     dict[str, dict[str, str]]
         Nested dictionary mapping column names to color dictionaries.
-        Example: {
-            "Issue": {"Retention": "#001F5F", "Sales": "#10A5AC"},
-            "Group": {"Cards": "#001F5F", "Loans": "#10A5AC"},
-        }
+        Example::
+
+            {
+                "Issue": {"Retention": "#001F5F", "Sales": "#10A5AC"},
+                "Group": {"Cards": "#001F5F", "Loans": "#10A5AC"},
+            }
 
     Examples
     --------

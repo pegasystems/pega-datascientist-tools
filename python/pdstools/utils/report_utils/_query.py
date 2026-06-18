@@ -1,11 +1,16 @@
 """Serialise/deserialise pdstools ``QUERY`` objects for embedding in reports."""
 
+from __future__ import annotations
+
 import io
 import json
 
 import polars as pl
 
-from ..types import QUERY
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..types import QUERY
 
 
 def serialize_query(query: QUERY | None) -> dict | None:

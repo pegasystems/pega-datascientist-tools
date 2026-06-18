@@ -88,7 +88,7 @@ class Scoring:
             else:
                 fill_exprs.append(pl.lit(default).alias(col_name))
 
-        rank_df = (
+        return (
             apply_filter(
                 self.da.sample.with_columns(fill_exprs),
                 additional_filters,
@@ -104,8 +104,6 @@ class Scoring:
             )
             .with_columns(*rank_exprs)
         )
-
-        return rank_df
 
     def get_selected_group_rank_boundaries(
         self,
@@ -228,7 +226,7 @@ class Scoring:
                 self.da._sensitivity_cache[win_rank] = sensitivity
         return sensitivity
 
-    def get_thresholding_data(self, fld: str, quantile_range=range(10, 100, 10)) -> pl.DataFrame:
+    def get_thresholding_data(self, fld: str, quantile_range: range | None = None) -> pl.DataFrame:
         """Quantile-based thresholding analysis at Arbitration.
 
         Computes counts and threshold values at each quantile for the given
@@ -247,6 +245,8 @@ class Scoring:
             Long-format table with columns ``Decile``, ``Count``,
             ``Threshold``, and the stage-level column.
         """
+        if quantile_range is None:
+            quantile_range = range(10, 100, 10)
         cache_key = (fld, tuple(quantile_range))
         if cache_key in self.da._thresholding_cache:
             return self.da._thresholding_cache[cache_key]
@@ -335,7 +335,7 @@ class Scoring:
         available = set(self.da.sample.collect_schema().names())
         cols = [c for c in PRIO_COMPONENTS if c in available]
         df = self._remaining_at_stage(stage, additional_filters=additional_filters)
-        return df.select([granularity] + cols).sort(granularity)
+        return df.select([granularity, *cols]).sort(granularity)
 
     def get_win_loss_distribution_data(
         self,
@@ -391,14 +391,12 @@ class Scoring:
                 )
             )
 
-            group_level_win_losses = group_level_win_losses.unpivot(
+            return group_level_win_losses.unpivot(
                 index=level,
                 on=["Wins", "Losses"],
                 variable_name="Status",
                 value_name="Percentage",
             ).sort(["Status", "Percentage"], descending=True)
-
-            return group_level_win_losses
 
         if status not in {"Wins", "Losses"}:
             raise ValueError("When group_filter is provided, status must be either 'Wins' or 'Losses'.")
@@ -761,7 +759,7 @@ class Scoring:
             # Return baseline distribution only
             original_winners = self.re_rank(
                 additional_filters=pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down),
-            ).select(["Issue", "Group", "Action"] + ["Interaction ID", "Rank"])
+            ).select(["Issue", "Group", "Action", "Interaction ID", "Rank"])
 
             result = (
                 original_winners.group_by(["Issue", "Group", "Action"])
@@ -798,52 +796,49 @@ class Scoring:
                 result = pl.concat([result, no_winner_row])
 
             return result
-        else:
-            # Return both baseline and lever-adjusted distribution
-            recalculated_winners = self.re_rank(
-                overrides=[
-                    (pl.when(lever_condition).then(pl.lit(lever_value)).otherwise(pl.col("Levers"))).alias("Levers")
-                ],
-                additional_filters=pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down),
-            ).select(["Issue", "Group", "Action"] + ["Interaction ID", "Rank", "rank_PVCL"])
+        # Return both baseline and lever-adjusted distribution
+        recalculated_winners = self.re_rank(
+            overrides=[
+                (pl.when(lever_condition).then(pl.lit(lever_value)).otherwise(pl.col("Levers"))).alias("Levers")
+            ],
+            additional_filters=pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down),
+        ).select(["Issue", "Group", "Action", "Interaction ID", "Rank", "rank_PVCL"])
 
-            result_lf = (
-                recalculated_winners.group_by(["Issue", "Group", "Action"])
-                .agg(
-                    original_win_count=pl.col("Rank").filter(pl.col("Rank") == 1).len(),
-                    new_win_count=pl.col("rank_PVCL").filter(pl.col("rank_PVCL") == 1).len(),
-                    n_decisions_survived_to_arbitration=pl.col("Interaction ID").n_unique(),
-                )
-                .with_columns(
-                    selected_action=pl.when(lever_condition).then(pl.lit("Selected")).otherwise(pl.lit("Rest"))
-                )
+        result_lf = (
+            recalculated_winners.group_by(["Issue", "Group", "Action"])
+            .agg(
+                original_win_count=pl.col("Rank").filter(pl.col("Rank") == 1).len(),
+                new_win_count=pl.col("rank_PVCL").filter(pl.col("rank_PVCL") == 1).len(),
+                n_decisions_survived_to_arbitration=pl.col("Interaction ID").n_unique(),
             )
-            result = result_lf.collect().sort("new_win_count", descending=True)
+            .with_columns(selected_action=pl.when(lever_condition).then(pl.lit("Selected")).otherwise(pl.lit("Rest")))
+        )
+        result = result_lf.collect().sort("new_win_count", descending=True)
 
-            # Add no winner count if all_interactions is provided
-            if all_interactions is not None:
-                # Calculate no winner count based on new ranking
-                new_winner_df = recalculated_winners.filter(pl.col("rank_PVCL") == 1).select("Interaction ID").collect()
-                interactions_with_new_winners = new_winner_df.n_unique()
-                no_winner_count = max(0, all_interactions - interactions_with_new_winners)  # Ensure non-negative
+        # Add no winner count if all_interactions is provided
+        if all_interactions is not None:
+            # Calculate no winner count based on new ranking
+            new_winner_df = recalculated_winners.filter(pl.col("rank_PVCL") == 1).select("Interaction ID").collect()
+            interactions_with_new_winners = new_winner_df.n_unique()
+            no_winner_count = max(0, all_interactions - interactions_with_new_winners)  # Ensure non-negative
 
-                # Create a row with the same data types as the result
-                no_winner_data = {
-                    "Issue": ["No Winner"],
-                    "Group": ["No Winner"],
-                    "Action": ["No Winner"],
-                    "original_win_count": [0],  # No winner has no original wins
-                    "new_win_count": [no_winner_count],
-                    "n_decisions_survived_to_arbitration": [0],
-                    "selected_action": ["No Winner"],
-                }
+            # Create a row with the same data types as the result
+            no_winner_data = {
+                "Issue": ["No Winner"],
+                "Group": ["No Winner"],
+                "Action": ["No Winner"],
+                "original_win_count": [0],  # No winner has no original wins
+                "new_win_count": [no_winner_count],
+                "n_decisions_survived_to_arbitration": [0],
+                "selected_action": ["No Winner"],
+            }
 
-                # Cast to match result schema
-                no_winner_row = pl.DataFrame(no_winner_data).cast({k: v for k, v in result.schema.items()})
+            # Cast to match result schema
+            no_winner_row = pl.DataFrame(no_winner_data).cast({k: v for k, v in result.schema.items()})
 
-                result = pl.concat([result, no_winner_row])
+            result = pl.concat([result, no_winner_row])
 
-            return result
+        return result
 
     def find_lever_value(
         self,
@@ -899,8 +894,7 @@ class Scoring:
             selected_wins = selected_wins_df.height
             selected_total_df = ranked_df.select("Interaction ID").collect()
             selected_total = selected_total_df.height
-            percentage = (selected_wins / selected_total) * 100
-            return percentage
+            return (selected_wins / selected_total) * 100
 
         beginning_high = high
         beginning_low = low
@@ -914,7 +908,7 @@ class Scoring:
                 f"Target {target_win_percentage}% is too low. Even at lever {beginning_low}, your actions win in {low_percentage:.1f}% of interactions at arbitration."
                 "You might have interactions where only your selected actions survive until arbitration. So they will win no matter what."
             )
-        elif target_win_percentage > high_percentage:
+        if target_win_percentage > high_percentage:
             raise ValueError(
                 f"Target {target_win_percentage}% is too high. Even at lever {beginning_high}, you only get {high_percentage:.1f}%. "
                 f"You can increase the search range."
@@ -930,5 +924,4 @@ class Scoring:
             else:
                 high = mid
 
-        final_lever = (low + high) / 2
-        return final_lever
+        return (low + high) / 2

@@ -1,5 +1,8 @@
 """Interaction History analysis for Pega CDH."""
 
+from __future__ import annotations
+
+from typing import ClassVar, TYPE_CHECKING
 import datetime
 import logging
 import math
@@ -18,11 +21,14 @@ from ..utils.cdh_utils import (
     parse_pega_date_time_formats,
 )
 from ..utils.pega_outcomes import resolve_outcome_labels as _resolve_outcome_labels
-from ..utils.types import QUERY
 from . import Schema
 from .Aggregates import Aggregates
 from .Plots import Plots
 from .Schema import REQUIRED_IH_COLUMNS
+
+if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    import os
 
 logger = logging.getLogger(__name__)
 
@@ -34,19 +40,6 @@ class IH:
     customer interaction data from Pega's Customer Decision Hub. It supports
     engagement, conversion, and open rate metrics through customizable
     outcome label mappings.
-
-    Attributes
-    ----------
-    data : pl.LazyFrame
-        The underlying interaction history data.
-    aggregates : Aggregates
-        Aggregation methods accessor.
-    plot : Plots
-        Plot accessor for visualization methods.
-    positive_outcome_labels : dict
-        Mapping of metric types to positive outcome labels.
-    negative_outcome_labels : dict
-        Mapping of metric types to negative outcome labels.
 
     See Also
     --------
@@ -63,16 +56,23 @@ class IH:
     """
 
     data: pl.LazyFrame
-    outcome_labels_used: dict | None
+    """The underlying interaction history data."""
 
-    positive_outcome_labels: dict[str, list[str]] = {
+    outcome_labels_used: dict | None
+    aggregates: Aggregates
+    """Aggregation methods accessor."""
+
+    plot: Plots
+    """Plot accessor for visualization methods."""
+
+    positive_outcome_labels: ClassVar[dict[str, list[str]]] = {
         "Engagement": ["Accepted", "Accept", "Clicked", "Click"],
         "Conversion": ["Conversion"],
         "OpenRate": ["Opened", "Open"],
     }
     """Mapping of metric types to positive outcome labels."""
 
-    negative_outcome_labels: dict[str, list[str]] = {
+    negative_outcome_labels: ClassVar[dict[str, list[str]]] = {
         "Engagement": ["Impression", "Impressed", "Pending", "NoResponse"],
         "Conversion": ["Impression", "Pending"],
         "OpenRate": ["Impression", "Pending"],
@@ -136,8 +136,7 @@ class IH:
         missing = set(REQUIRED_IH_COLUMNS).difference(df.collect_schema().names())
         if missing:
             raise ValueError(f"Missing required IH columns: {sorted(missing)}")
-        df = cdh_utils._apply_schema_types(df, Schema.IHInteraction)
-        return df
+        return cdh_utils._apply_schema_types(df, Schema.IHInteraction)
 
     def _scan_outcome_labels(self) -> dict | None:
         """Scan data for channel/outcome combinations and resolve defaults.
@@ -251,14 +250,14 @@ class IH:
         if boto3_client is None:
             try:
                 import boto3
-            except ImportError:
+            except ImportError as err:
                 from ..utils.namespaces import MissingDependenciesException
 
                 raise MissingDependenciesException(
                     ["boto3"],
                     namespace="IH.from_s3",
                     deps_group="pega_io",
-                )
+                ) from err
             boto3_client = boto3.client("s3", region_name=region)
 
         import tempfile
@@ -328,9 +327,7 @@ class IH:
             a = responses * propensity
             b = responses * (1 - propensity)
 
-            sampled = rng.betavariate(a, b)
-
-            return sampled
+            return rng.betavariate(a, b)
 
         ih_fake_impressions = pl.DataFrame(
             {
@@ -587,7 +584,7 @@ class IH:
         customer_outcomes = []
 
         # Iterate over customers
-        for user_id, user_df in df.group_by(customerid_column):
+        for _user_id, user_df in df.group_by(customerid_column):
             user_actions = user_df[level].to_list()
             outcome_actions = user_df[outcome_column].to_list()
 

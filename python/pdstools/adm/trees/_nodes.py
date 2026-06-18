@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, Literal, cast
+from typing import Any, Literal, cast, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 SplitOperator = Literal["<", ">", "==", "in", "is"]
 _SPLIT_OPERATORS: frozenset[str] = frozenset({"<", ">", "==", "in", "is"})
@@ -86,7 +88,7 @@ def parse_split(raw: str) -> Split:
         # Single-value 'in', 'is', '==' — keep as a string.
         value = value_text
 
-    return Split(variable=variable, operator=cast(SplitOperator, op), value=value, raw=raw)
+    return Split(variable=variable, operator=cast("SplitOperator", op), value=value, raw=raw)
 
 
 @dataclass(frozen=True)
@@ -96,6 +98,10 @@ class Node:
     All nodes carry a ``score`` (the leaf prediction or root prior).
     Internal nodes additionally carry a parsed :class:`Split` and a
     ``gain``.  Leaves have ``split=None`` and ``gain=0.0``.
+
+    ``sampleCount`` is the number of training examples that reached this
+    node.  Present only in exports from Prediction Studio that include
+    streaming-regime data; ``None`` otherwise.
     """
 
     depth: int
@@ -103,6 +109,7 @@ class Node:
     is_leaf: bool
     split: Split | None
     gain: float
+    sample_count: int | None = None
 
 
 def _iter_nodes(tree: dict, depth: int = 1) -> Iterator[Node]:
@@ -119,6 +126,7 @@ def _iter_nodes(tree: dict, depth: int = 1) -> Iterator[Node]:
         is_leaf=is_leaf,
         split=split,
         gain=tree.get("gain", 0.0) if not is_leaf else 0.0,
+        sample_count=tree.get("sampleCount"),
     )
     if "left" in tree:
         yield from _iter_nodes(tree["left"], depth + 1)
@@ -140,8 +148,5 @@ def _traverse(d: Any, path: tuple) -> Any:
     """Walk a nested dict/list using the given key/index path; raise KeyError on miss."""
     cur = d
     for key in path:
-        if isinstance(key, int):
-            cur = cur[key]
-        else:
-            cur = cur[key]
+        cur = cur[key] if isinstance(key, int) else cur[key]
     return cur

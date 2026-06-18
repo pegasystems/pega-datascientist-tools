@@ -8,18 +8,12 @@ Run with:
 from __future__ import annotations
 
 import json
-from pathlib import Path
-
+import torch
 import pytest
+from typing import TYPE_CHECKING
 
-
-def _pytorch_available() -> bool:
-    try:
-        import torch  # noqa: F401
-
-        return True
-    except ImportError:
-        return False
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 # ============================================================================
@@ -29,7 +23,6 @@ def _pytorch_available() -> bool:
 
 @pytest.fixture()
 def simple_pytorch_model():
-    torch = pytest.importorskip("torch")
 
     class TinyModel(torch.nn.Module):
         def __init__(self):
@@ -45,7 +38,6 @@ def simple_pytorch_model():
 
 @pytest.fixture()
 def dummy_input():
-    torch = pytest.importorskip("torch")
     return torch.randn(1, 4)
 
 
@@ -336,7 +328,6 @@ class TestMetadata:
 
 
 class TestONNXModelFromPyTorch:
-    @pytest.mark.skipif(not _pytorch_available(), reason="torch not installed")
     def test_from_pytorch_fixed_shapes(self, simple_pytorch_model, dummy_input, tmp_onnx_path):
         from pdstools.infinity.resources.prediction_studio.local_model_utils import ONNXModel
 
@@ -361,7 +352,6 @@ class TestONNXModelFromPyTorch:
         reloaded = onnx.load(str(tmp_onnx_path))
         assert len(reloaded.graph.node) > 0
 
-    @pytest.mark.skipif(not _pytorch_available(), reason="torch not installed")
     def test_from_pytorch_with_metadata(self, simple_pytorch_model, dummy_input):
         from pdstools.infinity.resources.prediction_studio.local_model_utils import (
             Metadata,

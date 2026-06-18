@@ -6,10 +6,13 @@ import logging
 import math
 import os
 import tempfile
-from collections.abc import Iterator
 from glob import glob
 
 import polars as pl
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 logger = logging.getLogger(__name__)
 
@@ -237,7 +240,7 @@ class Anonymization:
                 ["polars-hash"],
                 namespace="Anonymization",
                 deps_group="pega_io",
-            )
+            ) from None
 
         df: pl.LazyFrame = pl.concat(
             [pl.scan_parquet(f) for f in chunked_files],

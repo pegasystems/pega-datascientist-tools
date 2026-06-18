@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 __all__ = ["Aggregates"]
-import datetime
 import logging
 from typing import TYPE_CHECKING, Literal
 
@@ -13,15 +12,18 @@ from ..utils.metric_limits import (
     get_standard_NBAD_channels,
     is_standard_NBAD_configuration,
 )
-from ..utils.types import QUERY
 
 if TYPE_CHECKING:
+    from ..utils.types import QUERY
+    import datetime
     from .ADMDatamart import ADMDatamart
 
 logger = logging.getLogger(__name__)
 
 
 class Aggregates:
+    """Aggregates."""
+
     def __init__(self, datamart: "ADMDatamart"):
         self.datamart = datamart
 
@@ -133,10 +135,7 @@ class Aggregates:
 
         # Handle case where there are no predictors
         if len(unique_predictors) == 0:
-            if isinstance(by, str):
-                by_name = by
-            else:
-                by_name = by.meta.output_name()
+            by_name = by if isinstance(by, str) else by.meta.output_name()
             return pl.LazyFrame({by_name: []})
 
         if isinstance(by, str):
@@ -145,7 +144,7 @@ class Aggregates:
         else:
             by_col = by
             by_name = by.meta.output_name()
-        action_predictor = by_col.meta.root_names() + ["PredictorName"]
+        action_predictor = [*by_col.meta.root_names(), "PredictorName"]
 
         # Filter out null values in the grouping column to avoid transpose errors
         q = (
@@ -276,7 +275,7 @@ class Aggregates:
             return df
         if facets:
             return df.join(
-                df.group_by(facets + ["PredictorName"])
+                df.group_by([*facets, "PredictorName"])
                 .agg(cdh_utils.weighted_average_polars(metric, "ResponseCountBin"))
                 .filter(pl.col(metric).is_not_nan())
                 .group_by(*facets)
@@ -368,31 +367,48 @@ class Aggregates:
 
         grouping_cols: list[str] | None = None if len(grouping) == 0 else grouping
 
+        # polars 1.41 changed the inferred dtype of the synthetic column that
+        # `group_by(None)` produces, so the previous pattern of joining four
+        # summaries on the auto-generated "literal" column now fails with a
+        # SchemaError on later polars versions. Inject a deterministic, typed
+        # sentinel column upfront and use it as the grouping key everywhere
+        # when there are no real grouping columns. Drop it at the end.
+        _sentinel = "_pdstools_overall"
+        if grouping_cols is None:
+            model_data = model_data.with_columns(
+                pl.lit(0, dtype=pl.Int32).alias(_sentinel),
+            )
+            effective_grouping: list[str] = [_sentinel]
+            drop_after: list[str] = [_sentinel]
+        else:
+            effective_grouping = grouping_cols
+            drop_after = []
+
         return (
-            self._summarize_meta_info(grouping_cols, model_data, debug=debug)
+            self._summarize_meta_info(effective_grouping, model_data, debug=debug)
             .join(
-                self._summarize_model_analytics(grouping_cols, model_data, debug=debug),
-                on=("literal" if grouping_cols is None else grouping_cols),
+                self._summarize_model_analytics(effective_grouping, model_data, debug=debug),
+                on=effective_grouping,
                 nulls_equal=True,
                 how="left",
             )
             .join(
-                self._summarize_action_analytics(grouping_cols, model_data, debug=debug),
-                on=("literal" if grouping_cols is None else grouping_cols),
+                self._summarize_action_analytics(effective_grouping, model_data, debug=debug),
+                on=effective_grouping,
                 nulls_equal=True,
                 how="left",
             )
             .join(
                 self._summarize_model_usage(
-                    grouping_cols,
+                    effective_grouping,
                     model_data,
                     debug=debug,
                 ),
-                on=("literal" if grouping_cols is None else grouping_cols),
+                on=effective_grouping,
                 nulls_equal=True,
                 how="left",
             )
-            .drop(["literal"] if grouping_cols is None else [])
+            .drop(drop_after)
             .sort([] if grouping_cols is None else grouping_cols)
         )
 
@@ -533,7 +549,7 @@ class Aggregates:
         if "Treatment" in self.datamart.context_keys:
             return action_summary.join(
                 treatment_summary,
-                on=("literal" if grouping is None else grouping),
+                on=grouping,
                 nulls_equal=True,
                 how="left",
             ).fill_null(0)
@@ -853,7 +869,7 @@ class Aggregates:
             )
             data = data.join(active_model_ids, on="ModelID", how="semi")
 
-        global_overview = (
+        return (
             data.filter(pl.col("EntryType") != "Classifier")
             .filter(BinIndex=1)
             .group_by("PredictorName", "PredictorCategory")
@@ -871,7 +887,6 @@ class Aggregates:
             )
             .sort("PredictorName")
         )
-        return global_overview
 
     def predictors_overview(
         self,
@@ -960,13 +975,11 @@ class Aggregates:
             default_aggs.extend(additional_aggregations)
 
         result = data.group_by(group_cols).agg(*default_aggs)
-        result = result.sort(
+        return result.sort(
             ["GroupIndex", "isActive", "Univariate Performance"],
             descending=[False, True, True],
             nulls_last=True,
         )
-
-        return result
 
         if model_id is not None:
             data = data.filter(pl.col("ModelID") == model_id)
@@ -999,13 +1012,11 @@ class Aggregates:
             default_aggs.extend(additional_aggregations)
 
         result = data.group_by(group_cols).agg(*default_aggs)
-        result = result.sort(
+        return result.sort(
             ["GroupIndex", "isActive", "Univariate Performance"],
             descending=[False, True, True],
             nulls_last=True,
         )
-
-        return result
 
     def overall_summary(
         self,

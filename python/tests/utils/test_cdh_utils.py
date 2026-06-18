@@ -10,6 +10,11 @@ from pdstools import datasets
 from pdstools.utils import cdh_utils
 from zoneinfo import ZoneInfo as timezone
 
+from pdstools.utils.cdh_utils._io import (
+    _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS,
+    _DATABRICKS_PREDICTION_COLUMNS,
+)
+
 
 def test_safe_range_auc():
     assert cdh_utils.safe_range_auc(0.8) == 0.8
@@ -497,8 +502,8 @@ def test_feature_importance_scaled_multiple_predictors():
             # High importance: very strong differentiation between bins
             "PredictorName": ["High"] * 3 + ["Medium"] * 3 + ["Low"] * 3,
             "ModelID": ["m1"] * 9,
-            "BinPositives": [95, 5, 50] + [70, 40, 50] + [52, 50, 48],  # High varies a lot, Low is uniform
-            "BinNegatives": [5, 95, 50] + [30, 60, 50] + [48, 50, 52],
+            "BinPositives": [95, 5, 50, 70, 40, 50, 52, 50, 48],  # High varies a lot, Low is uniform
+            "BinNegatives": [5, 95, 50, 30, 60, 50, 48, 50, 52],
             "BinResponseCount": [100, 100, 100] * 3,
         }
     )
@@ -777,7 +782,7 @@ def test_gains_table():
             1,
         ]
     ]
-    assert gains.get_column("cum_y").round(5).to_list() == [0] + expected_gains
+    assert gains.get_column("cum_y").round(5).to_list() == [0, *expected_gains]
 
     # with responses, the order should be the same as in the classifier data
     gains = cdh_utils.gains_table(df, "Positives", index="Responses")
@@ -1401,3 +1406,81 @@ class TestGetLatestPdstoolsVersion:
         mock_response.json.return_value = {"unexpected": "shape"}
         mocker.patch("requests.get", return_value=mock_response)
         assert cdh_utils.get_latest_pdstools_version() is None
+
+
+def _make_lazy(cols: list[str]) -> pl.LazyFrame:
+    """Return a single-row LazyFrame with all columns set to None."""
+    return pl.DataFrame({c: [None] for c in cols}).lazy()
+
+
+class TestValidateDatabricksSchema:
+    """Tests for _validate_databricks_predictions and _validate_databricks_model_snapshots."""
+
+    # ------------------------------------------------------------------
+    # _validate_databricks_predictions
+    # ------------------------------------------------------------------
+
+    def test_predictions_exact_schema_returns_frame(self):
+        df = _make_lazy(list(_DATABRICKS_PREDICTION_COLUMNS))
+        result = cdh_utils._validate_databricks_predictions(df)
+        assert isinstance(result, pl.LazyFrame)
+        assert set(result.collect_schema().names()) == _DATABRICKS_PREDICTION_COLUMNS
+
+    def test_predictions_missing_columns_raises(self):
+        incomplete = _make_lazy(list(_DATABRICKS_PREDICTION_COLUMNS)[:-2])
+        with pytest.raises(ValueError, match="Required columns missing from Databricks predictions view"):
+            cdh_utils._validate_databricks_predictions(incomplete)
+
+    def test_predictions_extra_columns_warns_and_returns_frame(self, caplog):
+        import logging
+
+        extra_cols = [*_DATABRICKS_PREDICTION_COLUMNS, "ExtraCol", "AnotherExtra"]
+        df = _make_lazy(extra_cols)
+        with caplog.at_level(logging.WARNING):
+            result = cdh_utils._validate_databricks_predictions(df)
+        assert isinstance(result, pl.LazyFrame)
+        assert "Unexpected columns" in caplog.text
+        assert "_DATABRICKS_PREDICTION_COLUMNS" in caplog.text
+
+    # ------------------------------------------------------------------
+    # _validate_databricks_model_snapshots
+    # ------------------------------------------------------------------
+
+    def test_model_snapshots_exact_schema_returns_frame(self):
+        df = _make_lazy(list(_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS))
+        result = cdh_utils._validate_databricks_model_snapshots(df)
+        assert isinstance(result, pl.LazyFrame)
+        assert set(result.collect_schema().names()) == _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS
+
+    def test_model_snapshots_missing_columns_raises(self):
+        incomplete = _make_lazy(list(_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS)[:-2])
+        with pytest.raises(ValueError, match="Required columns missing from Databricks model snapshots view"):
+            cdh_utils._validate_databricks_model_snapshots(incomplete)
+
+    def test_model_snapshots_extra_columns_warns_and_returns_frame(self, caplog):
+        import logging
+
+        extra_cols = [*_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS, "ExtraCol"]
+        df = _make_lazy(extra_cols)
+        with caplog.at_level(logging.WARNING):
+            result = cdh_utils._validate_databricks_model_snapshots(df)
+        assert isinstance(result, pl.LazyFrame)
+        assert "Unexpected columns" in caplog.text
+        assert "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS" in caplog.text
+
+    def test_validate_databricks_rename_map_accepts_known_keys(self):
+        cdh_utils._validate_databricks_rename_map(
+            {"PacID": "pyPacID", "Channel": "pyChannel"},
+            _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS,
+            "model snapshots",
+            "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS",
+        )
+
+    def test_validate_databricks_rename_map_rejects_unknown_keys(self):
+        with pytest.raises(ValueError, match="rename map contains keys not present"):
+            cdh_utils._validate_databricks_rename_map(
+                {"PacID": "pyPacID", "NotAColumn": "x"},
+                _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS,
+                "model snapshots",
+                "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS",
+            )

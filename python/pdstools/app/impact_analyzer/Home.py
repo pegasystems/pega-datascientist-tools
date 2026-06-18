@@ -5,6 +5,8 @@ Thin router on top of ``st.navigation()`` — keeps actual page content
 out of the script body so navigation can choose which page to run.
 """
 
+from __future__ import annotations
+
 from pdstools.app.impact_analyzer._navigation import build_navigation
 
 build_navigation().run()

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # python/pdstools/decision_analyzer/utils.py
 import logging
 import os
@@ -15,41 +17,36 @@ from .column_schema import (
 
 logger = logging.getLogger(__name__)
 
-# As long as this is run once, anywhere, it's enabled globally.
-# Putting it here AND in the Home.py file should therefore be enough,
-# because every other file imports from utils.py (hence running this part too.)
-pl.enable_string_cache()
-
 
 @dataclass
 class ColumnResolver:
     """Resolves column mappings between raw data and a standardized schema.
 
     Raw decision data can come from multiple sources with different schemas:
+
     - Explainability Extract vs Decision Analyzer exports
     - Inbound vs Outbound channel data
 
     For example, channel information may appear as:
+
     - 'Channel' (already using the display name)
     - 'pyChannel' (an alias for the display name)
     - 'Primary_ContainerPayload_Channel' (raw name needing rename)
     - Both raw key and display_name present (conflict requiring resolution)
 
     This class normalizes these variations by:
+
     - Mapping raw column names to standardized display names
     - Resolving conflicts when both raw and display_name columns exist
     - Building the final schema with consistent column names
 
-    Attributes
-    ----------
-    table_definition : dict
-        Column definitions with 'display_name', 'default', and 'type' keys
-    raw_columns : set[str]
-        Column names present in the raw data
     """
 
     table_definition: dict
+    """Column definitions with display names, defaults, and target dtypes."""
+
     raw_columns: set[str]
+    """Column names present in the raw data."""
 
     # Results populated by resolve()
     rename_mapping: dict[str, str] = field(default_factory=dict, init=False)
@@ -107,7 +104,7 @@ class ColumnResolver:
             if raw_col in remaining_columns:
                 self.rename_mapping[raw_col] = display_name
 
-        for raw_col, config in self.table_definition.items():
+        for _raw_col, config in self.table_definition.items():
             display_name = config["display_name"]
             if display_name in resolved_targets and display_name not in self.final_columns:
                 self.final_columns.append(display_name)
@@ -141,7 +138,7 @@ SCOPE_HIERARCHY = ["Issue", "Group", "Action"]
 PRIO_FACTORS = ["Propensity", "Value", "Context Weight", "Levers"]
 
 # All prioritization components including the computed Priority itself.
-PRIO_COMPONENTS = PRIO_FACTORS + ["Priority"]
+PRIO_COMPONENTS = [*PRIO_FACTORS, "Priority"]
 
 
 def apply_filter(df: pl.LazyFrame, filters: pl.Expr | list[pl.Expr] | None = None):
@@ -162,7 +159,7 @@ def apply_filter(df: pl.LazyFrame, filters: pl.Expr | list[pl.Expr] | None = Non
 
     if filters is None:
         return df
-    elif isinstance(filters, pl.Expr):
+    if isinstance(filters, pl.Expr):
         df = _apply(filters, df)
 
     elif isinstance(filters, list) and all(isinstance(i, pl.Expr) for i in filters):
@@ -175,6 +172,7 @@ def apply_filter(df: pl.LazyFrame, filters: pl.Expr | list[pl.Expr] | None = Non
 
 
 def area_under_curve(df: pl.DataFrame, col_x: str, col_y: str):
+    """Area under curve."""
     return (
         df.with_columns(
             ((pl.col(col_y) + pl.col(col_y).shift(1)) / 2).alias("MeanY"),
@@ -187,6 +185,7 @@ def area_under_curve(df: pl.DataFrame, col_x: str, col_y: str):
 
 
 def gini_coefficient(df: pl.DataFrame, col_x: str, col_y: str):
+    """Gini coefficient."""
     return area_under_curve(df, col_x, col_y) * 2 - 1
 
 
@@ -363,6 +362,7 @@ def _cast_columns(df: pl.LazyFrame, type_mapping: dict[str, type[pl.DataType]]) 
 
 
 def get_table_definition(table: str):
+    """Get table definition."""
     mapping = {
         "decision_analyzer": DecisionAnalyzer,
         "explainability_extract": ExplainabilityExtract,
@@ -395,12 +395,13 @@ def create_hierarchical_selectors(
     Returns
     -------
     dict[str, dict[str, list[str] | int]]
-        dict with structure:
-        {
-            "issues": {"options": [...], "index": 0},
-            "groups": {"options": ["All", ...], "index": 0},
-            "actions": {"options": ["All", ...], "index": 0}
-        }
+        Dict with structure::
+
+            {
+                "issues": {"options": [...], "index": 0},
+                "groups": {"options": ["All", ...], "index": 0},
+                "actions": {"options": ["All", ...], "index": 0},
+            }
     """
 
     # Step 1: Get all available issues
@@ -417,7 +418,7 @@ def create_hierarchical_selectors(
     filtered_by_issue = data.filter(pl.col("Issue") == current_issue)
     groups_df = filtered_by_issue.select("Group").unique().collect()
     available_groups = groups_df.get_column("Group").to_list()
-    group_options = ["All"] + available_groups
+    group_options = ["All", *available_groups]
     group_index = 0  # Default to "All"
     if selected_group and selected_group in group_options:
         group_index = group_options.index(selected_group)
@@ -433,7 +434,7 @@ def create_hierarchical_selectors(
 
     actions_df = filtered_by_issue_group.select("Action").unique().collect()
     available_actions = actions_df.get_column("Action").to_list()
-    action_options = ["All"] + available_actions
+    action_options = ["All", *available_actions]
     action_index = 0  # Default to "All"
     if selected_action and selected_action in action_options:
         action_index = action_options.index(selected_action)
@@ -480,7 +481,7 @@ def get_scope_config(
             "selected_value": selected_action,
             "plot_title_prefix": "Win Count by Action",
         }
-    elif selected_group != "All":
+    if selected_group != "All":
         return {
             "level": "Group",
             "lever_condition": (pl.col("Issue") == selected_issue) & (pl.col("Group") == selected_group),
@@ -489,15 +490,14 @@ def get_scope_config(
             "selected_value": selected_group,
             "plot_title_prefix": "Win Count by Group",
         }
-    else:
-        return {
-            "level": "Issue",
-            "lever_condition": pl.col("Issue") == selected_issue,
-            "group_cols": ["Issue"],
-            "x_col": "Issue",
-            "selected_value": selected_issue,
-            "plot_title_prefix": "Win Count by Issue",
-        }
+    return {
+        "level": "Issue",
+        "lever_condition": pl.col("Issue") == selected_issue,
+        "group_cols": ["Issue"],
+        "x_col": "Issue",
+        "selected_value": selected_issue,
+        "plot_title_prefix": "Win Count by Issue",
+    }
 
 
 _INTERACTION_ID_RAW_KEY = "pxInteractionID"
@@ -576,8 +576,7 @@ def _determine_output_directory(source_path: str | None, output_dir: str | None)
                 if os.access(parent_dir, os.W_OK):
                     logger.info("Using source parent directory for output: %s", parent_dir)
                     return parent_dir
-                else:
-                    logger.debug("Source parent directory %s is not writeable, using fallback", parent_dir)
+                logger.debug("Source parent directory %s is not writeable, using fallback", parent_dir)
             except Exception as e:
                 logger.debug("Error checking writeability of %s: %s", parent_dir, e)
 
@@ -962,7 +961,7 @@ def prepare_and_save(
     new_metadata = {
         **existing_metadata,
         b"pdstools:source_file": original_source.encode("utf-8"),
-        b"pdstools:sample_percentage": f"{sample_percentage:.2f}".encode("utf-8"),
+        b"pdstools:sample_percentage": f"{sample_percentage:.2f}".encode(),
         b"pdstools:sample_percentage_method": method.encode("utf-8"),
     }
 
@@ -1024,7 +1023,7 @@ def resolve_filter_column(
         for raw_key, config in schema.items():
             display = config["display_name"]
             aliases = config.get("aliases", [])
-            all_names = [display] + aliases
+            all_names = [display, *aliases]
 
             if any(n.lower() == name_lower for n in all_names):
                 # Found a schema match -- check if raw_key is in the data
@@ -1186,7 +1185,7 @@ def format_count_for_filename(count: int) -> str:
     """
     if count < 1000:
         return str(count)
-    elif count < 1_000_000:
+    if count < 1_000_000:
         # Thousands
         value = count / 1000
         rounded = round(value)
@@ -1197,19 +1196,17 @@ def format_count_for_filename(count: int) -> str:
             rounded_m = round(millions)
             if rounded_m >= 10:
                 return f"{rounded_m}M"
-            elif rounded_m >= 1:
+            if rounded_m >= 1:
                 # For values 1-9M, show as integer if it rounds cleanly
                 return f"{rounded_m}M"
-            else:
-                formatted = f"{millions:.1f}".rstrip("0").rstrip(".")
-                return f"{formatted}M"
-        elif rounded >= 10:
+            formatted = f"{millions:.1f}".rstrip("0").rstrip(".")
+            return f"{formatted}M"
+        if rounded >= 10:
             return f"{rounded}k"
-        else:
-            # Use 1 decimal for < 10
-            formatted = f"{value:.1f}".rstrip("0").rstrip(".")
-            return f"{formatted}k"
-    elif count < 1_000_000_000:
+        # Use 1 decimal for < 10
+        formatted = f"{value:.1f}".rstrip("0").rstrip(".")
+        return f"{formatted}k"
+    if count < 1_000_000_000:
         # Millions
         value = count / 1_000_000
         rounded = round(value)
@@ -1220,27 +1217,23 @@ def format_count_for_filename(count: int) -> str:
             rounded_b = round(billions)
             if rounded_b >= 10:
                 return f"{rounded_b}B"
-            elif rounded_b >= 1:
+            if rounded_b >= 1:
                 # For values 1-9B, show as integer if it rounds cleanly
                 return f"{rounded_b}B"
-            else:
-                formatted = f"{billions:.1f}".rstrip("0").rstrip(".")
-                return f"{formatted}B"
-        elif rounded >= 10:
-            return f"{rounded}M"
-        else:
-            formatted = f"{value:.1f}".rstrip("0").rstrip(".")
-            return f"{formatted}M"
-    else:
-        # Billions
-        value = count / 1_000_000_000
-        rounded = round(value)
-
-        if rounded >= 10:
-            return f"{rounded}B"
-        else:
-            formatted = f"{value:.1f}".rstrip("0").rstrip(".")
+            formatted = f"{billions:.1f}".rstrip("0").rstrip(".")
             return f"{formatted}B"
+        if rounded >= 10:
+            return f"{rounded}M"
+        formatted = f"{value:.1f}".rstrip("0").rstrip(".")
+        return f"{formatted}M"
+    # Billions
+    value = count / 1_000_000_000
+    rounded = round(value)
+
+    if rounded >= 10:
+        return f"{rounded}B"
+    formatted = f"{value:.1f}".rstrip("0").rstrip(".")
+    return f"{formatted}B"
 
 
 def should_cache_source(source_path: str | None) -> bool:
