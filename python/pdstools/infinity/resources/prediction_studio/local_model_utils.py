@@ -20,6 +20,8 @@ PEGA_METADATA = "pegaMetadata"
 
 
 class OutcomeType(Enum):
+    """Supported outcome types for local Prediction Studio model metadata."""
+
     BINARY = "binary"
     CATEGORICAL = "categorical"
     CONTINUOUS = "continuous"

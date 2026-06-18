@@ -5,6 +5,8 @@ from typing import Literal, TypeAlias
 
 
 class AdmModelType(Enum):
+    """Supported ADM model techniques for champion/challenger operations."""
+
     GRADIENT_BOOSTING = "Gradient_boost"
     NAIVE_BAYES = "Naive_bayes"
 
