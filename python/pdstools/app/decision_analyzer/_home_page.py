@@ -125,7 +125,6 @@ def render(locked_page_titles: list[str] | None = None) -> None:
     standard_page_config(page_title="Decision Analysis")
     show_sidebar_branding("Decision Analysis")
     _set_active_app("da")
-    pl.enable_string_cache()
 
     show_version_header()
 

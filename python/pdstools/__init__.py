@@ -7,8 +7,6 @@ __version__ = "5.0.0"
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from polars import enable_string_cache
-
 from .adm.ADMDatamart import ADMDatamart
 from .ih.IH import IH
 from .impactanalyzer.ImpactAnalyzer import ImpactAnalyzer
@@ -22,8 +20,6 @@ from .valuefinder.ValueFinder import ValueFinder
 
 if TYPE_CHECKING:
     from .infinity.client import AsyncInfinity, Infinity
-
-enable_string_cache()
 
 __reports__ = Path(__file__).parents[0] / "reports"
 
