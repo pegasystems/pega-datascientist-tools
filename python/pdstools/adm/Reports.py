@@ -414,6 +414,72 @@ class Reports(LazyNamespace):
             if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
                 shutil.rmtree(temp_dir, ignore_errors=True)
 
+    def health_check_agent(
+        self,
+        name: str | None = None,
+        *,
+        query: QUERY | None = None,
+        prediction: Prediction | None = None,
+        title: str = "ADM Health Check",
+        subtitle: str = "",
+        disclaimer: str = "",
+        output_dir: str | PathLike[str] | None = None,
+    ) -> Path:
+        """Generate an agent-ready Markdown health check report.
+
+        Unlike :meth:`health_check`, this method does not use Quarto. It renders
+        a lightweight GitHub-flavored Markdown document directly from
+        ``dm.analysis.findings()``.
+
+        Parameters
+        ----------
+        name : str, optional
+            Base file name of the report.
+        query : QUERY, optional
+            Extra filter applied to the datamart data before rendering.
+        prediction : Prediction, optional
+            Prediction object to include in the report.
+        title : str, default "ADM Health Check"
+            Title shown at the top of the markdown report.
+        subtitle : str, default ""
+            Optional subtitle shown under the title.
+        disclaimer : str, default ""
+            Optional disclaimer rendered near the top of the report.
+        output_dir : str or path-like, optional
+            Directory where the markdown file will be written. Defaults to the
+            current working directory.
+
+        Returns
+        -------
+        Path
+            The path to the generated markdown file.
+        """
+        target_datamart = self.datamart
+        if query is not None:
+            from .ADMDatamart import ADMDatamart
+
+            target_datamart = ADMDatamart(
+                model_df=self.datamart.model_data,
+                predictor_df=self.datamart.predictor_data,
+                query=query,
+                extract_pyname_keys=False,
+            )
+
+        output_dir_path = Path(output_dir) if output_dir is not None else Path.cwd()
+        output_dir_path.mkdir(parents=True, exist_ok=True)
+        output_filename = get_output_filename(name, "HealthCheck", None, "md")
+        output_path = output_dir_path / output_filename
+        output_path.write_text(
+            target_datamart.analysis.markdown(
+                title=title,
+                subtitle=subtitle,
+                disclaimer=disclaimer,
+                prediction=prediction,
+            ),
+            encoding="utf-8",
+        )
+        return output_path
+
     def excel_report(
         self,
         name: str | PathLike[str] = Path("Tables.xlsx"),
