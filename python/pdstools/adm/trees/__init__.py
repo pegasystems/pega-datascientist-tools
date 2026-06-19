@@ -22,12 +22,14 @@ from ._agb import AGB
 from ._model import ADMTreesModel
 from ._multi import MultiTrees
 from ._nodes import Node, Split, SplitOperator, parse_split
+from ._plots import Plots
 
 __all__ = [
     "AGB",
     "ADMTreesModel",
     "MultiTrees",
     "Node",
+    "Plots",
     "Split",
     "SplitOperator",
     "parse_split",

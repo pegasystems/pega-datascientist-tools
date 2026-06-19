@@ -17,41 +17,36 @@ from .column_schema import (
 
 logger = logging.getLogger(__name__)
 
-# As long as this is run once, anywhere, it's enabled globally.
-# Putting it here AND in the Home.py file should therefore be enough,
-# because every other file imports from utils.py (hence running this part too.)
-pl.enable_string_cache()
-
 
 @dataclass
 class ColumnResolver:
     """Resolves column mappings between raw data and a standardized schema.
 
     Raw decision data can come from multiple sources with different schemas:
+
     - Explainability Extract vs Decision Analyzer exports
     - Inbound vs Outbound channel data
 
     For example, channel information may appear as:
+
     - 'Channel' (already using the display name)
     - 'pyChannel' (an alias for the display name)
     - 'Primary_ContainerPayload_Channel' (raw name needing rename)
     - Both raw key and display_name present (conflict requiring resolution)
 
     This class normalizes these variations by:
+
     - Mapping raw column names to standardized display names
     - Resolving conflicts when both raw and display_name columns exist
     - Building the final schema with consistent column names
 
-    Attributes
-    ----------
-    table_definition : dict
-        Column definitions with 'display_name', 'default', and 'type' keys
-    raw_columns : set[str]
-        Column names present in the raw data
     """
 
     table_definition: dict
+    """Column definitions with display names, defaults, and target dtypes."""
+
     raw_columns: set[str]
+    """Column names present in the raw data."""
 
     # Results populated by resolve()
     rename_mapping: dict[str, str] = field(default_factory=dict, init=False)
@@ -400,12 +395,13 @@ def create_hierarchical_selectors(
     Returns
     -------
     dict[str, dict[str, list[str] | int]]
-        dict with structure:
-        {
-            "issues": {"options": [...], "index": 0},
-            "groups": {"options": ["All", ...], "index": 0},
-            "actions": {"options": ["All", ...], "index": 0}
-        }
+        Dict with structure::
+
+            {
+                "issues": {"options": [...], "index": 0},
+                "groups": {"options": ["All", ...], "index": 0},
+                "actions": {"options": ["All", ...], "index": 0},
+            }
     """
 
     # Step 1: Get all available issues

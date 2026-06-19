@@ -9,6 +9,7 @@ import polars as pl
 
 from ..pega_io.File import read_ds_export
 from ..utils import cdh_utils
+from ..utils.cdh_utils._io import _DATABRICKS_PREDICTION_COLUMNS
 from ..utils.metric_limits import (
     get_predictions_channel_mapping,
     is_standard_NBAD_prediction,
@@ -145,8 +146,14 @@ class Prediction:
         # Below looks like a pivot.. but we want to make sure Control, Test and NBA
         # columns are always there...
         # TODO we may want to assert that this results in exactly one record for
-        # every combination of model ID and snapshot time.
-        usage_cols = ["pyModelId", "SnapshotTime", "Positives", "Negatives", "ResponseCount"]
+        # every combination of model ID and snapshot time and data usage.
+        usage_cols = [
+            "pyModelId",
+            "SnapshotTime",
+            "Positives",
+            "Negatives",
+            "ResponseCount",
+        ]
         counts_control = prepped.filter(pl.col.pyDataUsage == "Control").select(usage_cols)
         counts_test = prepped.filter(pl.col.pyDataUsage == "Test").select(usage_cols)
         counts_NBA = prepped.filter(pl.col.pyDataUsage == "NBA").select(usage_cols)
@@ -432,19 +439,23 @@ class Prediction:
         return cls(prediction_data, query=query)
 
     @classmethod
-    def from_pdc(
+    def from_databricks_view(
         cls,
         df: pl.LazyFrame,
         *,
         query: QUERY | None = None,
     ):
-        """Import from (Pega-internal) PDC data, which is a combination of the PR_DATA_DM_SNAPSHOTS and PR_DATA_DM_ADMMART_MDL_FACT tables.
+        """Import from the Databricks predictions summary view.
+
+        The input view is validated against the expected Databricks schema,
+        then renamed and cast into the prediction shape used by
+        :class:`Prediction`.
 
         Parameters
         ----------
         df : pl.LazyFrame
-            The Polars LazyFrame containing the PDC data
-        query : Optional[QUERY], optional
+            The Polars LazyFrame containing the Databricks data.
+        query : QUERY, optional
             An optional query to apply to the input data, by default None
 
         Returns
@@ -453,65 +464,47 @@ class Prediction:
             The initialized Prediction class. Use ``pred.predictions`` to
             access the transformed prediction frame directly.
 
-        See Also
-        --------
-        pdstools.utils.cdh_utils._read_pdc : More information on PDC data processing
-        pdstools.utils.cdh_utils._apply_query : How to query the Prediction class and methods
-
         """
-        pdc_data = cdh_utils._read_pdc(df)
 
-        snapshotType = "Daily"
+        databricks_to_pdstools = {
+            "SnapshotDate": "pySnapShotTime",
+            "Positives": "pyPositives",
+            "Negatives": "pyNegatives",
+            "ResponseCount": "pyCount",
+            "Performance": "pyValue",
+        }
+
+        cdh_utils._validate_databricks_rename_map(
+            databricks_to_pdstools,
+            _DATABRICKS_PREDICTION_COLUMNS,
+            "predictions",
+            "_DATABRICKS_PREDICTION_COLUMNS",
+        )
+        cdh_utils._validate_databricks_predictions(df)
+
         prediction_data = (
-            pdc_data.filter(pl.col("ModelType").str.starts_with("Prediction"))
-            .filter(pl.col("Name") == "auc")
+            df.rename(databricks_to_pdstools)
             .with_columns(
-                pyModelId=pl.format("{}!{}", pl.col("ModelClass"), pl.col("ModelName")),
-                # pyUnscaledPerformance=(pl.col("Performance").cast(pl.Float64) / 100), # not unscaled, it's not 'flipped' so can be < 50
+                pyModelId=pl.format("{}!{}", pl.col("AppliesToClass"), pl.col("Configuration")),
                 pyDataUsage=pl.col("ModelType").str.extract(r".+_(Test|Control|NBA)"),
                 pyModelType=pl.lit("PREDICTION"),
-                # pysnapshotday=pl.col("SnapshotTime").str.slice(0, 8), # I don't think we need that. If we do, be careful that SnapshotTime can be a parsed datetime already.
-                pySnapshotType=pl.lit(snapshotType),
-            )
-            .rename(
-                {
-                    "SnapshotTime": "pySnapShotTime",
-                    "Positives": "pyPositives",
-                    "Negatives": "pyNegatives",
-                    "ResponseCount": "pyCount",
-                    "Name": "pyName",
-                    "Performance": "pyValue",
-                },
+                pySnapshotType=pl.lit("Daily"),
             )
             .cast(
                 {
                     "pyNegatives": pl.Float64,
                     "pyPositives": pl.Float64,
                     "pyCount": pl.Float64,
-                },
+                }
             )
-            .drop(
+            .drop(  # TODO select instead of drop
                 [
-                    "ModelClass",
-                    "ModelID",
-                    "ModelName",
-                    "ModelType",
-                    "ADMModelType",
-                    "TotalPositives",
-                    "TotalResponses",
+                    "PacID",
+                    "EnvironmentName",
+                    "Configuration",
+                    "AppliesToClass",
+                    "ModelType",  # Drop after extracting pyDataUsage
                 ]
-                + [
-                    c
-                    for c in [
-                        "pxObjClass",
-                        "pzInsKey",
-                        "Channel",
-                        "Direction",
-                        "Issue",
-                        "Group",
-                    ]
-                    if c in pdc_data.collect_schema().names()
-                ],
             )
         )
 

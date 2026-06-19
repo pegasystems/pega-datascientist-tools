@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Literal, overload, TYPE_CHECKING
 
-import polars as pl
 
 from .....internal._exceptions import NoMonitoringExportError, PegaException
 from .....internal._pagination import PaginatedList
@@ -15,6 +14,7 @@ from ..repository import Repository
 from ._mixin import _PredictionStudiov26_1Mixin
 
 if TYPE_CHECKING:
+    import polars as pl
     from ...types import NotificationCategory
 
 
@@ -39,6 +39,42 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
             bucket_name=response["bucketName"],
             root_path=response["rootPath"],
             datamart_export_location=response["datamartExportLocation"],
+        )
+
+    @property
+    def models(self) -> PaginatedList[Model]:
+        """All models, addressable by label or id.
+
+        Returns
+        -------
+        PaginatedList[Model]
+            A lazily-fetched, mapping-style collection. Supports
+            ``ps.models['My Model']`` (by label or id),
+            ``'My Model' in ps.models``, ``ps.models.keys()`` and iteration.
+        """
+        endpoint = "/prweb/api/PredictionStudio/v2/models"
+        return PaginatedList(Model, self._client, "get", endpoint, _root="models", pageSize=100)
+
+    @property
+    def predictions(self) -> PaginatedList[Prediction]:
+        """All predictions, addressable by label or id.
+
+        Returns
+        -------
+        PaginatedList[Prediction]
+            A lazily-fetched, mapping-style collection. Supports
+            ``ps.predictions['My Prediction']`` (by label or id),
+            ``'My Prediction' in ps.predictions``, ``ps.predictions.keys()``
+            and iteration.
+        """
+        endpoint = "/prweb/api/PredictionStudio/v3/predictions"
+        return PaginatedList(
+            Prediction,
+            self._client,
+            "get",
+            endpoint,
+            _root="predictions",
+            pageSize=100,
         )
 
     @overload
@@ -67,12 +103,11 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
             Returns a list of models or a DataFrame with model information.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v2/models"
-        pages: PaginatedList[Model] = PaginatedList(Model, self._client, "get", endpoint, _root="models", pageSize=100)
+        pages = self.models
         if not return_df:
             return pages
 
-        return pl.DataFrame([mod._public_dict for mod in pages])
+        return pages.as_df()
 
     @overload  # type: ignore[override]  # intentionally widens parent signature with return_df
     def list_predictions(
@@ -100,19 +135,11 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
             Returns a list of predictions or a DataFrame.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v3/predictions"
-        pages: PaginatedList[Prediction] = PaginatedList(
-            Prediction,
-            self._client,
-            "get",
-            endpoint,
-            _root="predictions",
-            pageSize=100,
-        )
+        pages = self.predictions
 
         if not return_df:
             return pages
-        return pl.DataFrame([pred._public_dict for pred in pages])
+        return pages.as_df()
 
     def get_prediction(
         self,
@@ -253,7 +280,5 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
             pageSize=100,
         )
         if return_df:
-            return pl.DataFrame(
-                [notification._public_dict for notification in notifications],
-            )
+            return notifications.as_df()
         return notifications

@@ -14,13 +14,11 @@ from datetime import datetime
 import polars as pl
 import pytest
 
-pl.enable_string_cache()
-
-from pdstools.decision_analyzer.column_schema import (  # noqa: E402
+from pdstools.decision_analyzer.column_schema import (
     DecisionAnalyzer,
     ExplainabilityExtract,
 )
-from pdstools.decision_analyzer.utils import (  # noqa: E402
+from pdstools.decision_analyzer.utils import (
     _cast_columns,
     _find_interaction_id_column,
     _get_interaction_id_candidates,

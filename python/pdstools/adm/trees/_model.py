@@ -22,17 +22,16 @@ from typing import (
 
 import polars as pl
 
-from ...utils.namespaces import MissingDependenciesException
 from ._nodes import (
     _BOOSTER_PATHS,
     _iter_nodes,
     _traverse,
     parse_split,
 )
+from ._plots import Plots
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    import pydot
 
 # Pinned to the original module path so existing log filters and the
 # safe-eval logging test (test_safe_condition_evaluate_handles_bad_numeric)
@@ -102,6 +101,7 @@ class ADMTreesModel:
         self._properties = properties if properties is not None else {}
         self.learning_rate = learning_rate
         self.context_keys = context_keys
+        self.plot = Plots(self)
 
     @classmethod
     def from_dict(cls, data: dict, *, context_keys: list | None = None) -> ADMTreesModel:
@@ -263,6 +263,8 @@ class ADMTreesModel:
 
         if self.model is None:  # pragma: no cover
             raise ValueError("Import unsuccessful: no boosters/trees found.")
+
+        self.plot = Plots(self)
 
     def _locate_boosters(self) -> list[dict]:
         """Find the boosters/trees list in the model JSON.
@@ -885,44 +887,6 @@ class ADMTreesModel:
             .drop("_parsed")
         )
 
-    def plot_splits_per_variable(self, subset: set | None = None, show: bool = True):
-        """Box-plot of gains per split for each variable."""
-        try:
-            import plotly.graph_objects as go
-            from plotly.subplots import make_subplots
-        except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm") from None
-        figlist = []
-        for (name,), data in self.gains_per_split.group_by("predictor"):
-            if subset is None or name in subset:
-                fig = make_subplots()
-                fig.add_trace(
-                    go.Box(
-                        x=data.get_column("split"),
-                        y=data.get_column("gains"),
-                        name="Gain",
-                    ),
-                )
-                grouped = self.grouped_gains_per_split.filter(pl.col("predictor") == name)
-                fig.add_trace(
-                    go.Scatter(
-                        x=grouped.select("split").to_series().to_list(),
-                        y=grouped.select("n").to_series().to_list(),
-                        name="Number of splits",
-                        mode="lines+markers",
-                    ),
-                )
-                fig.update_layout(
-                    template="none",
-                    title=f"Splits on {name}",
-                    xaxis_title="Split",
-                    yaxis_title="Number",
-                )
-                if show:
-                    fig.show()  # pragma: no cover
-                figlist.append(fig)
-        return figlist
-
     def get_tree_stats(self) -> pl.DataFrame:
         """Generate a dataframe with useful stats for each tree."""
         rows = []
@@ -999,80 +963,6 @@ class ADMTreesModel:
 
         visit(self.model[tree_number], parent_id=None)
         return nodes
-
-    def plot_tree(
-        self,
-        tree_number: int,
-        highlighted: dict | list | None = None,
-        show: bool = True,
-    ) -> pydot.Graph:
-        """Plot the chosen decision tree."""
-        try:
-            import pydot
-        except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["pydot"], "AGB", deps_group="adm") from None
-        if isinstance(highlighted, dict):
-            highlighted = self.get_visited_nodes(tree_number, highlighted)[0]
-        else:  # pragma: no cover
-            highlighted = highlighted or []
-        nodes = self.get_tree_representation(tree_number)
-        graph = pydot.Dot("my_graph", graph_type="graph", rankdir="BT")
-        for key, node in nodes.items():
-            color = "green" if key in highlighted else "white"
-            label = f"Score: {node['score']}"
-            if "split" in node:
-                split_obj = parse_split(node["split"])
-                if split_obj.operator == "in" and isinstance(split_obj.value, tuple):
-                    members = split_obj.value
-                    if len(members) <= 3:
-                        members_label: str = str(set(members))
-                    else:
-                        totallen = len(self.all_values_per_split[split_obj.variable])
-                        members_label = f"{[*list(members[:2]), '...']} ({len(members)}/{totallen})"
-                    label += f"\nSplit: {split_obj.variable} in {members_label}\nGain: {node['gain']}"
-                else:
-                    label += f"\nSplit: {node['split']}\nGain: {node['gain']}"
-                graph.add_node(
-                    pydot.Node(
-                        name=str(key),
-                        label=label,
-                        shape="box",
-                        style="filled",
-                        fillcolor=color,
-                    )
-                )
-            else:
-                graph.add_node(
-                    pydot.Node(
-                        name=str(key),
-                        label=label,
-                        shape="ellipse",
-                        style="filled",
-                        fillcolor=color,
-                    )
-                )
-            if "parent_node" in node:
-                graph.add_edge(pydot.Edge(str(key), str(node["parent_node"])))
-
-        if show:  # pragma: no cover
-            try:
-                from IPython.display import Image, display
-            except ImportError:
-                raise ValueError(
-                    "IPython not installed, please install it using your package manager (e.g. `pip install IPython`).",
-                ) from None
-            try:
-                # pydot.Dot.create_png is generated dynamically (one method per
-                # Graphviz output format) and isn't visible to static type
-                # checkers; call it via getattr to keep the code untyped-but-clean.
-                create_png = getattr(graph, "create_png")
-                display(Image(create_png()))
-            except FileNotFoundError as exc:
-                logger.error(
-                    "Dot/Graphviz not installed; please install it on your machine: %s",
-                    exc,
-                )
-        return graph
 
     def get_visited_nodes(
         self,
@@ -1152,53 +1042,6 @@ class ADMTreesModel:
             total += self.get_visited_nodes(tree_id, x)[1]
         return 1 / (1 + exp(-total))
 
-    def plot_contribution_per_tree(self, x: dict, show: bool = True):
-        """Plot the per-tree contribution toward the final propensity."""
-        try:
-            import plotly.express as px
-            import plotly.graph_objects as go
-        except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm") from None
-
-        scores = (
-            self.get_all_visited_nodes(x)
-            .sort("treeID")
-            .with_row_index("row_idx")
-            .with_columns(
-                [
-                    pl.col("score").cum_sum().alias("scoresum"),
-                    (pl.col("score").cum_sum() / (pl.col("row_idx") + 1)).alias("mean"),
-                    (1 / (1 + (-pl.col("score").cum_sum()).exp())).alias("propensity"),
-                ],
-            )
-        )
-        fig = px.scatter(
-            scores,
-            x="row_idx",
-            y="score",
-            template="none",
-            title="Score contribution per tree, for single prediction",
-            labels={"row_idx": "Tree", "score": "Score"},
-        )
-        fig["data"][0]["showlegend"] = True
-        fig["data"][0]["name"] = "Individual scores"
-        fig.add_trace(go.Scatter(x=scores["row_idx"], y=scores["mean"], name="Cumulative mean"))
-        fig.add_trace(go.Scatter(x=scores["row_idx"], y=scores["propensity"], name="Propensity"))
-        fig.add_trace(
-            go.Scatter(
-                x=[scores["row_idx"][-1]],
-                y=[scores["propensity"][-1]],
-                text=[scores["propensity"][-1]],
-                mode="markers+text",
-                textposition="top right",
-                name="Final propensity",
-            ),
-        )
-        fig.update_xaxes(zeroline=False)
-        if show:
-            fig.show()  # pragma: no cover
-        return fig
-
     def predictor_categorization(self, x: str, context_keys: list | None = None) -> str:
         """Default predictor categorisation function."""
         context_keys = context_keys if context_keys is not None else self.context_keys
@@ -1206,8 +1049,8 @@ class ADMTreesModel:
             context_keys = []  # pragma: no cover
         if len(x.split(".")) > 1:
             return x.split(".")[0]
-        if x in context_keys:
-            return x
+        if x.startswith("py"):
+            return "Context Keys"
         return "Primary"  # pragma: no cover
 
     def compute_categorization_over_time(
@@ -1227,59 +1070,3 @@ class ADMTreesModel:
                 )
             per_tree.append(counter)
         return per_tree, self.tree_stats.select("score").to_series().abs().to_list()
-
-    def plot_splits_per_variable_type(
-        self,
-        predictor_categorization: Callable | None = None,
-        **kwargs,
-    ):
-        """Stacked-area chart of categorised split counts per tree."""
-        try:
-            import plotly.express as px
-        except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm") from None
-        if predictor_categorization is not None:  # pragma: no cover
-            to_plot = self.compute_categorization_over_time(predictor_categorization)[0]
-        else:
-            to_plot = self.splits_per_variable_type[0]
-        df = pl.DataFrame(to_plot)
-        df = df.select(sorted(df.columns))
-        fig = px.area(
-            df,
-            title="Variable types per tree",
-            labels={"index": "Tree number", "value": "Number of splits"},
-            template="none",
-            **kwargs,
-        )
-        fig.layout["updatemenus"] += (
-            dict(
-                type="buttons",
-                direction="left",
-                active=0,
-                buttons=[
-                    dict(
-                        args=[
-                            {"groupnorm": None},
-                            {"yaxis": {"title": "Number of splits"}},
-                        ],
-                        label="Absolute",
-                        method="update",
-                    ),
-                    dict(
-                        args=[
-                            {"groupnorm": "percent"},
-                            {"yaxis": {"title": "Percentage of splits"}},
-                        ],
-                        label="Relative",
-                        method="update",
-                    ),
-                ],
-                pad={"r": 10, "t": 10},
-                showactive=True,
-                x=0.01,
-                xanchor="left",
-                y=1.3,
-                yanchor="top",
-            ),
-        )
-        return fig

@@ -1,5 +1,6 @@
 """Testing the functionality of the ADMDatamart functions"""
 
+import datetime
 import os
 import pathlib
 
@@ -8,6 +9,33 @@ import pytest
 from pdstools import ADMDatamart
 
 basePath = pathlib.Path(__file__).parent.parent.parent.parent
+
+
+def _make_databricks_model_snapshots_data() -> pl.LazyFrame:
+    """Build a small Databricks-style model snapshots LazyFrame for tests."""
+
+    return pl.DataFrame(
+        {
+            "PacID": ["pac-1"],
+            "EnvironmentName": ["dev"],
+            "ModelID": ["model-1"],
+            "Channel": ["Web"],
+            "Direction": ["Inbound"],
+            "Issue": ["Issue"],
+            "Group": ["Group"],
+            "Name": ["Name"],
+            "Treatment": ["Treatment"],
+            "ExtraContextKeys": [None],
+            "Positives": [10],
+            "Negatives": [3],
+            "ResponseCount": [13],
+            "Performance": [0.75],
+            "SnapshotDate": [datetime.datetime(2024, 1, 2, 3, 4, 5)],
+            "Configuration": ["Config"],
+            "AppliesToClass": ["MyClass"],
+            "ModelTechnique": ["GradientBoost"],
+        }
+    ).lazy()
 
 
 @pytest.fixture
@@ -741,3 +769,53 @@ def test_agb_filter_skipped_when_modeltechnique_unknown():
     dm = ADMDatamart(model_df=df)
     model_ids = dm.model_data.select("ModelID").collect().get_column("ModelID").to_list()
     assert set(model_ids) == {"m_agb_real", "m_agb_empty", "m_nb_empty"}
+
+
+def test_from_databricks_view():
+    """Test the from_databricks_view classmethod."""
+
+    result = ADMDatamart.from_databricks_view(_make_databricks_model_snapshots_data()).model_data.collect()
+    assert result.to_dicts() == [
+        {
+            "PacID": "pac-1",
+            "EnvironmentName": "dev",
+            "ModelID": "model-1",
+            "Channel": "Web",
+            "Direction": "Inbound",
+            "Issue": "Issue",
+            "Group": "Group",
+            "Name": "Name",
+            "Treatment": "Treatment",
+            "ExtraContextKeys": None,
+            "Positives": 10.0,
+            "Negatives": 3.0,
+            "ResponseCount": 13.0,
+            "Performance": 0.75,
+            "SnapshotTime": datetime.datetime(2024, 1, 2, 3, 4, 5),
+            "Configuration": "Config",
+            "AppliesToClass": "MyClass",
+            "ModelTechnique": "GradientBoost",
+            "TotalPredictors": None,
+            "ActivePredictors": None,
+            "SuccessRate": 0.7692307692307693,
+            "IsUpdated": True,
+            "LastUpdate": datetime.datetime(2024, 1, 2, 3, 4, 5),
+        }
+    ]
+
+
+def test_from_databricks_view_validates_rename_keys(monkeypatch):
+    """Test that the Databricks rename map only uses known source columns."""
+
+    from importlib import import_module
+
+    adm_datamart_module = import_module("pdstools.adm.ADMDatamart")
+
+    monkeypatch.setattr(
+        adm_datamart_module,
+        "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS",
+        frozenset({"PacID", "EnvironmentName", "Channel"}),
+    )
+
+    with pytest.raises(ValueError, match="rename map contains keys not present"):
+        ADMDatamart.from_databricks_view(_make_databricks_model_snapshots_data())

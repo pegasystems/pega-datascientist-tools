@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import importlib
+import importlib.metadata
 import logging
 import re
 import sys
 from typing import Literal, overload
 
-from .. import __version__
-
 package_name = "pdstools"
 logger = logging.getLogger(__name__)
+
+try:
+    __version__ = importlib.metadata.version(package_name)
+except importlib.metadata.PackageNotFoundError:  # pragma: no cover - editable installs should resolve
+    __version__ = "<unknown>"
 
 
 @overload

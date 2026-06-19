@@ -1,5 +1,5 @@
 Getting Started with the Decision Analyzer Tool
-======================================
+===============================================
 
 What is the Decision Analyzer Tool?
 -----------------------------------

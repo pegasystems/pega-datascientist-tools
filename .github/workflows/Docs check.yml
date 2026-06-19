@@ -44,4 +44,6 @@ jobs:
 
       - name: Build Python documentation
         working-directory: python/docs
+        env:
+          SPHINXOPTS: -W --keep-going
         run: make html

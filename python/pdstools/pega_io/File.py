@@ -323,7 +323,9 @@ def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
         Path to a data file, archive, directory, or BytesIO object.
         When using BytesIO (e.g., from Streamlit file uploads), the object must have
         a 'name' attribute indicating the file extension.
+
         Supported formats:
+
         - Parquet files or directories
         - CSV files
         - Arrow/IPC/Feather files

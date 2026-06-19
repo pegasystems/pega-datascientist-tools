@@ -3,7 +3,6 @@ from __future__ import annotations
 from urllib.parse import quote as _quote
 from typing import Literal, overload, TYPE_CHECKING
 
-import polars as pl
 
 from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._pagination import PaginatedList
@@ -12,6 +11,7 @@ from ...v24_1.prediction import Prediction as PredictionPrevious
 from ._mixin import _PredictionV24_2Mixin
 
 if TYPE_CHECKING:
+    import polars as pl
     from ...types import NotificationCategory
 
 
@@ -76,9 +76,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
             category=category,
         )
         if return_df:
-            return pl.DataFrame(
-                [notification._public_dict for notification in notifications],
-            )
+            return notifications.as_df()
         return notifications
 
     def get_champion_challengers(self):
@@ -95,6 +93,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
             challenger across various segments of the prediction.
 
         """
+        from ...base import ChampionChallengerList
         from ..champion_challenger import ChampionChallenger
         from ..model import Model
 
@@ -171,7 +170,7 @@ class Prediction(_PredictionV24_2Mixin, PredictionPrevious):
                 ),
             )
 
-        return ccs
+        return ChampionChallengerList(ccs)
 
     def add_conditional_model(
         self,

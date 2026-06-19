@@ -5,13 +5,11 @@ from __future__ import annotations
 __version__ = "5.0.0"
 
 from pathlib import Path
-
-from polars import enable_string_cache
+from typing import TYPE_CHECKING
 
 from .adm.ADMDatamart import ADMDatamart
 from .ih.IH import IH
 from .impactanalyzer.ImpactAnalyzer import ImpactAnalyzer
-from .infinity import AsyncInfinity, Infinity
 from .pega_io import Anonymization, read_ds_export
 from .prediction.Prediction import Prediction
 from .utils import datasets
@@ -20,7 +18,8 @@ from .utils.datasets import cdh_sample, sample_value_finder
 from .utils.show_versions import show_versions
 from .valuefinder.ValueFinder import ValueFinder
 
-enable_string_cache()
+if TYPE_CHECKING:
+    from .infinity.client import AsyncInfinity, Infinity
 
 __reports__ = Path(__file__).parents[0] / "reports"
 
@@ -40,3 +39,11 @@ __all__ = [
     "sample_value_finder",
     "show_versions",
 ]
+
+
+def __getattr__(name: str):
+    if name in {"Infinity", "AsyncInfinity"}:
+        from .infinity import AsyncInfinity, Infinity
+
+        return {"Infinity": Infinity, "AsyncInfinity": AsyncInfinity}[name]
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
