@@ -6,7 +6,6 @@ back to the input data. Assertions are exact-value wherever possible.
 
 from __future__ import annotations
 
-import numpy as np
 import polars as pl
 import pytest
 
