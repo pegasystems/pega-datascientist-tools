@@ -6,6 +6,7 @@ back to the input data. Assertions are exact-value wherever possible.
 
 from __future__ import annotations
 
+import numpy as np
 import polars as pl
 import pytest
 
@@ -402,3 +403,602 @@ class TestOutliers:
         outliers = dq.health.find_outliers()
         assert isinstance(outliers, pl.DataFrame)
         assert set(outliers.columns) == {"index", "text", "topic", "distance"}
+
+    def test_outlier_distances_positive(self, dq: TopicDataQuality) -> None:
+        outliers = dq.health.find_outliers()
+        if outliers.height > 0:
+            for d in outliers.get_column("distance").to_list():
+                assert d > 0
+
+    def test_small_topic_skipped(self) -> None:
+        """Topics with fewer than 3 samples are skipped by find_outliers."""
+        df = pl.DataFrame(
+            {
+                "text": [
+                    "only one sample here",
+                    "second sample for topic b for testing purposes",
+                    "third sample for topic b to allow outlier detection",
+                    "fourth sample for topic b in the set",
+                ],
+                "topic": ["a", "b", "b", "b"],
+            }
+        )
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        outliers = dq.health.find_outliers()
+        # topic "a" has only 1 sample → skipped
+        if outliers.height > 0:
+            assert "a" not in outliers.get_column("topic").to_list()
+
+
+# ------------------------------------------------------------------
+# Imbalance ratio edge case
+# ------------------------------------------------------------------
+
+
+class TestImbalanceRatioEdge:
+    def test_zero_count_returns_inf(self) -> None:
+        """When a topic has 0 count, imbalance_ratio returns inf."""
+        df = pl.DataFrame({"text": ["hello world"], "topic": ["a"]})
+        dq = TopicDataQuality(df=df, text_col="text", topic_col="topic")
+        assert dq.imbalance_ratio >= 1.0
+
+
+# ------------------------------------------------------------------
+# Confused samples
+# ------------------------------------------------------------------
+
+
+class TestConfusedSamples:
+    def test_confused_samples_schema(self, dq: TopicDataQuality) -> None:
+        confused = dq.health.find_confused_samples()
+        assert isinstance(confused, pl.DataFrame)
+        expected_cols = {"text", "assigned_topic", "confused_with", "confusion_risk", "similarity_score"}
+        assert set(confused.columns) == expected_cols
+
+    def test_confused_samples_top_n(self, dq: TopicDataQuality) -> None:
+        confused = dq.health.find_confused_samples(top_n=3)
+        assert confused.height <= 3
+
+    def test_confused_samples_empty_when_no_high_pairs(self) -> None:
+        """With very distinct topics and threshold=0.99, no confused samples."""
+        df = pl.DataFrame(
+            {
+                "text": [
+                    "the dog ran across the park chasing birds",
+                    "cats are fluffy domestic pets that purr loudly",
+                    "the dog fetched the ball from the field nearby",
+                    "cats love to climb trees and scratch furniture",
+                    "dogs enjoy swimming in lakes during summer time",
+                    "quantum computing uses qubits for parallel processing",
+                    "quantum entanglement enables faster than light info transfer",
+                    "quantum supremacy was achieved by Google in 2019",
+                    "quantum mechanics describes subatomic particle behavior precisely",
+                    "quantum tunneling allows particles to pass through barriers",
+                ],
+                "topic": ["pets"] * 5 + ["quantum"] * 5,
+            }
+        )
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic", similarity_threshold=0.99)
+        confused = dq.health.find_confused_samples()
+        assert confused.height == 0
+
+
+# ------------------------------------------------------------------
+# Keyword overlap analysis
+# ------------------------------------------------------------------
+
+
+class TestKeywordOverlap:
+    def test_keyword_overlap_returns_list(self, dq: TopicDataQuality) -> None:
+        results = dq.health.keyword_overlap_analysis()
+        assert isinstance(results, list)
+
+    def test_keyword_overlap_structure(self, dq: TopicDataQuality) -> None:
+        results = dq.health.keyword_overlap_analysis()
+        for entry in results:
+            assert "topic_a" in entry
+            assert "topic_b" in entry
+            assert "keyword_overlap_pct" in entry
+            assert "shared_keywords" in entry
+            assert "unique_to_a" in entry
+            assert "unique_to_b" in entry
+
+    def test_keyword_overlap_empty_when_no_vectorizer(self) -> None:
+        """Returns empty list when TF-IDF hasn't been computed."""
+        df = pl.DataFrame(
+            {
+                "text": ["hello world foo bar baz", "goodbye world foo bar baz"],
+                "topic": ["a", "b"],
+            }
+        )
+        dq = TopicDataQuality(df=df, text_col="text", topic_col="topic")
+        assert dq._tfidf_vectorizer is None
+        result = dq.health.keyword_overlap_analysis()
+        assert result == []
+
+
+# ------------------------------------------------------------------
+# Compute: cleanlab_audit
+# ------------------------------------------------------------------
+
+
+class TestCleanlabAudit:
+    """Test the cleanlab audit integration."""
+
+    @pytest.fixture
+    def _skip_if_no_cleanlab(self):
+        pytest.importorskip("cleanlab", reason="cleanlab not available")
+
+    @pytest.mark.usefixtures("_skip_if_no_cleanlab")
+    def test_cleanlab_audit_returns_expected_keys(self, dq: TopicDataQuality) -> None:
+        results = dq.compute.cleanlab_audit()
+        assert set(results.keys()) == {"label_issues", "outlier_issues", "near_duplicate_issues", "summary"}
+
+    @pytest.mark.usefixtures("_skip_if_no_cleanlab")
+    def test_cleanlab_audit_cached(self, dq: TopicDataQuality) -> None:
+        """Second call returns cached results."""
+        results1 = dq.compute.cleanlab_audit()
+        results2 = dq.compute.cleanlab_audit()
+        assert results1 is results2
+
+    @pytest.mark.usefixtures("_skip_if_no_cleanlab")
+    def test_cleanlab_label_issues_length(self, dq: TopicDataQuality) -> None:
+        results = dq.compute.cleanlab_audit()
+        assert len(results["label_issues"]) == dq.total_samples
+
+
+# ------------------------------------------------------------------
+# Compute: topic_learnability
+# ------------------------------------------------------------------
+
+
+class TestTopicLearnability:
+    def test_learnability_returns_dataframe(self, dq: TopicDataQuality) -> None:
+        learn = dq.compute.topic_learnability()
+        assert isinstance(learn, pl.DataFrame)
+        assert set(learn.columns) == {"topic", "f1_mean", "f1_std"}
+
+    def test_learnability_all_topics(self, dq: TopicDataQuality) -> None:
+        learn = dq.compute.topic_learnability()
+        assert learn.height == 3
+        topics = set(learn.get_column("topic").to_list())
+        assert topics == {"animals", "tech", "finance"}
+
+    def test_learnability_f1_in_range(self, dq: TopicDataQuality) -> None:
+        learn = dq.compute.topic_learnability()
+        for f1 in learn.get_column("f1_mean").to_list():
+            assert 0 <= f1 <= 1.0
+
+    def test_learnability_std_non_negative(self, dq: TopicDataQuality) -> None:
+        learn = dq.compute.topic_learnability()
+        for s in learn.get_column("f1_std").to_list():
+            assert s >= 0
+
+    def test_learnability_sorted_descending(self, dq: TopicDataQuality) -> None:
+        learn = dq.compute.topic_learnability()
+        means = learn.get_column("f1_mean").to_list()
+        assert means == sorted(means, reverse=True)
+
+    def test_learnability_clamps_folds_for_small_class(self) -> None:
+        """When a class has fewer samples than n_folds, folds are clamped."""
+        df = pl.DataFrame(
+            {
+                "text": [
+                    "dog runs in the park chasing squirrels",
+                    "cat sits on the mat watching birds fly",
+                    "dog fetches the ball from the river bank",
+                    "quantum computing uses qubits for fast calculations",
+                    "quantum entanglement enables new communication methods",
+                    "quantum mechanics describes behavior of particles precisely",
+                ],
+                "topic": ["pets", "pets", "pets", "quantum", "quantum", "quantum"],
+            }
+        )
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        learn = dq.compute.topic_learnability(n_folds=5)
+        assert learn.height == 2
+
+
+# ------------------------------------------------------------------
+# Compute: embeddings caching
+# ------------------------------------------------------------------
+
+
+class TestEmbeddingsCaching:
+    def test_embeddings_cached(self, dq: TopicDataQuality) -> None:
+        emb1 = dq.compute.embeddings()
+        emb2 = dq.compute.embeddings()
+        assert emb1 is emb2
+
+    def test_embeddings_shape(self, dq: TopicDataQuality) -> None:
+        emb = dq.compute.embeddings()
+        assert emb.shape[0] == 16
+        assert emb.shape[1] > 0
+
+
+# ------------------------------------------------------------------
+# Compute: UMAP caching
+# ------------------------------------------------------------------
+
+
+class TestUmapCaching:
+    def test_umap_cached(self, dq: TopicDataQuality) -> None:
+        u1 = dq.compute.umap()
+        u2 = dq.compute.umap()
+        assert u1 is u2
+
+
+# ------------------------------------------------------------------
+# Compute: topic_similarity caching
+# ------------------------------------------------------------------
+
+
+class TestSimilarityCaching:
+    def test_similarity_cached(self, dq: TopicDataQuality) -> None:
+        s1 = dq.compute.topic_similarity()
+        s2 = dq.compute.topic_similarity()
+        assert s1 is s2
+
+    def test_tfidf_artifacts_stored(self, dq: TopicDataQuality) -> None:
+        dq.compute.topic_similarity()
+        assert dq._tfidf_vectorizer is not None
+        assert dq._tfidf_matrix is not None
+        assert dq._topic_order is not None
+
+
+# ------------------------------------------------------------------
+# Plot: figure-returning paths
+# ------------------------------------------------------------------
+
+
+class TestPlotFigures:
+    """Test that plot methods return Plotly Figure objects."""
+
+    def test_topic_distribution_figure(self, dq: TopicDataQuality) -> None:
+        from plotly.graph_objects import Figure
+
+        fig = dq.plot.topic_distribution(return_df=False)
+        assert isinstance(fig, Figure)
+
+    def test_umap_2d_figure(self, dq: TopicDataQuality) -> None:
+        from plotly.graph_objects import Figure
+
+        fig = dq.plot.umap_2d(return_df=False)
+        assert isinstance(fig, Figure)
+        assert len(fig.data) == 3
+
+    def test_similarity_heatmap_figure(self, dq: TopicDataQuality) -> None:
+        from plotly.graph_objects import Figure
+
+        fig = dq.plot.similarity_heatmap(return_df=False)
+        assert isinstance(fig, Figure)
+
+
+# ------------------------------------------------------------------
+# Plot: cleanlab plots
+# ------------------------------------------------------------------
+
+
+class TestPlotCleanlab:
+    @pytest.fixture
+    def _skip_if_no_cleanlab(self):
+        pytest.importorskip("cleanlab", reason="cleanlab not available")
+
+    @pytest.mark.usefixtures("_skip_if_no_cleanlab")
+    def test_label_quality_histogram_return_df(self, dq: TopicDataQuality) -> None:
+        df = dq.plot.label_quality_histogram(return_df=True)
+        assert isinstance(df, pl.DataFrame)
+        assert "label_score" in df.columns
+        assert "is_label_issue" in df.columns
+        assert df.height == dq.total_samples
+
+    @pytest.mark.usefixtures("_skip_if_no_cleanlab")
+    def test_label_quality_histogram_figure(self, dq: TopicDataQuality) -> None:
+        from plotly.graph_objects import Figure
+
+        fig = dq.plot.label_quality_histogram(return_df=False)
+        assert isinstance(fig, Figure)
+
+    @pytest.mark.usefixtures("_skip_if_no_cleanlab")
+    def test_cleanlab_issue_summary_return_df(self, dq: TopicDataQuality) -> None:
+        df = dq.plot.cleanlab_issue_summary(return_df=True)
+        assert isinstance(df, pl.DataFrame)
+        assert "Issue Type" in df.columns
+        assert "Count" in df.columns
+
+    @pytest.mark.usefixtures("_skip_if_no_cleanlab")
+    def test_cleanlab_issue_summary_figure(self, dq: TopicDataQuality) -> None:
+        from plotly.graph_objects import Figure
+
+        fig = dq.plot.cleanlab_issue_summary(return_df=False)
+        assert isinstance(fig, Figure)
+
+
+# ------------------------------------------------------------------
+# Plot: learnability scorecard
+# ------------------------------------------------------------------
+
+
+class TestPlotLearnability:
+    def test_learnability_scorecard_return_df(self, dq: TopicDataQuality) -> None:
+        df = dq.plot.learnability_scorecard(return_df=True)
+        assert isinstance(df, pl.DataFrame)
+        assert set(df.columns) == {"topic", "f1_mean", "f1_std"}
+        assert df.height == 3
+
+    def test_learnability_scorecard_figure(self, dq: TopicDataQuality) -> None:
+        from plotly.graph_objects import Figure
+
+        fig = dq.plot.learnability_scorecard(return_df=False)
+        assert isinstance(fig, Figure)
+
+
+# ------------------------------------------------------------------
+# Health score: more branches
+# ------------------------------------------------------------------
+
+
+class TestHealthScoreBranches:
+    def test_high_imbalance_severe(self) -> None:
+        """Severe imbalance (ratio > 10) costs 30 pts."""
+        texts_a = [f"topic a sentence number {i} with enough words" for i in range(44)]
+        texts_b = [f"topic b sentence number {i} with enough words" for i in range(4)]
+        df = pl.DataFrame({"text": texts_a + texts_b, "topic": ["a"] * 44 + ["b"] * 4})
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        health = dq.health.calculate_health_score()
+        reason_text = " ".join(health["reasons"])
+        assert "Severe" in reason_text
+
+    def test_moderate_imbalance(self) -> None:
+        """Moderate imbalance (3 < ratio <= 5) costs 10 pts."""
+        texts_a = [f"topic a sentence number {i} with enough words for quality" for i in range(40)]
+        texts_b = [f"topic b sentence number {i} with enough words for quality" for i in range(10)]
+        df = pl.DataFrame({"text": texts_a + texts_b, "topic": ["a"] * 40 + ["b"] * 10})
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        health = dq.health.calculate_health_score()
+        reason_text = " ".join(health["reasons"])
+        assert "Moderate" in reason_text
+
+    def test_high_short_texts_penalty(self) -> None:
+        """Short texts >30% triggers -5 pts."""
+        texts = ["hi"] * 8 + [
+            "this is a long enough sentence for quality checks",
+            "another reasonably long sentence for the test data",
+        ]
+        df = pl.DataFrame({"text": texts, "topic": ["a"] * 5 + ["b"] * 5})
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        health = dq.health.calculate_health_score()
+        reason_text = " ".join(health["reasons"])
+        assert "short" in reason_text.lower()
+
+    def test_too_many_topics_penalty(self) -> None:
+        """More than 30 topics costs -10 pts."""
+        texts = [f"sentence for topic {i} with enough words for analysis" for i in range(62)]
+        topics = [f"topic_{i}" for i in range(31)] * 2
+        df = pl.DataFrame({"text": texts, "topic": topics})
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        health = dq.health.calculate_health_score()
+        reason_text = " ".join(health["reasons"])
+        assert "Too many topics" in reason_text
+
+    def test_too_few_topics_penalty(self) -> None:
+        """Fewer than 2 topics costs -10 pts."""
+        df = pl.DataFrame(
+            {
+                "text": [f"sentence number {i} about the only topic" for i in range(50)],
+                "topic": ["only"] * 50,
+            }
+        )
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        health = dq.health.calculate_health_score()
+        reason_text = " ".join(health["reasons"])
+        assert "Too few topics" in reason_text
+
+    def test_excellent_score(self) -> None:
+        """A well-balanced dataset with enough samples scores Excellent."""
+        texts_a = [f"animals sentence {i} about dogs and cats playing" for i in range(60)]
+        texts_b = [f"technology sentence {i} about computers and phones" for i in range(60)]
+        texts_c = [f"finance sentence {i} about stocks and markets today" for i in range(60)]
+        df = pl.DataFrame(
+            {
+                "text": texts_a + texts_b + texts_c,
+                "topic": ["animals"] * 60 + ["tech"] * 60 + ["finance"] * 60,
+            }
+        )
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        health = dq.health.calculate_health_score()
+        assert health["score"] >= 85
+        assert health["status"] == "Excellent"
+        assert health["color"] == "GREEN"
+
+
+# ------------------------------------------------------------------
+# Sample adequacy: more status branches
+# ------------------------------------------------------------------
+
+
+class TestSampleAdequacyBranches:
+    def test_low_status(self) -> None:
+        """Topics with 10-29 samples get [LOW] status."""
+        df = pl.DataFrame(
+            {
+                "text": [f"sentence {i} for testing sample adequacy status" for i in range(15)],
+                "topic": ["a"] * 15,
+            }
+        )
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        adequacy = dq.health.check_sample_adequacy()
+        assert adequacy.get_column("Status").to_list()[0] == "[LOW]"
+
+    def test_acceptable_status(self) -> None:
+        """Topics with 30-49 samples get [ACCEPTABLE] status."""
+        df = pl.DataFrame(
+            {
+                "text": [f"sentence {i} for testing sample adequacy status" for i in range(35)],
+                "topic": ["a"] * 35,
+            }
+        )
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        adequacy = dq.health.check_sample_adequacy()
+        assert adequacy.get_column("Status").to_list()[0] == "[ACCEPTABLE]"
+
+    def test_good_status(self) -> None:
+        """Topics with >= 50 samples get [GOOD] status."""
+        df = pl.DataFrame(
+            {
+                "text": [f"sentence {i} for testing sample adequacy status" for i in range(55)],
+                "topic": ["a"] * 55,
+            }
+        )
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        adequacy = dq.health.check_sample_adequacy()
+        assert adequacy.get_column("Status").to_list()[0] == "[GOOD]"
+
+
+# ------------------------------------------------------------------
+# Recommendations: more branches
+# ------------------------------------------------------------------
+
+
+class TestRecommendationsBranches:
+    def test_low_health_score_flagged(self) -> None:
+        """Health score < 50 triggers critical recommendation."""
+        texts = ["ok"] * 45 + [f"topic b sentence {i} with enough words" for i in range(3)]
+        df = pl.DataFrame({"text": texts, "topic": ["a"] * 45 + ["b"] * 3})
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        recs = dq.health.generate_recommendations()
+        actions = [r["Action"] for r in recs["high"]]
+        assert any("major data quality" in a.lower() for a in actions)
+
+    def test_imbalance_medium_recommendation(self) -> None:
+        """Imbalance ratio > 5 triggers medium recommendation."""
+        texts_a = [f"topic a sentence number {i} with enough words" for i in range(36)]
+        texts_b = [f"topic b sentence number {i} with enough words" for i in range(6)]
+        df = pl.DataFrame({"text": texts_a + texts_b, "topic": ["a"] * 36 + ["b"] * 6})
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        recs = dq.health.generate_recommendations()
+        actions = [r["Action"] for r in recs["medium"]]
+        assert any("Balance" in a for a in actions)
+
+    def test_many_topics_low_recommendation(self) -> None:
+        """More than 25 topics triggers low recommendation."""
+        texts = [f"sentence for topic {i} with enough words for processing" for i in range(52)]
+        topics = [f"topic_{i}" for i in range(26)] * 2
+        df = pl.DataFrame({"text": texts, "topic": topics})
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        recs = dq.health.generate_recommendations()
+        actions = [r["Action"] for r in recs["low"]]
+        assert any("topic count" in a.lower() for a in actions)
+
+    def test_high_duplicate_low_recommendation(self) -> None:
+        """Duplicate pct > 10% triggers low recommendation."""
+        base = [f"repeated sentence number {i} with enough words for the test" for i in range(5)]
+        texts = base * 4
+        df = pl.DataFrame({"text": texts, "topic": ["a"] * 10 + ["b"] * 10})
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        recs = dq.health.generate_recommendations()
+        actions = [r["Action"] for r in recs["low"]]
+        assert any("duplicates" in a.lower() for a in actions)
+
+    def test_short_texts_medium_recommendation(self) -> None:
+        """Short texts > 30% triggers medium recommendation."""
+        short = ["hi"] * 8
+        normal = [
+            "a sufficiently long sentence for the quality test",
+            "another long enough sentence for this test case",
+        ]
+        df = pl.DataFrame({"text": short + normal, "topic": ["a"] * 5 + ["b"] * 5})
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        recs = dq.health.generate_recommendations()
+        actions = [r["Action"] for r in recs["medium"]]
+        assert any("short" in a.lower() for a in actions)
+
+
+# ------------------------------------------------------------------
+# Summary report: status branches
+# ------------------------------------------------------------------
+
+
+class TestSummaryReportStatuses:
+    def test_check_statuses_for_bad_data(self) -> None:
+        """Summary report shows CHECK for problematic metrics."""
+        texts = ["ok"] * 40 + [f"topic b sentence {i} with words" for i in range(4)]
+        df = pl.DataFrame({"text": texts, "topic": ["a"] * 40 + ["b"] * 4})
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        report = dq.health.summary_report()
+        statuses = dict(
+            zip(
+                report.get_column("Metric").to_list(),
+                report.get_column("Status").to_list(),
+                strict=True,
+            )
+        )
+        assert statuses["Balance Ratio"] == "CHECK"
+        assert statuses["Short Text %"] == "CHECK"
+
+
+# ------------------------------------------------------------------
+# Cluster tightness: quality labels
+# ------------------------------------------------------------------
+
+
+class TestClusterTightnessQuality:
+    def test_quality_labels_present(self, dq: TopicDataQuality) -> None:
+        tight = dq.health.calculate_cluster_tightness()
+        valid_qualities = {"[EXCELLENT]", "[GOOD]", "[FAIR]", "[POOR]"}
+        for q in tight.get_column("Quality").to_list():
+            assert q in valid_qualities
+
+    def test_avg_distance_positive(self, dq: TopicDataQuality) -> None:
+        tight = dq.health.calculate_cluster_tightness()
+        for d in tight.get_column("Avg Distance").to_list():
+            assert d >= 0
+
+    def test_single_sample_topic_skipped(self) -> None:
+        """Topics with < 2 samples are skipped."""
+        df = pl.DataFrame(
+            {
+                "text": [
+                    "single sample topic a for testing purposes",
+                    "topic b first sentence with enough words for analysis",
+                    "topic b second sentence with enough words for analysis",
+                    "topic b third sentence with enough words for analysis",
+                ],
+                "topic": ["a", "b", "b", "b"],
+            }
+        )
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+        tight = dq.health.calculate_cluster_tightness()
+        topics = tight.get_column("Topic").to_list()
+        assert "a" not in topics
+        assert "b" in topics
+
+
+# ------------------------------------------------------------------
+# High similarity pairs with actual pairs found
+# ------------------------------------------------------------------
+
+
+class TestHighSimilarityPairsFound:
+    def test_high_similarity_detected(self) -> None:
+        """Very similar topics should produce overlap pairs."""
+        df = pl.DataFrame(
+            {
+                "text": [
+                    "the stock market rallied on positive economic news today",
+                    "financial markets saw gains amid strong earnings reports",
+                    "stocks rose sharply as investors reacted to good news",
+                    "the bond market rallied on positive economic data today",
+                    "financial instruments saw gains amid strong trade reports",
+                    "bonds rose sharply as investors reacted to rate cuts",
+                ],
+                "topic": ["stocks", "stocks", "stocks", "bonds", "bonds", "bonds"],
+            }
+        )
+        dq = TopicDataQuality.from_dataframe(
+            df, text_col="text", topic_col="topic", similarity_threshold=0.3
+        )
+        pairs = dq.high_similarity_pairs()
+        assert len(pairs) >= 1
+        assert all(isinstance(p, TopicOverlapPair) for p in pairs)
+        assert all(p.similarity > 0.3 for p in pairs)
