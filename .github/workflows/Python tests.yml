@@ -191,7 +191,9 @@ jobs:
       fail-fast: true
       matrix:
         os: [ ubuntu-latest, windows-latest, macOS-latest ]
-        python-version: [ "3.10", "3.11", "3.12", "3.13", "3.14" ]
+        # torch and sentence-transformers have no 3.14 wheels yet;
+        # re-add "3.14" once upstream publishes them.
+        python-version: [ "3.10", "3.11", "3.12", "3.13" ]
         exclude:
           - os: windows-latest
             python-version: "3.10"
@@ -199,16 +201,12 @@ jobs:
             python-version: "3.11"
           - os: windows-latest
             python-version: "3.12"
-          - os: windows-latest
-            python-version: "3.13"
           - os: macOS-latest
             python-version: "3.10"
           - os: macOS-latest
             python-version: "3.11"
           - os: macOS-latest
             python-version: "3.12"
-          - os: macOS-latest
-            python-version: "3.13"
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}

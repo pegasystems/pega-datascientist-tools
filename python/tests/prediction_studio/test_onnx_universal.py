@@ -8,9 +8,12 @@ Run with:
 from __future__ import annotations
 
 import json
-import torch
 import pytest
 from typing import TYPE_CHECKING
+
+# Skip the entire module when torch is unavailable (e.g. Python 3.14
+# where torch has no wheels yet).
+torch = pytest.importorskip("torch", reason="torch not available")
 
 if TYPE_CHECKING:
     from pathlib import Path
