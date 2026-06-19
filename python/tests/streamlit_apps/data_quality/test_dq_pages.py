@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import polars as pl
 import pytest
 from streamlit.testing.v1 import AppTest
@@ -64,6 +65,40 @@ def sample_dq() -> TopicDataQuality:
     return dq
 
 
+@pytest.fixture
+def singleton_topic_dq() -> TopicDataQuality:
+    """A tiny dataset where one topic has only a single sample."""
+    df = pl.DataFrame(
+        {
+            "text": ["alpha sample", "beta sample", "gamma sample"],
+            "topic": ["a", "a", "b"],
+        }
+    )
+    dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
+    dq._embeddings = np.array(
+        [
+            [0.0, 0.0],
+            [0.1, 0.0],
+            [1.0, 1.0],
+        ]
+    )
+    dq._umap_coords = np.array(
+        [
+            [0.0, 0.0],
+            [0.1, 0.0],
+            [1.0, 1.0],
+        ]
+    )
+    dq._sim_df = pl.DataFrame(
+        {
+            "topic": ["a", "b"],
+            "a": [1.0, 0.15],
+            "b": [0.15, 1.0],
+        }
+    )
+    return dq
+
+
 def test_home_page_renders() -> None:
     """Home page renders without exception."""
     at = AppTest.from_file(str(DQ_APP_DIR / "Home.py"), default_timeout=30)
@@ -94,6 +129,21 @@ def test_quality_report_stops_without_data() -> None:
     at.run()
     # Should show a warning (ensure_topic_dq guard)
     assert len(at.warning) >= 1
+
+
+def test_quality_report_warns_and_skips_cv_sections_for_singleton_topic(
+    singleton_topic_dq: TopicDataQuality,
+) -> None:
+    """The report should warn instead of crashing on singleton-topic datasets."""
+    at = AppTest.from_file(
+        str(DQ_APP_DIR / "pages" / "1_Quality_Report.py"),
+        default_timeout=60,
+    )
+    at.session_state["topic_dq"] = singleton_topic_dq
+    at.run()
+    assert not at.exception, f"Quality Report raised: {at.exception}"
+    warning_texts = [w.value for w in at.warning]
+    assert any("every topic needs at least 2 samples" in text for text in warning_texts)
 
 
 def test_about_page_renders() -> None:
