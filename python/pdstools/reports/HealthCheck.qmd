@@ -165,6 +165,8 @@ def safe_facet_col_wrap(n_facets: int, max_rows: int = 15) -> int:
         return max(2, math.ceil(n_facets / max_rows))
 
 
+```
+
 ```{python}
 # | tags: [initialization]
 # | echo: false
