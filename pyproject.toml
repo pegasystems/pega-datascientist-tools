@@ -107,6 +107,7 @@ pdstools = 'pdstools.cli:main'
 
 [dependency-groups]
 dev = [
+    "nbconvert>=7.17.1",
     "python-dotenv>=1.2.2",
 ]
 

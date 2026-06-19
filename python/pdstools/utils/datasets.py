@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import pathlib
 import warnings
 
 from ..adm.ADMDatamart import ADMDatamart
 from ..adm.trees import ADMTreesModel
 from ..valuefinder.ValueFinder import ValueFinder
 from typing import TYPE_CHECKING
+
+_REPO_DATA_DIR = pathlib.Path(__file__).parent.parent.parent.parent / "data" / "agb"
+_SAMPLE_TREES_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/agb/ModelExportWithSampleCount.json"
 
 if TYPE_CHECKING:
     from ..utils.types import QUERY
@@ -43,12 +47,21 @@ def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
 
 
 def sample_trees():
-    """Sample trees."""
+    """Load the anonymized AGB sample model (100 trees, with sampleCount).
+
+    Returns
+    -------
+    ADMTreesModel
+        An :class:`~pdstools.adm.trees.ADMTreesModel` loaded from the
+        bundled ``data/agb/ModelExportWithSampleCount.json`` file (dev
+        environment) or from the canonical GitHub raw URL (installed
+        package).
+    """
+    local = _REPO_DATA_DIR / "ModelExportWithSampleCount.json"
+    source = local if local.exists() else _SAMPLE_TREES_URL
     with warnings.catch_warnings(record=True) as w:
         try:
-            return ADMTreesModel.from_url(
-                "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/agb/_974a7f9c-66a6-4f00-bf3e-3acf5f188b1d.txt",
-            )
+            return ADMTreesModel.from_file(source)
         except Exception as e:
             raise RuntimeError(
                 f"Error importing the Sample Trees dataset. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",

@@ -62,23 +62,16 @@ Z_95: float = 1.96
 
 @dataclass(frozen=True)
 class Formula:
-    """Structured representation of a statistical formula.
-
-    Attributes
-    ----------
-    name : str
-        Short identifier, e.g. ``"accept_rate"``.
-    latex : str
-        Raw LaTeX expression (no placeholder substitution — the UI
-        renders the symbolic form alongside a separate substitution
-        block showing the numeric values).
-    description : str
-        One-line plain-English description.
-    """
+    """Structured representation of a statistical formula."""
 
     name: str
+    """Short identifier, e.g. ``"accept_rate"``."""
+
     latex: str
+    """Raw LaTeX expression for the statistic."""
+
     description: str
+    """One-line plain-English description."""
 
 
 # Registry of all formulas used in IA statistics.
@@ -163,27 +156,6 @@ FORMULAS: dict[str, Formula] = {
 class LiftResult:
     """Result of a lift calculation with standard error.
 
-    Attributes
-    ----------
-    lift : float
-        Relative lift ``(test - control) / control``.
-    se : float
-        Delta-method standard error for *lift*.  This is the
-        full-precision SE **without** any *z*-multiplier.
-    significant : bool
-        ``True`` when the CI does not cross zero.  The check uses
-        ``lift ± z * se`` where ``z = 1.96`` (95 % level) after
-        rounding ``se`` to 4 decimal places, matching Pega's
-        ``Math.round(error * 10000.0) / 10000.0``.
-    test_rate : float
-        Observed test-group rate (accept rate or value per impression).
-    control_rate : float
-        Observed control-group rate.
-    test_se : float
-        Standard error of the test rate.
-    control_se : float
-        Standard error of the control rate.
-
     Notes
     -----
     Pega stores **standard errors**, not confidence intervals.  The
@@ -192,12 +164,25 @@ class LiftResult:
     """
 
     lift: float
+    """Relative lift ``(test - control) / control``."""
+
     se: float
+    """Delta-method standard error for ``lift`` without any z-multiplier."""
+
     significant: bool
+    """Whether the confidence interval excludes zero."""
+
     test_rate: float
+    """Observed test-group rate."""
+
     control_rate: float
+    """Observed control-group rate."""
+
     test_se: float
+    """Standard error of the test rate."""
+
     control_se: float
+    """Standard error of the control rate."""
 
     def ci_95(self) -> float:
         """Return the 95 % confidence-interval half-width.
