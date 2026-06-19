@@ -164,9 +164,10 @@ def add_metric_limit_lines(
                 line_dash="dash",
                 line_width=1,
                 line_color=color,
-                layer="below",
+                layer="above",
                 annotation_text=f"{label} ({scaled:.0f})",
-                annotation_position="top" if orientation == "vertical" else "right",
+                annotation_position="bottom" if orientation == "vertical" else "right",
+                annotation_textangle=-45 if orientation == "vertical" else 0,
                 annotation_font_size=9,
                 annotation_font_color=color,
             )

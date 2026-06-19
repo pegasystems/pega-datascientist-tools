@@ -163,6 +163,48 @@ def safe_facet_col_wrap(n_facets: int, max_rows: int = 15) -> int:
         # rows = ceil(n_facets / cols), so cols = ceil(n_facets / max_rows)
         return max(2, math.ceil(n_facets / max_rows))
 
+
+def hide_metric_annotations_left_col(fig):
+    """Show metric limit annotation labels only on the rightmost populated subplot per row.
+
+    Plotly creates axes for all grid positions even when a row has fewer subplots
+    than facet_col_wrap. This function suppresses annotation text on non-rightmost
+    subplots, using only axes that have actual traces to avoid phantom empty-slot axes.
+    """
+    # Axes that actually have traces
+    used_xaxes = set()
+    for trace in fig.data:
+        ref = getattr(trace, "xaxis", None) or "x"
+        used_xaxes.add("xaxis" + ref[1:])
+
+    # Collect x-center and y-center for each used xaxis
+    axis_info = {}
+    for key in fig.layout._props:
+        if not key.startswith("xaxis") or key not in used_xaxes:
+            continue
+        ax = fig.layout[key]
+        num = key[5:]  # '' for xaxis, '2' for xaxis2, etc.
+        yax = fig.layout[f"yaxis{num}" if num else "yaxis"]
+        if ax.domain and yax and yax.domain:
+            axis_info[f"x{num} domain"] = {
+                "x_center": (ax.domain[0] + ax.domain[1]) / 2,
+                "y_center": (yax.domain[0] + yax.domain[1]) / 2,
+            }
+
+    # Per row (grouped by y_center), keep only the rightmost xref
+    rows: dict = {}
+    for xref, info in axis_info.items():
+        y = round(info["y_center"], 3)
+        if y not in rows or info["x_center"] > rows[y]["x_center"]:
+            rows[y] = {"xref": xref, "x_center": info["x_center"]}
+
+    rightmost_xrefs = {v["xref"] for v in rows.values()}
+
+    for a in fig.layout.annotations:
+        if "=" not in (a.text or "") and a.xref not in rightmost_xrefs:
+            a.text = ""
+    return fig
+
 ```
 
 ```{python}
@@ -1170,10 +1212,13 @@ The data contains many ({n_configs}) model configurations. To limit the size of 
 
     fig = datamart.plot.bubble_chart(facet=facet, query=active_models_filter_expr, show_metric_limits=True)
     fig = (
-        fig_update_facet(fig)
+        fig_update_facet(fig, step_height=300)
         .update_layout(
             title=f"ADM Models per Channel<br><sup>updated since {active_models_threshold_date_string}</sup>",
             font=dict(size=9),
+            autosize=False,
+            width=900,
+            margin=dict(t=100),
         )
         .for_each_annotation(lambda a: a.update(text="<br>".join(a.text.split("/", 1))))
         .for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True, visible=True))
@@ -1236,11 +1281,10 @@ else:
         fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
         fig = (
             fig.update_layout(title="Trend of Model Performance")
-            # no need for a for_all_y or something?
-            .update_yaxes(showticklabels=True, title="", range=[50, 100]).update_xaxes(
-                title=""
-            )
+            .update_yaxes(showticklabels=True, title="", range=[50, 100])
+            .update_xaxes(title="")
         )
+        hide_metric_annotations_left_col(fig)
         fig.show()
     except ValueError as e:
         print(
