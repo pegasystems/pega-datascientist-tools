@@ -66,7 +66,7 @@ nlp = [
     "sentence-transformers; python_version < '3.14'",
     "umap-learn; python_version < '3.14'",
     "plotly[express]>=6.0,<7",
-    "cleanlab[datalab]",
+    "cleanlab[datalab]; python_version < '3.14'",
 ]
 app = [
     'pdstools[healthcheck]',
@@ -87,8 +87,8 @@ onnx = [
     "scipy>=1.15.3",
 ]
 torch = [
-    'torch>=2.12,<3',
-    'onnxscript>=0.7,<1',
+    "torch>=2.12,<3; python_version < '3.14'",
+    "onnxscript>=0.7,<1; python_version < '3.14'",
 ]
 # `all` deliberately excludes `torch` and `nlp`: both pull torch (~2.4 GB
 # with CUDA wheels) and would bloat the main CI matrix. Users who want
