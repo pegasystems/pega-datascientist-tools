@@ -243,7 +243,7 @@ Pega Data Scientist Tools uses Python namespaces for a modular organization. Fre
 Next Steps
 ---------------
 
-To run these analyses over your own data, please refer to the `ADMDatamart class documentation <autoapi/pdstools/adm/ADMDatamart/index.html>`_ or for an example of how to use it, refer to the `Example ADM Analysis <https://pegasystems.github.io/pega-datascientist-tools/articles/Example_ADM_Analysis.html>`_.
+To run these analyses over your own data, please refer to the `ADMDatamart class documentation <autoapi/pdstools/adm/ADMDatamart/index.html>`_ or for an example of how to use it, refer to the `Example ADM Analysis <https://pegasystems.github.io/pega-datascientist-tools/latest/articles/Example_ADM_Analysis.html>`_.
 
 To run the Stand-Alone Application, please refer to the `Command Line Interface documentation <cli.html>`_ or the `ADM Health Check Article <GettingStartedWithTheStandAloneApplication.html>`_
 

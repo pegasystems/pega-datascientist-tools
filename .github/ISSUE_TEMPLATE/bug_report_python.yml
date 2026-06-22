@@ -65,7 +65,7 @@ body:
       label: Installed versions
       description: >
         Please paste the output of ``pdstools.show_versions()``,
-        see [here](https://pegasystems.github.io/pega-datascientist-tools/Python/autoapi/pdstools/utils/show_versions/index.html#pdstools.utils.show_versions.show_versions) for an example.
+        see [here](https://pegasystems.github.io/pega-datascientist-tools/latest/autoapi/pdstools/utils/show_versions/index.html#pdstools.utils.show_versions.show_versions) for an example.
       value: |
         <details>
 

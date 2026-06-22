@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 _MENU_ITEMS = {
     "Report a bug": "https://github.com/pegasystems/pega-datascientist-tools/issues",
-    "Get help": "https://pegasystems.github.io/pega-datascientist-tools/Python/examples.html",
+    "Get help": "https://pegasystems.github.io/pega-datascientist-tools/latest/",
 }
 
 _ASSETS_DIR = Path(__file__).resolve().parent.parent / "app" / "assets"
@@ -452,7 +452,7 @@ def from_uploaded_file(extract_pyname_keys, codespaces, infer_schema_length=1000
         st.warning(
             """ Github Codespaces has a file size limit of 50MB for 'Direct Upload'.
             If you're using Github Codespaces and your files exceed this size limit, kindly opt for the 'Direct file path' method.
-            Detailed instructions can be found [here](https://pegasystems.github.io/pega-datascientist-tools/GettingStartedWithTheStandAloneApplication.html)
+            Detailed instructions can be found [here](https://pegasystems.github.io/pega-datascientist-tools/latest/GettingStartedWithTheStandAloneApplication.html)
             """,
         )
     if model_file and predictor_file:

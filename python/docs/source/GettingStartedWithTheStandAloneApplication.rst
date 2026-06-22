@@ -255,5 +255,5 @@ Troubleshooting
 - Check the application logs in the terminal for specific error messages
 
 **For more help:**
-- Check the `example ADM analysis <https://pegasystems.github.io/pega-datascientist-tools/articles/Example_ADM_Analysis.html>`_
+- Check the `example ADM analysis <https://pegasystems.github.io/pega-datascientist-tools/latest/articles/Example_ADM_Analysis.html>`_
 - Raise an issue on `GitHub <https://github.com/pegasystems/pega-datascientist-tools>`_.

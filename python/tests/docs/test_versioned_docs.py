@@ -57,3 +57,30 @@ def test_write_root_redirect_targets_preferred_release(tmp_path: Path) -> None:
     index_html = (tmp_path / "index.html").read_text()
     assert "url=4.7.1/" in index_html
     assert 'href="4.7.1/"' in index_html
+
+
+def test_write_latest_aliases_creates_latest_and_legacy_page_redirects(
+    tmp_path: Path,
+) -> None:
+    version_root = tmp_path / "4.7.1"
+    (version_root / "articles").mkdir(parents=True)
+    (version_root / "autoapi").mkdir(parents=True)
+    (version_root / "index.html").write_text("release home")
+    (version_root / "articles" / "Example_ADM_Analysis.html").write_text("article")
+    (version_root / "autoapi" / "index.html").write_text("api")
+
+    versioned_docs.write_latest_aliases(
+        tmp_path,
+        "https://example.com/pdstools",
+        "4.7.1",
+    )
+
+    latest_article = tmp_path / "latest" / "articles" / "Example_ADM_Analysis.html"
+    legacy_article = tmp_path / "articles" / "Example_ADM_Analysis.html"
+    latest_home = tmp_path / "latest" / "index.html"
+    legacy_api = tmp_path / "autoapi" / "index.html"
+
+    assert "url=https://example.com/pdstools/4.7.1/articles/Example_ADM_Analysis.html" in (latest_article.read_text())
+    assert "url=https://example.com/pdstools/4.7.1/articles/Example_ADM_Analysis.html" in (legacy_article.read_text())
+    assert "url=https://example.com/pdstools/4.7.1/index.html" in latest_home.read_text()
+    assert "url=https://example.com/pdstools/4.7.1/autoapi/index.html" in (legacy_api.read_text())
