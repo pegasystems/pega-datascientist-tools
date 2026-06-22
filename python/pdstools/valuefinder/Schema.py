@@ -12,14 +12,7 @@ class pyValueFinder:
     pyGroup = pl.Categorical
     pyPropensity = pl.Float64
     FinalPropensity = pl.Float64
-    pyStage = pl.Enum(
-        [
-            "Eligibility",
-            "Applicability",
-            "Suitability",
-            "Arbitration",
-        ],
-    )
+    pyStage = pl.Categorical
     pxRank = pl.UInt16
     pxPriority = pl.Float64
     pyModelPropensity = pl.Float64
