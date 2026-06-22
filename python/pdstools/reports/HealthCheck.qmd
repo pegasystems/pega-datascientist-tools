@@ -40,6 +40,7 @@ from pdstools import (
 from pdstools.utils import pega_template, report_utils, cdh_utils
 from pdstools.utils.plot_utils import abbreviate_label
 from pdstools.adm.Plots import fig_update_facet
+from pdstools.utils.plot_utils import hide_metric_annotations_on_non_rightmost
 
 # from plotly.offline import iplot
 from great_tables import GT, style, md, html, loc
@@ -162,6 +163,7 @@ def safe_facet_col_wrap(n_facets: int, max_rows: int = 15) -> int:
         # For large numbers, calculate columns to limit rows
         # rows = ceil(n_facets / cols), so cols = ceil(n_facets / max_rows)
         return max(2, math.ceil(n_facets / max_rows))
+
 
 ```
 
@@ -1170,10 +1172,13 @@ The data contains many ({n_configs}) model configurations. To limit the size of 
 
     fig = datamart.plot.bubble_chart(facet=facet, query=active_models_filter_expr, show_metric_limits=True)
     fig = (
-        fig_update_facet(fig)
+        fig_update_facet(fig, step_height=300)
         .update_layout(
             title=f"ADM Models per Channel<br><sup>updated since {active_models_threshold_date_string}</sup>",
             font=dict(size=9),
+            autosize=False,
+            width=900,
+            margin=dict(t=100),
         )
         .for_each_annotation(lambda a: a.update(text="<br>".join(a.text.split("/", 1))))
         .for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True, visible=True))
@@ -1236,11 +1241,10 @@ else:
         fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
         fig = (
             fig.update_layout(title="Trend of Model Performance")
-            # no need for a for_all_y or something?
-            .update_yaxes(showticklabels=True, title="", range=[50, 100]).update_xaxes(
-                title=""
-            )
+            .update_yaxes(showticklabels=True, title="", range=[50, 100])
+            .update_xaxes(title="")
         )
+        hide_metric_annotations_on_non_rightmost(fig)
         fig.show()
     except ValueError as e:
         print(
