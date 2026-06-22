@@ -206,9 +206,70 @@ def fig_update_facet(
     Figure
         The same figure with adjusted ``height`` and simplified facet titles.
     """
-    n_rows = max(math.ceil(len(fig.layout.annotations) / n_cols), 1)
+    # Count only facet-title annotations (they contain "=", e.g. "Channel=Web").
+    # add_vline/add_hline with annotation_text add one annotation *per subplot*,
+    # which would otherwise inflate n_rows and make the figure extremely tall.
+    facet_annotations = [a for a in fig.layout.annotations if "=" in (a.text or "")]
+    n_rows = max(math.ceil(len(facet_annotations) / n_cols), 1)
     height = base_height + (n_rows * step_height)
     return simplify_facet_titles(fig).update_layout(autosize=True, height=height)
+
+
+def hide_metric_annotations_on_non_rightmost(fig: "Figure") -> "Figure":
+    """Show metric limit annotation labels only on the rightmost populated subplot per row.
+
+    Plotly creates axes for all grid positions even when a row has fewer subplots
+    than ``facet_col_wrap``. This function suppresses annotation text on non-rightmost
+    subplots, using only axes that have actual traces to exclude phantom empty-slot axes.
+
+    Annotations whose text contains ``"="`` are assumed to be facet titles and are
+    left untouched.
+
+    Parameters
+    ----------
+    fig : Figure
+        A faceted figure produced by ``px.line`` or ``px.scatter`` with
+        ``show_metric_limits=True``.
+
+    Returns
+    -------
+    Figure
+        The same figure with metric-limit annotation text cleared on all but the
+        rightmost populated subplot per row.
+    """
+    # Axes that actually have traces
+    used_xaxes = set()
+    for trace in fig.data:
+        ref = getattr(trace, "xaxis", None) or "x"
+        used_xaxes.add("xaxis" + ref[1:])
+
+    # Collect x-center and y-center for each used xaxis
+    axis_info: dict[str, dict[str, float]] = {}
+    for key in fig.layout._props:
+        if not key.startswith("xaxis") or key not in used_xaxes:
+            continue
+        ax = fig.layout[key]
+        num = key[5:]  # '' for xaxis, '2' for xaxis2, etc.
+        yax = fig.layout[f"yaxis{num}" if num else "yaxis"]
+        if ax.domain and yax and yax.domain:
+            axis_info[f"x{num} domain"] = {
+                "x_center": (ax.domain[0] + ax.domain[1]) / 2,
+                "y_center": (yax.domain[0] + yax.domain[1]) / 2,
+            }
+
+    # Per row (grouped by y_center), keep only the rightmost xref
+    rows: dict[float, dict[str, Any]] = {}
+    for xref, info in axis_info.items():
+        y = round(info["y_center"], 3)
+        if y not in rows or info["x_center"] > rows[y]["x_center"]:
+            rows[y] = {"xref": xref, "x_center": info["x_center"]}
+
+    rightmost_xrefs = {v["xref"] for v in rows.values()}
+
+    for a in fig.layout.annotations:
+        if "=" not in (a.text or "") and a.xref not in rightmost_xrefs:
+            a.text = ""
+    return fig
 
 
 def update_axes_clean(
