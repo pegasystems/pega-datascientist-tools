@@ -503,10 +503,13 @@ facet-title cleanup, dynamic facet sizing, and report-layout adjustments.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.plot_utils.fig_update_facet" title="pdstools.utils.plot_utils.fig_update_facet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fig_update_facet</span></code></a>(→ Figure)</p></td>
 <td><p>Resize a faceted plot proportionally to its row count and clean labels.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.plot_utils.update_axes_clean" title="pdstools.utils.plot_utils.update_axes_clean"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_axes_clean</span></code></a>(→ Figure)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.plot_utils.hide_metric_annotations_on_non_rightmost" title="pdstools.utils.plot_utils.hide_metric_annotations_on_non_rightmost"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hide_metric_annotations_on_non_rightmost</span></code></a>(→ Figure)</p></td>
+<td><p>Show metric limit annotation labels only on the rightmost populated subplot per row.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.plot_utils.update_axes_clean" title="pdstools.utils.plot_utils.update_axes_clean"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_axes_clean</span></code></a>(→ Figure)</p></td>
 <td><p>Clear or set both axis titles in one call.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.plot_utils.apply_report_layout" title="pdstools.utils.plot_utils.apply_report_layout"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_report_layout</span></code></a>(→ Figure)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.plot_utils.apply_report_layout" title="pdstools.utils.plot_utils.apply_report_layout"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_report_layout</span></code></a>(→ Figure)</p></td>
 <td><p>Apply Quarto-friendly sizing to a figure.</p></td>
 </tr>
 </tbody>
@@ -655,6 +658,30 @@ more facets are introduced.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The same figure with adjusted <code class="docutils literal notranslate"><span class="pre">height</span></code> and simplified facet titles.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pdstools.utils.plot_utils.Figure" title="pdstools.utils.plot_utils.Figure">Figure</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pdstools.utils.plot_utils.hide_metric_annotations_on_non_rightmost">
+<span class="sig-name descname"><span class="pre">hide_metric_annotations_on_non_rightmost</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pdstools.utils.plot_utils.Figure" title="pdstools.utils.plot_utils.Figure"><span class="pre">Figure</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.utils.plot_utils.Figure" title="pdstools.utils.plot_utils.Figure"><span class="pre">Figure</span></a></span></span><a class="headerlink" href="#pdstools.utils.plot_utils.hide_metric_annotations_on_non_rightmost" title="Link to this definition">¶</a></dt>
+<dd><p>Show metric limit annotation labels only on the rightmost populated subplot per row.</p>
+<p>Plotly creates axes for all grid positions even when a row has fewer subplots
+than <code class="docutils literal notranslate"><span class="pre">facet_col_wrap</span></code>. This function suppresses annotation text on non-rightmost
+subplots, using only axes that have actual traces to exclude phantom empty-slot axes.</p>
+<p>Annotations whose text contains <code class="docutils literal notranslate"><span class="pre">&quot;=&quot;</span></code> are assumed to be facet titles and are
+left untouched.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fig</strong> (<a class="reference internal" href="#pdstools.utils.plot_utils.Figure" title="pdstools.utils.plot_utils.Figure"><em>Figure</em></a>) – A faceted figure produced by <code class="docutils literal notranslate"><span class="pre">px.line</span></code> or <code class="docutils literal notranslate"><span class="pre">px.scatter</span></code> with
+<code class="docutils literal notranslate"><span class="pre">show_metric_limits=True</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The same figure with metric-limit annotation text cleared on all but the
+rightmost populated subplot per row.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="#pdstools.utils.plot_utils.Figure" title="pdstools.utils.plot_utils.Figure">Figure</a></p>
@@ -812,6 +839,7 @@ of facets. Use this in report templates instead of repeating
 <li><a class="reference internal" href="#pdstools.utils.plot_utils.abbreviate_label_expr"><code class="docutils literal notranslate"><span class="pre">abbreviate_label_expr()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.plot_utils.simplify_facet_titles"><code class="docutils literal notranslate"><span class="pre">simplify_facet_titles()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.plot_utils.fig_update_facet"><code class="docutils literal notranslate"><span class="pre">fig_update_facet()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.utils.plot_utils.hide_metric_annotations_on_non_rightmost"><code class="docutils literal notranslate"><span class="pre">hide_metric_annotations_on_non_rightmost()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.plot_utils.update_axes_clean"><code class="docutils literal notranslate"><span class="pre">update_axes_clean()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.plot_utils.apply_report_layout"><code class="docutils literal notranslate"><span class="pre">apply_report_layout()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.plot_utils.HOVER_PERFORMANCE_PCT"><code class="docutils literal notranslate"><span class="pre">HOVER_PERFORMANCE_PCT</span></code></a></li>

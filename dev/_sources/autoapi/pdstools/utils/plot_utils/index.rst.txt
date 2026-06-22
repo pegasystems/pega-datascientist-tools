@@ -40,6 +40,7 @@ Functions
    pdstools.utils.plot_utils.abbreviate_label_expr
    pdstools.utils.plot_utils.simplify_facet_titles
    pdstools.utils.plot_utils.fig_update_facet
+   pdstools.utils.plot_utils.hide_metric_annotations_on_non_rightmost
    pdstools.utils.plot_utils.update_axes_clean
    pdstools.utils.plot_utils.apply_report_layout
 
@@ -154,6 +155,26 @@ Module Contents
    :type step_height: int, optional
 
    :returns: The same figure with adjusted ``height`` and simplified facet titles.
+   :rtype: Figure
+
+
+.. py:function:: hide_metric_annotations_on_non_rightmost(fig: Figure) -> Figure
+
+   Show metric limit annotation labels only on the rightmost populated subplot per row.
+
+   Plotly creates axes for all grid positions even when a row has fewer subplots
+   than ``facet_col_wrap``. This function suppresses annotation text on non-rightmost
+   subplots, using only axes that have actual traces to exclude phantom empty-slot axes.
+
+   Annotations whose text contains ``"="`` are assumed to be facet titles and are
+   left untouched.
+
+   :param fig: A faceted figure produced by ``px.line`` or ``px.scatter`` with
+               ``show_metric_limits=True``.
+   :type fig: Figure
+
+   :returns: The same figure with metric-limit annotation text cleared on all but the
+             rightmost populated subplot per row.
    :rtype: Figure
 
 
