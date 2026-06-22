@@ -37,6 +37,10 @@ The root URL redirects to the latest version that has made it to PyPI, not to
 `dev/`. That keeps the default landing page on the most recent released docs
 while still publishing unreleased `master` docs under `dev/`.
 
+The deploy step also publishes a stable `/latest/` alias for that preferred
+release. Use `/latest/...` in README text, issue templates, and other durable
+links when you want a direct page URL without embedding a concrete version.
+
 The deploy workflow (`.github/workflows/Docs deploy.yml`) publishes to a
 `gh-pages` branch using `peaceiris/actions-gh-pages`. It runs on:
 
@@ -50,6 +54,8 @@ After each deploy, `python/docs/versioned_docs.py` regenerates:
 
 - `versions.json`, consumed by the sidebar switcher
 - the root `index.html` redirect, pointed at the latest PyPI-published release
+- `/latest/` page aliases plus root-level legacy page redirects for the
+  preferred release
 
 `Python release.yml` triggers a second docs deploy after PyPI publish completes,
 so the redirect flips to the newly-released version only once PyPI has the

@@ -389,5 +389,5 @@ use the ``--sample`` CLI flag to reduce the data before ingestion, or use
 **For more help:**
 
 - Review the `DecisionAnalyzer class documentation <autoapi/pdstools/decision_analyzer/DecisionAnalyzer/index.html>`_
-- Check the `Decision Analysis Tool example <https://pegasystems.github.io/pega-datascientist-tools/articles/decision_analyzer.html>`_
+- Check the `Decision Analysis Tool example <https://pegasystems.github.io/pega-datascientist-tools/latest/articles/decision_analyzer.html>`_
 - Raise an issue on `GitHub <https://github.com/pegasystems/pega-datascientist-tools>`_

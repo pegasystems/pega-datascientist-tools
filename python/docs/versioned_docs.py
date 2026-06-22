@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
@@ -108,6 +109,57 @@ def write_root_redirect(site_root: Path, preferred_version: str | None) -> None:
     (site_root / "index.html").write_text(html)
 
 
+def iter_html_relative_paths(version_root: Path) -> list[Path]:
+    """Return all published HTML paths for a version, relative to its root."""
+
+    return sorted(path.relative_to(version_root) for path in version_root.rglob("*.html"))
+
+
+def write_html_redirect(destination: Path, target_url: str) -> None:
+    """Write a small HTML redirect page."""
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    html = f"""<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="refresh" content="0; url={target_url}">
+    <title>Redirecting…</title>
+  </head>
+  <body>
+    <p>Redirecting to <a href="{target_url}">the documentation</a>.</p>
+  </body>
+</html>
+"""
+    destination.write_text(html)
+
+
+def write_latest_aliases(
+    site_root: Path,
+    base_url: str,
+    preferred_version: str | None,
+) -> None:
+    """Write stable alias redirects for the preferred docs version."""
+
+    latest_root = site_root / "latest"
+    if latest_root.exists():
+        shutil.rmtree(latest_root)
+
+    if preferred_version is None:
+        return
+
+    version_root = site_root / preferred_version
+    if not version_root.is_dir():
+        return
+
+    base_url = base_url.rstrip("/")
+    for relative_path in iter_html_relative_paths(version_root):
+        target_url = f"{base_url}/{preferred_version}/{relative_path.as_posix()}"
+        write_html_redirect(latest_root / relative_path, target_url)
+        if relative_path != Path("index.html"):
+            write_html_redirect(site_root / relative_path, target_url)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--site-root", required=True)
@@ -128,6 +180,7 @@ def main() -> None:
     )
     write_manifest(site_root, manifest)
     write_root_redirect(site_root, preferred_version)
+    write_latest_aliases(site_root, args.base_url, preferred_version)
     print(json.dumps({"preferred_version": preferred_version, "manifest": manifest}, indent=2))
 
 
