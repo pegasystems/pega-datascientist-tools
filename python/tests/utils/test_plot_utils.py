@@ -1,4 +1,4 @@
-import pandas as pd
+import polars as pl
 import plotly.express as px
 
 from pdstools.utils.plot_utils import fig_update_facet, hide_metric_annotations_on_non_rightmost
@@ -6,10 +6,10 @@ from pdstools.utils.plot_utils import fig_update_facet, hide_metric_annotations_
 
 def _make_faceted_scatter(n_facets: int, col_wrap: int = 2) -> "px.Figure":
     labels = [chr(65 + i) for i in range(n_facets)]  # A, B, C, ...
-    df = pd.DataFrame(
+    df = pl.DataFrame(
         {
-            "x": range(n_facets * 2),
-            "y": range(n_facets * 2),
+            "x": list(range(n_facets * 2)),
+            "y": list(range(n_facets * 2)),
             "f": [label for label in labels for _ in range(2)],
         }
     )
@@ -18,10 +18,10 @@ def _make_faceted_scatter(n_facets: int, col_wrap: int = 2) -> "px.Figure":
 
 def _make_faceted_line(n_facets: int, col_wrap: int = 2) -> "px.Figure":
     labels = [chr(65 + i) for i in range(n_facets)]
-    df = pd.DataFrame(
+    df = pl.DataFrame(
         {
-            "x": range(n_facets * 2),
-            "y": range(n_facets * 2),
+            "x": list(range(n_facets * 2)),
+            "y": list(range(n_facets * 2)),
             "f": [label for label in labels for _ in range(2)],
         }
     )
