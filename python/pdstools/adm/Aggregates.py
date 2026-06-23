@@ -57,12 +57,15 @@ class Aggregates:
         if df.collect_schema()["SnapshotTime"] == pl.Null:
             return df
 
+        latest_snapshot_time = (
+            df.select(pl.col("SnapshotTime").fill_null(strategy="zero").max()).collect(engine="streaming").item()
+        )
+
         return df.filter(
             # For safety consider to .over("ModelID"), if product improves so snapshots
             # get written not in bulk but per model? Downside is that
             # very old model IDs that never got used anymore would still show up.
-            pl.col("SnapshotTime").fill_null(strategy="zero")
-            == pl.col("SnapshotTime").fill_null(strategy="zero").max(),
+            pl.col("SnapshotTime").fill_null(strategy="zero") == pl.lit(latest_snapshot_time),
         )
 
     def _combine_data(

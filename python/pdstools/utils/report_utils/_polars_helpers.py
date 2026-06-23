@@ -19,7 +19,7 @@ def n_unique_values(dm, all_dm_cols, fld):
     fld = polars_subset_to_existing_cols(all_dm_cols, fld)
     if len(fld) == 0:
         return 0
-    return dm.model_data.select(pl.col(fld)).drop_nulls().collect().n_unique()
+    return dm.model_data.select(pl.col(fld)).drop_nulls().unique().select(pl.len()).collect().item()
 
 
 def max_by_hierarchy(dm, all_dm_cols, fld, grouping):
@@ -73,11 +73,12 @@ def sample_values(dm, all_dm_cols, fld, n=6):
             pl.concat_str(fld, separator="/").alias("__SampleValues__"),
         )
         .drop_nulls()
+        .unique()
+        .sort("__SampleValues__")
+        .head(n)
         .collect()
         .to_series()
-        .unique()
-        .sort()
-        .to_list()[:n]
+        .to_list()
     )
 
 
