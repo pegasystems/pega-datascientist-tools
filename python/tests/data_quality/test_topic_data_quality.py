@@ -1021,9 +1021,7 @@ class TestHighSimilarityPairsFound:
                 "topic": ["stocks", "stocks", "stocks", "bonds", "bonds", "bonds"],
             }
         )
-        dq = TopicDataQuality.from_dataframe(
-            df, text_col="text", topic_col="topic", similarity_threshold=0.3
-        )
+        dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic", similarity_threshold=0.3)
         pairs = dq.high_similarity_pairs()
         assert len(pairs) >= 1
         assert all(isinstance(p, TopicOverlapPair) for p in pairs)
