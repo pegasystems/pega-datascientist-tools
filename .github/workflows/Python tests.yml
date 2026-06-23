@@ -230,13 +230,18 @@ jobs:
         run: uv sync --extra tests --extra torch --extra nlp
 
       - name: Run PyTorch tests
-        # No --cov-append / Codecov upload: the main Tests matrix already
-        # publishes coverage.xml, and these tests' marginal coverage
-        # isn't worth a second upload + merge (same rationale as StreamlitTests).
         shell: bash
         run: |
           torch_tests=()
           while IFS= read -r test_file || [[ -n "$test_file" ]]; do
             torch_tests+=("${test_file%$'\r'}")
           done < python/tests/torch_test_files.txt
-          uv run pytest "${torch_tests[@]}"
+          uv run pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc "${torch_tests[@]}"
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5.1.2
+        env:
+          CODECOV_TOKEN: ${{ secrets.codecov_token }}
+        with:
+          fail_ci_if_error: false
+          flags: torch
