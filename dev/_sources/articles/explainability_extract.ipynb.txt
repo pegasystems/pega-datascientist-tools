@@ -26,7 +26,10 @@
    "cell_type": "code",
    "execution_count": null,
    "metadata": {
-    "nbsphinx": "hidden"
+    "nbsphinx": "hidden",
+    "tags": [
+     "remove_input"
+    ]
    },
    "outputs": [],
    "source": [
