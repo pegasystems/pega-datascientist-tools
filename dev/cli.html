@@ -254,6 +254,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="autoapi/pdstools/cli/index.html">pdstools.cli</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/pdstools/data_quality/index.html">pdstools.data_quality</a></li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="autoapi/pdstools/decision_analyzer/index.html">pdstools.decision_analyzer</a><input aria-label="Toggle navigation of pdstools.decision_analyzer" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/decision_analyzer/DecisionAnalyzer/index.html">pdstools.decision_analyzer.DecisionAnalyzer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/decision_analyzer/column_schema/index.html">pdstools.decision_analyzer.column_schema</a></li>
@@ -447,15 +448,15 @@
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">pdstools</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">version</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="nb">list</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">data</span><span class="o">-</span><span class="n">path</span> <span class="n">DATA_PATH</span><span class="p">]</span>
                 <span class="p">[</span><span class="o">--</span><span class="n">sample</span> <span class="n">SAMPLE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="nb">filter</span> <span class="n">FILTER</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">temp</span><span class="o">-</span><span class="nb">dir</span> <span class="n">TEMP_DIR</span><span class="p">]</span>
                 <span class="p">[</span><span class="o">--</span><span class="n">full</span><span class="o">-</span><span class="n">embed</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">full</span><span class="o">-</span><span class="n">embed</span><span class="p">]</span>
-                <span class="p">[{</span><span class="n">launcher</span><span class="p">,</span><span class="n">health_check</span><span class="p">,</span><span class="n">decision_analyzer</span><span class="p">,</span><span class="n">impact_analyzer</span><span class="p">,</span><span class="nb">all</span><span class="p">,</span><span class="n">hc</span><span class="p">,</span><span class="n">da</span><span class="p">,</span><span class="n">ia</span><span class="p">}]</span>
+                <span class="p">[{</span><span class="n">launcher</span><span class="p">,</span><span class="n">health_check</span><span class="p">,</span><span class="n">decision_analyzer</span><span class="p">,</span><span class="n">impact_analyzer</span><span class="p">,</span><span class="n">data_quality</span><span class="p">,</span><span class="nb">all</span><span class="p">,</span><span class="n">hc</span><span class="p">,</span><span class="n">da</span><span class="p">,</span><span class="n">ia</span><span class="p">,</span><span class="n">dq</span><span class="p">}]</span>
 </pre></div>
 </div>
 <section id="pdstools.cli-create_parser-positional-arguments">
 <h2>Positional Arguments<a class="headerlink" href="#pdstools.cli-create_parser-positional-arguments" title="Link to this heading">¶</a></h2>
 <dl class="option-list">
 <dt><kbd>app</kbd></dt>
-<dd><p>Possible choices: launcher, health_check, decision_analyzer, impact_analyzer, all, hc, da, ia</p>
-<p>The app to run: “launcher” (alias: all) | “health_check” (alias: hc) | “decision_analyzer” (alias: da) | “impact_analyzer” (alias: ia)</p>
+<dd><p>Possible choices: launcher, health_check, decision_analyzer, impact_analyzer, data_quality, all, hc, da, ia, dq</p>
+<p>The app to run: “launcher” (alias: all) | “health_check” (alias: hc) | “decision_analyzer” (alias: da) | “impact_analyzer” (alias: ia) | “data_quality” (alias: dq)</p>
 </dd>
 </dl>
 </section>

@@ -17,6 +17,7 @@ Submodules
 
    /autoapi/pdstools/adm/index
    /autoapi/pdstools/cli/index
+   /autoapi/pdstools/data_quality/index
    /autoapi/pdstools/decision_analyzer/index
    /autoapi/pdstools/explanations/index
    /autoapi/pdstools/ih/index

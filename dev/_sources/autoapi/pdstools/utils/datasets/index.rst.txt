@@ -12,6 +12,7 @@ Functions
    pdstools.utils.datasets.cdh_sample
    pdstools.utils.datasets.sample_trees
    pdstools.utils.datasets.sample_value_finder
+   pdstools.utils.datasets.dq_sample
 
 
 Module Contents
@@ -50,5 +51,19 @@ Module Contents
 
    :returns: The Value Finder class populated with the Value Finder simulation data
    :rtype: ValueFinder
+
+
+.. py:function:: dq_sample(*, similarity_threshold: float = 0.8) -> pdstools.data_quality.TopicDataQuality
+
+   Load the built-in smalltalk sample dataset for Topic Data Quality.
+
+   Returns a ready-to-use ``TopicDataQuality`` instance with embeddings,
+   UMAP, and similarity already computed.
+
+   :param similarity_threshold: Topic pairs above this TF-IDF cosine similarity are flagged.
+   :type similarity_threshold: float, default 0.8
+
+   :returns: A fully-initialized instance with precomputed results.
+   :rtype: TopicDataQuality
 
 
