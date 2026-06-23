@@ -12,6 +12,7 @@ _REPO_DATA_DIR = pathlib.Path(__file__).parent.parent.parent.parent / "data" / "
 _SAMPLE_TREES_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/agb/ModelExportWithSampleCount.json"
 
 if TYPE_CHECKING:
+    from ..data_quality._topic_data_quality import TopicDataQuality
     from ..utils.types import QUERY
 
 
@@ -96,3 +97,40 @@ def sample_value_finder(threshold: float | None = None) -> ValueFinder:
             raise RuntimeError(
                 f"Error importing the Value Finder dataset. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
             ) from e
+
+
+def dq_sample(
+    *,
+    similarity_threshold: float = 0.8,
+) -> "TopicDataQuality":
+    """Load the built-in smalltalk sample dataset for Topic Data Quality.
+
+    Returns a ready-to-use ``TopicDataQuality`` instance with embeddings,
+    UMAP, and similarity already computed.
+
+    Parameters
+    ----------
+    similarity_threshold : float, default 0.8
+        Topic pairs above this TF-IDF cosine similarity are flagged.
+
+    Returns
+    -------
+    TopicDataQuality
+        A fully-initialized instance with precomputed results.
+    """
+    import polars as pl
+
+    from ..data_quality import TopicDataQuality
+
+    url = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/dq_nlp/smalltalk.csv"
+    df = pl.read_csv(url)
+    dq = TopicDataQuality.from_dataframe(
+        df=df,
+        text_col="content",
+        topic_col="result",
+        similarity_threshold=similarity_threshold,
+    )
+    dq.compute.embeddings()
+    dq.compute.umap()
+    dq.compute.topic_similarity()
+    return dq

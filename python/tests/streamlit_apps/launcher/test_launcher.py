@@ -1,6 +1,6 @@
 """AppTest smoke test for the cross-app pdstools launcher.
 
-Verifies the launcher boots without exception, registers all three
+Verifies the launcher boots without exception, registers all four
 tools as sidebar sections, and namespaces their URLs to avoid
 collisions. A regression here means the launcher won't host one or
 more tools.
@@ -16,6 +16,7 @@ from streamlit.testing.v1 import AppTest
 from pdstools.app.health_check._navigation import pages as hc_pages
 from pdstools.app.decision_analyzer._navigation import pages as da_pages
 from pdstools.app.impact_analyzer._navigation import pages as ia_pages
+from pdstools.app.data_quality._navigation import pages as dq_pages
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 LAUNCHER_HOME = REPO_ROOT / "python" / "pdstools" / "app" / "launcher" / "Home.py"
@@ -61,7 +62,7 @@ def test_standalone_hc_home_still_renders():
     assert not at.exception, f"HC standalone Home raised: {at.exception}"
 
 
-def test_launcher_landing_page_renders_three_picker_tiles(launcher_mode):
+def test_launcher_landing_page_renders_picker_tiles(launcher_mode):
     """Default landing exposes one picker entry per hosted tool.
 
     Asserts on the picker copy (icon + title) so a regression that
@@ -77,6 +78,7 @@ def test_launcher_landing_page_renders_three_picker_tiles(launcher_mode):
         ("🩺", "ADM Health Check"),
         ("🎯", "Decision Analysis"),
         ("📈", "Impact Analyzer"),
+        ("🔍", "Topic Data Quality"),
     ):
         assert icon in markdown_text, f"Picker missing tile icon {icon!r}"
         assert title in markdown_text, f"Picker missing tile title {title!r}"
@@ -100,8 +102,8 @@ def test_launcher_branding_uses_pdstools_in_launcher_mode(launcher_mode):
 def test_launcher_pre_app_sidebar_stays_under_collapse_threshold(launcher_mode):
     """Until the user enters an app the sidebar must stay short.
 
-    Pre-app the launcher should expose: picker home + 3 app homes +
-    About = 5 entries. Even with future growth this should stay well
+    Pre-app the launcher should expose: picker home + 4 app homes +
+    About = 6 entries. Even with future growth this should stay well
     under Streamlit's auto-collapse threshold so newcomers don't have
     to click "View N more" to see Impact Analyzer exists.
     """
@@ -111,6 +113,7 @@ def test_launcher_pre_app_sidebar_stays_under_collapse_threshold(launcher_mode):
         + len(hc_pages(url_prefix="hc", default=False, include_about=False, include_subpages=False))
         + len(da_pages(url_prefix="da", default=False, include_about=False, include_subpages=False))
         + len(ia_pages(url_prefix="ia", default=False, include_about=False, include_subpages=False))
+        + len(dq_pages(url_prefix="dq", default=False, include_about=False, include_subpages=False))
         + 1  # About
     )
     assert sections_total <= _NAV_COLLAPSE_THRESHOLD, (
@@ -130,17 +133,20 @@ def test_launcher_subpage_sidebar_growth_is_documented(launcher_mode):
     pins the numbers so future page additions trip a clear failure
     rather than silently re-introducing the collapse problem.
     """
-    base = 1 + 1 + 1 + 1 + 1  # picker + 3 home links + About
+    base = 1 + 1 + 1 + 1 + 1 + 1  # picker + 4 home links + About
 
     hc_active = base + len(hc_pages(url_prefix="hc", default=False, include_about=False)) - 1
     ia_active = base + len(ia_pages(url_prefix="ia", default=False, include_about=False)) - 1
+    dq_active = base + len(dq_pages(url_prefix="dq", default=False, include_about=False)) - 1
     # DA data-pages are gated on session_state["decision_data"] which
     # AppTest doesn't populate here — count only the home entry.
     da_active_no_data = base + len(da_pages(url_prefix="da", default=False, include_about=False)) - 1
 
-    # HC active: picker + HC home + 2 HC sub-pages + 2 other home links + About = 7
-    assert hc_active == 7, hc_active
-    # IA active: same shape as HC = 7
-    assert ia_active == 7, ia_active
-    # DA active without data loaded behaves like the picker case = 5
-    assert da_active_no_data == 5, da_active_no_data
+    # HC active: picker + HC home + 2 HC sub-pages + 3 other home links + About = 8
+    assert hc_active == 8, hc_active
+    # IA active: same shape as HC = 8
+    assert ia_active == 8, ia_active
+    # DQ active: picker + DQ home + 1 DQ sub-page + 3 other home links + About = 7
+    assert dq_active == 7, dq_active
+    # DA active without data loaded behaves like the picker case = 6
+    assert da_active_no_data == 6, da_active_no_data
