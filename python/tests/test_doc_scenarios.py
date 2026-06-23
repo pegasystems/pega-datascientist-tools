@@ -14,7 +14,7 @@ basePath = pathlib.Path(__file__).parent.parent.parent
     [
         # Core functionality notebooks
         "examples/datamart/Example_ADM_Analysis.ipynb",
-        "examples/impactanalyzer/impact_analyzer.ipynb",
+        "examples/impact-analyzer/impact_analyzer.ipynb",
         "examples/prediction_studio/Predictions.ipynb",
         # "examples/prediction_studio/PredictionStudio.ipynb",  # Not passing
         # "examples/hds/hds_analysis.ipynb", # depends on module 'xgboost'
