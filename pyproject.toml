@@ -57,6 +57,17 @@ pega_io = ['aioboto3>=15.5,<16', 'polars_hash>=0.5,<1']
 api = ['httpx>=0.27,<1', 'pydantic>=2.10,<3', 'anyio>=4.0,<5']
 healthcheck = ['pdstools[adm]', 'great_tables>=0.13,<1', 'quarto', 'papermill>=2.6,<3', 'xlsxwriter>=3.0,<4', 'pydot>=4.0,<5', 'ipykernel>=6,<8']
 explanations = ['duckdb>=1.1,<2', "plotly[express]>=6.0,<7", "pyarrow>=18,<25", "pyyaml>=6,<7", "ipywidgets"]
+nlp = [
+    # sentence-transformers depends on torch; depend on the [torch] extra
+    # explicitly so onnxscript and the pinned torch range come along.
+    'pdstools[torch]',
+    'numpy',
+    'scikit-learn',
+    "sentence-transformers; python_version < '3.14'",
+    "umap-learn; python_version < '3.14'",
+    "plotly[express]>=6.0,<7",
+    "cleanlab[datalab]; python_version < '3.14'",
+]
 app = [
     'pdstools[healthcheck]',
     'streamlit>=1.45,<2',
@@ -76,9 +87,13 @@ onnx = [
     "scipy>=1.15.3",
 ]
 torch = [
-    'torch>=2.12,<3',
-    'onnxscript>=0.7,<1',
+    "torch>=2.12,<3; python_version < '3.14'",
+    "onnxscript>=0.7,<1; python_version < '3.14'",
 ]
+# `all` deliberately excludes `torch` and `nlp`: both pull torch (~2.4 GB
+# with CUDA wheels) and would bloat the main CI matrix. Users who want
+# everything install `pdstools[all,torch,nlp]`. CI runs torch- and nlp-
+# requiring tests in the dedicated TorchTests job.
 all = ['pdstools[app, pega_io, onnx, explanations]']
 dev = ['pre-commit']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','sphinx-tabs','myst-parser', 'sphinx-argparse', 'xgboost', 'pydantic', 'httpx', 'streamlit', 'duckdb', 'anyio']

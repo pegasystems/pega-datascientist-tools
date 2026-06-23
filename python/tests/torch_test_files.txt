@@ -1,1 +1,3 @@
 python/tests/prediction_studio/test_onnx_universal.py
+python/tests/data_quality/test_topic_data_quality.py
+python/tests/streamlit_apps/data_quality/test_dq_pages.py

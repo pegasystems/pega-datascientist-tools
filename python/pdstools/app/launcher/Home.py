@@ -70,6 +70,17 @@ def _ia_section(active: bool) -> list[st.Page]:
     )
 
 
+def _dq_section(active: bool) -> list[st.Page]:
+    from pdstools.app.data_quality._navigation import pages
+
+    return pages(
+        url_prefix="dq",
+        default=False,
+        include_about=False,
+        include_subpages=active,
+    )
+
+
 # Picker is the launcher's default landing page so visiting "/" lands
 # on a real "choose an app" screen instead of one tool's home.
 _picker_page = st.Page(
@@ -84,6 +95,7 @@ active = st.session_state.get("_active_app")
 hc_pages = _hc_section(active == "hc")
 da_pages = _da_section(active == "da")
 ia_pages = _ia_section(active == "ia")
+dq_pages = _dq_section(active == "dq")
 
 # Register per-app home pages with the picker so its tiles can use
 # in-process ``st.page_link`` navigation (no full reload).
@@ -92,6 +104,7 @@ set_app_pages(
         "hc": hc_pages[0],
         "da": da_pages[0],
         "ia": ia_pages[0],
+        "dq": dq_pages[0],
     }
 )
 
@@ -104,6 +117,7 @@ sections: dict[str, list[st.Page]] = {
     "ADM Health Check": hc_pages,
     "Decision Analysis": da_pages,
     "Impact Analyzer": ia_pages,
+    "Topic Data Quality": dq_pages,
     "About": [
         st.Page(
             str(_ABOUT_SCRIPT),

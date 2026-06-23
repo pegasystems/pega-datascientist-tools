@@ -16,7 +16,7 @@ from pdstools.cli import ALIASES, APPS, check_for_typos, create_parser, main, ru
 
 class TestAppsDict:
     def test_expected_keys(self):
-        assert set(APPS.keys()) == {"launcher", "health_check", "decision_analyzer", "impact_analyzer"}
+        assert set(APPS.keys()) == {"launcher", "health_check", "decision_analyzer", "impact_analyzer", "data_quality"}
 
     def test_launcher_is_first_entry(self):
         # Order matters — launcher is the default selection in the
@@ -63,10 +63,12 @@ class TestCreateParser:
             "health_check",
             "decision_analyzer",
             "impact_analyzer",
+            "data_quality",
             "all",
             "hc",
             "da",
             "ia",
+            "dq",
         }
         for action in parser._actions:
             if hasattr(action, "choices") and action.choices is not None:

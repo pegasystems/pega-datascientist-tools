@@ -44,6 +44,10 @@ APPS = {
         "display_name": "Impact Analyzer",
         "path": "pdstools.app.impact_analyzer",
     },
+    "data_quality": {
+        "display_name": "Topic Data Quality",
+        "path": "pdstools.app.data_quality",
+    },
 }
 
 # Aliases for app names
@@ -52,6 +56,7 @@ ALIASES = {
     "hc": "health_check",
     "da": "decision_analyzer",
     "ia": "impact_analyzer",
+    "dq": "data_quality",
 }
 
 

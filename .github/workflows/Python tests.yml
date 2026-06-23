@@ -156,7 +156,13 @@ jobs:
         run: uv sync --extra tests
 
       - name: Run Streamlit AppTest suite
-        run: uv run pytest python/tests/streamlit_apps
+        # Files listed in python/tests/torch_test_files.txt are excluded
+        # here and run in the dedicated TorchTests job (avoids needing
+        # torch / sentence-transformers in this lightweight job).
+        shell: bash
+        run: |
+          TORCH_IGNORES=$(sed 's|^|--ignore=|' python/tests/torch_test_files.txt | tr '\n' ' ')
+          uv run pytest $TORCH_IGNORES python/tests/streamlit_apps
 
   TorchTests:
     runs-on: ${{ matrix.os }}
@@ -170,31 +176,19 @@ jobs:
     #
     # The set of torch-requiring test files is tracked in
     # python/tests/torch_test_files.txt; the main Tests job ignores those files
-    # and this job runs *only* those files.
+    # and this job runs *only* those files. The job installs both [torch] and
+    # [nlp] extras so it covers ONNX-export tests (torch + onnxscript) as well
+    # as NLP tests (sentence-transformers + umap-learn) in one matrix.
     name: pytorch (Python ${{ matrix.python-version }}) on ${{ matrix.os }}
 
     strategy:
       fail-fast: true
       matrix:
-        os: [ ubuntu-latest, windows-latest, macOS-latest ]
-        python-version: [ "3.10", "3.11", "3.12", "3.13", "3.14" ]
-        exclude:
-          - os: windows-latest
-            python-version: "3.10"
-          - os: windows-latest
-            python-version: "3.11"
-          - os: windows-latest
-            python-version: "3.12"
-          - os: windows-latest
-            python-version: "3.13"
-          - os: macOS-latest
-            python-version: "3.10"
-          - os: macOS-latest
-            python-version: "3.11"
-          - os: macOS-latest
-            python-version: "3.12"
-          - os: macOS-latest
-            python-version: "3.13"
+        # Ubuntu-only: torch + NLP deps have resolution issues on Windows/macOS
+        # and no 3.14 wheels exist yet. Re-add cross-platform / 3.14 once
+        # upstream catches up.
+        os: [ ubuntu-latest ]
+        python-version: [ "3.10", "3.11", "3.12", "3.13" ]
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -224,13 +218,24 @@ jobs:
           cache-dependency-glob: |
             **/pyproject.toml
 
-      - name: Install the project with torch
-        run: uv sync --extra tests --extra torch
+      - name: Install the project with torch and nlp
+        # `nlp` already depends on `pdstools[torch]`, so `--extra nlp` would
+        # cover both. Keep both flags for clarity in CI logs.
+        run: uv sync --extra tests --extra torch --extra nlp
 
       - name: Run PyTorch tests
-        # No --cov-append / Codecov upload: the main Tests matrix already
-        # publishes coverage.xml, and these two tests' marginal coverage
-        # isn't worth a second upload + merge (same rationale as StreamlitTests).
         shell: bash
         run: |
-          uv run pytest $(cat python/tests/torch_test_files.txt)
+          torch_tests=()
+          while IFS= read -r test_file || [[ -n "$test_file" ]]; do
+            torch_tests+=("${test_file%$'\r'}")
+          done < python/tests/torch_test_files.txt
+          uv run pytest --cov=./python/pdstools --cov-report=xml --cov-config=./python/tests/.coveragerc "${torch_tests[@]}"
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5.1.2
+        env:
+          CODECOV_TOKEN: ${{ secrets.codecov_token }}
+        with:
+          fail_ci_if_error: false
+          flags: torch
