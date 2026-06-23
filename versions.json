@@ -8,5 +8,20 @@
     "version": "4.7.1",
     "url": "https://pegasystems.github.io/pega-datascientist-tools/4.7.1/",
     "preferred": true
+  },
+  {
+    "version": "articles",
+    "url": "https://pegasystems.github.io/pega-datascientist-tools/articles/",
+    "preferred": false
+  },
+  {
+    "version": "autoapi",
+    "url": "https://pegasystems.github.io/pega-datascientist-tools/autoapi/",
+    "preferred": false
+  },
+  {
+    "version": "latest",
+    "url": "https://pegasystems.github.io/pega-datascientist-tools/latest/",
+    "preferred": false
   }
 ]
