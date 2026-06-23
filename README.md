@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 class="no-underline" style="text-align:center"> Pega Data Scientist Tools </h1>
+  <h1 class="no-underline" style="text-align:center"> Pega Data Science &amp; Analytics Tools </h1>
 </p>
 
 <p align="center">
@@ -27,17 +27,17 @@
   </a>
 </p>
 
-Open source tooling that helps data scientists working with Pega AI to analyze Pega decisioning and modeling performance.
+Open source tooling that helps analyze Pega AI decisioning and modeling performance — for both data scientists and business analysts.
 
-We release this under the Apache 2.0 license and welcome contributing back, preferably through pull requests, but just submitting an Issue or sending a note to the authors is fine too. Pega does not make any representation or warranty with respect to this free software.
+We release this under the Apache 2.0 license and welcome contributing back, preferably through pull requests, but just submitting a GitHub Issue or sending a note to the authors is fine too.
 
-The tools help to do analysis on Pega decisioning and predictive analytics as used in solutions such as Customer Decision Hub or Process AI, pull data from the platform, easily build meaningful plots and more. There is a pip-installable Python package, notebooks and other scripts.
+Pega does not make any representation or warranty with respect to this free software.
 
-Jump right into the [examples](https://pegasystems.github.io/pega-datascientist-tools/latest/articles/Example_ADM_Analysis.html), or take a deep dive into the [API Reference](https://pegasystems.github.io/pega-datascientist-tools/latest/autoapi/index.html).
+The tools cover a broad range of use cases around Pega Customer Decision Hub and Process AI: interactive web apps for analytically oriented business analysts who want to explore model health, decision analysis, impact analysis, and NLP topic modeling without writing code; a pip-installable Python library with Polars-based data processing, rich Plotly visualizations, and ready-to-run notebooks for data scientists who want to go deeper. See the [documentation](https://pegasystems.github.io/pega-datascientist-tools) and [API Reference](https://pegasystems.github.io/pega-datascientist-tools/latest/autoapi/index.html) to get started.
 
 # Getting Started
 
-The installation and getting started guide can be found [in the documentation](https://pegasystems.github.io/pega-datascientist-tools).
+Installation instructions and a getting started guide can be found [in the documentation](https://pegasystems.github.io/pega-datascientist-tools).
 
 
 # Contributing
