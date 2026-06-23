@@ -101,6 +101,13 @@ def test_model_summary(dm_aggregates):
     assert dm_aggregates.model_summary().collect().shape[1] == 20
 
 
+def test_last_uses_global_latest_snapshot(dm_minimal):
+    last_snapshot = dm_minimal.aggregates.last().collect()
+
+    assert last_snapshot["SnapshotTime"].unique().to_list() == [datetime(2033, 3, 31)]
+    assert last_snapshot["Name"].sort().to_list() == ["C", "F", "G"]
+
+
 def test_predictors_overview(dm_aggregates):
     assert dm_aggregates.predictors_overview().collect().height == 1800
     assert dm_aggregates.predictors_overview().collect().width == 13
