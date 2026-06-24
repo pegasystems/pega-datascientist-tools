@@ -1179,7 +1179,6 @@ class Analysis:
             return findings
 
         bp_min_positives = MetricLimits.best_practice_min("TotalPositiveCount")
-        min_perf_floor = MetricLimits.minimum("ModelPerformance")
         bp_min_perf = MetricLimits.best_practice_min("ModelPerformance")
         # "Decent" performance means meeting the best-practice threshold
         # (e.g. 0.55), not merely clearing the hard minimum (e.g. 0.52).
@@ -1283,7 +1282,7 @@ class Analysis:
         # stuck-at-0.5 cohort, which gets its own finding above).
         if bp_min_perf is not None and bp_min_positives is not None:
             low_perf = last_data.filter(
-                (pl.col("Performance") > min_perf_floor)
+                (pl.col("Performance") > 0.5)
                 & (pl.col("Performance") < bp_min_perf)
                 & (pl.col("Positives") >= bp_min_positives)
             ).height

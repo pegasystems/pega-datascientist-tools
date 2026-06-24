@@ -787,6 +787,15 @@ class TestCheckModelMaturityEdgeCases:
         results = analysis._check_model_maturity(last_data)
         assert any("AUC=50" in f.title for f in results)
 
+    def test_mature_low_performance_covers_values_just_above_auc50(self, analysis):
+        from pdstools.utils.metric_limits import MetricLimits
+
+        bp_min = int(MetricLimits.best_practice_min("TotalPositiveCount"))
+        rows = [{"Positives": bp_min + 100, "Performance": 0.51, "ResponseCount": 5000}]
+        last_data = _make_last_data(rows)
+        results = analysis._check_model_maturity(last_data)
+        assert any("low performance" in f.title for f in results)
+
     def test_suspiciously_high_performance(self, analysis):
         from pdstools.utils.metric_limits import MetricLimits
 

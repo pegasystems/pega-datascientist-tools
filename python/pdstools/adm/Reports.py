@@ -462,6 +462,11 @@ class Reports(LazyNamespace):
             The path to the generated markdown file.
         """
         target_datamart = self.datamart
+        if query is not None and preaggregates is not None:
+            raise ValueError(
+                "health_check_markdown() does not support passing both query and preaggregates; "
+                "preaggregates must match the filtered datamart scope."
+            )
         if query is not None:
             from .ADMDatamart import ADMDatamart
 

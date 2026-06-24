@@ -2,6 +2,7 @@
 
 import datetime
 import shutil
+from unittest.mock import patch
 
 import polars as pl
 import pytest
@@ -518,6 +519,15 @@ def test_from_databricks_view_applies_query():
     result = pred.predictions.collect()
     assert result.height == 4
     assert result["ModelName"].unique().to_list() == ["PREDICTWEBPROPENSITY"]
+
+
+def test_from_databricks_view_preserves_lazy_validation():
+    databricks_data = _make_databricks_prediction_data(["MYCUSTOMPREDICTION"])
+
+    with patch.object(Prediction, "__init__", return_value=None) as init_mock:
+        Prediction.from_databricks_view(databricks_data)
+
+    assert init_mock.call_args.kwargs["_materialize_validated"] is False
 
 
 def test_prediction_plots_internal_method(preds_singleday):

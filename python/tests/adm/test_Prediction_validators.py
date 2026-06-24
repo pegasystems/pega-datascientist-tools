@@ -9,6 +9,7 @@ traceable back to the inputs — no structural-only checks.
 from __future__ import annotations
 
 import datetime
+from unittest.mock import patch
 
 import polars as pl
 import pytest
@@ -43,6 +44,14 @@ def test_normalize_performance_scale_all_null():
     df = pl.LazyFrame({"Performance": [None, None]}, schema={"Performance": pl.Float64})
     out = Prediction._normalize_performance_scale(df).collect()
     assert out["Performance"].to_list() == [None, None]
+
+
+def test_normalize_performance_scale_is_lazy():
+    """Performance normalization should not eagerly collect the LazyFrame."""
+    df = pl.LazyFrame({"Performance": [55.0, 70.0, 100.0]})
+    with patch.object(pl.LazyFrame, "collect", side_effect=RuntimeError("should stay lazy")):
+        out = Prediction._normalize_performance_scale(df)
+    assert isinstance(out, pl.LazyFrame)
 
 
 def test_parse_snapshot_time_from_pega_string():

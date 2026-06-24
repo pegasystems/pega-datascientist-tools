@@ -2,6 +2,7 @@
 
 import zipfile
 
+import polars as pl
 import pytest
 
 from pdstools import datasets
@@ -198,3 +199,16 @@ def test_health_check_markdown_accepts_preaggregates(tmp_path):
 
     assert output_path.exists()
     assert output_path.read_text(encoding="utf-8").startswith("# ADM Health Check")
+
+
+def test_health_check_markdown_rejects_query_with_preaggregates(tmp_path):
+    datamart = datasets.cdh_sample()
+    reports = Reports(datamart)
+    preaggregates = datamart.analysis.compute_health_check_preaggregates()
+
+    with pytest.raises(ValueError, match="query and preaggregates"):
+        reports.health_check_markdown(
+            output_dir=tmp_path,
+            query=pl.col("Channel") == "Web",
+            preaggregates=preaggregates,
+        )
