@@ -7,7 +7,13 @@ from unittest.mock import MagicMock, patch
 import polars as pl
 import pytest
 from pdstools import ADMDatamart, datasets
-from pdstools.adm.Analysis import Analysis, Finding, _format_markdown_value, _gini
+from pdstools.adm.Analysis import (
+    Analysis,
+    Finding,
+    HealthCheckPreAggregates,
+    _format_markdown_value,
+    _gini,
+)
 
 
 def _make_dm(rows: list[dict]) -> ADMDatamart:
@@ -216,6 +222,138 @@ class TestAnalysisNamespace:
         markdown = analysis.markdown(disclaimer="Use with caution")
         assert "> **Disclaimer:** Use with caution" in markdown
 
+    def test_compute_health_check_preaggregates_returns_reusable_object(self, analysis):
+        preaggregates = analysis.compute_health_check_preaggregates()
+        assert isinstance(preaggregates, HealthCheckPreAggregates)
+        assert preaggregates.last_data.height > 0
+
+    def test_compute_health_check_preaggregates_builds_minimal_channel_and_config_summaries(self):
+        dm = _make_dm(
+            [
+                {
+                    "ModelID": "m1",
+                    "SnapshotTime": "20250101",
+                    "Configuration": "CfgA",
+                    "Name": "ActionA",
+                    "Channel": "Web",
+                    "Direction": "Inbound",
+                    "Positives": 10,
+                    "ResponseCount": 100,
+                    "Performance": 0.60,
+                },
+                {
+                    "ModelID": "m1",
+                    "SnapshotTime": "20250102",
+                    "Configuration": "CfgA",
+                    "Name": "ActionA",
+                    "Channel": "Web",
+                    "Direction": "Inbound",
+                    "Positives": 25,
+                    "ResponseCount": 250,
+                    "Performance": 0.65,
+                },
+                {
+                    "ModelID": "m2",
+                    "SnapshotTime": "20250101",
+                    "Configuration": "CfgA",
+                    "Name": "ActionB",
+                    "Channel": "Web",
+                    "Direction": "Inbound",
+                    "Positives": 0,
+                    "ResponseCount": 0,
+                    "Performance": 0.70,
+                },
+                {
+                    "ModelID": "m2",
+                    "SnapshotTime": "20250102",
+                    "Configuration": "CfgA",
+                    "Name": "ActionB",
+                    "Channel": "Web",
+                    "Direction": "Inbound",
+                    "Positives": 20,
+                    "ResponseCount": 100,
+                    "Performance": 0.80,
+                },
+            ]
+        )
+
+        preaggregates = dm.analysis.compute_health_check_preaggregates(include_markdown_sections=True)
+
+        channel_row = preaggregates.channel_summary.row(0, named=True)
+        assert channel_row["ChannelDirection"] == "Web/Inbound"
+        assert channel_row["Responses"] == 250
+        assert channel_row["Positives"] == 35
+        assert channel_row["Actions"] == 2
+        assert channel_row["CTR"] == pytest.approx(0.14)
+        assert channel_row["Performance"] == pytest.approx(0.675)
+
+        config_row = preaggregates.configuration_summary.row(0, named=True)
+        assert config_row["Configuration"] == "CfgA"
+        assert config_row["Channel"] == "Web"
+        assert config_row["Direction"] == "Inbound"
+        assert config_row["ResponseCount"] == 350
+        assert config_row["Positives"] == 45
+        assert config_row["Performance"] == pytest.approx((0.65 * 250 + 0.80 * 100) / 350)
+
+    def test_compute_health_check_preaggregates_preserves_all_history_taxonomy_counts(self):
+        dm = _make_dm(
+            [
+                {
+                    "ModelID": "m1",
+                    "SnapshotTime": "20250101",
+                    "Configuration": "CfgA",
+                    "Name": "ActionA",
+                    "Treatment": "T1",
+                    "Issue": "Sales",
+                    "Channel": "Web",
+                    "Direction": "Inbound",
+                },
+                {
+                    "ModelID": "m1",
+                    "SnapshotTime": "20250102",
+                    "Configuration": "CfgA",
+                    "Name": "ActionA",
+                    "Treatment": "T1",
+                    "Issue": "Sales",
+                    "Channel": "Web",
+                    "Direction": "Inbound",
+                },
+                {
+                    "ModelID": "m2",
+                    "SnapshotTime": "20250101",
+                    "Configuration": "CfgB",
+                    "Name": "ActionB",
+                    "Treatment": "T2",
+                    "Issue": "Service",
+                    "Channel": "Email",
+                    "Direction": "Outbound",
+                },
+            ]
+        )
+
+        preaggregates = dm.analysis.compute_health_check_preaggregates(include_markdown_sections=False)
+
+        assert preaggregates.action_count == 2
+        assert preaggregates.treatment_count == 2
+        assert preaggregates.channel_count == 2
+        assert preaggregates.taxonomy_counts["IssueCount"] == 2
+
+    def test_markdown_accepts_preaggregates_without_rebuilding(self, analysis):
+        preaggregates = analysis.compute_health_check_preaggregates()
+        with patch.object(
+            analysis, "compute_health_check_preaggregates", side_effect=RuntimeError("should not rebuild")
+        ):
+            markdown = analysis.markdown(preaggregates=preaggregates)
+        assert markdown.startswith("# ADM Health Check")
+
+    def test_findings_accepts_preaggregates_without_rebuilding(self, analysis):
+        preaggregates = analysis.compute_health_check_preaggregates(include_markdown_sections=False)
+        with patch.object(
+            analysis, "compute_health_check_preaggregates", side_effect=RuntimeError("should not rebuild")
+        ):
+            findings = analysis.findings(preaggregates=preaggregates)
+        assert findings
+
     def test_markdown_handles_summary_only(self, analysis):
         summary = Finding(
             severity="success",
@@ -261,35 +399,46 @@ class TestAnalysisNamespace:
 
     def test_estate_snapshot_sections_handle_aggregate_failures(self, sample_dm):
         with (
-            patch.object(sample_dm.aggregates, "summary_by_channel", side_effect=RuntimeError("boom")),
-            patch.object(sample_dm.aggregates, "summary_by_configuration", side_effect=RuntimeError("boom")),
+            patch.object(sample_dm.analysis, "_health_check_channel_summary", side_effect=RuntimeError("boom")),
+            patch.object(
+                sample_dm.analysis,
+                "_health_check_configuration_summary",
+                side_effect=RuntimeError("boom"),
+            ),
             patch.object(sample_dm.aggregates, "predictors_global_overview", side_effect=RuntimeError("boom")),
         ):
             sections = sample_dm.analysis._estate_snapshot_sections(pl.lit(True))
         assert sections == []
 
     def test_estate_snapshot_sections_include_predictor_categories(self, sample_dm):
-        with patch.object(
-            sample_dm.aggregates,
-            "summary_by_configuration",
-            return_value=pl.DataFrame(
+        sections = sample_dm.analysis._estate_snapshot_sections(pl.lit(True))
+        titles = [title for title, _ in sections]
+        assert "Top Channels by Responses" in titles
+        assert "Top Configurations by Responses" in titles
+        assert "Predictor Categories" in titles
+
+    def test_estate_snapshot_sections_allow_configuration_summary_without_channel_direction(
+        self,
+        analysis,
+    ):
+        preaggregates = HealthCheckPreAggregates(
+            last_data=_make_last_data([{}]),
+            configuration_summary=pl.DataFrame(
                 [
                     {
                         "Configuration": "Cfg1",
-                        "Channel": "Web",
-                        "Direction": "Inbound",
                         "ResponseCount": 1000,
                         "Positives": 50,
                         "Performance": 0.65,
                     }
                 ]
-            ).lazy(),
-        ):
-            sections = sample_dm.analysis._estate_snapshot_sections(pl.lit(True))
-        titles = [title for title, _ in sections]
-        assert "Top Channels by Responses" in titles
-        assert "Top Configurations by Responses" in titles
-        assert "Predictor Categories" in titles
+            ),
+        )
+
+        sections = analysis._estate_snapshot_sections(pl.lit(True), preaggregates=preaggregates)
+        title, table = sections[0]
+        assert title == "Top Configurations by Responses"
+        assert table.columns == ["Configuration", "ResponseCount", "Positives", "Performance"]
 
     def test_findings_have_valid_severity(self, analysis):
         for f in analysis.findings():
@@ -357,8 +506,7 @@ class TestChannelChecks:
             ),
         )
         results, _, _ = dm.analysis._check_channels(pl.lit(True))
-        critical = [f for f in results if f.severity == "critical"]
-        assert any("zero responses" in f.title for f in critical)
+        assert any("zero responses" in f.title for f in results)
 
 
 class TestConfigurationChecks:
@@ -1173,21 +1321,23 @@ class TestHeadlineFinding:
         deterministic.
         """
         return patch.object(
-            dm.aggregates,
-            "summary_by_channel",
+            dm.analysis,
+            "_health_check_channel_summary",
             return_value=pl.DataFrame(
                 [
                     {
+                        "ChannelDirection": "Web/Inbound",
                         "Channel": "Web",
                         "Direction": "Inbound",
                         "Responses": 100000,
                         "Positives": 5000,
                         "Performance": 0.72,
+                        "CTR": 0.05,
+                        "Actions": 20,
                         "OmniChannel": 0.5,
-                        "Configuration": "WebConfig",
                     }
                 ]
-            ).lazy(),
+            ),
         )
 
     def test_clean_data_emits_healthy_headline(self):

@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from ..prediction.Prediction import Prediction
     from .ADMDatamart import ADMDatamart
+    from .Analysis import HealthCheckPreAggregates
 
 logger = logging.getLogger(__name__)
 
@@ -420,6 +421,7 @@ class Reports(LazyNamespace):
         *,
         query: QUERY | None = None,
         prediction: Prediction | None = None,
+        preaggregates: HealthCheckPreAggregates | None = None,
         title: str = "ADM Health Check",
         subtitle: str = "",
         disclaimer: str = "",
@@ -439,6 +441,11 @@ class Reports(LazyNamespace):
             Extra filter applied to the datamart data before rendering.
         prediction : Prediction, optional
             Prediction object to include in the report.
+        preaggregates : HealthCheckPreAggregates, optional
+            Reusable precomputed summaries produced by
+            ``dm.analysis.compute_health_check_preaggregates()``. When
+            provided, the markdown report reuses them instead of recomputing
+            the same health-check summaries.
         title : str, default "ADM Health Check"
             Title shown at the top of the markdown report.
         subtitle : str, default ""
@@ -475,6 +482,7 @@ class Reports(LazyNamespace):
                 subtitle=subtitle,
                 disclaimer=disclaimer,
                 prediction=prediction,
+                preaggregates=preaggregates,
             ),
             encoding="utf-8",
         )

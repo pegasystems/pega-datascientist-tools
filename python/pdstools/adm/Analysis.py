@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__all__ = ["Analysis", "Finding"]
+__all__ = ["Analysis", "Finding", "HealthCheckPreAggregates"]
 
 import datetime
 import logging
@@ -76,6 +76,32 @@ class Finding:
         return f"{icon} [{self.category}] {self.title}"
 
 
+@dataclass
+class HealthCheckPreAggregates:
+    """Precomputed summaries reused across health-check outputs."""
+
+    last_data: pl.DataFrame
+    date_start: object | None = None
+    date_end: object | None = None
+    total_models: int | None = None
+    active_models: int | None = None
+    channel_count: int | None = None
+    configuration_count: int | None = None
+    action_count: int | None = None
+    treatment_count: int | None = None
+    response_count: int | None = None
+    positive_count: int | None = None
+    overall_avg_auc: float | None = None
+    active_avg_auc: float | None = None
+    predictor_count: int | None = None
+    channel_summary: pl.DataFrame | None = None
+    configuration_summary: pl.DataFrame | None = None
+    predictor_overview: pl.DataFrame | None = None
+    predictor_categories: pl.DataFrame | None = None
+    prediction_summary: pl.DataFrame | None = None
+    taxonomy_counts: dict[str, int] = field(default_factory=dict)
+
+
 def _gini(values: list[float]) -> float:
     """Compute the Gini coefficient for a list of non-negative values."""
     v = sorted(float(value) for value in values if not math.isnan(float(value)))
@@ -144,6 +170,175 @@ class Analysis:
     def __init__(self, datamart: "ADMDatamart") -> None:
         self.datamart = datamart
 
+    def compute_health_check_preaggregates(
+        self,
+        *,
+        active_filter: pl.Expr | None = None,
+        active_threshold_days: int = 30,
+        prediction: "Prediction | None" = None,
+        include_markdown_sections: bool = True,
+    ) -> HealthCheckPreAggregates:
+        """Compute reusable summaries for health-check generation.
+
+        Parameters
+        ----------
+        active_filter : pl.Expr, optional
+            Custom Polars expression defining which models count as active.
+            If not provided, a default filter based on ``active_threshold_days``
+            is constructed.
+        active_threshold_days : int, default 30
+            Default recency window used when ``active_filter`` is not provided.
+        prediction : Prediction, optional
+            Optional prediction data to summarize alongside ADM data.
+        include_markdown_sections : bool, default True
+            Whether to also precompute the compact tables currently used by the
+            Markdown health check (for example configuration summaries).
+
+        Returns
+        -------
+        HealthCheckPreAggregates
+            Materialized summaries that can be reused across multiple report
+            outputs within one run.
+        """
+        if active_filter is None:
+            active_filter = (
+                pl.col("LastUpdate") > (pl.col("LastUpdate").max() - datetime.timedelta(days=active_threshold_days))
+            ).fill_null(True)
+        return self._build_health_check_preaggregates(
+            active_filter=active_filter,
+            prediction=prediction,
+            include_markdown_sections=include_markdown_sections,
+        )
+
+    def _build_health_check_preaggregates(
+        self,
+        *,
+        active_filter: pl.Expr | None,
+        prediction: "Prediction | None" = None,
+        include_markdown_sections: bool = False,
+    ) -> HealthCheckPreAggregates:
+        """Precompute shared summaries reused across health-check outputs."""
+        last_data = self._get_last_data()
+        preaggregates = HealthCheckPreAggregates(last_data=last_data)
+
+        try:
+            metrics = last_data.select(
+                pl.col("ModelID").n_unique().alias("total_models"),
+                pl.col("Configuration").n_unique().alias("configuration_count"),
+                pl.sum("ResponseCount").alias("response_count"),
+                pl.sum("Positives").alias("positive_count"),
+            ).row(0, named=True)
+        except RECOVERABLE_ANALYSIS_ERRORS as exc:
+            logger.debug("Could not compute health-check pre-aggregates: %s", exc)
+        else:
+            preaggregates.total_models = metrics["total_models"]
+            preaggregates.configuration_count = metrics["configuration_count"]
+            preaggregates.response_count = metrics["response_count"]
+            preaggregates.positive_count = metrics["positive_count"]
+
+        try:
+            all_columns = (
+                self.datamart.combined_data.collect_schema().names()
+                if self.datamart.predictor_data is not None
+                else self.datamart.model_data.collect_schema().names()
+            )
+            taxonomy_fields: list[tuple[str, str | list[str]]] = [
+                ("ActionCount", "Name"),
+                ("IssueCount", "Issue"),
+                ("ChannelsUsingADM", ["Channel", "Direction"]),
+            ]
+            if "Treatment" in all_columns:
+                taxonomy_fields.append(("TreatmentCount", "Treatment"))
+            preaggregates.taxonomy_counts = {
+                metric_id: report_utils.n_unique_values(self.datamart, all_columns, field_name)
+                for metric_id, field_name in taxonomy_fields
+            }
+            preaggregates.action_count = preaggregates.taxonomy_counts.get("ActionCount")
+            preaggregates.treatment_count = preaggregates.taxonomy_counts.get("TreatmentCount")
+            preaggregates.channel_count = preaggregates.taxonomy_counts.get("ChannelsUsingADM")
+        except RECOVERABLE_ANALYSIS_ERRORS as exc:
+            logger.debug("Could not compute taxonomy-style pre-aggregate counts: %s", exc)
+
+        try:
+            preaggregates.overall_avg_auc = last_data.select(
+                cdh_utils.weighted_average_polars("Performance", "ResponseCount")
+            ).item()
+        except RECOVERABLE_ANALYSIS_ERRORS as exc:
+            logger.debug("Could not compute overall AUC for health-check pre-aggregates: %s", exc)
+
+        try:
+            if active_filter is not None:
+                active_last_data = last_data.lazy().filter(active_filter)
+                preaggregates.active_models = active_last_data.select(pl.col("ModelID").n_unique()).collect().item()
+                preaggregates.active_avg_auc = (
+                    active_last_data.select(cdh_utils.weighted_average_polars("Performance", "ResponseCount"))
+                    .collect()
+                    .item()
+                )
+        except RECOVERABLE_ANALYSIS_ERRORS as exc:
+            logger.debug("Could not compute active model count for health-check pre-aggregates: %s", exc)
+
+        try:
+            date_range = (
+                self.datamart.model_data.select(
+                    pl.col("SnapshotTime").min().alias("start"),
+                    pl.col("SnapshotTime").max().alias("end"),
+                )
+                .collect()
+                .row(0, named=True)
+            )
+        except RECOVERABLE_ANALYSIS_ERRORS as exc:
+            logger.debug("Could not compute snapshot date range for health-check pre-aggregates: %s", exc)
+        else:
+            preaggregates.date_start = date_range["start"]
+            preaggregates.date_end = date_range["end"]
+
+        try:
+            preaggregates.channel_summary = self._health_check_channel_summary(
+                active_filter=active_filter,
+            )
+        except RECOVERABLE_ANALYSIS_ERRORS as exc:
+            logger.debug("Could not compute health-check channel pre-aggregates: %s", exc)
+
+        if include_markdown_sections:
+            try:
+                preaggregates.configuration_summary = self._health_check_configuration_summary(
+                    last_data=last_data,
+                    active_filter=active_filter,
+                )
+            except RECOVERABLE_ANALYSIS_ERRORS as exc:
+                logger.debug("Could not compute health-check configuration pre-aggregates: %s", exc)
+
+        if self.datamart.predictor_data is not None:
+            try:
+                preaggregates.predictor_overview = self.datamart.aggregates.predictors_global_overview().collect()
+            except RECOVERABLE_ANALYSIS_ERRORS as exc:
+                logger.debug("Could not compute health-check predictor pre-aggregates: %s", exc)
+            else:
+                preaggregates.predictor_count = preaggregates.predictor_overview.height
+                if include_markdown_sections:
+                    try:
+                        preaggregates.predictor_categories = (
+                            preaggregates.predictor_overview.lazy()
+                            .group_by("PredictorCategory")
+                            .agg(
+                                pl.col("PredictorName").n_unique().alias("Predictors"),
+                                pl.col("Mean").mean().alias("AvgPerformance"),
+                            )
+                            .sort("Predictors", descending=True)
+                            .collect()
+                        )
+                    except RECOVERABLE_ANALYSIS_ERRORS as exc:
+                        logger.debug("Could not compute health-check predictor-category pre-aggregates: %s", exc)
+
+        if prediction is not None:
+            try:
+                preaggregates.prediction_summary = prediction.summary_by_channel().collect()
+            except RECOVERABLE_ANALYSIS_ERRORS as exc:
+                logger.debug("Could not compute health-check prediction pre-aggregates: %s", exc)
+
+        return preaggregates
+
     # ── public API ──────────────────────────────────────────────────────
 
     def findings(
@@ -152,6 +347,7 @@ class Analysis:
         active_filter: pl.Expr | None = None,
         active_threshold_days: int = 30,
         prediction: "Prediction | None" = None,
+        preaggregates: HealthCheckPreAggregates | None = None,
     ) -> list[Finding]:
         """Run all diagnostic checks and return a list of findings.
 
@@ -178,7 +374,13 @@ class Analysis:
                 pl.col("LastUpdate") > (pl.col("LastUpdate").max() - datetime.timedelta(days=active_threshold_days))
             ).fill_null(True)
 
-        last_data = self._get_last_data()
+        preaggregates = preaggregates or self.compute_health_check_preaggregates(
+            active_filter=active_filter,
+            active_threshold_days=active_threshold_days,
+            prediction=prediction,
+            include_markdown_sections=False,
+        )
+        last_data = preaggregates.last_data
 
         results: list[Finding] = []
         dq_findings, invalid_channels = self._check_data_quality()
@@ -186,21 +388,22 @@ class Analysis:
         channel_findings, dead_channel_count, has_mature_low_perf_channel = self._check_channels(
             active_filter,
             invalid_channels=invalid_channels,
+            channel_summary=preaggregates.channel_summary,
         )
         results.extend(channel_findings)
         results.extend(self._check_configurations(last_data))
         results.extend(self._check_model_maturity(last_data))
         perf_findings, avg_auc = self._check_model_performance(last_data, active_filter)
         results.extend(perf_findings)
-        results.extend(self._check_taxonomy())
+        results.extend(self._check_taxonomy(preaggregates=preaggregates))
         results.extend(self._check_response_distribution(last_data, active_filter))
         results.extend(self._check_trends())
 
         if self.datamart.predictor_data is not None:
-            results.extend(self._check_predictors())
+            results.extend(self._check_predictors(predictor_overview=preaggregates.predictor_overview))
 
         if prediction is not None:
-            results.extend(self._check_predictions(prediction))
+            results.extend(self._check_predictions(prediction, pred_summary=preaggregates.prediction_summary))
 
         severity_order = {"critical": 0, "warning": 1, "info": 2, "success": 3}
         results.sort(key=lambda f: severity_order[f.severity])
@@ -208,7 +411,7 @@ class Analysis:
         headline = self._build_headline(
             results,
             last_data,
-            avg_auc,
+            preaggregates.overall_avg_auc,
             dead_channel_count=dead_channel_count,
             has_mature_low_perf_channel=has_mature_low_perf_channel,
         )
@@ -225,6 +428,7 @@ class Analysis:
         active_filter: pl.Expr | None = None,
         active_threshold_days: int = 30,
         prediction: "Prediction | None" = None,
+        preaggregates: HealthCheckPreAggregates | None = None,
     ) -> str:
         """Render findings as agent-friendly GitHub-flavored Markdown.
 
@@ -248,14 +452,20 @@ class Analysis:
         str
             Markdown document summarizing the findings.
         """
+        preaggregates = preaggregates or self.compute_health_check_preaggregates(
+            active_filter=active_filter,
+            active_threshold_days=active_threshold_days,
+            prediction=prediction,
+            include_markdown_sections=True,
+        )
         findings = self.findings(
             active_filter=active_filter,
             active_threshold_days=active_threshold_days,
             prediction=prediction,
+            preaggregates=preaggregates,
         )
         headline = next((finding for finding in findings if finding.category == "summary"), None)
         body_findings = [finding for finding in findings if finding.category != "summary"]
-        last_data = self._get_last_data()
 
         lines = [f"# {title}", ""]
         if subtitle:
@@ -267,10 +477,22 @@ class Analysis:
             lines.extend(["## Summary", "", f"**{headline.title}**", "", headline.detail, ""])
 
         lines.extend(
-            ["## Key Metrics", "", _markdown_table(self._key_metrics_table(last_data, findings, active_filter)), ""]
+            [
+                "## Key Metrics",
+                "",
+                _markdown_table(
+                    self._key_metrics_table(
+                        preaggregates.last_data,
+                        findings,
+                        active_filter,
+                        preaggregates=preaggregates,
+                    )
+                ),
+                "",
+            ]
         )
 
-        estate_sections = self._estate_snapshot_sections(active_filter)
+        estate_sections = self._estate_snapshot_sections(active_filter, preaggregates=preaggregates)
         if estate_sections:
             lines.extend(["## Estate Snapshot", ""])
             for section_title, section_table in estate_sections:
@@ -331,53 +553,46 @@ class Analysis:
         last_data: pl.DataFrame,
         findings: list[Finding],
         active_filter: pl.Expr | None,
+        *,
+        preaggregates: HealthCheckPreAggregates | None = None,
     ) -> pl.DataFrame:
         """Build a compact key-metrics table for markdown output."""
-        total_models = last_data.select(pl.col("ModelID").n_unique()).item()
-        active_models: int | None = None
-        try:
-            if active_filter is not None:
-                active_models = last_data.filter(active_filter).select(pl.col("ModelID").n_unique()).item()
-        except RECOVERABLE_ANALYSIS_ERRORS as exc:
-            logger.debug("Could not compute active model count for markdown metrics: %s", exc)
+        if preaggregates is None:
+            preaggregates = self._build_health_check_preaggregates(active_filter=active_filter)
 
-        date_range = self.datamart.model_data.select(
-            pl.col("SnapshotTime").min().alias("start"),
-            pl.col("SnapshotTime").max().alias("end"),
-        ).collect()
         avg_auc = next(
             (finding.data.get("avg_auc") for finding in findings if finding.category == "summary"),
             None,
         )
 
         metrics: list[tuple[str, object]] = [
-            ("Snapshot range", f"{date_range['start'].item():%Y-%m-%d} to {date_range['end'].item():%Y-%m-%d}"),
-            ("Models (latest snapshot)", total_models),
-            ("Active models", active_models),
             (
-                "Channels",
-                last_data.select(pl.concat_str(["Channel", "Direction"], separator="/").n_unique()).item(),
+                "Snapshot range",
+                (
+                    f"{preaggregates.date_start:%Y-%m-%d} to {preaggregates.date_end:%Y-%m-%d}"
+                    if preaggregates.date_start is not None and preaggregates.date_end is not None
+                    else None
+                ),
             ),
-            ("Configurations", last_data.select(pl.col("Configuration").n_unique()).item()),
-            ("Actions", last_data.select(pl.col("Name").n_unique()).item()),
+            ("Models (latest snapshot)", preaggregates.total_models),
+            ("Active models", preaggregates.active_models),
+            ("Channels", preaggregates.channel_count),
+            ("Configurations", preaggregates.configuration_count),
+            ("Actions", preaggregates.action_count),
+            ("Treatments", preaggregates.treatment_count),
+            ("Responses", preaggregates.response_count),
+            ("Positives", preaggregates.positive_count),
             (
-                "Treatments",
-                last_data.select(pl.col("Treatment").n_unique()).item() if "Treatment" in last_data.columns else None,
+                "Average AUC (latest snapshot)",
+                avg_auc * 100 if isinstance(avg_auc, float) else None,
             ),
-            ("Responses", last_data.select(pl.sum("ResponseCount")).item()),
-            ("Positives", last_data.select(pl.sum("Positives")).item()),
-            ("Average AUC (active)", avg_auc * 100 if isinstance(avg_auc, float) else None),
         ]
 
+        if isinstance(preaggregates.active_avg_auc, float):
+            metrics.append(("Average AUC (active)", preaggregates.active_avg_auc * 100))
+
         if self.datamart.predictor_data is not None:
-            try:
-                predictor_count = (
-                    self.datamart.aggregates.predictors_global_overview().select(pl.len()).collect().item()
-                )
-            except RECOVERABLE_ANALYSIS_ERRORS as exc:
-                logger.debug("Could not compute predictor count for markdown metrics: %s", exc)
-                predictor_count = None
-            metrics.append(("Predictors", predictor_count))
+            metrics.append(("Predictors", preaggregates.predictor_count))
 
         return pl.DataFrame(
             {
@@ -386,53 +601,48 @@ class Analysis:
             }
         )
 
-    def _estate_snapshot_sections(self, active_filter: pl.Expr | None) -> list[tuple[str, pl.DataFrame]]:
+    def _estate_snapshot_sections(
+        self,
+        active_filter: pl.Expr | None,
+        *,
+        preaggregates: HealthCheckPreAggregates | None = None,
+    ) -> list[tuple[str, pl.DataFrame]]:
         """Build compact orientation tables for the markdown report."""
         sections: list[tuple[str, pl.DataFrame]] = []
-
-        try:
-            channel_summary = (
-                self.datamart.aggregates.summary_by_channel(query=active_filter)
-                .select("ChannelDirection", "Responses", "Positives", "Performance", "CTR", "Actions")
-                .sort("Responses", descending=True)
-                .collect()
+        if preaggregates is None:
+            preaggregates = self._build_health_check_preaggregates(
+                active_filter=active_filter,
+                include_markdown_sections=True,
             )
-        except RECOVERABLE_ANALYSIS_ERRORS as exc:
-            logger.debug("Could not compute channel snapshot for markdown output: %s", exc)
-        else:
+
+        if preaggregates.channel_summary is not None:
+            channel_summary = preaggregates.channel_summary.select(
+                "ChannelDirection", "Responses", "Positives", "Performance", "CTR", "Actions"
+            ).sort("Responses", descending=True)
             if channel_summary.height > 0:
                 sections.append(("Top Channels by Responses", channel_summary))
 
-        try:
-            configuration_summary = (
-                self.datamart.aggregates.summary_by_configuration(query=active_filter)
-                .select("Configuration", "Channel", "Direction", "ResponseCount", "Positives", "Performance")
-                .sort("ResponseCount", descending=True)
-                .collect()
+        if preaggregates.configuration_summary is not None:
+            configuration_columns = [
+                col
+                for col in [
+                    "Configuration",
+                    "Channel",
+                    "Direction",
+                    "ResponseCount",
+                    "Positives",
+                    "Performance",
+                ]
+                if col in preaggregates.configuration_summary.columns
+            ]
+            configuration_summary = preaggregates.configuration_summary.select(configuration_columns).sort(
+                "ResponseCount", descending=True
             )
-        except RECOVERABLE_ANALYSIS_ERRORS as exc:
-            logger.debug("Could not compute configuration snapshot for markdown output: %s", exc)
-        else:
             if configuration_summary.height > 0:
                 sections.append(("Top Configurations by Responses", configuration_summary))
 
-        if self.datamart.predictor_data is not None:
-            try:
-                predictor_categories = (
-                    self.datamart.aggregates.predictors_global_overview()
-                    .group_by("PredictorCategory")
-                    .agg(
-                        pl.col("PredictorName").n_unique().alias("Predictors"),
-                        pl.col("Mean").mean().alias("AvgPerformance"),
-                    )
-                    .sort("Predictors", descending=True)
-                    .collect()
-                )
-            except RECOVERABLE_ANALYSIS_ERRORS as exc:
-                logger.debug("Could not compute predictor-category snapshot for markdown output: %s", exc)
-            else:
-                if predictor_categories.height > 0:
-                    sections.append(("Predictor Categories", predictor_categories))
+        if preaggregates.predictor_categories is not None and preaggregates.predictor_categories.height > 0:
+            sections.append(("Predictor Categories", preaggregates.predictor_categories))
 
         return sections
 
@@ -458,8 +668,26 @@ class Analysis:
     # ── private check methods ───────────────────────────────────────────
 
     def _get_last_data(self) -> pl.DataFrame:
+        last_data = self.datamart.aggregates.last()
+        keep_columns = [
+            "ModelID",
+            "Configuration",
+            "Channel",
+            "Direction",
+            "Issue",
+            "Group",
+            "Name",
+            "Treatment",
+            "ResponseCount",
+            "Positives",
+            "Performance",
+            "SuccessRate",
+            "LastUpdate",
+        ]
+        existing_columns = last_data.collect_schema().names()
+
         return (
-            self.datamart.aggregates.last()
+            last_data.select([col for col in keep_columns if col in existing_columns])
             .with_columns(pl.col(pl.Categorical).cast(pl.Utf8))
             .with_columns(
                 [
@@ -470,6 +698,103 @@ class Analysis:
                     pl.col("ResponseCount").fill_null(0),
                 ]
             )
+            .collect()
+        )
+
+    def _health_check_channel_summary(
+        self,
+        *,
+        active_filter: pl.Expr | None,
+    ) -> pl.DataFrame:
+        model_data = self.datamart._require_model_data()
+        if active_filter is not None:
+            model_data = model_data.filter(active_filter)
+
+        per_model = model_data.group_by(["Channel", "Direction", "ModelID"]).agg(
+            (pl.col("Positives").max() - pl.col("Positives").min()).alias("Positives"),
+            (pl.col("ResponseCount").max() - pl.col("ResponseCount").min()).alias("Responses"),
+            pl.col("Positives").max().alias("TotalPositives"),
+            pl.col("ResponseCount").max().alias("TotalResponseCount"),
+            pl.col("Performance").mean().alias("Performance"),
+        )
+
+        channel_metrics = per_model.group_by(["Channel", "Direction"]).agg(
+            pl.sum("Positives", "Responses", "TotalPositives", "TotalResponseCount"),
+            cdh_utils.weighted_performance_polars("Performance", "Responses").alias("Performance"),
+        )
+        channel_actions = model_data.group_by(["Channel", "Direction"]).agg(
+            pl.col("Name").n_unique().alias("Actions"),
+            pl.col("Name").unique().alias("AllActions"),
+        )
+
+        channel_summary = (
+            channel_metrics.join(
+                channel_actions,
+                on=["Channel", "Direction"],
+                nulls_equal=True,
+                how="left",
+            )
+            .with_columns(
+                CTR=pl.when(pl.col("Responses") > 0)
+                .then(pl.col("Positives") / pl.col("Responses"))
+                .otherwise(pl.lit(None)),
+                isValid=(pl.col("TotalPositives") >= 200) & (pl.col("TotalResponseCount") >= 1000),
+                ChannelDirection=pl.format("{}/{}", pl.col("Channel"), pl.col("Direction")),
+            )
+            .collect()
+        )
+
+        valid_channels = channel_summary.filter(pl.col("isValid"))
+        if valid_channels.height > 0:
+            omni = (
+                valid_channels.select("Channel", "Direction", "AllActions")
+                .with_columns(
+                    pl.col("AllActions")
+                    .map_batches(cdh_utils.overlap_lists_polars, return_dtype=pl.Float64)
+                    .alias("OmniChannel")
+                )
+                .drop("AllActions")
+            )
+            channel_summary = channel_summary.join(
+                omni,
+                on=["Channel", "Direction"],
+                nulls_equal=True,
+                how="left",
+            )
+        else:
+            channel_summary = channel_summary.with_columns(pl.lit(None).alias("OmniChannel"))
+
+        return channel_summary.select(
+            "ChannelDirection",
+            "Channel",
+            "Direction",
+            "Responses",
+            "Positives",
+            "Performance",
+            "CTR",
+            "Actions",
+            "OmniChannel",
+        )
+
+    def _health_check_configuration_summary(
+        self,
+        *,
+        last_data: pl.DataFrame,
+        active_filter: pl.Expr | None,
+    ) -> pl.DataFrame:
+        config_data = last_data.lazy()
+        if active_filter is not None:
+            config_data = config_data.filter(active_filter)
+
+        group_by_cols = ["Configuration"] + [col for col in ["Channel", "Direction"] if col in last_data.columns]
+
+        return (
+            config_data.group_by(group_by_cols)
+            .agg(
+                pl.sum("ResponseCount", "Positives"),
+                cdh_utils.weighted_average_polars("Performance", "ResponseCount").alias("Performance"),
+            )
+            .sort(group_by_cols)
             .collect()
         )
 
@@ -508,15 +833,23 @@ class Analysis:
             "success": "HEALTHY",
         }[severity]
 
+        critical_count = sum(1 for finding in results if finding.severity == "critical")
+        warning_count = sum(1 for finding in results if finding.severity == "warning")
         facts: list[str] = []
-        if pct_never_used > 10 or (severity != "success" and pct_never_used > 0):
+        if critical_count > 0:
+            noun = "critical finding" if critical_count == 1 else "critical findings"
+            facts.append(f"{critical_count} {noun}")
+        elif warning_count > 0:
+            noun = "warning" if warning_count == 1 else "warnings"
+            facts.append(f"{warning_count} {noun}")
+        if pct_never_used > 10:
             facts.append(f"{pct_never_used:.0f}% of models never used")
         if dead_channel_count >= 1:
             noun = "dead channel" if dead_channel_count == 1 else "dead channels"
             facts.append(f"{dead_channel_count} {noun}")
-        if has_mature_low_perf_channel and auc100 is not None:
-            facts.append(f"AUC {auc100:.1f} (low)")
-        elif auc100 is not None and (severity != "success" or not facts):
+        if has_mature_low_perf_channel and dead_channel_count == 0:
+            facts.append("low-performing channel present")
+        if auc100 is not None and (severity != "success" or not facts):
             facts.append(f"AUC {auc100:.1f}")
         if not facts:
             facts.append(f"{100 - pct_never_used:.0f}% of models in use")
@@ -610,6 +943,9 @@ class Analysis:
             logger.debug("Could not count models with invalid channel metadata: %s", exc)
             n_models = 0
 
+        if n_models <= 0:
+            return findings, invalid
+
         examples = ", ".join(f'"{(ch + "/" + dr) if ch or dr else "/"}"' for ch, dr in invalid_pairs[:3])
         findings.append(
             Finding(
@@ -640,16 +976,18 @@ class Analysis:
         active_filter: pl.Expr,
         *,
         invalid_channels: set[str] | None = None,
+        channel_summary: pl.DataFrame | None = None,
     ) -> tuple[list[Finding], int, bool]:
         findings: list[Finding] = []
         invalid_channels = invalid_channels or set()
         dead_channel_count = 0
         has_mature_low_perf_channel = False
-        try:
-            channel_summary = self.datamart.aggregates.summary_by_channel(query=active_filter).collect()
-        except RECOVERABLE_ANALYSIS_ERRORS as exc:
-            logger.debug("Could not compute channel summary: %s", exc)
-            return findings, dead_channel_count, has_mature_low_perf_channel
+        if channel_summary is None:
+            try:
+                channel_summary = self.datamart.aggregates.summary_by_channel(query=active_filter).collect()
+            except RECOVERABLE_ANALYSIS_ERRORS as exc:
+                logger.debug("Could not compute channel summary: %s", exc)
+                return findings, dead_channel_count, has_mature_low_perf_channel
 
         # Collect dead channels into per-direction aggregate findings instead
         # of one ❌ per channel — the per-channel detail is rarely actionable
@@ -657,8 +995,14 @@ class Analysis:
         dead_by_direction: dict[str, list[str]] = {}
 
         for row in channel_summary.iter_rows(named=True):
-            ch = f"{row['Channel']}/{row['Direction']}"
-            if ch in invalid_channels:
+            channel = row.get("Channel")
+            direction = row.get("Direction")
+            ch = f"{channel}/{direction}"
+            if (
+                ch in invalid_channels
+                or self._is_invalid_channel_name(channel)
+                or self._is_invalid_channel_name(direction)
+            ):
                 continue
             responses = row.get("Responses", 0) or 0
             positives = row.get("Positives", 0) or 0
@@ -731,7 +1075,7 @@ class Analysis:
             noun = "channel has" if n == 1 else "channels have"
             findings.append(
                 Finding(
-                    severity="critical",
+                    severity="warning" if n == 1 else "critical",
                     category="channel",
                     title=(f"{n} {direction} {noun} zero responses (configured but inactive): {preview_str}"),
                     detail=(
@@ -1076,18 +1420,22 @@ class Analysis:
             Finding(
                 severity=severity,
                 category="model",
-                title=f"Overall average model performance is {label} (AUC {auc100:.1f})",
+                title=f"Average performance across active models is {label} (AUC {auc100:.1f})",
                 detail=(
                     f"Weighted average AUC across active models is {auc100:.1f}. "
                     f"Tiers: <58 low, 58-62 borderline, 62-70 healthy, ≥70 strong. {tail}"
                 ),
-                data={"weighted_avg_performance": avg_perf, "tier": label},
+                data={"active_weighted_avg_performance": avg_perf, "tier": label},
             )
         )
 
         return findings, avg_perf
 
-    def _check_taxonomy(self) -> list[Finding]:
+    def _check_taxonomy(
+        self,
+        *,
+        preaggregates: HealthCheckPreAggregates | None = None,
+    ) -> list[Finding]:
         findings: list[Finding] = []
         all_columns = (
             self.datamart.combined_data.collect_schema().names()
@@ -1096,18 +1444,41 @@ class Analysis:
         )
 
         checks = [
-            ("ActionCount", "Name", "Total actions"),
-            ("TreatmentCount", "Treatment", "Total treatments"),
-            ("IssueCount", "Issue", "Unique issues"),
-            ("ChannelsUsingADM", ["Channel", "Direction"], "Channels using ADM"),
+            (
+                "ActionCount",
+                "Name",
+                "Total actions",
+                preaggregates.taxonomy_counts.get("ActionCount") if preaggregates is not None else None,
+            ),
+            (
+                "TreatmentCount",
+                "Treatment",
+                "Total treatments",
+                preaggregates.taxonomy_counts.get("TreatmentCount") if preaggregates is not None else None,
+            ),
+            (
+                "IssueCount",
+                "Issue",
+                "Unique issues",
+                preaggregates.taxonomy_counts.get("IssueCount") if preaggregates is not None else None,
+            ),
+            (
+                "ChannelsUsingADM",
+                ["Channel", "Direction"],
+                "Channels using ADM",
+                preaggregates.taxonomy_counts.get("ChannelsUsingADM") if preaggregates is not None else None,
+            ),
         ]
 
-        for metric_id, field_name, label in checks:
-            try:
-                value = report_utils.n_unique_values(self.datamart, all_columns, field_name)
-            except RECOVERABLE_ANALYSIS_ERRORS as exc:
-                logger.debug("Could not compute taxonomy metric %s: %s", metric_id, exc)
-                continue
+        for metric_id, field_name, label, precomputed_value in checks:
+            if precomputed_value is not None:
+                value = precomputed_value
+            else:
+                try:
+                    value = report_utils.n_unique_values(self.datamart, all_columns, field_name)
+                except RECOVERABLE_ANALYSIS_ERRORS as exc:
+                    logger.debug("Could not compute taxonomy metric %s: %s", metric_id, exc)
+                    continue
 
             rag = MetricLimits.evaluate_metric_rag(metric_id, value)
             if rag not in ("RED", "AMBER"):
@@ -1412,13 +1783,18 @@ class Analysis:
 
         return findings
 
-    def _check_predictors(self) -> list[Finding]:
+    def _check_predictors(self, *, predictor_overview: pl.DataFrame | None = None) -> list[Finding]:
         findings: list[Finding] = []
         min_perf = MetricLimits.minimum("ModelPerformance")
 
         # Poor predictors
-        try:
-            predictor_overview = self.datamart.aggregates.predictors_global_overview().collect()
+        if predictor_overview is None:
+            try:
+                predictor_overview = self.datamart.aggregates.predictors_global_overview().collect()
+            except RECOVERABLE_ANALYSIS_ERRORS as exc:
+                logger.debug("Could not compute predictor performance overview: %s", exc)
+                predictor_overview = None
+        if predictor_overview is not None:
             poor_count = predictor_overview.filter(pl.col("Mean") < (min_perf * 100)).height
             total_predictors = predictor_overview.height
 
@@ -1446,8 +1822,6 @@ class Analysis:
                         },
                     )
                 )
-        except RECOVERABLE_ANALYSIS_ERRORS as exc:
-            logger.debug("Could not compute predictor performance overview: %s", exc)
 
         # Missing predictor data
         try:
@@ -1544,14 +1918,20 @@ class Analysis:
 
         return findings
 
-    def _check_predictions(self, prediction: "Prediction") -> list[Finding]:
+    def _check_predictions(
+        self,
+        prediction: "Prediction",
+        *,
+        pred_summary: pl.DataFrame | None = None,
+    ) -> list[Finding]:
         findings: list[Finding] = []
 
-        try:
-            pred_summary = prediction.summary_by_channel().collect()
-        except RECOVERABLE_ANALYSIS_ERRORS as exc:
-            logger.debug("Could not summarize prediction data by channel: %s", exc)
-            return findings
+        if pred_summary is None:
+            try:
+                pred_summary = prediction.summary_by_channel().collect()
+            except RECOVERABLE_ANALYSIS_ERRORS as exc:
+                logger.debug("Could not summarize prediction data by channel: %s", exc)
+                return findings
 
         if "Lift" not in pred_summary.columns:
             return findings

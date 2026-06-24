@@ -184,3 +184,17 @@ def test_health_check_markdown_respects_title_subtitle_and_disclaimer(tmp_path):
     assert "# Custom Title" in content
     assert "## Custom Subtitle" in content
     assert "> **Disclaimer:** Review before sharing." in content
+
+
+def test_health_check_markdown_accepts_preaggregates(tmp_path):
+    datamart = datasets.cdh_sample()
+    reports = Reports(datamart)
+    preaggregates = datamart.analysis.compute_health_check_preaggregates()
+
+    output_path = reports.health_check_markdown(
+        output_dir=tmp_path,
+        preaggregates=preaggregates,
+    )
+
+    assert output_path.exists()
+    assert output_path.read_text(encoding="utf-8").startswith("# ADM Health Check")
