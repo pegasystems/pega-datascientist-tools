@@ -631,6 +631,8 @@ class ADMDatamart:
             df = self.apply_predictor_categorization(
                 df=df,
             )  # actual categorization not passed in?
+            if df is None:
+                raise ValueError("Predictor categorization returned no data.")
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
 
         return self._normalize_performance_scale(df)
@@ -712,14 +714,24 @@ class ADMDatamart:
         def categorization_dict_to_polars_expr(categorization):
             # Dynamically constructing when/otherwise expression
             # see https://stackoverflow.com/questions/78818920/how-to-generate-when-then-constructs-in-polars-dynamically
-            expr = pl
+            expr: pl.Expr | None = None
             for key, values in categorization.items():
                 if not isinstance(values, list):
                     values = [values]
                 for value in values:
-                    expr = expr.when(
-                        pl.col("PredictorName").cast(pl.Utf8).str.contains(value, literal=not use_regexp, strict=False),
-                    ).then(pl.lit(key))
+                    condition = (
+                        pl.col("PredictorName")
+                        .cast(pl.Utf8)
+                        .str.contains(
+                            value,
+                            literal=not use_regexp,
+                            strict=False,
+                        )
+                    )
+                    branch = pl.when(condition).then(pl.lit(key))
+                    expr = branch.otherwise(expr if expr is not None else None)
+            if expr is None:
+                raise ValueError("Categorization mapping must contain at least one pattern.")
             return expr
 
         categorization_expr: pl.Expr | None = None

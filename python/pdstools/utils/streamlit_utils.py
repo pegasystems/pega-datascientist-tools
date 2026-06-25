@@ -607,8 +607,8 @@ def model_selection_df(df: pl.LazyFrame, context_keys: list):
 def filter_dataframe(
     df: pl.LazyFrame,
     schema: dict | None = None,
-    queries: list | None = None,
-) -> pl.LazyFrame:
+    queries: list[pl.Expr] | None = None,
+) -> list[pl.Expr]:
     """Adds a UI on top of a dataframe to let viewers filter columns
 
     Parameters
@@ -618,8 +618,8 @@ def filter_dataframe(
 
     Returns
     -------
-    pl.LazyFrame
-        The filtered LazyFrame
+    list[pl.Expr]
+        Filter expressions collected from the UI.
 
     """
     if queries is None:

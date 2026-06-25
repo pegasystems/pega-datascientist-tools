@@ -10,29 +10,22 @@ from __future__ import annotations
 import logging
 from functools import wraps
 from typing import (
+    Any,
     TYPE_CHECKING,
-    Concatenate,
-    Literal,
-    TypeVar,
-    overload,
 )
 
 import polars as pl
-from typing_extensions import ParamSpec
 
 from ...utils.metric_limits import MetricLimits
 
 if TYPE_CHECKING:
-    from ...utils.plot_utils import Figure
     from collections.abc import Callable, Iterable
+    from ...utils.plot_utils import Figure
     from ._base import _PlotsBase
 
 logger = logging.getLogger(__name__)
 
 COLORSCALE_TYPES = list[tuple[float, str]] | list[str]
-
-T = TypeVar("T", bound="_PlotsBase")
-P = ParamSpec("P")
 
 
 def requires(
@@ -40,32 +33,14 @@ def requires(
     predictor_columns: Iterable[str] | None = None,
     combined_columns: Iterable[str] | None = None,
 ):
-    def decorator(
-        func: Callable[Concatenate[T, P], Figure | pl.LazyFrame],
-    ) -> Callable[Concatenate[T, P], Figure | pl.LazyFrame]:
-        @overload
-        def wrapper(  # type: ignore[valid-type]  # mypy does not support P.args in @overload stubs
-            self: T,
-            *args: P.args,
-            return_df: Literal[False] = ...,
-            **kwargs: P.kwargs,
-        ) -> Figure: ...
-
-        @overload
-        def wrapper(  # type: ignore[valid-type]  # mypy does not support P.args in @overload stubs
-            self: T,
-            *args: P.args,
-            return_df: Literal[True],
-            **kwargs: P.kwargs,
-        ) -> pl.LazyFrame: ...
-
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
-        def wrapper(  # type: ignore[valid-type]  # mypy does not support P.args in @overload stubs
-            self: T,
-            *args: P.args,
+        def wrapper(
+            self: _PlotsBase,
+            *args: Any,
             return_df: bool = False,
-            **kwargs: P.kwargs,
-        ) -> Figure | pl.LazyFrame:
+            **kwargs: Any,
+        ) -> Any:
             # Validation logic (unchanged)
             if model_columns:
                 if self.datamart.model_data is None:
@@ -90,7 +65,7 @@ def requires(
                 if missing:
                     raise ValueError(f"Missing required combined columns:{missing}")
 
-            return func(self, *args, return_df=return_df, **kwargs)  # type: ignore[arg-type]  # ParamSpec forwarding: mypy loses track of kwargs type through *args/**kwargs
+            return func(self, *args, return_df=return_df, **kwargs)
 
         return wrapper
 

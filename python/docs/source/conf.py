@@ -4,6 +4,7 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import importlib.metadata
 import os
 from datetime import datetime
 
@@ -18,7 +19,7 @@ copyright = f"{datetime.now().year}, Pegasystems"
 author = "Pegasystems"
 
 # The full version, including alpha/beta/rc tags
-release = "4.0.0"
+release = importlib.metadata.version("pdstools")
 
 
 # -- General configuration ---------------------------------------------------

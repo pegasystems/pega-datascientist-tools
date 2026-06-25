@@ -61,7 +61,7 @@ class PredictionStudio(_PredictionStudiov26_1):
             return pages
         return pages.as_df()
 
-    @overload  # type: ignore[override]
+    @overload
     def list_predictions(self, return_df: Literal[False] = False) -> PaginatedList[Prediction]: ...
 
     @overload
@@ -121,7 +121,7 @@ class AsyncPredictionStudio(_AsyncPredictionStudiov26_1):
             return pages
         return await pages.as_df()
 
-    async def list_predictions(  # type: ignore[override]
+    async def list_predictions(  # type: ignore[override]  # intentionally widens parent signature with return_df
         self, return_df: bool = False
     ) -> AsyncPaginatedList[AsyncPrediction] | pl.DataFrame:
         """Fetches a list of all predictions from Prediction Studio.
@@ -151,7 +151,10 @@ class AsyncPredictionStudio(_AsyncPredictionStudiov26_1):
         if label:
             uniques["label"] = label
         pages = cast("AsyncPaginatedList[AsyncPrediction]", await self.list_predictions())
-        return await pages.get(**uniques)
+        prediction = await pages.get(**uniques)
+        if prediction is None:
+            raise KeyError(f"No prediction found for lookup {uniques!r}")
+        return prediction
 
     async def get_model(self, model_id: str | None = None, label: str | None = None, **kwargs) -> AsyncModel:
         """Finds and returns a specific model from Prediction Studio."""
@@ -161,4 +164,7 @@ class AsyncPredictionStudio(_AsyncPredictionStudiov26_1):
         if label:
             uniques["label"] = label
         pages = cast("AsyncPaginatedList[AsyncModel]", await self.list_models())
-        return await pages.get(**uniques)
+        model = await pages.get(**uniques)
+        if model is None:
+            raise KeyError(f"No model found for lookup {uniques!r}")
+        return model

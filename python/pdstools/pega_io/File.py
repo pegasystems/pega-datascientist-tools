@@ -592,7 +592,7 @@ def read_ds_export(
         url = f"{path_str}/{filename_str}"
 
         try:
-            import requests  # type: ignore[import-untyped]  # requests has no PEP 561 stubs
+            import requests
 
             response = requests.get(url)
             logger.info("Remote fetch %s → HTTP %s", url, response.status_code)
@@ -906,7 +906,10 @@ def get_latest_file(
             match = re.search(r"\d.{0,15}GMT", filepath)
             if match is None:
                 raise ValueError(f"No GMT timestamp pattern found in {filepath}")
-            return from_prpc_date_time(match[0].replace("_", " "))
+            parsed = from_prpc_date_time(match[0].replace("_", " "))
+            if not isinstance(parsed, datetime):
+                raise ValueError(f"Could not parse timestamp from {filepath}: {parsed!r}")
+            return parsed
         except (AttributeError, TypeError, ValueError) as exc:
             logger.debug("Falling back to ctime for %s: %s", filepath, exc)
             return datetime.fromtimestamp(os.path.getctime(filepath), tz=timezone.utc)

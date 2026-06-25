@@ -471,7 +471,7 @@ else:
     DefaultAsyncHttpxClient = _DefaultAsyncHttpxClient
 
 
-class AsyncHttpxClientWrapper(DefaultAsyncHttpxClient):
+class AsyncHttpxClientWrapper(_DefaultAsyncHttpxClient):
     def __del__(self) -> None:  # pragma: no cover
         try:
             # TODO(someday): support non asyncio runtimes here

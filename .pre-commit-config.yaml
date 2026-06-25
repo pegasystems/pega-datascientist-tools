@@ -1,3 +1,5 @@
+default_install_hook_types: [pre-commit, pre-push]
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
@@ -11,7 +13,7 @@ repos:
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.15.2
+    rev: v0.15.19
     hooks:
       # Run the linter.
       - id: ruff
@@ -30,6 +32,23 @@ repos:
           - nbsphinx
           - tags
           - --
+
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright
+        entry: uv run pyright --project pyrightconfig.json
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push, manual]
+      - id: pyrefly
+        name: pyrefly
+        entry: uv run pyrefly check python/pdstools --count-errors=0
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push, manual]
 
   # - repo: https://github.com/numpy/numpydoc
   #   rev: v1.8.0

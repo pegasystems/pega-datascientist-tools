@@ -214,15 +214,19 @@ class FilterWidget(LazyNamespace):
             widget.value = ""
 
         # reset the context selector widget
+        assert self._selector_widget is not None
         self._selector_widget.value = self._ANY_CONTEXT
 
     def _on_combobox_change(self, change):
         changed_value = self._get_changed_value(change)
-        changed_widget_id = self._get_changed_widget(change).description
+        changed_widget = self._get_changed_widget(change)
+        assert changed_widget is not None
+        changed_widget_id = changed_widget.description
         changed_widget_options = self._combobox_widgets[changed_widget_id].options
 
         # set the selected context-key value to the changed value
         if changed_value in changed_widget_options or changed_value == self._ANY_CONTEXT:
+            assert self._selected_context_key is not None
             self._selected_context_key[changed_widget_id] = changed_value
             self._filtered_list = self._filter_contexts_by_selected()
         else:

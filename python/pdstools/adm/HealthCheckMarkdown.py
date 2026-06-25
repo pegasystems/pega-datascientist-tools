@@ -39,12 +39,12 @@ def _markdown_table(df: pl.DataFrame, *, max_rows: int | None = None) -> str:
         return "*No data available.*"
 
     truncated = max_rows is not None and df.height > max_rows
-    table_df = df.head(max_rows) if truncated else df
+    table_df = df.head(max_rows) if truncated and max_rows is not None else df
     header = "| " + " | ".join(table_df.columns) + " |"
     separator = "| " + " | ".join("---" for _ in table_df.columns) + " |"
     rows = ["| " + " | ".join(_format_markdown_value(value) for value in row) + " |" for row in table_df.iter_rows()]
     markdown = "\n".join([header, separator, *rows])
-    if truncated:
+    if truncated and max_rows is not None:
         markdown += f"\n\n*And {df.height - max_rows} more rows.*"
     return markdown
 

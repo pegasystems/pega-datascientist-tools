@@ -1,4 +1,4 @@
-name: Python linter & formatter
+name: Python quality
 permissions:
   contents: read
 
@@ -9,26 +9,64 @@ on:
       - 'release/**'
     paths:
       - python/**
+      - pyproject.toml
+      - .pre-commit-config.yaml
       - .github/workflows/**
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - python/**
+      - pyproject.toml
+      - .pre-commit-config.yaml
       - .github/workflows/**
 
 jobs:
-  lint:
+  pre-commit:
+    name: pre-commit (Python 3.12)
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run ruff linter
-        uses: astral-sh/ruff-action@v3.6.1
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          src: "./python"
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+            **/.pre-commit-config.yaml
 
-      - name: Run ruff formatter
-        uses: astral-sh/ruff-action@v3.6.1
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install the project with typing dependencies
+        run: uv sync --extra all --extra dev --extra tests
+
+      - name: Run pre-commit
+        run: uv run pre-commit run --all-files --show-diff-on-failure
+
+  mypy:
+    name: mypy (Python 3.12)
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          args: "format --check"
-          src: "./python"
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+            **/.pre-commit-config.yaml
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install the project with typing dependencies
+        run: uv sync --extra all --extra dev --extra tests
+
+      - name: Run mypy
+        run: uv run mypy --config-file pyproject.toml python/pdstools

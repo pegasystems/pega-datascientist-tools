@@ -70,7 +70,7 @@ class _ModelMixin(ABC):
     _id_field: ClassVar[str] = "model_id"
 
     def __init__(self, client, **payload):
-        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO: combined with SyncAPIResource/AsyncAPIResource
+        super().__init__(client=client)
         self._data = self._data_cls.model_validate(payload)
 
     def __getattr__(self, name: str):
@@ -119,7 +119,7 @@ class _PredictionMixin(ABC):
     _id_field: ClassVar[str] = "prediction_id"
 
     def __init__(self, client, **payload):
-        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO
+        super().__init__(client=client)
         self._data = self._data_cls.model_validate(payload)
 
     def __getattr__(self, name: str):
@@ -172,7 +172,7 @@ class _NotificationMixin(ABC):
     _id_field: ClassVar[str] = "notification_id"
 
     def __init__(self, client, **payload):
-        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO
+        super().__init__(client=client)
         self._data = self._data_cls.model_validate(payload)
 
     def __getattr__(self, name: str):
@@ -207,7 +207,7 @@ class ModelValidationError(Exception):
 
 
 class LocalModel(BaseModel):
-    def validate(self) -> bool:  # type: ignore[override]  # intentionally overrides BaseModel.validate
+    def validate(self) -> bool:  # type: ignore[override]  # intentionally provides instance validation, not Pydantic parsing
         """Validates a model.
 
         Raises
@@ -417,7 +417,7 @@ class _ModelInstanceMixin(ABC):
     _id_field: ClassVar[str] = "instance_id"
 
     def __init__(self, client, **payload):
-        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative MRO: combined with SyncAPIResource/AsyncAPIResource
+        super().__init__(client=client)
         self._data = self._data_cls.model_validate(payload)
 
     def __getattr__(self, name: str):

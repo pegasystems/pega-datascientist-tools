@@ -43,15 +43,26 @@ class TestGetDependencyVersion:
         version = sv_module._get_dependency_version("polars>=1.0")
         assert version != "<not installed>"
 
+    def test_strips_extras_and_multiple_constraints(self):
+        version = sv_module._get_dependency_version("polars[rt64]!=1.35.1,<2,>=1.37")
+        assert version != "<not installed>"
+
     def test_missing_module(self):
         version = sv_module._get_dependency_version("definitely_not_a_real_module_xyz")
         assert version == "<not installed>"
 
     def test_unexpected_import_error_handled(self):
-        with patch.object(
-            sv_module.importlib,
-            "import_module",
-            side_effect=RuntimeError("boom"),
+        with (
+            patch.object(
+                sv_module.importlib.metadata,
+                "version",
+                side_effect=sv_module.importlib.metadata.PackageNotFoundError,
+            ),
+            patch.object(
+                sv_module.importlib,
+                "import_module",
+                side_effect=RuntimeError("boom"),
+            ),
         ):
             version = sv_module._get_dependency_version("polars")
             assert version == "<not installed>"

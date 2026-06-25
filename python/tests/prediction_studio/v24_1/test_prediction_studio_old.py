@@ -1,4 +1,5 @@
 import pytest
+import polars as pl
 from pdstools.infinity.internal._pagination import PaginatedList
 from pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio import (
     PredictionStudio,
@@ -63,3 +64,24 @@ def test_list_predictions(prediction_studio_client, mocker):
     result = prediction_studio_client.list_predictions()
 
     assert isinstance(result, PaginatedList)
+
+
+def test_list_predictions_return_df(prediction_studio_client, mocker):
+    mocker.patch.object(
+        prediction_studio_client._client,
+        "request",
+        return_value=mock_response_predictions,
+    )
+
+    result = prediction_studio_client.list_predictions(return_df=True)
+
+    assert isinstance(result, pl.DataFrame)
+    assert result.shape == (2, 6)
+    assert result.columns == [
+        "prediction_id",
+        "label",
+        "objective",
+        "subject",
+        "status",
+        "last_update_time",
+    ]

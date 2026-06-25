@@ -141,12 +141,13 @@ def prio_factor_boxplots(
     return_df=False,
     additional_filters=None,
     others_filter: pl.Expr | list[pl.Expr] | None = None,
-) -> tuple[go.Figure, str | None]:
+) -> pl.DataFrame | tuple[go.Figure | None, str | None]:
     point_cap = _boxplot_point_cap(self)
     df = apply_filter(self._decision_data.arbitration_stage, additional_filters)
     prio_factors = PRIO_FACTORS
+    reference_expr = reference if isinstance(reference, pl.Expr) else pl.all_horizontal(reference or [pl.lit(False)])
     tagged = df.with_columns(
-        segment=pl.when(reference).then(pl.lit("Comparison Group")).otherwise(pl.lit("Other Offers"))
+        segment=pl.when(reference_expr).then(pl.lit("Comparison Group")).otherwise(pl.lit("Other Offers"))
     )
     if others_filter is not None:
         keep_selected = pl.col("segment") == "Comparison Group"

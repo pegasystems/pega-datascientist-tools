@@ -4,7 +4,7 @@ import json
 import logging
 import re
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from pydantic import AliasChoices, BaseModel, Field, field_validator, model_validator
 
@@ -335,7 +335,7 @@ class Metadata(BaseModel):
         return predictors
 
     @staticmethod
-    def _convert_keys(data: dict, conversion_func) -> dict:
+    def _convert_keys(data: dict | list | object, conversion_func) -> dict | list | object:
         if isinstance(data, dict):
             return {conversion_func(k): Metadata._convert_keys(v, conversion_func) for k, v in data.items()}
         if isinstance(data, list):
@@ -480,8 +480,8 @@ class ONNXModel(LocalModel):
         from sklearn.pipeline import Pipeline
 
         if isinstance(model, Pipeline):
-            model = convert_sklearn(model, initial_types=initial_types)
-            return cls(model=model)
+            onnx_model = cast("ModelProto", convert_sklearn(model, initial_types=initial_types))
+            return cls(model=onnx_model)
 
         raise ONNXModelCreationError("Model must be a sklearn Pipeline object.")
 
@@ -627,12 +627,13 @@ class ONNXModel(LocalModel):
             If the optional dependencies for ONNX Metadata addition are not installed.
 
         """
-        if PEGA_METADATA in self._model.metadata_props:
-            self._model.metadata_props.remove(PEGA_METADATA)
+        existing = next((entry for entry in self._model.metadata_props if entry.key == PEGA_METADATA), None)
+        if existing is not None:
+            self._model.metadata_props.remove(existing)
         self._model.metadata_props.add(key=PEGA_METADATA, value=metadata.to_json())
         return self
 
-    def validate(self) -> bool:  # type: ignore[override]  # intentionally overrides BaseModel.validate
+    def validate(self) -> bool:  # type: ignore[override]  # intentionally provides instance validation, not Pydantic parsing
         """Validates an ONNX model.
 
         Raises

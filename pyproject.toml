@@ -16,10 +16,9 @@ dynamic = ["version"]
 description = "Open source tooling that helps Data Scientists to analyze Pega models and conduct impactful analyses."
 readme = "README.md"
 authors = [ { name = "Stijn Kas", email = "stijn.kas@pega.com" } ]
-license = {text = "Apache-2.0"}
+license = "Apache-2.0"
 classifiers = [
-    "License :: OSI Approved :: Apache Software License",
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
 ]
@@ -95,7 +94,7 @@ torch = [
 # everything install `pdstools[all,torch,nlp]`. CI runs torch- and nlp-
 # requiring tests in the dedicated TorchTests job.
 all = ['pdstools[app, pega_io, onnx, explanations]']
-dev = ['pre-commit']
+dev = ['pre-commit', 'ruff>=0.15.19,<0.16', 'mypy>=1.18,<2', 'pyright>=1.1.411,<2', 'pyrefly>=1.1.1,<2', 'types-PyYAML', 'types-requests']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','sphinx-tabs','myst-parser', 'sphinx-argparse', 'xgboost', 'pydantic', 'httpx', 'streamlit', 'duckdb', 'anyio']
 tests = [
     'testbook>=0.4',
@@ -240,3 +239,11 @@ python_version = "3.10"
 ignore_missing_imports = true
 warn_unused_ignores = true
 no_implicit_optional = true
+
+[tool.pyrefly]
+python-version = "3.10.0"
+preset = "legacy"
+ignore-missing-imports = ["*"]
+
+[tool.pyrefly.errors]
+unexpected-keyword = "ignore"

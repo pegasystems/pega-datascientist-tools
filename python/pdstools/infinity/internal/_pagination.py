@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Generic, TypeVar, overload, TYPE_CHECKING
+from typing import Any, Generic, TypeVar, cast, overload, TYPE_CHECKING
 
 import polars as pl
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
     from collections.abc import AsyncIterator, Iterator
 
-T = TypeVar("T")
+T = TypeVar("T", covariant=True)
 
 
 class _MissingLookupKeyError(KeyError):
@@ -116,7 +117,10 @@ def _frame_from_resources(content_class: Any, items: Any) -> pl.DataFrame:
     value inference (``schema=None``).
     """
     schema_fn = getattr(content_class, "_public_schema", None)
-    schema = schema_fn() if callable(schema_fn) else None
+    schema = cast(
+        "Mapping[str, Any] | Sequence[str | tuple[str, Any]] | None",
+        schema_fn() if callable(schema_fn) else None,
+    )
     return pl.DataFrame((getattr(item, "_public_dict", {}) for item in items), schema=schema)
 
 
@@ -197,19 +201,19 @@ class PaginatedList(Generic[T]):
     def __getitem__(self, key: str | int) -> T: ...
 
     @overload
-    def __getitem__(self, index: slice) -> _Slice[T]: ...
+    def __getitem__(self, key: slice) -> _Slice[T]: ...
 
-    def __getitem__(self, index: int | slice | str) -> T | _Slice[T]:
-        assert isinstance(index, (int, slice, str))
-        if isinstance(index, int):
-            if index < 0:
+    def __getitem__(self, key: int | slice | str) -> T | _Slice[T]:
+        assert isinstance(key, (int, slice, str))
+        if isinstance(key, int):
+            if key < 0:
                 raise IndexError("Cannot negative index a PaginatedList")
-            self._get_up_to_index(index)
-            return self._elements[index]
-        if isinstance(index, slice):
-            return _Slice(self, index)
+            self._get_up_to_index(key)
+            return self._elements[key]
+        if isinstance(key, slice):
+            return _Slice(self, key)
         id_field = _resolve_id_field(self._content_class)
-        return _resolve_string_lookup(self.__iter__(), index, id_field)
+        return cast("T", _resolve_string_lookup(self.__iter__(), key, id_field))
 
     def __contains__(self, key: object) -> bool:
         """Perform mapping-style membership tests by id, then label.
@@ -462,7 +466,7 @@ class AsyncPaginatedList(Generic[T]):
                     return items[__key]
                 if isinstance(__key, str):
                     id_field = _resolve_id_field(self._content_class)
-                    return _resolve_string_lookup(items, __key, id_field)
+                    return cast("T", _resolve_string_lookup(items, __key, id_field))
             except (IndexError, KeyError, ValueError, AttributeError, TypeError):
                 pass
         return __default

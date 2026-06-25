@@ -33,6 +33,8 @@ class Aggregates:
         """Normalize literal-only queries for aggregate helper methods."""
         if query is None:
             return None, None
+        if not isinstance(query, pl.Expr):
+            return query, None
         if query.meta.root_names():
             return query, None
         literal_value = pl.LazyFrame({"_": [1]}).select(query.alias("value")).collect().item()
@@ -507,6 +509,7 @@ class Aggregates:
         model_data: pl.LazyFrame,
         debug: bool,
     ) -> pl.LazyFrame:
+        treatment_summary: pl.LazyFrame | None = None
         if "Treatment" in self.datamart.context_keys:
             treatment_summary = (
                 model_data.filter(pl.col("Treatment") != "")
@@ -562,7 +565,9 @@ class Aggregates:
 
         if "Treatment" in self.datamart.context_keys:
             return action_summary.join(
-                treatment_summary,
+                treatment_summary
+                if treatment_summary is not None
+                else action_summary.select(grouping).with_columns(Treatments=pl.lit(0)),
                 on=grouping,
                 nulls_equal=True,
                 how="left",

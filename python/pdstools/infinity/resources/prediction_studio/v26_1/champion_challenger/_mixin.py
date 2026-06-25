@@ -118,10 +118,10 @@ class _ChampionChallengerv26_1Mixin:
                     self.challenger_model = None
                 break
 
-    async def _status(self):
+    async def _status(self) -> dict[str, Any]:
         """Checks the update status of the champion challenger configuration."""
         if not self.cc_id:
-            return "Active"
+            return {"ModelUpdateStatus": "Active", "message": "Active"}
         endpoint = f"/prweb/api/PredictionStudio/v4/predictions/operations/{self.cc_id}"
         return await self._a_get(endpoint)
 

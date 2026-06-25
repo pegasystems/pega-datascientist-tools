@@ -13,7 +13,7 @@ import logging
 import os
 import sys
 from importlib import resources
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from types import ModuleType
@@ -233,7 +233,7 @@ def doctor() -> None:
     """
     from .utils.show_versions import show_versions
 
-    show_versions(include_runtime_diagnostics=True)
+    show_versions(print_output=True, include_runtime_diagnostics=True)
 
 
 def main():
@@ -429,10 +429,11 @@ def run(args, unknown):
     if args.full_embed:
         os.environ["PDSTOOLS_FULL_EMBED"] = "true"
 
-    display_name = APPS[args.app]["display_name"]
+    app_name = cast(str, args.app)
+    display_name = APPS[app_name]["display_name"]
     print(f"Running {display_name} app...")
 
-    app_path = APPS[args.app]["path"]
+    app_path = APPS[app_name]["path"]
     with resources.path(app_path, "Home.py") as filepath:
         filename = str(filepath)
 

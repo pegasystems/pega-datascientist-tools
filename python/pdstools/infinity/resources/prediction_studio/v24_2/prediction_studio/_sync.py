@@ -74,7 +74,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
 
         return pages.as_df()
 
-    @overload  # type: ignore[override]  # intentionally widens parent signature with return_df
+    @overload
     def list_predictions(
         self,
         return_df: Literal[False] = False,

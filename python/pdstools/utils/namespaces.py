@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import logging
 import sys
 import types
 from functools import wraps
+from typing import ClassVar
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +70,8 @@ class LazyNamespace(metaclass=LazyNamespaceMeta):
     of returning a confusing ``AttributeError``.
     """
 
-    dependencies: list[str] | None
-    dependency_group: str | None
+    dependencies: ClassVar[list[str] | None] = None
+    dependency_group: ClassVar[str | None] = None
 
     def __init__(self):
         self._dependencies_checked = False

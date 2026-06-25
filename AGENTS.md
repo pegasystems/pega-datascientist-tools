@@ -10,6 +10,12 @@ dependencies and execution.
 
 - **Open source repo.** Never include customer names, customer data, or
   internal project names anywhere (code, comments, commit messages, tests).
+- **Never push without repo-local pre-commit installed and run.** Before
+  pushing any branch, install hooks in that checkout with
+  `uv run pre-commit install` and run `uv run pre-commit run --all-files`
+  using this repo's `.pre-commit-config.yaml`. If `pre-commit` is not
+  installed yet, stop and prompt the user to allow installing the dev
+  tooling (`uv sync --extra dev`) rather than pushing unhooked.
 - **Git workflow.** Do not `git commit` on the user's working branch.
   Stage with `git add` and let the user commit. Exception: branches you
   created yourself, or when the user explicitly asks for a commit/PR.
@@ -72,6 +78,12 @@ Optional extras by area:
 - Docs: `uv sync --extra docs --extra all`
 - Pre-commit hooks: `uv sync --extra dev`
 
+One-time hook install for any checkout that may be pushed:
+
+```bash
+uv run pre-commit install
+```
+
 ## Build / Lint / Test commands
 
 ### Linting and formatting
@@ -80,6 +92,9 @@ Preferred: run the pre-commit hooks (uses ruff + ruff-format + nb-clean).
 ```bash
 uv run pre-commit run --all-files
 ```
+
+Before pushing a branch, this is mandatory even if you already ran narrower
+checks while iterating.
 
 If you want to run ruff directly:
 
@@ -932,19 +947,16 @@ worktree — the `.venv` is per-worktree, not shared.
 `.git/hooks/` directory is per-worktree, so the symlinks created by
 `pre-commit install` in the main checkout don't carry over. A
 sub-agent that just runs `git commit` in a fresh worktree will bypass
-the hooks entirely, and the lint failure shows up later in CI. Two
-fixes, pick one:
+the hooks entirely, and the lint failure shows up later in CI.
 
-- **Install hooks in the worktree:** `uv run pre-commit install` once
-  per worktree, after `uv sync`. Then `git commit` is gated by the
-  same hooks as the main checkout.
-- **Run hooks explicitly before committing:**
-  `uv run pre-commit run --all-files` as the final step of the
-  agent's workflow. Mirrors what CI runs and catches everything.
+**Required workflow for every push-capable worktree:**
 
-Either is fine; the second is a hard requirement when dispatching
-sub-agents (they don't get the developer-side `pre-commit install`
-muscle memory).
+- Run `uv sync --extra dev` if `pre-commit` is not available yet. If
+  the environment still does not have `pre-commit`, stop and prompt the
+  user before pushing anything.
+- Run `uv run pre-commit install` once per worktree after `uv sync`.
+- Run `uv run pre-commit run --all-files` as the final step before any
+  push. CI mirrors this exact repo-local config.
 
 If a batch of agent PRs all fail the lint check at once, the rescue
 loop is:

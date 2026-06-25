@@ -8,7 +8,7 @@ import datetime
 import logging
 import math
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 import polars as pl
 
@@ -18,7 +18,7 @@ from ..utils.metric_limits import MetricLimits
 
 if TYPE_CHECKING:  # pragma: no cover
     from ..adm.ADMDatamart import ADMDatamart
-    from ..prediction import Prediction
+    from ..prediction.Prediction import Prediction
 
 logger = logging.getLogger(__name__)
 RECOVERABLE_ANALYSIS_ERRORS = (
@@ -132,6 +132,16 @@ class Analysis:
     def __init__(self, datamart: "ADMDatamart") -> None:
         self.datamart = datamart
 
+    def _model_data(self) -> pl.LazyFrame:
+        if self.datamart.model_data is None:
+            raise ValueError("Model data is not available.")
+        return self.datamart.model_data
+
+    def _combined_data(self) -> pl.LazyFrame:
+        if self.datamart.combined_data is None:
+            raise ValueError("Combined predictor/model data is not available.")
+        return self.datamart.combined_data
+
     def _markdown_renderer(self) -> HealthCheckMarkdownRenderer:
         return HealthCheckMarkdownRenderer(self)
 
@@ -144,7 +154,8 @@ class Analysis:
     def health_check_active_threshold_date_string(self, *, active_threshold_days: int = 30) -> str:
         """Return the shared cutoff-date string for the active-model filter."""
         return (
-            self.datamart.model_data.select(
+            self._model_data()
+            .select(
                 (pl.col("LastUpdate").max() - datetime.timedelta(days=active_threshold_days))
                 .dt.strftime("%v")
                 .alias("cutoff")
@@ -160,6 +171,8 @@ class Analysis:
         min_positives = MetricLimits.minimum("TotalPositiveCount")
         bp_min_positives = MetricLimits.best_practice_min("TotalPositiveCount")
         min_perf = MetricLimits.minimum("ModelPerformance")
+        if bp_min_positives is None or min_perf is None:
+            raise ValueError("Missing maturity thresholds in MetricLimits.")
 
         return [
             ("last_snapshot", "Number of models in last snapshot", pl.lit(True)),
@@ -297,9 +310,9 @@ class Analysis:
 
         try:
             all_columns = (
-                self.datamart.combined_data.collect_schema().names()
+                self._combined_data().collect_schema().names()
                 if self.datamart.predictor_data is not None
-                else self.datamart.model_data.collect_schema().names()
+                else self._model_data().collect_schema().names()
             )
             taxonomy_fields: list[tuple[str, str | list[str]]] = [
                 ("ActionCount", "Name"),
@@ -339,7 +352,8 @@ class Analysis:
 
         try:
             date_range = (
-                self.datamart.model_data.select(
+                self._model_data()
+                .select(
                     pl.col("SnapshotTime").min().alias("start"),
                     pl.col("SnapshotTime").max().alias("end"),
                 )
@@ -700,7 +714,7 @@ class Analysis:
             key=lambda severity: severity_order[severity],
             default="success",
         )
-        severity: Severity = highest_severity
+        severity: Severity = cast(Severity, highest_severity)
         verdict = {
             "critical": "NEEDS ATTENTION",
             "warning": "MIXED",
@@ -778,7 +792,7 @@ class Analysis:
         findings: list[Finding] = []
         invalid: set[str] = set()
         try:
-            rows = self.datamart.model_data.select(["Channel", "Direction"]).unique().collect()
+            rows = self._model_data().select(["Channel", "Direction"]).unique().collect()
         except RECOVERABLE_ANALYSIS_ERRORS as exc:
             logger.debug("Could not collect channel/direction values: %s", exc)
             return findings, invalid
@@ -804,7 +818,8 @@ class Analysis:
                 }
             )
             n_models = (
-                self.datamart.model_data.select(
+                self._model_data()
+                .select(
                     pl.col("ModelID"),
                     pl.col("Channel").cast(pl.Utf8),
                     pl.col("Direction").cast(pl.Utf8),
@@ -1299,9 +1314,9 @@ class Analysis:
     ) -> list[Finding]:
         findings: list[Finding] = []
         all_columns = (
-            self.datamart.combined_data.collect_schema().names()
+            self._combined_data().collect_schema().names()
             if self.datamart.predictor_data is not None
-            else self.datamart.model_data.collect_schema().names()
+            else self._model_data().collect_schema().names()
         )
 
         checks = [
@@ -1398,7 +1413,8 @@ class Analysis:
         if self.datamart.predictor_data is not None:
             try:
                 pred_counts = (
-                    self.datamart.combined_data.filter(pl.col("EntryType") != "Classifier")
+                    self._combined_data()
+                    .filter(pl.col("EntryType") != "Classifier")
                     .group_by("Configuration")
                     .agg(pl.col("PredictorName").n_unique().alias("n_predictors"))
                     .collect()
@@ -1549,7 +1565,7 @@ class Analysis:
         findings: list[Finding] = []
 
         try:
-            snapshots = self.datamart.model_data.select(pl.col("SnapshotTime").unique()).collect()
+            snapshots = self._model_data().select(pl.col("SnapshotTime").unique()).collect()
         except RECOVERABLE_ANALYSIS_ERRORS as exc:
             logger.debug("Could not collect snapshot times for trend analysis: %s", exc)
             return findings
@@ -1562,7 +1578,8 @@ class Analysis:
             by_expr = pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/").alias("Channel/Direction")
 
             trend = (
-                self.datamart.model_data.with_columns(by_expr)
+                self._model_data()
+                .with_columns(by_expr)
                 .group_by(["SnapshotTime", "Channel/Direction"])
                 .agg(
                     (cdh_utils.weighted_average_polars("Performance", "ResponseCount") * 100).round(1).alias("AvgPerf"),
@@ -1647,6 +1664,8 @@ class Analysis:
     def _check_predictors(self, *, predictor_overview: pl.DataFrame | None = None) -> list[Finding]:
         findings: list[Finding] = []
         min_perf = MetricLimits.minimum("ModelPerformance")
+        if min_perf is None:
+            return findings
 
         # Poor predictors
         if predictor_overview is None:
@@ -1686,7 +1705,7 @@ class Analysis:
 
         # Missing predictor data
         try:
-            all_columns = self.datamart.combined_data.collect_schema().names()
+            all_columns = self._combined_data().collect_schema().names()
             gb_cols = report_utils.polars_subset_to_existing_cols(all_columns, ["PredictorCategory", "PredictorName"])
 
             missing = (
@@ -1728,7 +1747,8 @@ class Analysis:
         # Check for IH predictor proportion
         try:
             ih_counts = (
-                self.datamart.combined_data.filter(pl.col("EntryType") != "Classifier")
+                self._combined_data()
+                .filter(pl.col("EntryType") != "Classifier")
                 .group_by("Configuration")
                 .agg(
                     pl.col("PredictorName").filter(pl.col("PredictorCategory") == "IH").n_unique().alias("IH_count"),

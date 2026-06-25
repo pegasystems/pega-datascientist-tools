@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING
 
 import polars as pl
 
 from ._polars import weighted_average_polars
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -116,10 +116,9 @@ def auc_from_bincounts(
     if (np.sum(pos_arr) == 0) or (np.sum(neg_arr) == 0):
         return 0.5
 
-    if probs is None:
-        probs = pos_arr / (pos_arr + neg_arr)
+    probs_arr = pos_arr / (pos_arr + neg_arr) if probs is None else np.asarray(probs)
 
-    binorder = np.argsort(probs)[::-1]
+    binorder = np.argsort(probs_arr)[::-1]
     FPR = np.cumsum(neg_arr[binorder]) / np.sum(neg_arr)
     TPR = np.cumsum(pos_arr[binorder]) / np.sum(pos_arr)
 

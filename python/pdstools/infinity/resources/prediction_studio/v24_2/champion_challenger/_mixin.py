@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 import string
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import validate_call
 
@@ -163,7 +163,7 @@ class _ChampionChallengerV24_2Mixin:
                     self.challenger_model = None
                 break
 
-    async def _status(self):
+    async def _status(self) -> dict[str, Any]:
         """Checks the update status of the champion challenger configuration.
 
         Determines if an update to the champion challenger setup is currently
@@ -172,13 +172,12 @@ class _ChampionChallengerV24_2Mixin:
 
         Returns
         -------
-        str
-            The current status of the update process, or "Active" if no
-            updates are pending.
+        dict[str, Any]
+            A status payload with at least ``ModelUpdateStatus``.
 
         """
         if not self.cc_id:
-            return "Active"
+            return {"ModelUpdateStatus": "Active", "message": "Active"}
         endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.cc_id}"
         return await self._a_get(endpoint)
 
@@ -607,7 +606,10 @@ class _ChampionChallengerV24_2Mixin:
         except PegaException as e:
             raise PegaMLopsError("Error when Adding challenger model: " + str(e)) from e
 
-        if "Approved" not in response["message"]:
+        response_message = (
+            cast("dict[str, Any]", response).get("message", "") if isinstance(response, dict) else str(response)
+        )
+        if "Approved" not in response_message:
             raise PegaMLopsError("Error when adding model")
         logger.info("Add model: Refreshing Champion challenger configuration: ")
         await self._sleep(1)
@@ -689,7 +691,10 @@ class _ChampionChallengerV24_2Mixin:
             )
         except PegaException as e:
             raise PegaMLopsError("Error when Adding challenger model: " + str(e)) from e
-        if "Approved" not in response["message"]:
+        response_message = (
+            cast("dict[str, Any]", response).get("message", "") if isinstance(response, dict) else str(response)
+        )
+        if "Approved" not in response_message:
             raise PegaMLopsError("Error when adding model")
         await self._refresh_champion_challenger()
         logger.info("Clone model: %s", response)

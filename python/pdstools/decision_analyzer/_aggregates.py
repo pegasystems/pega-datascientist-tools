@@ -501,7 +501,7 @@ class Aggregates:
             )
             color_by_col = "Channel/Direction"
         else:
-            color_by_col = color_by
+            color_by_col = color_by or "Status"
 
         # Compute cumulative stats within each group if color_by is specified
         if color_by is not None:
@@ -781,7 +781,7 @@ class Aggregates:
         stage: str = "AvailableActions",
         scope: Literal["Group", "Issue", "Action"] | None = "Group",
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
-    ) -> pl.DataFrame:
+    ) -> pl.LazyFrame:
         """Daily trend of unique decisions from a given stage onward.
 
         Parameters
@@ -795,7 +795,7 @@ class Aggregates:
 
         Returns
         -------
-        pl.DataFrame
+        pl.LazyFrame
             Columns: ``day``, optionally *scope*, and ``Decisions``.
         """
         stages = self.da.AvailableNBADStages[self.da.AvailableNBADStages.index(stage) :]
@@ -1005,7 +1005,7 @@ class Aggregates:
             .pivot(
                 index=self.da.level,
                 values="len",
-                columns=["Model Control Group"],
+                on="Model Control Group",
                 sort_columns=True,
             )
             .with_columns((pl.col("Control") / (pl.col("Test") + pl.col("Control"))).alias("Control Percentage"))

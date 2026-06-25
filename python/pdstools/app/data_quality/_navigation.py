@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import streamlit as st
 
@@ -42,7 +43,7 @@ def pages(
     default: bool = True,
     include_about: bool = True,
     include_subpages: bool = True,
-) -> list[st.Page]:
+) -> list[Any]:
     """Return the DQ page list for ``st.navigation``.
 
     Parameters match the contract used by all pdstools tools so the

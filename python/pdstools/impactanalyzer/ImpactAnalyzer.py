@@ -334,7 +334,7 @@ class ImpactAnalyzer:
         default_labels = cls.outcome_labels.get(metric, [])
         expr: pl.Expr = pl.col("Outcome").is_in(default_labels)
 
-        for channel, channel_labels in outcome_labels.items():
+        for channel, channel_labels in (outcome_labels or {}).items():
             if metric in channel_labels:
                 expr = (
                     pl.when(pl.col("Channel") == channel)

@@ -90,28 +90,31 @@ class Plots(LazyNamespace):
             - right: overall contributions plot and a list of predictor contribution plots.
 
         """
-        common_kwargs = {
-            "sort_by": sort_by,
-            "display_by": display_by,
-            "descending": descending,
-            "missing": missing,
-            "remaining": remaining,
-            "include_numeric_single_bin": include_numeric_single_bin,
-        }
+        selected_context = cast("dict[str, str]", self.explanations.filter.get_selected_context())
         if self.explanations.filter.is_context_selected():
             if return_df:
                 return self.plot_contributions_by_context(
-                    context=self.explanations.filter.get_selected_context(),
+                    context=selected_context,
                     top_n=top_n,
                     top_k=top_k,
                     return_df=True,
-                    **common_kwargs,
+                    sort_by=sort_by,
+                    display_by=display_by,
+                    descending=descending,
+                    missing=missing,
+                    remaining=remaining,
+                    include_numeric_single_bin=include_numeric_single_bin,
                 )
             context_plot, overall_plot, predictor_plots = self.plot_contributions_by_context(
-                context=self.explanations.filter.get_selected_context(),
+                context=selected_context,
                 top_n=top_n,
                 top_k=top_k,
-                **common_kwargs,
+                sort_by=sort_by,
+                display_by=display_by,
+                descending=descending,
+                missing=missing,
+                remaining=remaining,
+                include_numeric_single_bin=include_numeric_single_bin,
             )
 
             plots = [overall_plot, *predictor_plots]
@@ -125,7 +128,12 @@ class Plots(LazyNamespace):
                 top_n=top_n,
                 top_k=top_k,
                 return_df=True,
-                **common_kwargs,
+                sort_by=sort_by,
+                display_by=display_by,
+                descending=descending,
+                missing=missing,
+                remaining=remaining,
+                include_numeric_single_bin=include_numeric_single_bin,
             )
 
         logger.info(
@@ -136,7 +144,12 @@ class Plots(LazyNamespace):
         overall_plot, predictor_plots = self.plot_contributions_for_overall(
             top_n=top_n,
             top_k=top_k,
-            **common_kwargs,
+            sort_by=sort_by,
+            display_by=display_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
         plots = [overall_plot, *predictor_plots]
@@ -190,17 +203,13 @@ class Plots(LazyNamespace):
     ) -> tuple[go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
         """Plot contributions for overall."""
         display_by_enum = _resolve_contribution_type(display_by)
-        agg_kwargs = {
-            "sort_by": sort_by,
-            "descending": descending,
-            "missing": missing,
-            "remaining": remaining,
-            "include_numeric_single_bin": include_numeric_single_bin,
-        }
-
         df = self.aggregate.get_predictor_contributions(
             top_n=top_n,
-            **agg_kwargs,
+            sort_by=sort_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
         predictors = (
@@ -214,7 +223,11 @@ class Plots(LazyNamespace):
         df_predictors = self.aggregate.get_predictor_value_contributions(
             predictors=predictors,
             top_k=top_k,
-            **agg_kwargs,
+            sort_by=sort_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
         if return_df:
@@ -283,18 +296,14 @@ class Plots(LazyNamespace):
     ) -> tuple[go.Figure, go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
         """Plot contributions by context."""
         display_by_enum = _resolve_contribution_type(display_by)
-        agg_kwargs = {
-            "sort_by": sort_by,
-            "descending": descending,
-            "missing": missing,
-            "remaining": remaining,
-            "include_numeric_single_bin": include_numeric_single_bin,
-        }
-
         df_context = self.aggregate.get_predictor_contributions(
             context,
             top_n=top_n,
-            **agg_kwargs,
+            sort_by=sort_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
         # filter out the context rows for plotting by context
@@ -317,7 +326,11 @@ class Plots(LazyNamespace):
             predictors,
             context=context,
             top_k=top_k,
-            **agg_kwargs,
+            sort_by=sort_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
         if return_df:
@@ -446,7 +459,10 @@ class Plots(LazyNamespace):
 
         plots = []
         for predictor, predictor_type in predictor_info.iter_rows():
-            predictor_df = df_with_frequency_pct.filter(pl.col(_COL.PREDICTOR_NAME.value) == predictor)
+            predictor_subset = df_with_frequency_pct.filter(pl.col(_COL.PREDICTOR_NAME.value) == predictor)
+            predictor_df = (
+                predictor_subset.collect() if isinstance(predictor_subset, pl.LazyFrame) else predictor_subset
+            )
 
             customdata, hovertemplate = self._build_hover_customdata(predictor_df, x_col)
 
