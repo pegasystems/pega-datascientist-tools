@@ -1,0 +1,59 @@
+pdstools.adm.HealthCheckMarkdown
+================================
+
+.. py:module:: pdstools.adm.HealthCheckMarkdown
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.adm.HealthCheckMarkdown.HealthCheckMarkdownRenderer
+
+
+Module Contents
+---------------
+
+.. py:class:: HealthCheckMarkdownRenderer(analysis: pdstools.adm.Analysis.Analysis)
+
+   Render health-check findings as GitHub-flavored Markdown.
+
+
+   .. py:attribute:: analysis
+
+
+   .. py:method:: render(*, title: str = 'ADM Health Check', subtitle: str = '', disclaimer: str = '', active_filter: polars.Expr | None = None, active_threshold_days: int = 30, prediction=None, preaggregates: pdstools.adm.Analysis.HealthCheckPreAggregates | None = None) -> str
+
+      Render the health-check findings as a markdown document.
+
+
+
+   .. py:method:: key_metrics_table(last_data: polars.DataFrame, findings: list[pdstools.adm.Analysis.Finding], active_filter: polars.Expr | None, *, preaggregates: pdstools.adm.Analysis.HealthCheckPreAggregates | None = None) -> polars.DataFrame
+
+      Build a compact key-metrics table for markdown output.
+
+
+
+   .. py:method:: estate_snapshot_sections(active_filter: polars.Expr | None, *, preaggregates: pdstools.adm.Analysis.HealthCheckPreAggregates | None = None) -> list[tuple[str, polars.DataFrame]]
+
+      Build compact orientation tables for the markdown report.
+
+
+
+   .. py:method:: findings_by_severity_table(findings: list[pdstools.adm.Analysis.Finding]) -> polars.DataFrame
+      :staticmethod:
+
+
+      Summarize findings by severity.
+
+
+
+   .. py:method:: findings_by_category_table(findings: list[pdstools.adm.Analysis.Finding]) -> polars.DataFrame
+      :staticmethod:
+
+
+      Summarize findings by category.
+
+
+

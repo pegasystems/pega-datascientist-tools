@@ -147,6 +147,12 @@ Module Contents
 
 
 
+   .. py:method:: channel_overview(*, query: pdstools.utils.types.QUERY | None = None) -> polars.DataFrame
+
+      Return the display-ready channel overview table.
+
+
+
    .. py:method:: summary_by_configuration(*, query: pdstools.utils.types.QUERY | None = None) -> polars.LazyFrame
 
       Generates a summary of the ADM model configurations.
@@ -185,6 +191,12 @@ Module Contents
 
 
 
+   .. py:method:: configuration_overview(*, query: pdstools.utils.types.QUERY | None = None) -> polars.DataFrame
+
+      Return the display-ready configuration overview table.
+
+
+
    .. py:method:: predictors_global_overview(*, query: pdstools.utils.types.QUERY | None = None) -> polars.LazyFrame
 
       Generate a global overview of all predictors across all models.
@@ -202,6 +214,12 @@ Module Contents
                 - Positives - The total number of positive responses for this predictor
                 - Min, Mean, Median, Max - The min, mean, median and max performance of the predictor (AUC)
       :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: global_predictor_overview(*, query: pdstools.utils.types.QUERY | None = None) -> polars.DataFrame
+
+      Return the display-ready global predictor overview table.
 
 
 

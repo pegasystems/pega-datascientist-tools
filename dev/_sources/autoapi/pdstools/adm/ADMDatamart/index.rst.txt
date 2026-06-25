@@ -31,6 +31,7 @@ Module Contents
    - `.plot` contains ready-made plots to analyze the data with
    - `.aggregates` contains mostly internal data aggregations queries
    - `.agb` contains analysis utilities for Adaptive Gradient Boosting models
+   - `.analysis` contains programmatic health findings and diagnostics
    - `.generate` leads to some ready-made reports, such as the Health Check
    - `.bin_aggregator` allows you to compare the bins across various models
 
@@ -103,6 +104,12 @@ Module Contents
 
    .. py:attribute:: agb
       :type:  pdstools.adm.trees.AGB
+
+
+   .. py:attribute:: analysis
+      :type:  pdstools.adm.Analysis.Analysis
+
+      Programmatic health findings accessor.
 
 
    .. py:attribute:: generate

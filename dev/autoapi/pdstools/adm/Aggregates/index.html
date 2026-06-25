@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../../../genindex.html"><link rel="search" title="Search" href="../../../../search.html"><link rel="next" title="pdstools.adm.BinAggregator" href="../BinAggregator/index.html"><link rel="prev" title="pdstools.adm.ADMDatamart" href="../ADMDatamart/index.html">
+<link rel="index" title="Index" href="../../../../genindex.html"><link rel="search" title="Search" href="../../../../search.html"><link rel="next" title="pdstools.adm.Analysis" href="../Analysis/index.html"><link rel="prev" title="pdstools.adm.ADMDatamart" href="../ADMDatamart/index.html">
         <link rel="prefetch" href="../../../../_static/pegasystems-inc-vector-logo.svg" as="image">
 
     <link rel="shortcut icon" href="../../../../_static/pegasystems-inc-vector-logo.svg"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
@@ -246,7 +246,9 @@
 <li class="toctree-l3 current has-children"><a class="reference internal" href="../index.html">pdstools.adm</a><input aria-label="Toggle navigation of pdstools.adm" checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="../ADMDatamart/index.html">pdstools.adm.ADMDatamart</a></li>
 <li class="toctree-l4 current current-page"><a class="current reference internal" href="#">pdstools.adm.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../Analysis/index.html">pdstools.adm.Analysis</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../BinAggregator/index.html">pdstools.adm.BinAggregator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../HealthCheckMarkdown/index.html">pdstools.adm.HealthCheckMarkdown</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../Plots/index.html">pdstools.adm.Plots</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../Reports/index.html">pdstools.adm.Reports</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../Schema/index.html">pdstools.adm.Schema</a></li>
@@ -605,6 +607,20 @@ for display in reports. If False, keeps original boolean/null values.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.Aggregates.Aggregates.channel_overview">
+<span class="sig-name descname"><span class="pre">channel_overview</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.adm.Aggregates.Aggregates.channel_overview" title="Link to this definition">¶</a></dt>
+<dd><p>Return the display-ready channel overview table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>query</strong> (<a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><em>pdstools.utils.types.QUERY</em></a><em> | </em><em>None</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.Aggregates.Aggregates.summary_by_configuration">
 <span class="sig-name descname"><span class="pre">summary_by_configuration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.adm.Aggregates.Aggregates.summary_by_configuration" title="Link to this definition">¶</a></dt>
 <dd><p>Generates a summary of the ADM model configurations.</p>
@@ -643,6 +659,20 @@ the number of models, actions, treatments, and performance metrics.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.Aggregates.Aggregates.configuration_overview">
+<span class="sig-name descname"><span class="pre">configuration_overview</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.adm.Aggregates.Aggregates.configuration_overview" title="Link to this definition">¶</a></dt>
+<dd><p>Return the display-ready configuration overview table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>query</strong> (<a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><em>pdstools.utils.types.QUERY</em></a><em> | </em><em>None</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.Aggregates.Aggregates.predictors_global_overview">
 <span class="sig-name descname"><span class="pre">predictors_global_overview</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.adm.Aggregates.Aggregates.predictors_global_overview" title="Link to this definition">¶</a></dt>
 <dd><p>Generate a global overview of all predictors across all models.</p>
@@ -664,6 +694,20 @@ across all models, including the number of responses, positives, and performance
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pl.LazyFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.Aggregates.Aggregates.global_predictor_overview">
+<span class="sig-name descname"><span class="pre">global_predictor_overview</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.adm.Aggregates.Aggregates.global_predictor_overview" title="Link to this definition">¶</a></dt>
+<dd><p>Return the display-ready global predictor overview table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>query</strong> (<a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><em>pdstools.utils.types.QUERY</em></a><em> | </em><em>None</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>polars.DataFrame</p>
 </dd>
 </dl>
 </dd></dl>
@@ -777,12 +821,12 @@ For debug logging, use logging.basicConfig(level=logging.DEBUG).</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="../BinAggregator/index.html">
+          <a class="next-page" href="../Analysis/index.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">pdstools.adm.BinAggregator</div>
+                <div class="title">pdstools.adm.Analysis</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -843,8 +887,11 @@ For debug logging, use logging.basicConfig(level=logging.DEBUG).</p>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.predictor_performance_pivot"><code class="docutils literal notranslate"><span class="pre">predictor_performance_pivot()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.model_summary"><code class="docutils literal notranslate"><span class="pre">model_summary()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.summary_by_channel"><code class="docutils literal notranslate"><span class="pre">summary_by_channel()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.channel_overview"><code class="docutils literal notranslate"><span class="pre">channel_overview()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.summary_by_configuration"><code class="docutils literal notranslate"><span class="pre">summary_by_configuration()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.configuration_overview"><code class="docutils literal notranslate"><span class="pre">configuration_overview()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.predictors_global_overview"><code class="docutils literal notranslate"><span class="pre">predictors_global_overview()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.global_predictor_overview"><code class="docutils literal notranslate"><span class="pre">global_predictor_overview()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.predictors_overview"><code class="docutils literal notranslate"><span class="pre">predictors_overview()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.overall_summary"><code class="docutils literal notranslate"><span class="pre">overall_summary()</span></code></a></li>
 </ul>

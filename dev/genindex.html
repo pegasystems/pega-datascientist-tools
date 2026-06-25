@@ -244,7 +244,9 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="autoapi/pdstools/adm/index.html">pdstools.adm</a><input aria-label="Toggle navigation of pdstools.adm" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/ADMDatamart/index.html">pdstools.adm.ADMDatamart</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/Aggregates/index.html">pdstools.adm.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/Analysis/index.html">pdstools.adm.Analysis</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/BinAggregator/index.html">pdstools.adm.BinAggregator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/HealthCheckMarkdown/index.html">pdstools.adm.HealthCheckMarkdown</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/Plots/index.html">pdstools.adm.Plots</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/Reports/index.html">pdstools.adm.Reports</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/Schema/index.html">pdstools.adm.Schema</a></li>
@@ -460,8 +462,12 @@
           <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/v24_2/model_upload/index.html#pdstools.infinity.resources.prediction_studio.v24_2.model_upload.UploadedModel.__repr__">(UploadedModel method)</a>
 </li>
         </ul></li>
-        <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/model_security/index.html#pdstools.infinity.resources.prediction_studio.model_security.SecurityResult.__str__">__str__() (SecurityResult method)</a>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Finding.__str__">__str__() (Finding method)</a>
+
+        <ul>
+          <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/model_security/index.html#pdstools.infinity.resources.prediction_studio.model_security.SecurityResult.__str__">(SecurityResult method)</a>
 </li>
+        </ul></li>
         <li><a href="autoapi/pdstools/utils/show_versions/index.html#pdstools.utils.show_versions.__version__">__version__ (in module pdstools.utils.show_versions)</a>
 </li>
     </ul></td>
@@ -484,11 +490,17 @@
 </li>
         <li><a href="autoapi/pdstools/adm/BinAggregator/index.html#pdstools.adm.BinAggregator.BinAggregator.accumulate_sym_binnings">accumulate_sym_binnings() (BinAggregator method)</a>
 </li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.action_count">action_count (HealthCheckPreAggregates attribute)</a>
+</li>
         <li><a href="autoapi/pdstools/ih/Plots/index.html#pdstools.ih.Plots.Plots.action_distribution">action_distribution() (Plots method)</a>
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/plots/index.html#pdstools.decision_analyzer.plots.Plot.action_variation">action_variation (Plot attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/schemas/model_instance/index.html#pdstools.infinity.resources.prediction_studio.schemas.model_instance.ModelInstanceData.active">active (ModelInstanceData attribute)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.active_avg_auc">active_avg_auc (HealthCheckPreAggregates attribute)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.active_models">active_models (HealthCheckPreAggregates attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart.active_ranges">active_ranges() (ADMDatamart method)</a>
 </li>
@@ -563,6 +575,12 @@
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/model_security/index.html#pdstools.infinity.resources.prediction_studio.model_security.ALLOWED_PEGA_KEYS">ALLOWED_PEGA_KEYS (in module pdstools.infinity.resources.prediction_studio.model_security)</a>
 </li>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/model_security/index.html#pdstools.infinity.resources.prediction_studio.model_security.ALLOWED_PREDICTOR_KEYS">ALLOWED_PREDICTOR_KEYS (in module pdstools.infinity.resources.prediction_studio.model_security)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart.analysis">analysis (ADMDatamart attribute)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Analysis">Analysis (class in pdstools.adm.Analysis)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/HealthCheckMarkdown/index.html#pdstools.adm.HealthCheckMarkdown.HealthCheckMarkdownRenderer.analysis">analysis (HealthCheckMarkdownRenderer attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization">Anonymization (class in pdstools.pega_io.Anonymization)</a>
 </li>
@@ -716,6 +734,8 @@
 </li>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index.html#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType.CATEGORICAL">CATEGORICAL (OutcomeType attribute)</a>
 </li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Finding.category">category (Finding attribute)</a>
+</li>
         <li><a href="autoapi/pdstools/utils/datasets/index.html#pdstools.utils.datasets.cdh_sample">cdh_sample() (in module pdstools.utils.datasets)</a>
 </li>
         <li><a href="autoapi/pdstools/ih/Schema/index.html#pdstools.ih.Schema.IHInteraction.Channel">Channel (IHInteraction attribute)</a>
@@ -724,6 +744,14 @@
           <li><a href="autoapi/pdstools/impactanalyzer/Schema/index.html#pdstools.impactanalyzer.Schema.ImpactAnalyzerData.Channel">(ImpactAnalyzerData attribute)</a>
 </li>
         </ul></li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.channel_count">channel_count (HealthCheckPreAggregates attribute)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.channel_overview">channel_overview (HealthCheckPreAggregates attribute)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Aggregates/index.html#pdstools.adm.Aggregates.Aggregates.channel_overview">channel_overview() (Aggregates method)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.channel_summary">channel_summary (HealthCheckPreAggregates attribute)</a>
+</li>
         <li><a href="autoapi/pdstools/utils/namespaces/index.html#pdstools.utils.namespaces.LazyNamespace.check_dependencies">check_dependencies() (LazyNamespace method)</a>
 </li>
         <li><a href="autoapi/pdstools/cli/index.html#pdstools.cli.check_for_typos">check_for_typos() (in module pdstools.cli)</a>
@@ -764,8 +792,18 @@
 </li>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/schemas/model/index.html#pdstools.infinity.resources.prediction_studio.schemas.model.ModelData.component_name">component_name (ModelData attribute)</a>
 </li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Analysis.compute_health_check_preaggregates">compute_health_check_preaggregates() (Analysis method)</a>
+</li>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/model_security/index.html#pdstools.infinity.resources.prediction_studio.model_security.compute_model_hash">compute_model_hash() (in module pdstools.infinity.resources.prediction_studio.model_security)</a>
 </li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.configuration_count">configuration_count (HealthCheckPreAggregates attribute)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Aggregates/index.html#pdstools.adm.Aggregates.Aggregates.configuration_overview">configuration_overview() (Aggregates method)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.configuration_summary">configuration_summary (HealthCheckPreAggregates attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/utils/streamlit_utils/index.html#pdstools.utils.streamlit_utils.configure_predictor_categorization">configure_predictor_categorization() (in module pdstools.utils.streamlit_utils)</a>
 </li>
         <li><a href="autoapi/pdstools/infinity/resources/knowledge_buddy/knowledge_buddy/index.html#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.Chunk.content">content (Chunk attribute)</a>
@@ -774,8 +812,6 @@
 </li>
         <li><a href="autoapi/pdstools/reports/GlobalExplanations/scripts/generate_report/index.html#pdstools.reports.GlobalExplanations.scripts.generate_report.CONTEXT_FOLDER">CONTEXT_FOLDER (in module pdstools.reports.GlobalExplanations.scripts.generate_report)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/explanations/ExplanationsUtils/index.html#pdstools.explanations.ExplanationsUtils.ContextInfo.context_key">context_key (ContextInfo attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart.context_keys">context_keys (ADMDatamart attribute)</a>
@@ -872,8 +908,12 @@
   <h2>D</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="autoapi/pdstools/ih/IH/index.html#pdstools.ih.IH.IH.data">data (IH attribute)</a>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Finding.data">data (Finding attribute)</a>
+
+        <ul>
+          <li><a href="autoapi/pdstools/ih/IH/index.html#pdstools.ih.IH.IH.data">(IH attribute)</a>
 </li>
+        </ul></li>
         <li><a href="autoapi/pdstools/explanations/Preprocess/index.html#pdstools.explanations.Preprocess.Preprocess.data_file">data_file (Preprocess attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/reports/GlobalExplanations/scripts/generate_report/index.html#pdstools.reports.GlobalExplanations.scripts.generate_report.DATA_FOLDER">DATA_FOLDER (in module pdstools.reports.GlobalExplanations.scripts.generate_report)</a>
@@ -895,6 +935,8 @@
         <li><a href="autoapi/pdstools/adm/Aggregates/index.html#pdstools.adm.Aggregates.Aggregates.datamart">datamart (Aggregates attribute)</a>
 
         <ul>
+          <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Analysis.datamart">(Analysis attribute)</a>
+</li>
           <li><a href="autoapi/pdstools/adm/Plots/index.html#pdstools.adm.Plots.Plots.datamart">(Plots attribute)</a>
 </li>
           <li><a href="autoapi/pdstools/adm/Reports/index.html#pdstools.adm.Reports.Reports.datamart">(Reports attribute)</a>
@@ -908,6 +950,10 @@
           <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/v26_1/datamart_export/index.html#pdstools.infinity.resources.prediction_studio.v26_1.datamart_export.DatamartExport">(class in pdstools.infinity.resources.prediction_studio.v26_1.datamart_export)</a>
 </li>
         </ul></li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.date_end">date_end (HealthCheckPreAggregates attribute)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.date_start">date_start (HealthCheckPreAggregates attribute)</a>
+</li>
         <li><a href="autoapi/pdstools/utils/number_format/index.html#pdstools.utils.number_format.NumberFormat.decimals">decimals (NumberFormat attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/DecisionAnalyzer/index.html#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.decision_data">decision_data (DecisionAnalyzer attribute)</a>
@@ -998,6 +1044,8 @@
           <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/schemas/notification/index.html#pdstools.infinity.resources.prediction_studio.schemas.notification.NotificationData.description">(NotificationData attribute)</a>
 </li>
         </ul></li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Finding.detail">detail (Finding attribute)</a>
+</li>
         <li><a href="autoapi/pdstools/decision_analyzer/utils/index.html#pdstools.decision_analyzer.utils.determine_extract_type">determine_extract_type() (in module pdstools.decision_analyzer.utils)</a>
 </li>
         <li><a href="autoapi/pdstools/valuefinder/ValueFinder/index.html#pdstools.valuefinder.ValueFinder.ValueFinder.df">df (ValueFinder attribute)</a>
@@ -1052,6 +1100,8 @@
 </li>
         <li><a href="autoapi/pdstools/utils/streamlit_utils/index.html#pdstools.utils.streamlit_utils.ensure_session_data">ensure_session_data() (in module pdstools.utils.streamlit_utils)</a>
 </li>
+        <li><a href="autoapi/pdstools/adm/HealthCheckMarkdown/index.html#pdstools.adm.HealthCheckMarkdown.HealthCheckMarkdownRenderer.estate_snapshot_sections">estate_snapshot_sections() (HealthCheckMarkdownRenderer method)</a>
+</li>
         <li><a href="autoapi/pdstools/utils/progress_utils/index.html#pdstools.utils.progress_utils.estimate_extraction_time">estimate_extraction_time() (in module pdstools.utils.progress_utils)</a>
 </li>
         <li><a href="autoapi/pdstools/utils/progress_utils/index.html#pdstools.utils.progress_utils.estimate_sampling_time">estimate_sampling_time() (in module pdstools.utils.progress_utils)</a>
@@ -1064,10 +1114,10 @@
 </li>
         <li><a href="autoapi/pdstools/utils/show_versions/index.html#pdstools.utils.show_versions.expand_nested_deps">expand_nested_deps() (in module pdstools.utils.show_versions)</a>
 </li>
-        <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index.html#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.experiment_id">experiment_id (Metadata attribute)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index.html#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.experiment_id">experiment_id (Metadata attribute)</a>
+</li>
         <li><a href="autoapi/pdstools/decision_analyzer/column_schema/index.html#pdstools.decision_analyzer.column_schema.ExplainabilityExtract">ExplainabilityExtract (in module pdstools.decision_analyzer.column_schema)</a>
 </li>
         <li><a href="autoapi/pdstools/explanations/Aggregate/index.html#pdstools.explanations.Aggregate.Aggregate.explanations">explanations (Aggregate attribute)</a>
@@ -1136,6 +1186,14 @@
         </ul></li>
         <li><a href="autoapi/pdstools/pega_io/File/index.html#pdstools.pega_io.File.find_files">find_files() (in module pdstools.pega_io.File)</a>
 </li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Finding">Finding (class in pdstools.adm.Analysis)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Analysis.findings">findings() (Analysis method)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/HealthCheckMarkdown/index.html#pdstools.adm.HealthCheckMarkdown.HealthCheckMarkdownRenderer.findings_by_category_table">findings_by_category_table() (HealthCheckMarkdownRenderer static method)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/HealthCheckMarkdown/index.html#pdstools.adm.HealthCheckMarkdown.HealthCheckMarkdownRenderer.findings_by_severity_table">findings_by_severity_table() (HealthCheckMarkdownRenderer static method)</a>
+</li>
         <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart.first_action_dates">first_action_dates (ADMDatamart attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/utils/index.html#pdstools.decision_analyzer.utils.format_count_for_filename">format_count_for_filename() (in module pdstools.decision_analyzer.utils)</a>
@@ -1162,6 +1220,8 @@
           <li><a href="autoapi/pdstools/prediction/Prediction/index.html#pdstools.prediction.Prediction.Prediction.from_databricks_view">(Prediction class method)</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart.from_dataflow_export">from_dataflow_export() (ADMDatamart class method)</a>
 
         <ul>
@@ -1170,8 +1230,6 @@
           <li><a href="autoapi/pdstools/valuefinder/ValueFinder/index.html#pdstools.valuefinder.ValueFinder.ValueFinder.from_dataflow_export">(ValueFinder class method)</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/explanations/Preprocess/index.html#pdstools.explanations.Preprocess.Preprocess.from_date">from_date (Preprocess attribute)</a>
 
         <ul>
@@ -1318,10 +1376,10 @@
 </li>
         <li><a href="autoapi/pdstools/explanations/ExplanationsUtils/index.html#pdstools.explanations.ExplanationsUtils.ContextOperations.get_list">get_list() (ContextOperations method)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index.html#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.get_metadata">get_metadata() (ONNXModel method)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/resources/index.html#pdstools.resources.get_metric_limits_path">get_metric_limits_path() (in module pdstools.resources)</a>
 </li>
         <li><a href="autoapi/pdstools/utils/metric_limits/index.html#pdstools.utils.metric_limits.MetricLimits.get_metric_RAG_code">get_metric_RAG_code() (MetricLimits class method)</a>
@@ -1384,6 +1442,8 @@
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/utils/index.html#pdstools.decision_analyzer.utils.gini_coefficient">gini_coefficient() (in module pdstools.decision_analyzer.utils)</a>
 </li>
+        <li><a href="autoapi/pdstools/adm/Aggregates/index.html#pdstools.adm.Aggregates.Aggregates.global_predictor_overview">global_predictor_overview() (Aggregates method)</a>
+</li>
         <li><a href="autoapi/pdstools/decision_analyzer/plots/index.html#pdstools.decision_analyzer.plots.Plot.global_winloss_distribution">global_winloss_distribution (Plot attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/types/index.html#pdstools.infinity.resources.prediction_studio.types.AdmModelType.GRADIENT_BOOSTING">GRADIENT_BOOSTING (AdmModelType attribute)</a>
@@ -1408,10 +1468,24 @@
 </li>
         <li><a href="autoapi/pdstools/adm/Reports/index.html#pdstools.adm.Reports.Reports.health_check">health_check() (Reports method)</a>
 </li>
-        <li><a href="autoapi/pdstools/utils/polars_ext/index.html#pdstools.utils.polars_ext.Sample.height">height() (Sample method)</a>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Analysis.health_check_active_filter">health_check_active_filter() (Analysis method)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Analysis.health_check_active_threshold_date_string">health_check_active_threshold_date_string() (Analysis method)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Reports/index.html#pdstools.adm.Reports.Reports.health_check_markdown">health_check_markdown() (Reports method)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Analysis.health_check_maturity_criteria">health_check_maturity_criteria() (Analysis method)</a>
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Analysis.health_check_maturity_overview">health_check_maturity_overview() (Analysis method)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/HealthCheckMarkdown/index.html#pdstools.adm.HealthCheckMarkdown.HealthCheckMarkdownRenderer">HealthCheckMarkdownRenderer (class in pdstools.adm.HealthCheckMarkdown)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates">HealthCheckPreAggregates (class in pdstools.adm.Analysis)</a>
+</li>
+        <li><a href="autoapi/pdstools/utils/polars_ext/index.html#pdstools.utils.polars_ext.Sample.height">height() (Sample method)</a>
+</li>
         <li><a href="autoapi/pdstools/utils/plot_utils/index.html#pdstools.utils.plot_utils.hide_metric_annotations_on_non_rightmost">hide_metric_annotations_on_non_rightmost() (in module pdstools.utils.plot_utils)</a>
 </li>
         <li><a href="autoapi/pdstools/utils/plot_utils/index.html#pdstools.utils.plot_utils.HOVER_LIFT_PCT">HOVER_LIFT_PCT (in module pdstools.utils.plot_utils)</a>
@@ -1510,14 +1584,16 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/adm/Reports/index.html#pdstools.adm.Reports.ReportOptions.keep_temp_files">keep_temp_files (ReportOptions attribute)</a>
 </li>
+        <li><a href="autoapi/pdstools/adm/HealthCheckMarkdown/index.html#pdstools.adm.HealthCheckMarkdown.HealthCheckMarkdownRenderer.key_metrics_table">key_metrics_table() (HealthCheckMarkdownRenderer method)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/infinity/client/index.html#pdstools.infinity.client.AsyncInfinity.knowledge_buddy">knowledge_buddy (AsyncInfinity attribute)</a>
 
         <ul>
           <li><a href="autoapi/pdstools/infinity/client/index.html#pdstools.infinity.client.Infinity.knowledge_buddy">(Infinity attribute)</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/infinity/resources/knowledge_buddy/knowledge_buddy/index.html#pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.KnowledgeBuddy">KnowledgeBuddy (class in pdstools.infinity.resources.knowledge_buddy.knowledge_buddy)</a>
 </li>
     </ul></td>
@@ -1537,6 +1613,8 @@
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index.html#pdstools.infinity.resources.prediction_studio.local_model_utils.Output.label_name">label_name (Output attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/adm/Aggregates/index.html#pdstools.adm.Aggregates.Aggregates.last">last() (Aggregates method)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.last_data">last_data (HealthCheckPreAggregates attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index.html#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.last_modified_date">last_modified_date (Metadata attribute)</a>
 </li>
@@ -1653,6 +1731,8 @@
         <li><a href="autoapi/pdstools/decision_analyzer/DecisionAnalyzer/index.html#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.mandatory_actions">mandatory_actions (DecisionAnalyzer property)</a>
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/DecisionAnalyzer/index.html#pdstools.decision_analyzer.DecisionAnalyzer.MANDATORY_PRIORITY_THRESHOLD">MANDATORY_PRIORITY_THRESHOLD (in module pdstools.decision_analyzer.DecisionAnalyzer)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Analysis.markdown">markdown() (Analysis method)</a>
 </li>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/model_security/index.html#pdstools.infinity.resources.prediction_studio.model_security.MAX_POSSIBLE_VALUES">MAX_POSSIBLE_VALUES (in module pdstools.infinity.resources.prediction_studio.model_security)</a>
 </li>
@@ -1774,7 +1854,11 @@
 </li>
           <li><a href="autoapi/pdstools/adm/Aggregates/index.html#module-pdstools.adm.Aggregates">pdstools.adm.Aggregates</a>
 </li>
+          <li><a href="autoapi/pdstools/adm/Analysis/index.html#module-pdstools.adm.Analysis">pdstools.adm.Analysis</a>
+</li>
           <li><a href="autoapi/pdstools/adm/BinAggregator/index.html#module-pdstools.adm.BinAggregator">pdstools.adm.BinAggregator</a>
+</li>
+          <li><a href="autoapi/pdstools/adm/HealthCheckMarkdown/index.html#module-pdstools.adm.HealthCheckMarkdown">pdstools.adm.HealthCheckMarkdown</a>
 </li>
           <li><a href="autoapi/pdstools/adm/Plots/index.html#module-pdstools.adm.Plots">pdstools.adm.Plots</a>
 </li>
@@ -2121,10 +2205,10 @@
         </ul></li>
         <li><a href="autoapi/pdstools/ih/Schema/index.html#pdstools.ih.Schema.IHInteraction.OutcomeTime">OutcomeTime (IHInteraction attribute)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index.html#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType">OutcomeType (class in pdstools.infinity.resources.prediction_studio.local_model_utils)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index.html#pdstools.infinity.resources.prediction_studio.local_model_utils.Output">Output (class in pdstools.infinity.resources.prediction_studio.local_model_utils)</a>
 </li>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index.html#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.output">output (Metadata attribute)</a>
@@ -2134,6 +2218,8 @@
         <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.output_file">output_file (Anonymization attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/adm/Reports/index.html#pdstools.adm.Reports.ReportOptions.output_type">output_type (ReportOptions attribute)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.overall_avg_auc">overall_avg_auc (HealthCheckPreAggregates attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/ih/Plots/index.html#pdstools.ih.Plots.Plots.overall_gauges">overall_gauges() (Plots method)</a>
 </li>
@@ -2216,10 +2302,24 @@
 </li>
         </ul></li>
         <li>
+    pdstools.adm.Analysis
+
+        <ul>
+          <li><a href="autoapi/pdstools/adm/Analysis/index.html#module-pdstools.adm.Analysis">module</a>
+</li>
+        </ul></li>
+        <li>
     pdstools.adm.BinAggregator
 
         <ul>
           <li><a href="autoapi/pdstools/adm/BinAggregator/index.html#module-pdstools.adm.BinAggregator">module</a>
+</li>
+        </ul></li>
+        <li>
+    pdstools.adm.HealthCheckMarkdown
+
+        <ul>
+          <li><a href="autoapi/pdstools/adm/HealthCheckMarkdown/index.html#module-pdstools.adm.HealthCheckMarkdown">module</a>
 </li>
         </ul></li>
         <li>
@@ -3031,10 +3131,10 @@
 </li>
         <li><a href="autoapi/pdstools/valuefinder/Plots/index.html#pdstools.valuefinder.Plots.Plots.pie_charts">pie_charts() (Plots method)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart.plot">plot (ADMDatamart attribute)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="autoapi/pdstools/decision_analyzer/plots/index.html#pdstools.decision_analyzer.plots.Plot">Plot (class in pdstools.decision_analyzer.plots)</a>
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/DecisionAnalyzer/index.html#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.plot">plot (DecisionAnalyzer attribute)</a>
@@ -3079,6 +3179,8 @@
 </li>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index.html#pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel">PMMLModel (class in pdstools.infinity.resources.prediction_studio.local_model_utils)</a>
 </li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.positive_count">positive_count (HealthCheckPreAggregates attribute)</a>
+</li>
         <li><a href="autoapi/pdstools/utils/pega_template/index.html#pdstools.utils.pega_template.positive_negative">positive_negative (in module pdstools.utils.pega_template)</a>
 </li>
         <li><a href="autoapi/pdstools/ih/IH/index.html#pdstools.ih.IH.IH.positive_outcome_labels">positive_outcome_labels (IH attribute)</a>
@@ -3121,6 +3223,8 @@
           <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/schemas/prediction/index.html#pdstools.infinity.resources.prediction_studio.schemas.prediction.PredictionData.prediction_id">(PredictionData attribute)</a>
 </li>
         </ul></li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.prediction_summary">prediction_summary (HealthCheckPreAggregates attribute)</a>
+</li>
         <li><a href="autoapi/pdstools/prediction/Prediction/index.html#pdstools.prediction.Prediction.Prediction.prediction_validity_expr">prediction_validity_expr (Prediction attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/schemas/prediction/index.html#pdstools.infinity.resources.prediction_studio.schemas.prediction.PredictionData">PredictionData (class in pdstools.infinity.resources.prediction_studio.schemas.prediction)</a>
@@ -3149,7 +3253,11 @@
         </ul></li>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index.html#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor">Predictor (class in pdstools.infinity.resources.prediction_studio.local_model_utils)</a>
 </li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.predictor_categories">predictor_categories (HealthCheckPreAggregates attribute)</a>
+</li>
         <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart.predictor_category_color_map">predictor_category_color_map (ADMDatamart property)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.predictor_count">predictor_count (HealthCheckPreAggregates attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/adm/ADMDatamart/index.html#pdstools.adm.ADMDatamart.ADMDatamart.predictor_data">predictor_data (ADMDatamart attribute)</a>
 </li>
@@ -3163,6 +3271,8 @@
           <li><a href="autoapi/pdstools/explanations/Schema/index.html#pdstools.explanations.Schema.RawExplanationData.predictor_name">(RawExplanationData attribute)</a>
 </li>
         </ul></li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.predictor_overview">predictor_overview (HealthCheckPreAggregates attribute)</a>
+</li>
         <li><a href="autoapi/pdstools/adm/Aggregates/index.html#pdstools.adm.Aggregates.Aggregates.predictor_performance_pivot">predictor_performance_pivot() (Aggregates method)</a>
 </li>
         <li><a href="autoapi/pdstools/explanations/Schema/index.html#pdstools.explanations.Schema.ContextualAggregate.predictor_type">predictor_type (ContextualAggregate attribute)</a>
@@ -3757,6 +3867,8 @@
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/utils/index.html#pdstools.decision_analyzer.utils.ColumnResolver.rename_mapping">rename_mapping (ColumnResolver attribute)</a>
 </li>
+        <li><a href="autoapi/pdstools/adm/HealthCheckMarkdown/index.html#pdstools.adm.HealthCheckMarkdown.HealthCheckMarkdownRenderer.render">render() (HealthCheckMarkdownRenderer method)</a>
+</li>
         <li><a href="autoapi/pdstools/reports/GlobalExplanations/scripts/generate_report/index.html#pdstools.reports.GlobalExplanations.scripts.generate_report.ReportGenerator.report_folder">report_folder (ReportGenerator attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/explanations/Reports/index.html#pdstools.explanations.Reports.Reports.report_foldername">report_foldername (Reports attribute)</a>
@@ -3810,6 +3922,8 @@
         <li><a href="autoapi/pdstools/decision_analyzer/utils/index.html#pdstools.decision_analyzer.utils.resolve_filter_column">resolve_filter_column() (in module pdstools.decision_analyzer.utils)</a>
 </li>
         <li><a href="autoapi/pdstools/utils/pega_outcomes/index.html#pdstools.utils.pega_outcomes.resolve_outcome_labels">resolve_outcome_labels() (in module pdstools.utils.pega_outcomes)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.response_count">response_count (HealthCheckPreAggregates attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/ih/Plots/index.html#pdstools.ih.Plots.Plots.response_count">response_count() (Plots method)</a>
 </li>
@@ -3915,6 +4029,8 @@
 </li>
         <li><a href="autoapi/pdstools/valuefinder/ValueFinder/index.html#pdstools.valuefinder.ValueFinder.ValueFinder.set_threshold">set_threshold() (ValueFinder method)</a>
 </li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Finding.severity">severity (Finding attribute)</a>
+</li>
         <li><a href="autoapi/pdstools/explanations/Schema/index.html#pdstools.explanations.Schema.RawExplanationData.shap_coeff">shap_coeff (RawExplanationData attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/utils/polars_ext/index.html#pdstools.utils.polars_ext.Sample.shape">shape() (Sample method)</a>
@@ -3939,10 +4055,10 @@
 </li>
         <li><a href="autoapi/pdstools/reports/GlobalExplanations/scripts/generate_report/index.html#pdstools.reports.GlobalExplanations.scripts.generate_report.SINGLE_CONTEXT_TEMPLATE">SINGLE_CONTEXT_TEMPLATE (in module pdstools.reports.GlobalExplanations.scripts.generate_report)</a>
 </li>
-        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.skip_col_prefix">skip_col_prefix (Anonymization attribute)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.skip_col_prefix">skip_col_prefix (Anonymization attribute)</a>
+</li>
         <li><a href="autoapi/pdstools/impactanalyzer/Schema/index.html#pdstools.impactanalyzer.Schema.ImpactAnalyzerData.SnapshotTime">SnapshotTime (ImpactAnalyzerData attribute)</a>
 
         <ul>
@@ -4053,6 +4169,8 @@
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/column_schema/index.html#pdstools.decision_analyzer.column_schema.TableConfig">TableConfig (class in pdstools.decision_analyzer.column_schema)</a>
 </li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.taxonomy_counts">taxonomy_counts (HealthCheckPreAggregates attribute)</a>
+</li>
         <li><a href="autoapi/pdstools/pega_io/S3/index.html#pdstools.pega_io.S3.S3Data.temp_dir">temp_dir (S3Data attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/pega_io/Anonymization/index.html#pdstools.pega_io.Anonymization.Anonymization.temp_path">temp_path (Anonymization property)</a>
@@ -4071,8 +4189,12 @@
 </li>
         <li><a href="autoapi/pdstools/decision_analyzer/plots/index.html#pdstools.decision_analyzer.plots.Plot.threshold_deciles">threshold_deciles (Plot attribute)</a>
 </li>
-        <li><a href="autoapi/pdstools/adm/Reports/index.html#pdstools.adm.Reports.ReportOptions.title">title (ReportOptions attribute)</a>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.Finding.title">title (Finding attribute)</a>
+
+        <ul>
+          <li><a href="autoapi/pdstools/adm/Reports/index.html#pdstools.adm.Reports.ReportOptions.title">(ReportOptions attribute)</a>
 </li>
+        </ul></li>
         <li><a href="autoapi/pdstools/explanations/Preprocess/index.html#pdstools.explanations.Preprocess.Preprocess.to_date">to_date (Preprocess attribute)</a>
 
         <ul>
@@ -4097,9 +4219,13 @@
 </li>
         <li><a href="autoapi/pdstools/reports/GlobalExplanations/scripts/generate_report/index.html#pdstools.reports.GlobalExplanations.scripts.generate_report.ReportGenerator.top_n">top_n (ReportGenerator attribute)</a>
 </li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.total_models">total_models (HealthCheckPreAggregates attribute)</a>
+</li>
         <li><a href="autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index.html#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.training_dataset">training_dataset (Metadata attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/ih/Schema/index.html#pdstools.ih.Schema.IHInteraction.Treatment">Treatment (IHInteraction attribute)</a>
+</li>
+        <li><a href="autoapi/pdstools/adm/Analysis/index.html#pdstools.adm.Analysis.HealthCheckPreAggregates.treatment_count">treatment_count (HealthCheckPreAggregates attribute)</a>
 </li>
         <li><a href="autoapi/pdstools/impactanalyzer/Plots/index.html#pdstools.impactanalyzer.Plots.Plots.trend">trend() (Plots method)</a>
 </li>

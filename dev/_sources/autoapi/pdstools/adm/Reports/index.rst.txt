@@ -187,6 +187,40 @@ Module Contents
 
 
 
+   .. py:method:: health_check_markdown(name: str | None = None, *, query: pdstools.utils.types.QUERY | None = None, prediction: pdstools.prediction.Prediction.Prediction | None = None, preaggregates: pdstools.adm.Analysis.HealthCheckPreAggregates | None = None, title: str = 'ADM Health Check', subtitle: str = '', disclaimer: str = '', output_dir: str | os.PathLike[str] | None = None) -> pathlib.Path
+
+      Generate a Markdown health check report.
+
+      Unlike :meth:`health_check`, this method does not use Quarto. It renders
+      a lightweight GitHub-flavored Markdown document directly from
+      ``dm.analysis.findings()``.
+
+      :param name: Base file name of the report.
+      :type name: str, optional
+      :param query: Extra filter applied to the datamart data before rendering.
+      :type query: QUERY, optional
+      :param prediction: Prediction object to include in the report.
+      :type prediction: Prediction, optional
+      :param preaggregates: Reusable precomputed summaries produced by
+                            ``dm.analysis.compute_health_check_preaggregates()``. When
+                            provided, the markdown report reuses them instead of recomputing
+                            the same health-check summaries.
+      :type preaggregates: HealthCheckPreAggregates, optional
+      :param title: Title shown at the top of the markdown report.
+      :type title: str, default "ADM Health Check"
+      :param subtitle: Optional subtitle shown under the title.
+      :type subtitle: str, default ""
+      :param disclaimer: Optional disclaimer rendered near the top of the report.
+      :type disclaimer: str, default ""
+      :param output_dir: Directory where the markdown file will be written. Defaults to the
+                         current working directory.
+      :type output_dir: str or path-like, optional
+
+      :returns: The path to the generated markdown file.
+      :rtype: Path
+
+
+
    .. py:method:: excel_report(name: str | os.PathLike[str] = Path('Tables.xlsx'), *, predictor_binning: bool = False) -> tuple[pathlib.Path | None, list[str]]
 
       Export raw datamart tables to an Excel workbook.

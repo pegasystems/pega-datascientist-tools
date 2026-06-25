@@ -25,7 +25,7 @@ Module Contents
 
 .. py:data:: logger
 
-.. py:class:: Prediction(df: polars.LazyFrame, *, query: pdstools.utils.types.QUERY | None = None)
+.. py:class:: Prediction(df: polars.LazyFrame, *, query: pdstools.utils.types.QUERY | None = None, _materialize_validated: bool = True)
 
    Monitor and analyze Pega Prediction Studio Predictions.
 
