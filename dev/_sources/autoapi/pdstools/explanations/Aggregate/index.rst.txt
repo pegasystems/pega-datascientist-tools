@@ -41,6 +41,7 @@ Module Contents
 
 
    .. py:attribute:: data_pattern
+      :type:  str | None
       :value: None
 
 

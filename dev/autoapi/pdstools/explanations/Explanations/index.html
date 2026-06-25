@@ -469,8 +469,9 @@ parquet files produced by Pega’s explanation file repository.</p>
 <p>The constructor is <strong>pure configuration</strong> — it takes no filesystem paths
 and performs no I/O. Use the <code class="docutils literal notranslate"><span class="pre">from_local_directory</span></code> classmethod to load
 raw explanation parquet files from disk (or a remote URL) and run the
-DuckDB aggregation step. After that, <code class="docutils literal notranslate"><span class="pre">aggregate</span></code>, <code class="docutils literal notranslate"><span class="pre">plot</span></code> and
-<code class="docutils literal notranslate"><span class="pre">report</span></code> can be used freely.</p>
+DuckDB aggregation step, or <a class="reference internal" href="#pdstools.explanations.Explanations.Explanations.from_aggregates" title="pdstools.explanations.Explanations.Explanations.from_aggregates"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_aggregates()</span></code></a> to reopen an existing
+pre-aggregated folder. After that, <code class="docutils literal notranslate"><span class="pre">aggregate</span></code>, <code class="docutils literal notranslate"><span class="pre">plot</span></code> and <code class="docutils literal notranslate"><span class="pre">report</span></code>
+can be used freely.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -490,6 +491,8 @@ Defaults to <code class="docutils literal notranslate"><span class="pre">today()
 <p class="admonition-title">See also</p>
 <dl class="simple">
 <dt><a class="reference internal" href="#pdstools.explanations.Explanations.Explanations.from_local_directory" title="pdstools.explanations.Explanations.Explanations.from_local_directory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Explanations.from_local_directory</span></code></a></dt><dd><p>Load raw explanation parquet files from a local folder or remote URL and pre-aggregate them.</p>
+</dd>
+<dt><a class="reference internal" href="#pdstools.explanations.Explanations.Explanations.from_aggregates" title="pdstools.explanations.Explanations.Explanations.from_aggregates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Explanations.from_aggregates</span></code></a></dt><dd><p>Reopen an already pre-aggregated explanations folder without rerunning DuckDB preprocessing.</p>
 </dd>
 </dl>
 </div>
@@ -529,10 +532,8 @@ Default: <code class="docutils literal notranslate"><span class="pre">2500</span
 <span class="gp">... </span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Construct without I/O (e.g. inside a Quarto report that already points
-<code class="docutils literal notranslate"><span class="pre">aggregate.data_folderpath</span></code> at pre-aggregated parquet files):</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">exp</span> <span class="o">=</span> <span class="n">Explanations</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">exp</span><span class="o">.</span><span class="n">aggregate</span><span class="o">.</span><span class="n">data_folderpath</span> <span class="o">=</span> <span class="s2">&quot;/path/to/aggregated_data&quot;</span>
+<p>Reopen an existing pre-aggregated folder:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">exp</span> <span class="o">=</span> <span class="n">Explanations</span><span class="o">.</span><span class="n">from_aggregates</span><span class="p">(</span><span class="s2">&quot;/path/to/aggregated_data&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <dl class="py method">
@@ -573,6 +574,43 @@ See <a class="reference internal" href="#pdstools.explanations.Explanations.Expl
 <dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">from_date</span> <span class="pre">&gt;</span> <span class="pre">to_date</span></code>, if no files match <code class="docutils literal notranslate"><span class="pre">model_name</span></code>
 within the date range, or if a remote <code class="docutils literal notranslate"><span class="pre">data_file</span></code> cannot be
 downloaded.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.explanations.Explanations.Explanations.from_aggregates">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_aggregates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregates_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">pathlib.Path</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_pattern</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><span class="pre">datetime.datetime</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><span class="pre">datetime.datetime</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.explanations.Explanations.Explanations" title="pdstools.explanations.Explanations.Explanations"><span class="pre">Explanations</span></a></span></span><a class="headerlink" href="#pdstools.explanations.Explanations.Explanations.from_aggregates" title="Link to this definition">¶</a></dt>
+<dd><p>Construct an <code class="docutils literal notranslate"><span class="pre">Explanations</span></code> from an existing aggregates folder.</p>
+<p>This reopens a pre-aggregated explanation dataset without rerunning
+the DuckDB preprocessing step. It is the preferred entry point for
+report/template code that already has <code class="docutils literal notranslate"><span class="pre">*_BATCH_*.parquet</span></code> and
+<code class="docutils literal notranslate"><span class="pre">*_OVERALL.parquet</span></code> outputs on disk.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>aggregates_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>pathlib.Path</em></a>) – Directory containing the pre-aggregated explanation parquet files.
+Typically <code class="docutils literal notranslate"><span class="pre">&lt;root_dir&gt;/aggregated_data</span></code> from a prior
+<a class="reference internal" href="#pdstools.explanations.Explanations.Explanations.from_local_directory" title="pdstools.explanations.Explanations.Explanations.from_local_directory"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_local_directory()</span></code></a> run.</p></li>
+<li><p><strong>data_pattern</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Optional glob pattern for contextual parquet files. When omitted,
+the default <code class="docutils literal notranslate"><span class="pre">&quot;*_BATCH_*.parquet&quot;</span></code> pattern is used.</p></li>
+<li><p><strong>model_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Name of the model rule. Stored on the instance for consistency
+with <a class="reference internal" href="#pdstools.explanations.Explanations.Explanations" title="pdstools.explanations.Explanations.Explanations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Explanations</span></code></a>, but not used to reload aggregates.</p></li>
+<li><p><strong>from_date</strong> (<em>datetime</em><em>, </em><em>optional</em>) – Start date metadata carried on the instance. See
+<a class="reference internal" href="#pdstools.explanations.Explanations.Explanations" title="pdstools.explanations.Explanations.Explanations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Explanations</span></code></a> for default behaviour.</p></li>
+<li><p><strong>to_date</strong> (<em>datetime</em><em>, </em><em>optional</em>) – End date metadata carried on the instance. See
+<a class="reference internal" href="#pdstools.explanations.Explanations.Explanations" title="pdstools.explanations.Explanations.Explanations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Explanations</span></code></a> for default behaviour.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A configured instance pointing at the existing aggregates folder.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pdstools.explanations.Explanations.Explanations" title="pdstools.explanations.Explanations.Explanations">Explanations</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#FileNotFoundError" title="(in Python v3.14)"><strong>FileNotFoundError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">aggregates_dir</span></code> does not exist, is not a directory, or is
+empty.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -649,6 +687,7 @@ downloaded.</p>
 <li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
 <li><a class="reference internal" href="#pdstools.explanations.Explanations.Explanations"><code class="docutils literal notranslate"><span class="pre">Explanations</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.explanations.Explanations.Explanations.from_local_directory"><code class="docutils literal notranslate"><span class="pre">from_local_directory()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.explanations.Explanations.Explanations.from_aggregates"><code class="docutils literal notranslate"><span class="pre">from_aggregates()</span></code></a></li>
 </ul>
 </li>
 </ul>
