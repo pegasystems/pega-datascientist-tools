@@ -16,8 +16,7 @@ from pdstools.utils import report_utils, show_versions
 The top-{TOP_N} predictors over the entire model, selected by their {SORT_BY_TEXT} to predictions
 
 ```{{python}}
-explanations = Explanations()
-explanations.aggregate.data_folderpath = "{DATA_FOLDER}"
+explanations = Explanations.from_aggregates("{DATA_FOLDER}")
 
 try:
     overall_plot, predictor_plots = explanations.plot.plot_contributions_for_overall(
