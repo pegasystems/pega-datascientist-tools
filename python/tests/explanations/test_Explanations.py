@@ -206,3 +206,54 @@ class TestFromLocalDirectory:
         finally:
             if Path(".tmp").exists():
                 shutil.rmtree(".tmp")
+
+
+class TestFromAggregates:
+    """Reopening already-generated aggregates must not require manual rewiring."""
+
+    def test_reopens_generated_aggregates(self):
+        data_folder = f"{basePath}/data/explanations"
+        try:
+            generated = Explanations.from_local_directory(
+                data_folder=data_folder,
+                model_name="AdaptiveBoostCT",
+                from_date=datetime(2025, 3, 28),
+                to_date=datetime(2025, 3, 28),
+            )
+            agg_dir = Path(generated.root_dir) / "aggregated_data"
+
+            reopened = Explanations.from_aggregates(
+                agg_dir,
+                data_pattern="*_BATCH_*.parquet",
+                model_name="AdaptiveBoostCT",
+                from_date=datetime(2025, 3, 28),
+                to_date=datetime(2025, 3, 28),
+            )
+
+            assert reopened.root_dir == str(agg_dir.parent)
+            assert reopened.aggregate.data_folderpath == agg_dir
+            assert reopened.preprocess.data_folderpath == agg_dir
+            assert reopened.report.aggregate_folder == agg_dir
+            assert reopened.aggregate.data_pattern == "*_BATCH_*.parquet"
+            assert reopened.model_name == "AdaptiveBoostCT"
+            assert reopened.from_date == datetime(2025, 3, 28)
+            assert reopened.to_date == datetime(2025, 3, 28)
+
+            assert reopened.aggregate.get_df_overall().collect().height > 0
+            assert reopened.aggregate.get_df_contextual().collect().height > 0
+        finally:
+            _clean_up(".tmp")
+
+    def test_missing_aggregates_folder_raises(self):
+        with pytest.raises(
+            FileNotFoundError,
+            match="does not exist or is not a directory",
+        ):
+            Explanations.from_aggregates("invalid_aggregates_path")
+
+    def test_empty_aggregates_folder_raises(self, tmp_path):
+        empty_dir = tmp_path / "aggregated_data"
+        empty_dir.mkdir()
+
+        with pytest.raises(FileNotFoundError, match="is empty"):
+            Explanations.from_aggregates(empty_dir)

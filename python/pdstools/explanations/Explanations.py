@@ -4,6 +4,7 @@ __all__ = ["Explanations"]
 
 import logging
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from .Aggregate import Aggregate
 from .FilterWidget import FilterWidget
@@ -24,8 +25,9 @@ class Explanations:
     The constructor is **pure configuration** — it takes no filesystem paths
     and performs no I/O. Use the ``from_local_directory`` classmethod to load
     raw explanation parquet files from disk (or a remote URL) and run the
-    DuckDB aggregation step. After that, ``aggregate``, ``plot`` and
-    ``report`` can be used freely.
+    DuckDB aggregation step, or :meth:`from_aggregates` to reopen an existing
+    pre-aggregated folder. After that, ``aggregate``, ``plot`` and ``report``
+    can be used freely.
 
     Parameters
     ----------
@@ -46,6 +48,8 @@ class Explanations:
     --------
     Explanations.from_local_directory : Load raw explanation parquet files
         from a local folder or remote URL and pre-aggregate them.
+    Explanations.from_aggregates : Reopen an already pre-aggregated
+        explanations folder without rerunning DuckDB preprocessing.
 
     Notes
     -----
@@ -85,11 +89,9 @@ class Explanations:
     ...     model_name="AdaptiveBoostCT",
     ... )  # doctest: +SKIP
 
-    Construct without I/O (e.g. inside a Quarto report that already points
-    ``aggregate.data_folderpath`` at pre-aggregated parquet files):
+    Reopen an existing pre-aggregated folder:
 
-    >>> exp = Explanations()
-    >>> exp.aggregate.data_folderpath = "/path/to/aggregated_data"  # doctest: +SKIP
+    >>> exp = Explanations.from_aggregates("/path/to/aggregated_data")  # doctest: +SKIP
 
     """
 
@@ -180,6 +182,80 @@ class Explanations:
             to_date=to_date,
         )
         instance.preprocess.generate()
+        return instance
+
+    @classmethod
+    def from_aggregates(
+        cls,
+        aggregates_dir: str | Path,
+        *,
+        data_pattern: str | None = None,
+        model_name: str | None = None,
+        from_date: datetime | None = None,
+        to_date: datetime | None = None,
+    ) -> "Explanations":
+        """Construct an ``Explanations`` from an existing aggregates folder.
+
+        This reopens a pre-aggregated explanation dataset without rerunning
+        the DuckDB preprocessing step. It is the preferred entry point for
+        report/template code that already has ``*_BATCH_*.parquet`` and
+        ``*_OVERALL.parquet`` outputs on disk.
+
+        Parameters
+        ----------
+        aggregates_dir : str or pathlib.Path
+            Directory containing the pre-aggregated explanation parquet files.
+            Typically ``<root_dir>/aggregated_data`` from a prior
+            :meth:`from_local_directory` run.
+        data_pattern : str, optional
+            Optional glob pattern for contextual parquet files. When omitted,
+            the default ``"*_BATCH_*.parquet"`` pattern is used.
+        model_name : str, optional
+            Name of the model rule. Stored on the instance for consistency
+            with :class:`Explanations`, but not used to reload aggregates.
+        from_date : datetime, optional
+            Start date metadata carried on the instance. See
+            :class:`Explanations` for default behaviour.
+        to_date : datetime, optional
+            End date metadata carried on the instance. See
+            :class:`Explanations` for default behaviour.
+
+        Returns
+        -------
+        Explanations
+            A configured instance pointing at the existing aggregates folder.
+
+        Raises
+        ------
+        FileNotFoundError
+            If ``aggregates_dir`` does not exist, is not a directory, or is
+            empty.
+
+        """
+        aggregates_path = Path(aggregates_dir)
+        if not aggregates_path.exists() or not aggregates_path.is_dir():
+            raise FileNotFoundError(
+                f"Aggregates folder {aggregates_path} does not exist or is not a directory.",
+            )
+        if not any(aggregates_path.iterdir()):
+            raise FileNotFoundError(
+                f"Aggregates folder {aggregates_path} is empty.",
+            )
+
+        instance = cls.__new__(cls)
+        instance._init_state(
+            root_dir=str(aggregates_path.parent),
+            data_folder=cls._DEFAULT_DATA_FOLDER,
+            data_file=None,
+            model_name=model_name,
+            from_date=from_date,
+            to_date=to_date,
+        )
+        instance.preprocess.data_folderpath = aggregates_path
+        instance.preprocess.unique_contexts_filename = str(aggregates_path / "unique_contexts.json")
+        instance.aggregate.data_folderpath = aggregates_path
+        instance.aggregate.data_pattern = data_pattern
+        instance.report.aggregate_folder = aggregates_path
         return instance
 
     def _init_state(
