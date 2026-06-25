@@ -40,8 +40,8 @@ jobs:
       - name: Set up Python 3.12
         run: uv python install 3.12
 
-      - name: Install the project with dev tooling
-        run: uv sync --extra dev
+      - name: Install the project with typing dependencies
+        run: uv sync --extra all --extra dev --extra tests
 
       - name: Run pre-commit
         run: uv run pre-commit run --all-files --show-diff-on-failure

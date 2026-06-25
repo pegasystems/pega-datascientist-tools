@@ -63,7 +63,7 @@ class AsyncPredictionStudio(_PredictionStudiov26_1Mixin, AsyncPredictionStudioPr
         )
 
     @property
-    def predictions(self) -> AsyncPaginatedList[AsyncPrediction]:  # type: ignore[override]  # AsyncPaginatedList is invariant; v26 returns a prediction subtype.
+    def predictions(self) -> AsyncPaginatedList[AsyncPrediction]:
         """All predictions, addressable by label or id.
 
         Returns

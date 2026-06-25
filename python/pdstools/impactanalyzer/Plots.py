@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import ClassVar, Literal, SupportsFloat, TYPE_CHECKING, cast, overload
+from typing import Any, ClassVar, Literal, SupportsFloat, TYPE_CHECKING, cast, overload
 
 import polars as pl
 
@@ -592,7 +592,7 @@ class Plots(LazyNamespace):
             color_continuous_scale="Blues",
             zmin=0,
             zmax=max(0.5, max_cf),
-            text_auto=".1%",
+            text_auto=cast(Any, ".1%"),
             aspect="auto",
             template="pega",
         )

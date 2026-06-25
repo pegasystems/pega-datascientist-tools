@@ -40,7 +40,7 @@ class _Predictionv26_1Mixin:
         performanceMeasure: str | None = None,
         **kwargs,
     ):
-        super().__init__(
+        super().__init__(  # type: ignore[call-arg]  # cooperative base init resolves at runtime; mypy sees object.__init__
             client=client,
             predictionId=predictionId,
             label=label,

@@ -9,7 +9,7 @@ import polars as pl
 from ...utils import cdh_utils
 from ._base import _PlotsBase
 from ._helpers import add_metric_limit_lines, requires
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from ...utils.types import QUERY
@@ -213,21 +213,23 @@ class _PerformancePlotsMixin(_PlotsBase):
             facet_col_wrap = max(2, int(unique_facet_values**0.5))
 
         title = "over all models" if facet is None else f"per {facet}"
-        fig = px.line(
-            final_df,
-            x="SnapshotTime",
-            y=plot_metric,
-            color=by_col,
-            hover_data={
+        line_kwargs: dict[str, Any] = {
+            "x": "SnapshotTime",
+            "y": plot_metric,
+            "color": by_col,
+            "hover_data": {
                 by_col: ":.d",
                 plot_metric: metric_formatting[metric.split("_")[0]],
             },
-            markers=True,
-            title=f"{metric} over time, per {by_col} {title}",
-            facet_col=facet,
-            facet_col_wrap=facet_col_wrap,
-            template="pega",
-        )
+            "markers": True,
+            "title": f"{metric} over time, per {by_col} {title}",
+            "facet_col": facet,
+            "template": "pega",
+        }
+        if facet_col_wrap is not None:
+            line_kwargs["facet_col_wrap"] = facet_col_wrap
+
+        fig = px.line(final_df, **line_kwargs)
 
         if metric == "SuccessRate":
             fig.update_yaxes(tickformat=".2%")

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, TYPE_CHECKING
+from typing import Any, Literal, TYPE_CHECKING, cast
 
 import polars as pl
 
@@ -314,7 +314,7 @@ class _OverviewPlotsMixin(_PlotsBase):
 
         plt = px.imshow(
             overlap_data.drop(group_col_name),
-            text_auto=".1%" if show_fraction else ".d",
+            text_auto=cast(Any, ".1%" if show_fraction else ".d"),
             aspect="equal",
             title=f"Overlap of {overlap_col}s",
             x=overlap_data[group_col_name],

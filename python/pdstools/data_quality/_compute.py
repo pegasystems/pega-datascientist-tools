@@ -53,7 +53,7 @@ class Compute(LazyNamespace):
             self.parent.df.get_column(self.parent.text_col).to_list(),
             show_progress_bar=False,
         )
-        return self.parent._embeddings
+        return cast("np.ndarray[Any, Any]", self.parent._embeddings)
 
     # ------------------------------------------------------------------
     # UMAP
@@ -78,7 +78,7 @@ class Compute(LazyNamespace):
         emb = self.embeddings()
         reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, random_state=42)
         self.parent._umap_coords = reducer.fit_transform(emb)
-        return self.parent._umap_coords
+        return cast("np.ndarray[Any, Any]", self.parent._umap_coords)
 
     # ------------------------------------------------------------------
     # TF-IDF topic similarity
@@ -263,7 +263,7 @@ class Compute(LazyNamespace):
 
         le = LabelEncoder()
         y = cast("np.ndarray[Any, Any]", le.fit_transform(labels))
-        classes = le.classes_
+        classes = cast("np.ndarray[Any, Any]", le.classes_)
         effective_folds = self._validated_cross_validation_folds(max_folds=n_folds)
         skf = StratifiedKFold(n_splits=effective_folds, shuffle=True, random_state=42)
         # per-class F1 per fold: shape (n_folds, n_classes)
@@ -273,7 +273,16 @@ class Compute(LazyNamespace):
             model = LogisticRegression(max_iter=400)
             model.fit(embeddings[train_idx], y[train_idx])
             preds = model.predict(embeddings[test_idx])
-            per_class_f1 = f1_score(y[test_idx], preds, labels=range(len(classes)), average=None, zero_division=0)
+            per_class_f1 = cast(
+                "np.ndarray[Any, Any]",
+                f1_score(
+                    y[test_idx],
+                    preds,
+                    labels=range(len(classes)),
+                    average=cast(Any, None),
+                    zero_division=cast(Any, 0),
+                ),
+            )
             fold_f1s.append(per_class_f1)
 
         fold_f1s_arr = np.array(fold_f1s)  # (n_folds, n_classes)

@@ -4,7 +4,7 @@ import json
 import logging
 import re
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from pydantic import AliasChoices, BaseModel, Field, field_validator, model_validator
 
@@ -480,8 +480,8 @@ class ONNXModel(LocalModel):
         from sklearn.pipeline import Pipeline
 
         if isinstance(model, Pipeline):
-            model = convert_sklearn(model, initial_types=initial_types)
-            return cls(model=model)
+            onnx_model = cast("ModelProto", convert_sklearn(model, initial_types=initial_types))
+            return cls(model=onnx_model)
 
         raise ONNXModelCreationError("Model must be a sklearn Pipeline object.")
 
@@ -633,7 +633,7 @@ class ONNXModel(LocalModel):
         self._model.metadata_props.add(key=PEGA_METADATA, value=metadata.to_json())
         return self
 
-    def validate(self) -> bool:  # type: ignore[override]  # intentionally overrides BaseModel.validate
+    def validate(self) -> bool:  # type: ignore[override]  # intentionally provides instance validation, not Pydantic parsing
         """Validates an ONNX model.
 
         Raises

@@ -207,7 +207,7 @@ class ModelValidationError(Exception):
 
 
 class LocalModel(BaseModel):
-    def validate(self) -> bool:  # type: ignore[override]  # intentionally overrides BaseModel.validate
+    def validate(self) -> bool:  # type: ignore[override]  # intentionally provides instance validation, not Pydantic parsing
         """Validates a model.
 
         Raises

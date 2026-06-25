@@ -9,7 +9,7 @@ from ...utils import cdh_utils
 from ...utils.plot_utils import get_colorscale
 from ._base import _PlotsBase
 from ._helpers import requires
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from ...utils.types import QUERY
@@ -485,7 +485,7 @@ class _PredictorPlotsMixin(_PlotsBase):
         title = "over all models"
         fig = px.imshow(
             collected.select(pl.all().exclude(by_name)),
-            text_auto=".3f",
+            text_auto=cast(Any, ".3f"),
             aspect="auto",
             color_continuous_scale=get_colorscale("Performance"),
             title=f"Top predictors {title}",

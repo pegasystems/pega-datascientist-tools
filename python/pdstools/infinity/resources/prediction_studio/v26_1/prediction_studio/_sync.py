@@ -56,7 +56,7 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
         return PaginatedList(Model, self._client, "get", endpoint, _root="models", pageSize=100)
 
     @property
-    def predictions(self) -> PaginatedList[Prediction]:  # type: ignore[override]  # PaginatedList is invariant; v26 returns a prediction subtype.
+    def predictions(self) -> PaginatedList[Prediction]:
         """All predictions, addressable by label or id.
 
         Returns
@@ -109,7 +109,7 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
 
         return pages.as_df()
 
-    @overload  # type: ignore[override]  # intentionally widens parent signature with return_df
+    @overload
     def list_predictions(
         self,
         return_df: Literal[False] = False,

@@ -459,7 +459,10 @@ class Plots(LazyNamespace):
 
         plots = []
         for predictor, predictor_type in predictor_info.iter_rows():
-            predictor_df = df_with_frequency_pct.filter(pl.col(_COL.PREDICTOR_NAME.value) == predictor).collect()
+            predictor_subset = df_with_frequency_pct.filter(pl.col(_COL.PREDICTOR_NAME.value) == predictor)
+            predictor_df = (
+                predictor_subset.collect() if isinstance(predictor_subset, pl.LazyFrame) else predictor_subset
+            )
 
             customdata, hovertemplate = self._build_hover_customdata(predictor_df, x_col)
 
