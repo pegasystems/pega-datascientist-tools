@@ -105,7 +105,8 @@ class S3Data:
             return f"{self.temp_dir}/{file}"
 
         def split_new_files(files: list[str]) -> tuple[list[str], list[str]]:
-            new_files, already_on_disk = [], []
+            new_files: list[str] = []
+            already_on_disk: list[str] = []
             for file in files:
                 (already_on_disk if os.path.exists(local_path(file)) else new_files).append(file)
             return new_files, already_on_disk

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import ClassVar, Literal, TYPE_CHECKING, overload
+from typing import ClassVar, Literal, SupportsFloat, TYPE_CHECKING, cast, overload
 
 import polars as pl
 
@@ -304,9 +304,11 @@ class Plots(LazyNamespace):
         """
         grouping_columns: list[str | pl.Expr]
         if every is not None:
-            grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + ([facet] if facet is not None else [])
+            grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)]
+            if facet is not None:
+                grouping_columns.append(facet)
         else:
-            grouping_columns = ["SnapshotTime"] + ([facet] if facet is not None else [])
+            grouping_columns = ["SnapshotTime", *([facet] if facet is not None else [])]
 
         plot_data = self.ia.summarize_control_groups(by=grouping_columns).filter(
             pl.col(metric).is_not_null() & pl.col(metric).is_finite(),
@@ -331,7 +333,9 @@ class Plots(LazyNamespace):
         from .ImpactAnalyzer import ImpactAnalyzer as _IA
 
         _palette = px.colors.qualitative.Plotly
-        _control_groups = [cg.removeprefix("NBAHealth_") for cg in _IA.default_ia_controlgroups["MktValue"]]
+        _control_groups = [
+            cg.removeprefix("NBAHealth_") for cg in _IA.default_ia_controlgroups["MktValue"] if cg is not None
+        ]
         color_map = {cg: _palette[i % len(_palette)] for i, cg in enumerate(_control_groups)}
         # NBA is the highlighted "production" arm — give it a clear,
         # neutral-but-strong colour that doesn't clash with the
@@ -452,9 +456,11 @@ class Plots(LazyNamespace):
         """
         grouping_columns: list[str | pl.Expr]
         if every is not None:
-            grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)] + ([facet] if facet is not None else [])
+            grouping_columns = [pl.col("SnapshotTime").dt.truncate(every)]
+            if facet is not None:
+                grouping_columns.append(facet)
         else:
-            grouping_columns = ["SnapshotTime"] + ([facet] if facet is not None else [])
+            grouping_columns = ["SnapshotTime", *([facet] if facet is not None else [])]
 
         plot_data = self.ia.summarize_experiments(by=grouping_columns).filter(
             pl.col(metric).is_not_null() & pl.col(metric).is_finite(),
@@ -577,7 +583,8 @@ class Plots(LazyNamespace):
         x_labels = experiment_order
         y_labels = wide["Channel"].to_list()
 
-        max_cf = float(df["Control_Fraction"].max() or 0)
+        max_cf_value = df["Control_Fraction"].max()
+        max_cf = 0.0 if max_cf_value is None else float(cast(SupportsFloat, max_cf_value))
         fig = px.imshow(
             z,
             x=x_labels,

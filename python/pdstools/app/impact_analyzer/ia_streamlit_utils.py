@@ -25,6 +25,14 @@ logger = logging.getLogger(__name__)
 SAMPLE_VBD_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/ia/ImpactAnalyzer_InfinityDemo.zip"
 
 
+def _require_impact_analyzer(
+    analyzer: ImpactAnalyzer | None | object,
+) -> ImpactAnalyzer:
+    if isinstance(analyzer, ImpactAnalyzer):
+        return analyzer
+    raise ValueError("Impact Analyzer data could not be loaded.")
+
+
 def ensure_ia_data_loaded(*, show_toast: bool = False) -> bool:
     """Ensure ``st.session_state["impact_analyzer"]`` is populated.
 
@@ -171,15 +179,15 @@ def _resolve_sample_path() -> Path:
 @st.cache_resource
 def load_sample() -> ImpactAnalyzer:
     sample_path = _resolve_sample_path()
-    return ImpactAnalyzer.from_vbd(str(sample_path))
+    return _require_impact_analyzer(ImpactAnalyzer.from_vbd(str(sample_path)))
 
 
 @st.cache_resource
 def load_pdc_from_paths(paths: tuple[str, ...]) -> ImpactAnalyzer:
     cleaned_paths = [path for path in paths if path]
     if len(cleaned_paths) == 1:
-        return ImpactAnalyzer.from_pdc(cleaned_paths[0])
-    return ImpactAnalyzer.from_pdc(cleaned_paths)
+        return _require_impact_analyzer(ImpactAnalyzer.from_pdc(cleaned_paths[0]))
+    return _require_impact_analyzer(ImpactAnalyzer.from_pdc(cleaned_paths))
 
 
 def load_pdc_from_uploads(uploaded_files: Iterable) -> ImpactAnalyzer:
@@ -234,7 +242,7 @@ def _detect_file_format(uploaded_file) -> str:
 
 @st.cache_resource
 def load_excel_from_path(path: str) -> ImpactAnalyzer:
-    return ImpactAnalyzer.from_excel(path)
+    return _require_impact_analyzer(ImpactAnalyzer.from_excel(path))
 
 
 def load_excel_from_upload(uploaded_file) -> ImpactAnalyzer:

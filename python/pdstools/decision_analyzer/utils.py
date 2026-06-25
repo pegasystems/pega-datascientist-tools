@@ -13,6 +13,7 @@ from ..utils.cdh_utils import parse_pega_date_time_formats
 from .column_schema import (
     DecisionAnalyzer,
     ExplainabilityExtract,
+    TableConfig,
 )
 
 logger = logging.getLogger(__name__)
@@ -245,7 +246,7 @@ def resolve_aliases(
 
     # Collect all raw keys across all table definitions so we never rename
     # a column that is itself a canonical raw key in another definition.
-    all_raw_keys = set()
+    all_raw_keys: set[str] = set()
     for table_def in table_definitions:
         all_raw_keys.update(table_def.keys())
 
@@ -363,7 +364,7 @@ def _cast_columns(df: pl.LazyFrame, type_mapping: dict[str, type[pl.DataType]]) 
 
 def get_table_definition(table: str):
     """Get table definition."""
-    mapping = {
+    mapping: dict[str, dict[str, TableConfig]] = {
         "decision_analyzer": DecisionAnalyzer,
         "explainability_extract": ExplainabilityExtract,
     }
@@ -843,7 +844,7 @@ def prepare_and_save(
         source_metadata = _read_source_metadata(source_path)
         if source_metadata:
             # Inherit original source from chained sampling
-            original_source = source_metadata["source_file"]
+            original_source = str(source_metadata["source_file"])
 
     # Step 2: Process data based on mode
     if is_sampling:
@@ -889,7 +890,7 @@ def prepare_and_save(
         # Narrowed from bare Exception so genuine I/O errors (disk full, perms,
         # etc.) still surface instead of being silently retried.
         logger.info("sink_parquet not supported for this plan (%s), falling back to collect + write_parquet", exc)
-        sampled_lf.collect(streaming=True).write_parquet(tmp_path)
+        sampled_lf.collect(engine="streaming").write_parquet(tmp_path)
 
     # Step 4: Read back to get the actual count and compute metadata
     result_lf = pl.scan_parquet(tmp_path)

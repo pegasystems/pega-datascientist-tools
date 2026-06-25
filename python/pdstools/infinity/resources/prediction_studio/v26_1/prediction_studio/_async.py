@@ -63,7 +63,7 @@ class AsyncPredictionStudio(_PredictionStudiov26_1Mixin, AsyncPredictionStudioPr
         )
 
     @property
-    def predictions(self) -> AsyncPaginatedList[AsyncPrediction]:
+    def predictions(self) -> AsyncPaginatedList[AsyncPrediction]:  # type: ignore[override]  # AsyncPaginatedList is invariant; v26 returns a prediction subtype.
         """All predictions, addressable by label or id.
 
         Returns
@@ -151,7 +151,10 @@ class AsyncPredictionStudio(_PredictionStudiov26_1Mixin, AsyncPredictionStudioPr
         if label:
             uniques["label"] = label
         pages = cast("AsyncPaginatedList[AsyncPrediction]", await self.list_predictions())
-        return await pages.get(**uniques)
+        prediction = await pages.get(**uniques)
+        if prediction is None:
+            raise KeyError(f"No prediction found for lookup {uniques!r}")
+        return prediction
 
     async def get_model(
         self,
@@ -179,7 +182,10 @@ class AsyncPredictionStudio(_PredictionStudiov26_1Mixin, AsyncPredictionStudioPr
         if label:
             uniques["label"] = label
         pages = cast("AsyncPaginatedList[AsyncModel]", await self.list_models())
-        return await pages.get(**uniques)
+        model = await pages.get(**uniques)
+        if model is None:
+            raise KeyError(f"No model found for lookup {uniques!r}")
+        return model
 
     async def trigger_datamart_export(self) -> AsyncDatamartExport:
         """Initiates an export of model data to the Repository.

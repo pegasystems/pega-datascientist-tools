@@ -150,7 +150,7 @@ def _show_data_summary(
     except (pl.exceptions.PolarsError, AttributeError, KeyError):
         rows = None
 
-    prefix = _banner_prefix(source_kind, source_label)
+    prefix = _banner_prefix(source_kind or "sample", source_label)
 
     if rows is None:
         st.success(f"{prefix}. Detected format: {format_label}")
@@ -323,9 +323,10 @@ by default — upload your own file below to replace it.
             sampling_msg = "Sampling rows..."
 
         with st.spinner(sampling_msg):
+            sample_n = sample_kwargs.get("n")
             sampled_data, sample_path = prepare_and_save_random(
                 impact_analyzer.ia_data,
-                n=sample_kwargs.get("n"),
+                n=int(sample_n) if sample_n is not None else None,
                 fraction=sample_kwargs.get("fraction"),
                 output_dir=get_temp_dir() or ".",
                 source_path=data_source_path,

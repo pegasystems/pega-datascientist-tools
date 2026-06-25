@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 import unicodedata
-from typing import TYPE_CHECKING, ClassVar, Literal, overload
+from typing import TYPE_CHECKING, ClassVar, Literal, SupportsFloat, cast, overload
 
 import polars as pl
 
@@ -291,7 +291,8 @@ class Plots(LazyNamespace):
         try:
             from IPython.display import Image, display
 
-            display(Image(graph.create_png()))
+            create_png = getattr(graph, "create_png")
+            display(Image(create_png()))
         except ImportError:
             pass
         except FileNotFoundError as exc:
@@ -505,11 +506,12 @@ class Plots(LazyNamespace):
             )
         )
         if half_idx is not None:
+            tree_marker = float(cast(SupportsFloat, half_idx))
             fig.add_vline(
                 x=half_idx,
                 line_dash="dash",
                 line_color="grey",
-                annotation_text=f"50 % @ tree {half_idx}",
+                annotation_text=f"50 % @ tree {tree_marker:g}",
                 annotation_position="top right",
             )
         fig.update_layout(
@@ -952,10 +954,11 @@ class Plots(LazyNamespace):
                 "No sampleCount data found in this model export. "
                 "Use a model exported from Prediction Studio ≥ Infinity '24."
             )
-        gaps = [
-            None if (counts[i] is None or counts[i - 1] is None) else counts[i] - counts[i - 1]
-            for i in range(1, len(counts))
-        ]
+        gaps = []
+        for i in range(1, len(counts)):
+            current = counts[i]
+            previous = counts[i - 1]
+            gaps.append(None if (current is None or previous is None) else current - previous)
         df = pl.DataFrame(
             {"treeID": list(range(1, len(counts))), "sample_gap": gaps},
             schema={"treeID": pl.Int32, "sample_gap": pl.Int64},

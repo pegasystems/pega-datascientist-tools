@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import logging
+from typing import cast
 import yaml
 
 logger = logging.getLogger(__name__)
@@ -142,8 +143,8 @@ class ReportGenerator:
         self._log_params()
 
     @staticmethod
-    def _get_context_dict(context_info: str) -> dict:
-        return json.loads(context_info)["partition"]
+    def _get_context_dict(context_info: str) -> dict[str, str]:
+        return cast("dict[str, str]", json.loads(context_info)["partition"])
 
     def _get_context_string(self, context_info: str) -> str:
         return "-".join([v.replace(" ", "") for _, v in self._get_context_dict(context_info).items()])

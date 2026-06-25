@@ -46,7 +46,7 @@ def _inline_css(html_path: Path, base_dir: Path) -> int:
         href_match = _HREF_ATTR_RE.search(tag)
         if not href_match:
             return tag
-        href = href_match.group(1)
+        href = str(href_match.group(1))
         if href.startswith(("http://", "https://", "//")):
             return tag
         css_path = (base_dir / href).resolve()

@@ -4,6 +4,8 @@ from __future__ import annotations
 import html as html_mod
 from itertools import groupby
 
+from typing import SupportsFloat, cast
+
 import polars as pl
 import streamlit as st
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
@@ -205,9 +207,11 @@ def _pvcl_values(subset: pl.DataFrame, is_aggregate: bool) -> dict:
         if len(vals) == 0:
             result[factor] = ""
         elif not is_aggregate or len(vals) == 1:
-            result[factor] = f"{vals[0]:g}"
+            result[factor] = f"{float(cast(SupportsFloat, vals[0])):g}"
         else:
-            mn, md, mx = vals.min(), vals.median(), vals.max()
+            mn = float(cast(SupportsFloat, vals.min()))
+            md = float(cast(SupportsFloat, vals.median()))
+            mx = float(cast(SupportsFloat, vals.max()))
             if mn == mx:
                 result[factor] = f"{mn:g}"
             else:
@@ -319,11 +323,11 @@ if not grid_rows:
 total_actions = (
     interaction_df.select("Action").n_unique() if "Action" in interaction_df.columns else len(interaction_df)
 )
-totals_row = {"_depth": -1, "_key": "__totals__", "_label": f"Total ({total_actions})"}
+grand_totals_row = {"_depth": -1, "_key": "__totals__", "_label": f"Total ({total_actions})"}
 for f in pvcl_factors:
-    totals_row[f] = ""
-totals_row.update(_stage_cells(interaction_df, show_components=False))
-grid_rows.append(totals_row)
+    grand_totals_row[f] = ""
+grand_totals_row.update(_stage_cells(interaction_df, show_components=False))
+grid_rows.append(grand_totals_row)
 
 # ── Render hierarchical grid using <details> for native expand/collapse ───
 # We render the tree with HTML5 <details>/<summary> elements: each parent
@@ -433,7 +437,7 @@ if show_group_header:
         (grp, list(members)) for grp, members in groupby(stages_ordered, key=lambda s: stage_to_group.get(s, s))
     ]
     for grp, members in grouped_stages:
-        escaped = html_mod.escape(grp)
+        escaped = html_mod.escape(grp or "")
         header_cells.append(f'<div class="cell group-header" style="grid-column: span {len(members)};">{escaped}</div>')
     for col in stages_ordered:
         label = html_mod.escape(col).replace(" ", "<br>")

@@ -1,6 +1,7 @@
 # python/pdstools/app/decision_analyzer/da_streamlit_utils.py
 from __future__ import annotations
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import polars as pl
 import streamlit as st
@@ -17,6 +18,9 @@ from pdstools.utils.streamlit_utils import (
     ensure_session_data,
     get_data_path,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def _is_upload_noise(name: str) -> bool:
@@ -51,7 +55,11 @@ def clear_decision_state() -> None:
     for key in _DECISION_STATE_KEYS:
         st.session_state.pop(key, None)
     # Remove filter widget state — keys may reference columns from the old data.
-    stale = [k for k in list(st.session_state.keys()) if "selected_" in k or "multiselect" in k or "categories_" in k]
+    stale = [
+        k
+        for k in list(st.session_state.keys())
+        if isinstance(k, str) and ("selected_" in k or "multiselect" in k or "categories_" in k)
+    ]
     for key in stale:
         del st.session_state[key]
 
@@ -191,7 +199,7 @@ def ensure_get_filter_component_data():
 # st.elements.utils._shown_default_value_warning = (
 #     True  # to suppress default val+key warning in date filter
 # )
-polars_lazyframe_hashing = {
+polars_lazyframe_hashing: dict[str | type[Any], Callable[[Any], Any]] = {
     pl.LazyFrame: lambda x: hash(x.explain(optimized=False)),
     pl.Expr: lambda x: str(x.inspect()),
 }
@@ -222,7 +230,7 @@ def _clean_unselected_filters(to_filter_columns: list[str], filter_type: str):
     """Remove session-state keys for columns no longer in the filter list."""
     keys_to_remove = []
     for key in st.session_state.keys():
-        if "selected_" in key:
+        if isinstance(key, str) and "selected_" in key:
             column_name = key.split("selected_", 1)[1]
             if column_name not in to_filter_columns:
                 keys_to_remove.append(column_name)

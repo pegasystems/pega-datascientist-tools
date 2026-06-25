@@ -95,6 +95,15 @@ def _lift_class(v) -> str:
     return "positive" if v >= 0 else "negative"
 
 
+def _finite_float(value) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        numeric = float(value)
+        return None if math.isnan(numeric) else numeric
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Chart helpers
 # ---------------------------------------------------------------------------
@@ -307,24 +316,16 @@ def _render_experiment_card(row: dict, idx: int, trend_df: pl.DataFrame | None =
     eng = calculate_engagement_lift(test_acc, test_impr, ctrl_acc, ctrl_impr)
 
     # Value lift — use VPI columns if available
-    vpi_t = row.get("ValuePerImpression_Test")
-    vpi_c = row.get("ValuePerImpression_Control")
-    val_lift_pdc = row.get("Value_Lift")
-
-    # VPI can be nan (PDC data) — normalise to None
-    if vpi_t is not None and (isinstance(vpi_t, float) and math.isnan(vpi_t)):
-        vpi_t = None
-    if vpi_c is not None and (isinstance(vpi_c, float) and math.isnan(vpi_c)):
-        vpi_c = None
-    if val_lift_pdc is not None and (isinstance(val_lift_pdc, float) and math.isnan(val_lift_pdc)):
-        val_lift_pdc = None
+    vpi_t = _finite_float(row.get("ValuePerImpression_Test"))
+    vpi_c = _finite_float(row.get("ValuePerImpression_Control"))
+    val_lift_pdc = _finite_float(row.get("Value_Lift"))
 
     # Derive action values for transparency display
     av_t = (vpi_t / p_t) if (vpi_t is not None and p_t) else None
     av_c = (vpi_c / p_c) if (vpi_c is not None and p_c) else None
 
     val = None
-    if av_t is not None and av_c is not None and vpi_c > 0:
+    if av_t is not None and av_c is not None and vpi_t is not None and vpi_c is not None and vpi_c > 0:
         _vse_t = value_se(test_acc, test_impr, av_t)
         _vse_c = value_se(ctrl_acc, ctrl_impr, av_c)
         _val_lift = calculate_lift(vpi_t, vpi_c)
@@ -625,15 +626,9 @@ def _build_lift_chart_data(rows_data: list[dict]) -> list[dict]:
         if t_i > 0 and c_i > 0:
             eng = calculate_engagement_lift(t_a, t_i, c_a, c_i)
 
-            vpi_t = r.get("ValuePerImpression_Test")
-            vpi_c = r.get("ValuePerImpression_Control")
-            val_lift_pdc = r.get("Value_Lift")
-            if vpi_t is not None and isinstance(vpi_t, float) and math.isnan(vpi_t):
-                vpi_t = None
-            if vpi_c is not None and isinstance(vpi_c, float) and math.isnan(vpi_c):
-                vpi_c = None
-            if val_lift_pdc is not None and isinstance(val_lift_pdc, float) and math.isnan(val_lift_pdc):
-                val_lift_pdc = None
+            vpi_t = _finite_float(r.get("ValuePerImpression_Test"))
+            vpi_c = _finite_float(r.get("ValuePerImpression_Control"))
+            val_lift_pdc = _finite_float(r.get("Value_Lift"))
 
             p_t = accept_rate(t_a, t_i)
             p_c = accept_rate(c_a, c_i)
@@ -642,7 +637,7 @@ def _build_lift_chart_data(rows_data: list[dict]) -> list[dict]:
 
             val_lift = None
             val_se_val = None
-            if av_t is not None and av_c is not None and vpi_c and vpi_c > 0:
+            if av_t is not None and av_c is not None and vpi_t is not None and vpi_c is not None and vpi_c > 0:
                 val_lift = calculate_lift(vpi_t, vpi_c)
                 _vse_t = value_se(t_a, t_i, av_t)
                 _vse_c = value_se(c_a, c_i, av_c)
@@ -830,7 +825,7 @@ if _lift_chart_data:
 # channels.
 if _channel_filter != "Any":
     _cards_rows = _per_channel_rows.get(_channel_filter, rows)
-    _cards_scope_caption = f"Showing experiments for channel **{_channel_filter}**."
+    _cards_scope_caption: str | None = f"Showing experiments for channel **{_channel_filter}**."
 else:
     _cards_rows = rows
     _cards_scope_caption = None
@@ -851,8 +846,8 @@ tab_active, tab_inactive = st.tabs(
 # Pick the right trend frame: per-channel slice when filtered, otherwise
 # the channel-aggregated frame. Both are pre-computed once above.
 if _channel_filter != "Any" and _trend_df_by_channel is not None:
-    _card_trend_df = _trend_df_by_channel.filter(pl.col("Channel") == _channel_filter)
-    if _card_trend_df.is_empty():
+    _card_trend_df: pl.DataFrame | None = _trend_df_by_channel.filter(pl.col("Channel") == _channel_filter)
+    if _card_trend_df is not None and _card_trend_df.is_empty():
         _card_trend_df = None
 else:
     _card_trend_df = _trend_df

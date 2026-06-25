@@ -69,8 +69,10 @@ if arb_data.height == 0:
 
 # Slider upper bounds: use P75 of the filtered data so the slider has
 # useful resolution even when the distribution is heavily skewed.
-prop_max = max(arb_data["Propensity"].quantile(0.75), 1e-9)
-prio_max = max(arb_data["Priority"].quantile(0.75), 1e-9)
+prop_p75 = arb_data["Propensity"].quantile(0.75)
+prio_p75 = arb_data["Priority"].quantile(0.75)
+prop_max = max(float(prop_p75) if prop_p75 is not None else 0.0, 1e-9)
+prio_max = max(float(prio_p75) if prio_p75 is not None else 0.0, 1e-9)
 
 # ---------------------------------------------------------------------------
 # Session state for thresholds (shared between sliders and chart clicks)
@@ -125,9 +127,10 @@ with st.sidebar:
 # Apply both thresholds
 # ---------------------------------------------------------------------------
 above_mask = (arb_data["Propensity"] >= propensity_threshold) & (arb_data["Priority"] >= priority_threshold)
-above_actions = arb_data.filter(above_mask)["Decisions"].sum()
-below_actions = total_action_appearances - above_actions
-pct_filtered = (below_actions / total_action_appearances * 100) if total_action_appearances > 0 else 0.0
+above_actions = float(arb_data.filter(above_mask)["Decisions"].sum() or 0)
+below_actions = float(total_action_appearances) - above_actions
+total_action_appearances_float = float(total_action_appearances)
+pct_filtered = (below_actions / total_action_appearances_float * 100) if total_action_appearances_float > 0 else 0.0
 
 # Count interactions that would have zero actions after thresholding.
 # Uses the sample (interaction-level data) for an accurate per-interaction check.

@@ -650,7 +650,7 @@ class IH:
     def calculate_pmi(
         count_actions: list[defaultdict],
         count_sequences: list[defaultdict],
-    ) -> dict[tuple[str, ...], float | dict[str, float | dict]]:
+    ) -> dict[tuple[str, ...], float | dict[str, float | dict[tuple[str, ...], float]]]:
         """Compute PMI scores for action sequences.
 
         Calculates Pointwise Mutual Information scores for bigrams and
@@ -692,7 +692,7 @@ class IH:
             len(k) * v for k, v in count_sequences[2].items()
         )
 
-        bigrams_pmi = {}
+        bigrams_pmi: dict[tuple[str, ...], float] = {}
 
         # bigram PMI
         for bigram, bigram_count in count_sequences[0].items():
@@ -708,12 +708,14 @@ class IH:
         # n‑gram PMI
         customer_bigrams = {key: bigrams_pmi[key] for key in count_sequences[2] if key in bigrams_pmi}
 
-        ngrams_pmi = dict(customer_bigrams)
+        ngrams_pmi: dict[tuple[str, ...], float | dict[str, float | dict[tuple[str, ...], float]]] = dict(
+            customer_bigrams
+        )
 
         for seq in count_sequences[1].keys():
             links = [seq[i : i + 2] for i in range(len(seq) - 1)]
             values = []
-            link_info = {}
+            link_info: dict[tuple[str, ...], float] = {}
 
             for link in links:
                 if link in bigrams_pmi:

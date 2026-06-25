@@ -17,11 +17,19 @@ except importlib.metadata.PackageNotFoundError:  # pragma: no cover - editable i
 
 
 @overload
-def show_versions(print_output: Literal[True] = True) -> None: ...
+def show_versions(
+    print_output: Literal[True] = True,
+    include_dependencies: bool = True,
+    include_runtime_diagnostics: bool = False,
+) -> None: ...
 
 
 @overload
-def show_versions(print_output: Literal[False] = False) -> str: ...
+def show_versions(
+    print_output: Literal[False] = False,
+    include_dependencies: bool = True,
+    include_runtime_diagnostics: bool = False,
+) -> str: ...
 
 
 def show_versions(
@@ -192,13 +200,19 @@ def grouped_dependencies() -> dict[str, set[str]]:
 
 
 def _get_dependency_version(dep_name: str) -> str:
-    dep_name = re.sub("[<>=]", "|||", dep_name).split("|||")[0]
+    dep_name = re.split(r"[\[<>=!,;\s]", dep_name, maxsplit=1)[0]
     try:
-        module = importlib.import_module(dep_name)
+        return importlib.metadata.version(dep_name)
+    except importlib.metadata.PackageNotFoundError:
+        pass
+
+    module_name = dep_name.replace("-", "_")
+    try:
+        module = importlib.import_module(module_name)
     except ImportError:
         return "<not installed>"
     except Exception as e:
-        logger.debug(f"Failed to import module {dep_name}: {e}")
+        logger.debug(f"Failed to import module {module_name}: {e}")
         return "<not installed>"
 
     if hasattr(module, "__version__"):  # noqa: SIM108 — comment clarifies the fallback

@@ -59,6 +59,8 @@ with health_check:
     if "run" not in st.session_state:
         st.session_state["runID"] = 0
         st.session_state["run"] = {0: {}}
+    file = None
+    log_file_path: str | None = None
     try:
         if st.button("Generate Health Check"):
             st.session_state["runID"] = max(list(st.session_state["run"].keys())) + 1
@@ -150,11 +152,13 @@ with health_check:
                 )
 
     finally:
-        if "log_file_path" in locals() and os.path.isfile(log_file_path):
+        if log_file_path is not None and os.path.isfile(log_file_path):
             os.remove(log_file_path)
 
 if st.session_state["dm"].predictor_data is not None:
     with model_report:
+        file = None
+        log_file_path = None
         try:
             if "working_dir" not in locals():
                 working_dir = Path("healthCheckDir")
@@ -246,7 +250,7 @@ if st.session_state["dm"].predictor_data is not None:
                     )
 
         finally:
-            if "log_file_path" in locals() and os.path.isfile(log_file_path):
+            if log_file_path is not None and os.path.isfile(log_file_path):
                 os.remove(log_file_path)
 else:
     st.info(

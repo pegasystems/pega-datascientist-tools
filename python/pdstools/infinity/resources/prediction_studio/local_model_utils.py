@@ -335,7 +335,7 @@ class Metadata(BaseModel):
         return predictors
 
     @staticmethod
-    def _convert_keys(data: dict, conversion_func) -> dict:
+    def _convert_keys(data: dict | list | object, conversion_func) -> dict | list | object:
         if isinstance(data, dict):
             return {conversion_func(k): Metadata._convert_keys(v, conversion_func) for k, v in data.items()}
         if isinstance(data, list):
@@ -627,8 +627,9 @@ class ONNXModel(LocalModel):
             If the optional dependencies for ONNX Metadata addition are not installed.
 
         """
-        if PEGA_METADATA in self._model.metadata_props:
-            self._model.metadata_props.remove(PEGA_METADATA)
+        existing = next((entry for entry in self._model.metadata_props if entry.key == PEGA_METADATA), None)
+        if existing is not None:
+            self._model.metadata_props.remove(existing)
         self._model.metadata_props.add(key=PEGA_METADATA, value=metadata.to_json())
         return self
 

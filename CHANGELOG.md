@@ -6,14 +6,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-- Impact Analyzer Streamlit app: restructured pages into **Channel
-  Performance** (was *Overall Summary*) and **Details** (was *Channels*).
-  Both pages share a single sidebar **Channel / Direction** filter. The
-  Details page is now a flat per-experiment metrics table; previous
-  per-channel visuals (lift bar chart, response-rate heatmap, impression
-  redistribution) were removed pending a redesign.
-
-## [5.0.0] — TBD
+## [5.0.0] — 2026-06-25
 
 Major release. **Breaking changes** — see
 [`docs/migration-v4-to-v5.md`](docs/migration-v4-to-v5.md) for the upgrade
@@ -63,10 +56,17 @@ guide.
 - Decision Analyzer auto-detects mandatory actions (priority ≥ 5M) when
   no `mandatory_expr` is passed, and flags them visually in the global
   win/loss distribution pie and on the Global Sensitivity page (#698).
+- `ADMDatamart.analysis` adds a programmatic ADM health-check findings
+  namespace, reusable preaggregates, and direct Markdown report
+  generation via `dm.generate.health_check_markdown(...)` / the thin
+  file-writing `health_check_agent(...)` wrapper (#848).
 - Health Check `--full-embed` / `--no-full-embed` CLI flag, propagated to
   the Streamlit Reports page as a new "Embed JS/CSS for offline viewing"
   toggle in the Advanced expander. Defaults preserve the previous
   behaviour (#688).
+- The CLI now also exposes `pdstools doctor`, `pdstools list`, a unified
+  `launcher` app (`pdstools all`), and the Topic Data Quality app
+  (`pdstools data_quality` / `dq`).
 - `pdstools.valuefinder.__init__` now re-exports `ValueFinder` (was empty).
 - `CHANGELOG.md` (this file).
 - `docs/migration-v4-to-v5.md`.
@@ -231,6 +231,12 @@ guide.
   on call sites that drive genuine user-facing progress (S3,
   `read_multi_zip`, `Anonymization`). `Reports.health_check` no longer
   couples `verbose` to cache / error-reporting paths (#647).
+- Impact Analyzer Streamlit app: restructured pages into **Channel
+  Performance** (was *Overall Summary*) and **Details** (was *Channels*).
+  Both pages share a single sidebar **Channel / Direction** filter. The
+  Details page is now a flat per-experiment metrics table; previous
+  per-channel visuals (lift bar chart, response-rate heatmap, impression
+  redistribution) were removed pending a redesign.
 - `BinAggregator` constructor parameter renamed `dm=` → `datamart=`,
   matching every other sub-namespace on `ADMDatamart`. No deprecated
   alias — the class is always constructed via

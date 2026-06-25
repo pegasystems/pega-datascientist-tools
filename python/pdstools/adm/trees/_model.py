@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import collections
+from collections.abc import Mapping
 import json
 import logging
 import math
@@ -235,7 +236,7 @@ class ADMTreesModel:
         encoders = {encoder["key"]: encoder["value"] for encoder in encoders}
 
         def decode_all(ob, func):
-            if isinstance(ob, collections.abc.Mapping):
+            if isinstance(ob, Mapping):
                 return {k: decode_all(v, func) for k, v in ob.items()}
             return func(ob)
 
@@ -512,6 +513,8 @@ class ADMTreesModel:
 
         # --- predictor-type classification ---------------------------------
         encoder_info = self._get_encoder_info()
+        all_numeric: set[str] = set()
+        all_symbolic: set[str] = set()
         if encoder_info is not None:
             all_predictors = set(encoder_info.keys())
             all_numeric = {n for n, info in encoder_info.items() if info["type"] == "numeric"}
@@ -976,6 +979,7 @@ class ADMTreesModel:
         leaf = False
         visited: list[int] = []
         scores: list[dict] = []
+        current_node: dict[str, Any] | None = None
         while not leaf:
             visited.append(current_node_id)
             current_node = tree[current_node_id]
@@ -1011,6 +1015,8 @@ class ADMTreesModel:
                     current_node_id = current_node["right_child"]
             else:
                 leaf = True
+        if current_node is None:
+            raise ValueError(f"Tree {treeID} produced no terminal node while scoring.")
         return visited, current_node["score"], scores
 
     def get_all_visited_nodes(self, x: dict) -> pl.DataFrame:

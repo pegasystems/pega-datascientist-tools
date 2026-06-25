@@ -510,6 +510,8 @@ class BinAggregator(LazyNamespace):
             maximum = bins_minmax.select(pl.col("Maximum").max()).item()
         if boundaries is None:
             boundaries = []
+        if minimum is None or maximum is None:
+            raise ValueError("Could not determine bin boundaries from the available data.")
 
         def create_additional_intervals(
             n: int,
@@ -546,12 +548,17 @@ class BinAggregator(LazyNamespace):
             boundaries.insert(0, minimum)
 
         if maximum > boundaries[-1]:
-            boundaries = boundaries + create_additional_intervals(
-                n,
-                distribution,
-                boundaries,
-                minimum,
-                maximum,
+            boundaries.extend(
+                cast(
+                    list[float],
+                    create_additional_intervals(
+                        n,
+                        distribution,
+                        boundaries,
+                        minimum,
+                        maximum,
+                    ),
+                ),
             )
 
         # Bit of a hack here but if minimum = maximum = 0 otherwise errors out with no binning
@@ -821,7 +828,7 @@ class BinAggregator(LazyNamespace):
             boundaries_data,
             x="boundary",
             y="binning",
-            markers="both",
+            markers=True,
             color="binning",
             template="plotly_white",
             # log_x=True,

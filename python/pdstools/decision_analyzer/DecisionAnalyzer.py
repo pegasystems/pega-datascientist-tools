@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 # python/pdstools/decision_analyzer/DecisionAnalyzer.py
+from pathlib import Path
 from typing import ClassVar, TYPE_CHECKING
 from functools import cached_property
 import logging
+import os
 import warnings
 
 import polars as pl
@@ -16,6 +18,7 @@ from .stage_grouping import DISPLAY_NAME_LOOKUP
 from .column_schema import (
     DecisionAnalyzer as DecisionAnalyzer_TD,
     ExplainabilityExtract as ExplainabilityExtract_TD,
+    TableConfig,
 )
 from .utils import (
     SCOPE_HIERARCHY,
@@ -179,7 +182,7 @@ class DecisionAnalyzer:
         level: str = "Stage Group",
         sample_size: int = DEFAULT_SAMPLE_SIZE,
         mandatory_expr: pl.Expr | None = None,
-        additional_columns: dict[str, pl.DataType] | None = None,
+        additional_columns: dict[str, type[pl.DataType]] | None = None,
         num_samples: int = 1,
     ) -> "DecisionAnalyzer":
         """Create a DecisionAnalyzer from an Explainability Extract (v1) file.
@@ -205,7 +208,8 @@ class DecisionAnalyzer:
         >>> da = DecisionAnalyzer.from_explainability_extract("data/extract_dir/")
         >>> da = DecisionAnalyzer.from_explainability_extract("data/**/*.parquet")
         """
-        raw_data = read_data(source)
+        raw_source = Path(source) if isinstance(source, os.PathLike) else source
+        raw_data = read_data(raw_source)
         return cls(
             raw_data,
             level=level,
@@ -223,7 +227,7 @@ class DecisionAnalyzer:
         level: str = "Stage Group",
         sample_size: int = DEFAULT_SAMPLE_SIZE,
         mandatory_expr: pl.Expr | None = None,
-        additional_columns: dict[str, pl.DataType] | None = None,
+        additional_columns: dict[str, type[pl.DataType]] | None = None,
         num_samples: int = 1,
     ) -> "DecisionAnalyzer":
         """Create a DecisionAnalyzer from a Decision Analyzer / EEV2 (v2) file.
@@ -249,7 +253,8 @@ class DecisionAnalyzer:
         >>> da = DecisionAnalyzer.from_decision_analyzer("data/eev2_partitioned/")
         >>> da = DecisionAnalyzer.from_decision_analyzer("data/**/*.parquet")
         """
-        raw_data = read_data(source)
+        raw_source = Path(source) if isinstance(source, os.PathLike) else source
+        raw_data = read_data(raw_source)
         return cls(
             raw_data,
             level=level,
@@ -281,7 +286,7 @@ class DecisionAnalyzer:
         level: str = "Stage Group",
         sample_size: int = DEFAULT_SAMPLE_SIZE,
         mandatory_expr: pl.Expr | None = None,
-        additional_columns: dict[str, pl.DataType] | None = None,
+        additional_columns: dict[str, type[pl.DataType]] | None = None,
         num_samples: int = 1,
     ):
         """Initialize DecisionAnalyzer with raw decision data.
@@ -329,7 +334,7 @@ class DecisionAnalyzer:
             the ``Priority`` column using
             ``pl.col("Priority") >= MANDATORY_PRIORITY_THRESHOLD`` — mirroring
             how the arbitration engine treats high-priority actions.
-        additional_columns : dict[str, pl.DataType], optional
+        additional_columns : dict[str, type[pl.DataType]], optional
             Additional columns to include in processing beyond the standard table definition.
             Dictionary mapping column names to their polars data types.
 
@@ -372,11 +377,11 @@ class DecisionAnalyzer:
         table_def = get_table_definition(self.extract_type)
         if additional_columns:
             for col_name, col_type in additional_columns.items():
-                table_def[col_name] = {
-                    "display_name": col_name,
-                    "default": True,
-                    "type": col_type,
-                }
+                table_def[col_name] = TableConfig(
+                    display_name=col_name,
+                    default=True,
+                    type=col_type,
+                )
         # all columns are present?
         validation_result, validation_error = validate_columns(raw_data, table_def)
         self.validation_error = validation_error if not validation_result else None

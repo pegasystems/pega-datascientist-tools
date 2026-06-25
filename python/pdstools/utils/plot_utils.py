@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import TYPE_CHECKING, Any, TypeAlias
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import polars as pl
 
@@ -85,7 +85,10 @@ def get_colorscale(
     ['#d91c29', '#F76923', '#20aa50']
 
     """
-    return COLORSCALES.get(metric, COLORSCALES.get(default, COLORSCALES["other"]))
+    return cast(
+        "list[tuple[float, str]] | list[str]",
+        COLORSCALES.get(metric, COLORSCALES.get(default, COLORSCALES["other"])),
+    )
 
 
 DEFAULT_LABEL_MAX_LENGTH = 25

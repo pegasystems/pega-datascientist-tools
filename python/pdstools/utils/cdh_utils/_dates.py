@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import datetime
+from typing import TYPE_CHECKING, cast
 
 import polars as pl
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from polars._typing import PolarsTemporalType
@@ -188,12 +188,12 @@ def _get_start_end_date_args(
         )
     if not end_date:
         if window is None or start_date is None:
-            end_date = data_max_date
+            end_date = cast("datetime.datetime | None", data_max_date)
         else:
             end_date = start_date + window - datetime.timedelta(days=1)
     if not start_date:
         if window is None or end_date is None:
-            start_date = data_min_date
+            start_date = cast("datetime.datetime | None", data_min_date)
         else:
             start_date = end_date - window + datetime.timedelta(days=1)
 

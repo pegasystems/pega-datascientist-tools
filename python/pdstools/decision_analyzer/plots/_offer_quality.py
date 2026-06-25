@@ -46,10 +46,10 @@ def offer_quality_piecharts(
 
     fig_height = 400 + (num_rows - 1) * 300
 
-    specs = []
+    specs: list[list[dict[str, str] | None]] = []
     stage_idx = 0
     for _row in range(num_rows):
-        row_specs = []
+        row_specs: list[dict[str, str] | None] = []
         for _col in range(num_cols):
             if stage_idx < num_stages:
                 row_specs.append({"type": "domain"})

@@ -26,18 +26,18 @@ class PredictionStudio(_PredictionStudiov26_1):
     version: str = "25.1"
 
     @property
-    def models(self) -> PaginatedList[Model]:
+    def models(self) -> PaginatedList[Model]:  # type: ignore[override]  # PaginatedList is invariant; v25 returns version-specific resources.
         """All models, addressable by label or id (``ps.models['My Model']``)."""
         endpoint = "/prweb/api/PredictionStudio/v2/models"
         return PaginatedList(Model, self._client, "get", endpoint, _root="models", pageSize=100)
 
     @property
-    def predictions(self) -> PaginatedList[Prediction]:
+    def predictions(self) -> PaginatedList[Prediction]:  # type: ignore[override]  # PaginatedList is invariant; v25 returns version-specific resources.
         """All predictions, addressable by label or id (``ps.predictions['My Prediction']``)."""
         endpoint = "/prweb/api/PredictionStudio/v3/predictions"
         return PaginatedList(Prediction, self._client, "get", endpoint, _root="predictions", pageSize=100)
 
-    @overload
+    @overload  # type: ignore[override]  # Generic invariance makes the v25 resource subtype appear incompatible.
     def list_models(self, return_df: Literal[False] = False) -> PaginatedList[Model]: ...
 
     @overload
@@ -92,18 +92,18 @@ class AsyncPredictionStudio(_AsyncPredictionStudiov26_1):
     version: str = "25.1"
 
     @property
-    def models(self) -> AsyncPaginatedList[AsyncModel]:
+    def models(self) -> AsyncPaginatedList[AsyncModel]:  # type: ignore[override]  # AsyncPaginatedList is invariant; v25 returns version-specific resources.
         """All models, addressable by label or id (``await ps.models.get(label=...)``)."""
         endpoint = "/prweb/api/PredictionStudio/v2/models"
         return AsyncPaginatedList(AsyncModel, self._client, "get", endpoint, _root="models", pageSize=100)
 
     @property
-    def predictions(self) -> AsyncPaginatedList[AsyncPrediction]:
+    def predictions(self) -> AsyncPaginatedList[AsyncPrediction]:  # type: ignore[override]  # AsyncPaginatedList is invariant; v25 returns version-specific resources.
         """All predictions, addressable by label or id (``await ps.predictions.get(label=...)``)."""
         endpoint = "/prweb/api/PredictionStudio/v3/predictions"
         return AsyncPaginatedList(AsyncPrediction, self._client, "get", endpoint, _root="predictions", pageSize=100)
 
-    async def list_models(self, return_df: bool = False) -> AsyncPaginatedList[AsyncModel] | pl.DataFrame:
+    async def list_models(self, return_df: bool = False) -> AsyncPaginatedList[AsyncModel] | pl.DataFrame:  # type: ignore[override]  # Generic invariance makes the narrower v25 resource type appear incompatible.
         """Fetches a list of all models from Prediction Studio.
 
         Parameters
@@ -151,9 +151,12 @@ class AsyncPredictionStudio(_AsyncPredictionStudiov26_1):
         if label:
             uniques["label"] = label
         pages = cast("AsyncPaginatedList[AsyncPrediction]", await self.list_predictions())
-        return await pages.get(**uniques)
+        prediction = await pages.get(**uniques)
+        if prediction is None:
+            raise KeyError(f"No prediction found for lookup {uniques!r}")
+        return prediction
 
-    async def get_model(self, model_id: str | None = None, label: str | None = None, **kwargs) -> AsyncModel:
+    async def get_model(self, model_id: str | None = None, label: str | None = None, **kwargs) -> AsyncModel:  # type: ignore[override]  # v25 returns the version-specific async model subtype.
         """Finds and returns a specific model from Prediction Studio."""
         uniques = {**kwargs}
         if model_id:
@@ -161,4 +164,7 @@ class AsyncPredictionStudio(_AsyncPredictionStudiov26_1):
         if label:
             uniques["label"] = label
         pages = cast("AsyncPaginatedList[AsyncModel]", await self.list_models())
-        return await pages.get(**uniques)
+        model = await pages.get(**uniques)
+        if model is None:
+            raise KeyError(f"No model found for lookup {uniques!r}")
+        return model

@@ -557,6 +557,8 @@ is unchanged.
   `pdstools.AsyncInfinity` — all still importable from the top level.
 - Most `from_<source>` classmethods on the top-level analysis classes.
 - All public plot methods (`return_df` parameter remains opt-in).
-- The Streamlit apps (`pdstools-app health-check`, etc.) — same UX.
-- Polars version requirements — unchanged.
+- The core Streamlit app workflows (`pdstools health_check`,
+  `pdstools decision_analyzer`, `pdstools impact_analyzer`) — same UX.
+- Polars version requirements: same major line (`<2`), but the tested
+  minimum version is now `1.37`.
 - Python version: same minimum (3.10+).

@@ -29,7 +29,7 @@ class _Predictionv25_1Mixin(_Predictionv26_1Mixin):
     ):
         # Jump over _Predictionv26_1Mixin.__init__ to avoid setting
         # self.performance and self.performance_measure.
-        super(_Predictionv26_1Mixin, self).__init__(  # type: ignore[call-arg]
+        super(_Predictionv26_1Mixin, self).__init__(
             client=client,
             predictionId=predictionId,
             label=label,
