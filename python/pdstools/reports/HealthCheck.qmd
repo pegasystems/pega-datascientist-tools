@@ -196,16 +196,12 @@ else:
 # not been updated for a while. We set a threshold date based on the last
 # date in the data.
 
-active_models_threshold_date_expr = (
-    pl.col("LastUpdate").max() - datetime.timedelta(days=threshold_updated_days)
-) #.dt.truncate("1mo")
-active_models_filter_expr = (
-    pl.col("LastUpdate") > active_models_threshold_date_expr
-).fill_null(True)
-
-active_models_threshold_date_string = datamart.model_data.select(
-    active_models_threshold_date_expr.dt.strftime("%v")
-).collect().item().strip()
+active_models_filter_expr = datamart.analysis.health_check_active_filter(
+    active_threshold_days=threshold_updated_days
+)
+active_models_threshold_date_string = datamart.analysis.health_check_active_threshold_date_string(
+    active_threshold_days=threshold_updated_days
+)
 ```
 
 This document gives a global overview of the Adaptive models and (if available) the predictors of the models. It is generated from a Python markdown (Quarto) file in the [Pega Data Scientist Tools](https://github.com/pegasystems/pega-datascientist-tools). PDS Tools is open-source software and comes without guarantees.
@@ -277,16 +273,11 @@ In a typical Next Best Action Designer setup, treatments for a channels are mode
 
 ```{python}
 df_channel_overview = (
-    datamart.aggregates.summary_by_channel(
+    datamart.aggregates.channel_overview(
         query=active_models_filter_expr,
-        format_flags=True
-    )
-    .drop(
+    ).drop(
         [
-            "ChannelDirectionGroup",
             "ChannelDirection",
-            "DateRange Min",
-            "DateRange Max",
             # Great KPI but this table currently is over
             # the whole period, so there's no added info
             # in New Actions. Would be different if we report
@@ -294,7 +285,6 @@ df_channel_overview = (
             # "New Actions",
         ]
     )
-    .collect()
 )
 ```
 
@@ -990,24 +980,13 @@ There are **{last_data.filter(active_models_filter_expr).select(pl.col("ModelID"
 In the standard configuration there is one Adaptive model per treatment/action for a configuration.
 
 ```{python}
-model_overview = datamart.aggregates.summary_by_configuration(query=active_models_filter_expr)
+model_overview = datamart.aggregates.configuration_overview(
+    query=active_models_filter_expr
+)
 
 display(
     report_utils.create_metric_gttable(
-        model_overview.with_columns(
-            NBAD=pl.when(pl.col("usesNBAD").is_null())
-            .then(pl.lit("?"))
-            .when(pl.col("usesNBAD"))
-            .then(pl.lit("Yes"))
-            .otherwise(pl.lit("No")),
-            AGB=pl.when(pl.col("usesAGB").is_null())
-            .then(pl.lit("?"))
-            .when(pl.col("usesAGB"))
-            .then(pl.lit("Yes"))
-            .otherwise(pl.lit("No")),
-        )
-        .drop("usesNBAD", "usesAGB")
-        .collect(),
+        model_overview,
         title="Model Overview",
         subtitle=f"models updated since {active_models_threshold_date_string}",
         column_to_metric={
@@ -1493,9 +1472,10 @@ If predictors perform poorly across all models, that may be because of data sour
 ```{python}
 if datamart.predictor_data is not None:
     bad_predictors = (
-        datamart.aggregates.predictors_global_overview(query=active_models_filter_expr)
+        datamart.aggregates.global_predictor_overview(
+            query=active_models_filter_expr
+        )
         .filter(pl.col("Mean") < (MetricLimits.minimum("ModelPerformance")*100))
-        .collect()
     )
     # responses_column_index = bad_predictors.columns.index("Response Count")
 
@@ -1702,61 +1682,10 @@ For the full list of models, export the data into an Excel sheet from Pega or fr
 All below lists are guidance. With new treatments/actions being introduced regularly, you would expect a small percentage of the models to be at their initial stages, but that percentage should be small.
 
 ```{python}
-maturity_criteria = {
-    "Number of models in last snapshot": True,
-    f"Models that have never been used (responses = 0)": (
-        pl.col("ResponseCount") < MetricLimits.minimum("TotalResponseCount")
-    ),
-    f"Models that have been used (responses > 0) but never received a positive response": (
-        (pl.col("Positives") < MetricLimits.minimum("TotalPositiveCount"))
-        & (pl.col("ResponseCount") >= MetricLimits.minimum("TotalResponseCount"))
-    ),
-    f"Models that are still in an immature phase of learning (positives < {int(MetricLimits.best_practice_min('TotalPositiveCount'))})": (
-        (pl.col("Positives") < MetricLimits.best_practice_min("TotalPositiveCount"))
-        & (pl.col("Positives") >= MetricLimits.minimum("TotalPositiveCount"))
-    ),
-    "Models that have received sufficient responses but are still at their minimum performance (AUC = 50)": (
-        (pl.col("Performance") == 0.5)
-        & (
-            pl.col("Positives")
-            >= MetricLimits.best_practice_min("TotalPositiveCount")
-        )
-    ),
-    f"Models that have received sufficient responses but still have a low performance (AUC < {MetricLimits.minimum('ModelPerformance')})": (
-        (pl.col("Performance") > 0.5)
-        & (pl.col("Performance") < MetricLimits.minimum("ModelPerformance"))
-        & (
-            pl.col("Positives")
-            >= MetricLimits.best_practice_min("TotalPositiveCount")
-        )
-    ),
-    f"Models with sufficient positive responses (≥ {int(MetricLimits.best_practice_min('TotalPositiveCount'))}) and a decent performance (≥ {MetricLimits.minimum('ModelPerformance')})": (
-        (pl.col("Performance") >= MetricLimits.minimum("ModelPerformance"))
-        & (
-            pl.col("Positives")
-            >= MetricLimits.best_practice_min("TotalPositiveCount")
-        )
-    ),
-}
-
-maturity_overview = pl.concat(
-    [
-        last_data.filter(active_models_filter_expr)
-        .group_by(None)
-        .agg(
-            pl.lit(name).alias("Category"),
-            pl.col("Name").filter(filter_expression).len().alias("Number of Models"),
-            (
-                cdh_utils.weighted_average_polars(
-                    pl.col("Performance").filter(filter_expression),
-                    pl.col("ResponseCount").filter(filter_expression),
-                )
-                * 100.0
-            ).alias("Average Performance"),
-        )
-        .drop("literal")
-        for name, filter_expression in maturity_criteria.items()
-    ]
+maturity_criteria = datamart.analysis.health_check_maturity_criteria()
+maturity_overview = datamart.analysis.health_check_maturity_overview(
+    last_data=last_data,
+    active_filter=active_models_filter_expr,
 )
 
 display(
@@ -1816,7 +1745,7 @@ else:
         pl.concat(
             [
                 datamart.model_data.group_by(by).agg(
-                    pl.lit(name).alias("Category"),
+                    pl.lit(label).alias("Category"),
                     pl.col("Name").filter(filter_expression).len().alias("Number of Models"),
                     (
                         cdh_utils.weighted_average_polars(
@@ -1826,7 +1755,7 @@ else:
                         * 100.0
                     ).alias("Average Performance"),
                 )
-                for name, filter_expression in maturity_criteria.items()
+                for _, label, filter_expression in maturity_criteria
             ]
         )
         .with_columns(pl.concat_str(facet.split("/"), separator="/").alias(facet))

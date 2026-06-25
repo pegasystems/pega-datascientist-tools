@@ -2,7 +2,11 @@
 
 import zipfile
 
+import polars as pl
 import pytest
+
+from pdstools import datasets
+from pdstools.adm.Reports import Reports
 
 from pdstools.utils.report_utils import check_report_for_errors
 
@@ -144,3 +148,67 @@ def test_full_embed_integration():
 
         # CDN should be smallest (no embedded resources)
         assert results["cdn"]["size"] < results["embedded"]["size"], "CDN should be smaller than embedded"
+
+
+def test_health_check_markdown_writes_markdown(tmp_path):
+    datamart = datasets.cdh_sample()
+    reports = Reports(datamart)
+
+    output_path = reports.health_check_markdown(
+        name="agent_health_check",
+        output_dir=tmp_path,
+    )
+
+    assert output_path.exists()
+    assert output_path.suffix == ".md"
+    content = output_path.read_text(encoding="utf-8")
+    assert content.startswith("# ADM Health Check")
+    assert "## Summary" in content
+    assert "## Key Metrics" in content
+    assert "## Estate Snapshot" in content
+    assert "## Findings Overview" in content
+    assert "Health:" in content
+
+
+def test_health_check_markdown_respects_title_subtitle_and_disclaimer(tmp_path):
+    datamart = datasets.cdh_sample()
+    reports = Reports(datamart)
+
+    output_path = reports.health_check_markdown(
+        output_dir=tmp_path,
+        title="Custom Title",
+        subtitle="Custom Subtitle",
+        disclaimer="Review before sharing.",
+    )
+
+    content = output_path.read_text(encoding="utf-8")
+    assert "# Custom Title" in content
+    assert "## Custom Subtitle" in content
+    assert "> **Disclaimer:** Review before sharing." in content
+
+
+def test_health_check_markdown_accepts_preaggregates(tmp_path):
+    datamart = datasets.cdh_sample()
+    reports = Reports(datamart)
+    preaggregates = datamart.analysis.compute_health_check_preaggregates()
+
+    output_path = reports.health_check_markdown(
+        output_dir=tmp_path,
+        preaggregates=preaggregates,
+    )
+
+    assert output_path.exists()
+    assert output_path.read_text(encoding="utf-8").startswith("# ADM Health Check")
+
+
+def test_health_check_markdown_rejects_query_with_preaggregates(tmp_path):
+    datamart = datasets.cdh_sample()
+    reports = Reports(datamart)
+    preaggregates = datamart.analysis.compute_health_check_preaggregates()
+
+    with pytest.raises(ValueError, match="query and preaggregates"):
+        reports.health_check_markdown(
+            output_dir=tmp_path,
+            query=pl.col("Channel") == "Web",
+            preaggregates=preaggregates,
+        )

@@ -92,6 +92,7 @@ class Prediction:
         df: pl.LazyFrame,
         *,
         query: QUERY | None = None,
+        _materialize_validated: bool = True,
     ):
         """Initialize the Prediction class.
 
@@ -107,11 +108,16 @@ class Prediction:
         """
         self.plot = PredictionPlots(prediction=self)
 
-        validated = self._validate_prediction_data(df)
+        validated = self._validate_prediction_data(df, materialize=_materialize_validated)
         self.predictions = cdh_utils._apply_query(validated, query)
 
     @classmethod
-    def _validate_prediction_data(cls, df: pl.LazyFrame) -> pl.LazyFrame:
+    def _validate_prediction_data(
+        cls,
+        df: pl.LazyFrame,
+        *,
+        materialize: bool = True,
+    ) -> pl.LazyFrame:
         """Normalize raw prediction snapshot data into the standard shape.
 
         Filters to ``pyModelType == "PREDICTION"``, renames the raw
@@ -123,23 +129,20 @@ class Prediction:
         Returns the resulting LazyFrame; does not mutate ``df``.
         """
         prepped = (
-            (
-                df.filter(pl.col.pyModelType == "PREDICTION")
-                .with_columns(
-                    Performance=pl.col("pyValue").cast(pl.Float32, strict=False),
-                )
-                .rename(
-                    {
-                        "pyPositives": "Positives",
-                        "pyNegatives": "Negatives",
-                        "pyCount": "ResponseCount",
-                    },
-                )
+            df.filter(pl.col.pyModelType == "PREDICTION")
+            .with_columns(
+                Performance=pl.col("pyValue").cast(pl.Float32, strict=False),
             )
-            # collect/lazy hopefully helps to zoom in into issues
-            .collect()
-            .lazy()
+            .rename(
+                {
+                    "pyPositives": "Positives",
+                    "pyNegatives": "Negatives",
+                    "pyCount": "ResponseCount",
+                },
+            )
         )
+        if materialize:
+            prepped = prepped.collect().lazy()
         prepped = cls._normalize_performance_scale(prepped)
         prepped = cls._parse_snapshot_time(prepped)
 
@@ -201,10 +204,11 @@ class Prediction:
         """Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale."""
         if "Performance" not in df.collect_schema().names():
             return df
-        perf_max = df.select(pl.col("Performance").max()).collect().item()
-        if perf_max is not None and perf_max > 1.0:
-            df = df.with_columns(Performance=pl.col("Performance") / 100.0)
-        return df
+        return df.with_columns(
+            Performance=pl.when(pl.col("Performance").max() > 1.0)
+            .then(pl.col("Performance") / 100.0)
+            .otherwise(pl.col("Performance"))
+        )
 
     @staticmethod
     def _parse_snapshot_time(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -436,7 +440,7 @@ class Prediction:
             cache_file_prefix + "prediction_data",
             cache_directory=cache_directory,
         )
-        return cls(prediction_data, query=query)
+        return cls(prediction_data, query=query, _materialize_validated=False)
 
     @classmethod
     def from_databricks_view(
@@ -508,7 +512,7 @@ class Prediction:
             )
         )
 
-        return cls(prediction_data, query=query)
+        return cls(prediction_data, query=query, _materialize_validated=False)
 
     def save_data(self, path: os.PathLike | str = ".") -> os.PathLike | None:
         """Cache predictions to a file.
