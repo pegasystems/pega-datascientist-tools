@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__all__ = ["Analysis", "Finding", "HealthCheckPreAggregates"]
+__all__ = ["Analysis", "Finding", "HealthCheckPreAggregates", "_format_markdown_value"]
 
 import datetime
 import logging
@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Literal
 
 import polars as pl
 
+from .HealthCheckMarkdown import HealthCheckMarkdownRenderer, _format_markdown_value
 from ..utils import cdh_utils, report_utils
 from ..utils.metric_limits import MetricLimits
 
@@ -94,6 +95,7 @@ class HealthCheckPreAggregates:
     overall_avg_auc: float | None = None
     active_avg_auc: float | None = None
     predictor_count: int | None = None
+    channel_overview: pl.DataFrame | None = None
     channel_summary: pl.DataFrame | None = None
     configuration_summary: pl.DataFrame | None = None
     predictor_overview: pl.DataFrame | None = None
@@ -113,46 +115,6 @@ def _gini(values: list[float]) -> float:
     return float((2 * weighted_sum - (n + 1) * total) / (n * total))
 
 
-def _format_markdown_value(value: object) -> str:
-    """Format a finding payload value for markdown output."""
-    if value is None:
-        return "N/A"
-    if isinstance(value, bool):
-        return "Yes" if value else "No"
-    if isinstance(value, float):
-        if math.isnan(value) or math.isinf(value):
-            return "N/A"
-        if value == 0:
-            return "0"
-        if abs(value) >= 1000:
-            return f"{value:,.0f}"
-        if abs(value) >= 1:
-            return f"{value:,.2f}"
-        return f"{value:.4f}"
-    if isinstance(value, list):
-        preview = ", ".join(_format_markdown_value(item) for item in value[:5])
-        if len(value) > 5:
-            preview += f" (+{len(value) - 5} more)"
-        return preview
-    return str(value).replace("|", "\\|").replace("\n", " ")
-
-
-def _markdown_table(df: pl.DataFrame, *, max_rows: int | None = None) -> str:
-    """Render a small Polars DataFrame as GitHub-flavored Markdown."""
-    if df.height == 0:
-        return "*No data available.*"
-
-    truncated = max_rows is not None and df.height > max_rows
-    table_df = df.head(max_rows) if truncated else df
-    header = "| " + " | ".join(table_df.columns) + " |"
-    separator = "| " + " | ".join("---" for _ in table_df.columns) + " |"
-    rows = ["| " + " | ".join(_format_markdown_value(value) for value in row) + " |" for row in table_df.iter_rows()]
-    markdown = "\n".join([header, separator, *rows])
-    if truncated:
-        markdown += f"\n\n*And {df.height - max_rows} more rows.*"
-    return markdown
-
-
 class Analysis:
     """Automated diagnostic analysis for ADM model data.
 
@@ -169,6 +131,105 @@ class Analysis:
 
     def __init__(self, datamart: "ADMDatamart") -> None:
         self.datamart = datamart
+
+    def _markdown_renderer(self) -> HealthCheckMarkdownRenderer:
+        return HealthCheckMarkdownRenderer(self)
+
+    def health_check_active_filter(self, *, active_threshold_days: int = 30) -> pl.Expr:
+        """Return the shared active-model filter used by health checks."""
+        return (
+            pl.col("LastUpdate") > (pl.col("LastUpdate").max() - datetime.timedelta(days=active_threshold_days))
+        ).fill_null(True)
+
+    def health_check_active_threshold_date_string(self, *, active_threshold_days: int = 30) -> str:
+        """Return the shared cutoff-date string for the active-model filter."""
+        return (
+            self.datamart.model_data.select(
+                (pl.col("LastUpdate").max() - datetime.timedelta(days=active_threshold_days))
+                .dt.strftime("%v")
+                .alias("cutoff")
+            )
+            .collect()
+            .item()
+            .strip()
+        )
+
+    def health_check_maturity_criteria(self) -> list[tuple[str, str, pl.Expr]]:
+        """Return the shared maturity bucket definitions for health checks."""
+        min_responses = MetricLimits.minimum("TotalResponseCount")
+        min_positives = MetricLimits.minimum("TotalPositiveCount")
+        bp_min_positives = MetricLimits.best_practice_min("TotalPositiveCount")
+        min_perf = MetricLimits.minimum("ModelPerformance")
+
+        return [
+            ("last_snapshot", "Number of models in last snapshot", pl.lit(True)),
+            (
+                "never_used",
+                "Models that have never been used (responses = 0)",
+                pl.col("ResponseCount") < min_responses,
+            ),
+            (
+                "responses_no_positives",
+                "Models that have been used (responses > 0) but never received a positive response",
+                (pl.col("Positives") < min_positives) & (pl.col("ResponseCount") >= min_responses),
+            ),
+            (
+                "immature",
+                f"Models that are still in an immature phase of learning (positives < {int(bp_min_positives)})",
+                (pl.col("Positives") < bp_min_positives) & (pl.col("Positives") >= min_positives),
+            ),
+            (
+                "stuck_at_50",
+                "Models that have received sufficient responses but are still at their minimum performance (AUC = 50)",
+                (pl.col("Performance") == 0.5) & (pl.col("Positives") >= bp_min_positives),
+            ),
+            (
+                "low_performance",
+                f"Models that have received sufficient responses but still have a low performance (AUC < {min_perf})",
+                (pl.col("Performance") > 0.5)
+                & (pl.col("Performance") < min_perf)
+                & (pl.col("Positives") >= bp_min_positives),
+            ),
+            (
+                "mature_decent",
+                f"Models with sufficient positive responses (≥ {int(bp_min_positives)}) and a decent performance (≥ {min_perf})",
+                (pl.col("Performance") >= min_perf) & (pl.col("Positives") >= bp_min_positives),
+            ),
+        ]
+
+    def health_check_maturity_overview(
+        self,
+        *,
+        last_data: pl.DataFrame | None = None,
+        active_filter: pl.Expr | None = None,
+        active_threshold_days: int = 30,
+    ) -> pl.DataFrame:
+        """Return the shared maturity-overview table used by health checks."""
+        if last_data is None:
+            last_data = self._get_last_data()
+        if active_filter is None:
+            active_filter = self.health_check_active_filter(active_threshold_days=active_threshold_days)
+
+        active_last_data = last_data.lazy().filter(active_filter)
+        return pl.concat(
+            [
+                active_last_data.group_by(None)
+                .agg(
+                    pl.lit(label).alias("Category"),
+                    pl.col("Name").filter(filter_expression).len().alias("Number of Models"),
+                    (
+                        cdh_utils.weighted_average_polars(
+                            pl.col("Performance").filter(filter_expression),
+                            pl.col("ResponseCount").filter(filter_expression),
+                        )
+                        * 100.0
+                    ).alias("Average Performance"),
+                )
+                .drop("literal")
+                .collect()
+                for _, label, filter_expression in self.health_check_maturity_criteria()
+            ]
+        )
 
     def compute_health_check_preaggregates(
         self,
@@ -201,9 +262,7 @@ class Analysis:
             outputs within one run.
         """
         if active_filter is None:
-            active_filter = (
-                pl.col("LastUpdate") > (pl.col("LastUpdate").max() - datetime.timedelta(days=active_threshold_days))
-            ).fill_null(True)
+            active_filter = self.health_check_active_filter(active_threshold_days=active_threshold_days)
         return self._build_health_check_preaggregates(
             active_filter=active_filter,
             prediction=prediction,
@@ -302,16 +361,21 @@ class Analysis:
 
         if include_markdown_sections:
             try:
-                preaggregates.configuration_summary = self._health_check_configuration_summary(
-                    last_data=last_data,
-                    active_filter=active_filter,
+                preaggregates.channel_overview = self.datamart.aggregates.channel_overview(query=active_filter)
+            except RECOVERABLE_ANALYSIS_ERRORS as exc:
+                logger.debug("Could not compute shared health-check channel overview: %s", exc)
+            try:
+                preaggregates.configuration_summary = self.datamart.aggregates.configuration_overview(
+                    query=active_filter
                 )
             except RECOVERABLE_ANALYSIS_ERRORS as exc:
                 logger.debug("Could not compute health-check configuration pre-aggregates: %s", exc)
 
         if self.datamart.predictor_data is not None:
             try:
-                preaggregates.predictor_overview = self.datamart.aggregates.predictors_global_overview().collect()
+                preaggregates.predictor_overview = self.datamart.aggregates.global_predictor_overview(
+                    query=active_filter
+                )
             except RECOVERABLE_ANALYSIS_ERRORS as exc:
                 logger.debug("Could not compute health-check predictor pre-aggregates: %s", exc)
             else:
@@ -370,9 +434,7 @@ class Analysis:
             Sorted by severity (critical first, then warning, then info).
         """
         if active_filter is None:
-            active_filter = (
-                pl.col("LastUpdate") > (pl.col("LastUpdate").max() - datetime.timedelta(days=active_threshold_days))
-            ).fill_null(True)
+            active_filter = self.health_check_active_filter(active_threshold_days=active_threshold_days)
 
         preaggregates = preaggregates or self.compute_health_check_preaggregates(
             active_filter=active_filter,
@@ -452,101 +514,15 @@ class Analysis:
         str
             Markdown document summarizing the findings.
         """
-        preaggregates = preaggregates or self.compute_health_check_preaggregates(
-            active_filter=active_filter,
-            active_threshold_days=active_threshold_days,
-            prediction=prediction,
-            include_markdown_sections=True,
-        )
-        findings = self.findings(
+        return self._markdown_renderer().render(
+            title=title,
+            subtitle=subtitle,
+            disclaimer=disclaimer,
             active_filter=active_filter,
             active_threshold_days=active_threshold_days,
             prediction=prediction,
             preaggregates=preaggregates,
         )
-        headline = next((finding for finding in findings if finding.category == "summary"), None)
-        body_findings = [finding for finding in findings if finding.category != "summary"]
-
-        lines = [f"# {title}", ""]
-        if subtitle:
-            lines.extend([f"## {subtitle}", ""])
-        if disclaimer:
-            lines.extend([f"> **Disclaimer:** {disclaimer}", ""])
-
-        if headline is not None:
-            lines.extend(["## Summary", "", f"**{headline.title}**", "", headline.detail, ""])
-
-        lines.extend(
-            [
-                "## Key Metrics",
-                "",
-                _markdown_table(
-                    self._key_metrics_table(
-                        preaggregates.last_data,
-                        findings,
-                        active_filter,
-                        preaggregates=preaggregates,
-                    )
-                ),
-                "",
-            ]
-        )
-
-        estate_sections = self._estate_snapshot_sections(active_filter, preaggregates=preaggregates)
-        if estate_sections:
-            lines.extend(["## Estate Snapshot", ""])
-            for section_title, section_table in estate_sections:
-                lines.extend([f"### {section_title}", "", _markdown_table(section_table, max_rows=5), ""])
-
-        lines.extend(["## Findings Overview", ""])
-        lines.extend(
-            ["### Findings by Severity", "", _markdown_table(self._findings_by_severity_table(body_findings)), ""]
-        )
-        lines.extend(
-            [
-                "### Findings by Category",
-                "",
-                _markdown_table(self._findings_by_category_table(body_findings), max_rows=10),
-                "",
-            ]
-        )
-
-        if not body_findings:
-            lines.extend(["## Findings", "", "No findings were generated.", ""])
-            return "\n".join(lines).strip() + "\n"
-
-        severity_order: list[Severity] = ["critical", "warning", "info", "success"]
-        section_titles = {
-            "critical": "Critical Findings",
-            "warning": "Warning Findings",
-            "info": "Informational Findings",
-            "success": "Positive Findings",
-        }
-
-        for severity in severity_order:
-            section_findings = [finding for finding in body_findings if finding.severity == severity]
-            if not section_findings:
-                continue
-            lines.extend([f"## {section_titles[severity]}", ""])
-            for finding in section_findings:
-                lines.extend(
-                    [
-                        f"### {finding.title}",
-                        "",
-                        f"- **Category:** `{finding.category}`",
-                        f"- **Severity:** `{finding.severity}`",
-                        "",
-                        finding.detail,
-                    ]
-                )
-                if finding.data:
-                    lines.append("")
-                    lines.append("Supporting data:")
-                    for key, value in finding.data.items():
-                        lines.append(f"- **{key}**: {_format_markdown_value(value)}")
-                lines.append("")
-
-        return "\n".join(lines).strip() + "\n"
 
     def _key_metrics_table(
         self,
@@ -557,48 +533,11 @@ class Analysis:
         preaggregates: HealthCheckPreAggregates | None = None,
     ) -> pl.DataFrame:
         """Build a compact key-metrics table for markdown output."""
-        if preaggregates is None:
-            preaggregates = self._build_health_check_preaggregates(active_filter=active_filter)
-
-        avg_auc = next(
-            (finding.data.get("avg_auc") for finding in findings if finding.category == "summary"),
-            None,
-        )
-
-        metrics: list[tuple[str, object]] = [
-            (
-                "Snapshot range",
-                (
-                    f"{preaggregates.date_start:%Y-%m-%d} to {preaggregates.date_end:%Y-%m-%d}"
-                    if preaggregates.date_start is not None and preaggregates.date_end is not None
-                    else None
-                ),
-            ),
-            ("Models (latest snapshot)", preaggregates.total_models),
-            ("Active models", preaggregates.active_models),
-            ("Channels", preaggregates.channel_count),
-            ("Configurations", preaggregates.configuration_count),
-            ("Actions", preaggregates.action_count),
-            ("Treatments", preaggregates.treatment_count),
-            ("Responses", preaggregates.response_count),
-            ("Positives", preaggregates.positive_count),
-            (
-                "Average AUC (latest snapshot)",
-                avg_auc * 100 if isinstance(avg_auc, float) else None,
-            ),
-        ]
-
-        if isinstance(preaggregates.active_avg_auc, float):
-            metrics.append(("Average AUC (active)", preaggregates.active_avg_auc * 100))
-
-        if self.datamart.predictor_data is not None:
-            metrics.append(("Predictors", preaggregates.predictor_count))
-
-        return pl.DataFrame(
-            {
-                "Metric": [metric for metric, _ in metrics],
-                "Value": [_format_markdown_value(value) for _, value in metrics],
-            }
+        return self._markdown_renderer().key_metrics_table(
+            last_data,
+            findings,
+            active_filter,
+            preaggregates=preaggregates,
         )
 
     def _estate_snapshot_sections(
@@ -608,62 +547,20 @@ class Analysis:
         preaggregates: HealthCheckPreAggregates | None = None,
     ) -> list[tuple[str, pl.DataFrame]]:
         """Build compact orientation tables for the markdown report."""
-        sections: list[tuple[str, pl.DataFrame]] = []
-        if preaggregates is None:
-            preaggregates = self._build_health_check_preaggregates(
-                active_filter=active_filter,
-                include_markdown_sections=True,
-            )
-
-        if preaggregates.channel_summary is not None:
-            channel_summary = preaggregates.channel_summary.select(
-                "ChannelDirection", "Responses", "Positives", "Performance", "CTR", "Actions"
-            ).sort("Responses", descending=True)
-            if channel_summary.height > 0:
-                sections.append(("Top Channels by Responses", channel_summary))
-
-        if preaggregates.configuration_summary is not None:
-            configuration_columns = [
-                col
-                for col in [
-                    "Configuration",
-                    "Channel",
-                    "Direction",
-                    "ResponseCount",
-                    "Positives",
-                    "Performance",
-                ]
-                if col in preaggregates.configuration_summary.columns
-            ]
-            configuration_summary = preaggregates.configuration_summary.select(configuration_columns).sort(
-                "ResponseCount", descending=True
-            )
-            if configuration_summary.height > 0:
-                sections.append(("Top Configurations by Responses", configuration_summary))
-
-        if preaggregates.predictor_categories is not None and preaggregates.predictor_categories.height > 0:
-            sections.append(("Predictor Categories", preaggregates.predictor_categories))
-
-        return sections
+        return self._markdown_renderer().estate_snapshot_sections(
+            active_filter,
+            preaggregates=preaggregates,
+        )
 
     @staticmethod
     def _findings_by_severity_table(findings: list[Finding]) -> pl.DataFrame:
         """Summarize findings by severity."""
-        severity_order = {"critical": 0, "warning": 1, "info": 2, "success": 3}
-        counts: dict[str, int] = {}
-        for finding in findings:
-            counts[finding.severity] = counts.get(finding.severity, 0) + 1
-        rows = sorted(counts.items(), key=lambda item: severity_order[item[0]])
-        return pl.DataFrame({"Severity": [severity for severity, _ in rows], "Count": [count for _, count in rows]})
+        return HealthCheckMarkdownRenderer.findings_by_severity_table(findings)
 
     @staticmethod
     def _findings_by_category_table(findings: list[Finding]) -> pl.DataFrame:
         """Summarize findings by category."""
-        counts: dict[str, int] = {}
-        for finding in findings:
-            counts[finding.category] = counts.get(finding.category, 0) + 1
-        rows = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
-        return pl.DataFrame({"Category": [category for category, _ in rows], "Count": [count for _, count in rows]})
+        return HealthCheckMarkdownRenderer.findings_by_category_table(findings)
 
     # ── private check methods ───────────────────────────────────────────
 
@@ -1179,16 +1076,12 @@ class Analysis:
             return findings
 
         bp_min_positives = MetricLimits.best_practice_min("TotalPositiveCount")
-        bp_min_perf = MetricLimits.best_practice_min("ModelPerformance")
-        # "Decent" performance means meeting the best-practice threshold
-        # (e.g. 0.55), not merely clearing the hard minimum (e.g. 0.52).
-        # The low-performance warning below uses the same boundary so the
-        # two cohorts are mutually exclusive and jointly cover all mature
-        # models — no silent gap, no synthetic bucket.
+        min_perf = MetricLimits.minimum("ModelPerformance")
+        criteria = {key: expr for key, _, expr in self.health_check_maturity_criteria()}
 
         # Unused models
         bp_max_unused = MetricLimits.best_practice_max("ModelsWithoutResponsesPercentage")
-        unused = last_data.filter(pl.col("ResponseCount") == 0).height
+        unused = last_data.filter(criteria["never_used"]).height
         if unused > 0:
             pct = unused / total * 100
             warn_threshold_pct = (bp_max_unused or 0.2) * 100
@@ -1207,7 +1100,7 @@ class Analysis:
             )
 
         # Models with responses but no positives
-        no_positives = last_data.filter((pl.col("ResponseCount") > 0) & (pl.col("Positives") == 0)).height
+        no_positives = last_data.filter(criteria["responses_no_positives"]).height
         if no_positives > 0:
             pct = no_positives / total * 100
             findings.append(
@@ -1232,7 +1125,7 @@ class Analysis:
         # Immature models — Positives in [1, bp_min) (mutually exclusive
         # with the never-used and zero-positives buckets above).
         if bp_min_positives is not None:
-            immature = last_data.filter((pl.col("Positives") > 0) & (pl.col("Positives") < bp_min_positives)).height
+            immature = last_data.filter(criteria["immature"]).height
             if immature > 0:
                 pct = immature / total * 100
                 findings.append(
@@ -1257,7 +1150,7 @@ class Analysis:
 
         # Stuck at AUC=50
         if bp_min_positives is not None:
-            stuck = last_data.filter((pl.col("Performance") == 0.5) & (pl.col("Positives") >= bp_min_positives)).height
+            stuck = last_data.filter(criteria["stuck_at_50"]).height
             if stuck > 0:
                 findings.append(
                     Finding(
@@ -1278,30 +1171,25 @@ class Analysis:
                     )
                 )
 
-        # Low performance — anything below best practice (excluding the
-        # stuck-at-0.5 cohort, which gets its own finding above).
-        if bp_min_perf is not None and bp_min_positives is not None:
-            low_perf = last_data.filter(
-                (pl.col("Performance") > 0.5)
-                & (pl.col("Performance") < bp_min_perf)
-                & (pl.col("Positives") >= bp_min_positives)
-            ).height
+        if min_perf is not None and bp_min_positives is not None:
+            low_perf = last_data.filter(criteria["low_performance"]).height
             if low_perf > 0:
                 findings.append(
                     Finding(
                         severity="warning",
                         category="model",
-                        title=(f"{low_perf:,} mature models have low performance (AUC < {bp_min_perf * 100:.0f})"),
+                        title=(f"{low_perf:,} mature models have low performance (AUC < {min_perf * 100:.0f})"),
                         detail=(
                             "These models have sufficient positive responses but "
-                            "still fall below the best-practice AUC threshold. "
+                            "still fall below the minimum AUC threshold used in the "
+                            "health check. "
                             "Consider reviewing predictor data or adding better "
                             "features."
                         ),
                         data={
                             "count": low_perf,
                             "total": total,
-                            "min_performance": bp_min_perf,
+                            "min_performance": min_perf,
                         },
                     )
                 )
@@ -1341,10 +1229,8 @@ class Analysis:
         # rather than a forced 100 % decomposition.
 
         # Healthy models summary
-        if bp_min_perf is not None and bp_min_positives is not None:
-            healthy = last_data.filter(
-                (pl.col("Performance") >= bp_min_perf) & (pl.col("Positives") >= bp_min_positives)
-            ).height
+        if min_perf is not None and bp_min_positives is not None:
+            healthy = last_data.filter(criteria["mature_decent"]).height
             if healthy > 0:
                 pct = healthy / total * 100
                 findings.append(
@@ -1352,9 +1238,7 @@ class Analysis:
                         severity="info",
                         category="model",
                         title=f"{healthy:,} models ({pct:.0f}%) are mature with decent performance",
-                        detail=(
-                            f"These models have ≥{int(bp_min_positives)} positives and AUC ≥{bp_min_perf * 100:.0f}."
-                        ),
+                        detail=(f"These models have ≥{int(bp_min_positives)} positives and AUC ≥{min_perf * 100:.0f}."),
                         data={
                             "count": healthy,
                             "total": total,

@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import polars as pl
 import pytest
+from polars.testing import assert_frame_equal
 from pdstools import ADMDatamart, datasets
 from pdstools.adm.Analysis import (
     Analysis,
@@ -14,6 +15,8 @@ from pdstools.adm.Analysis import (
     _format_markdown_value,
     _gini,
 )
+from pdstools.utils import cdh_utils
+from pdstools.utils.metric_limits import MetricLimits
 
 
 def _make_dm(rows: list[dict]) -> ADMDatamart:
@@ -399,13 +402,14 @@ class TestAnalysisNamespace:
 
     def test_estate_snapshot_sections_handle_aggregate_failures(self, sample_dm):
         with (
+            patch.object(sample_dm.aggregates, "channel_overview", side_effect=RuntimeError("boom")),
             patch.object(sample_dm.analysis, "_health_check_channel_summary", side_effect=RuntimeError("boom")),
             patch.object(
-                sample_dm.analysis,
-                "_health_check_configuration_summary",
+                sample_dm.aggregates,
+                "configuration_overview",
                 side_effect=RuntimeError("boom"),
             ),
-            patch.object(sample_dm.aggregates, "predictors_global_overview", side_effect=RuntimeError("boom")),
+            patch.object(sample_dm.aggregates, "global_predictor_overview", side_effect=RuntimeError("boom")),
         ):
             sections = sample_dm.analysis._estate_snapshot_sections(pl.lit(True))
         assert sections == []
@@ -439,6 +443,201 @@ class TestAnalysisNamespace:
         title, table = sections[0]
         assert title == "Top Configurations by Responses"
         assert table.columns == ["Configuration", "ResponseCount", "Positives", "Performance"]
+
+    def test_estate_snapshot_sections_exclude_invalid_channel_rows(self, analysis):
+        preaggregates = HealthCheckPreAggregates(
+            last_data=_make_last_data([{}]),
+            channel_overview=pl.DataFrame(
+                [
+                    {
+                        "Channel": None,
+                        "Direction": None,
+                        "ChannelDirection": None,
+                        "Configuration": "Cfg0",
+                        "Duration": 1.0,
+                        "isValid": True,
+                        "Issues": 1,
+                        "Groups": 1,
+                        "Actions": 1,
+                        "Used Actions": 1,
+                        "New Actions": 0,
+                        "Treatments": 1,
+                        "Used Treatments": 1,
+                        "usesNBAD": None,
+                        "usesAGB": None,
+                        "Responses": 5000,
+                        "Positives": 100,
+                        "Performance": 0.6,
+                        "CTR": 0.02,
+                        "OmniChannel": None,
+                        "NBAD": "?",
+                        "AGB": "?",
+                    },
+                    {
+                        "Channel": "Web",
+                        "Direction": "Inbound",
+                        "ChannelDirection": "Web/Inbound",
+                        "Configuration": "Cfg1",
+                        "Duration": 1.0,
+                        "isValid": True,
+                        "Issues": 1,
+                        "Groups": 1,
+                        "Actions": 2,
+                        "Used Actions": 2,
+                        "New Actions": 0,
+                        "Treatments": 2,
+                        "Used Treatments": 2,
+                        "usesNBAD": None,
+                        "usesAGB": None,
+                        "Responses": 1000,
+                        "Positives": 50,
+                        "Performance": 0.7,
+                        "CTR": 0.05,
+                        "OmniChannel": 0.8,
+                        "NBAD": "?",
+                        "AGB": "?",
+                    },
+                ]
+            ),
+        )
+
+        sections = analysis._estate_snapshot_sections(pl.lit(True), preaggregates=preaggregates)
+
+        title, table = sections[0]
+        assert title == "Top Channels by Responses"
+        assert table.to_dicts() == [
+            {
+                "ChannelDirection": "Web/Inbound",
+                "Responses": 1000,
+                "Positives": 50,
+                "Performance": 0.7,
+                "CTR": 0.05,
+                "Actions": 2,
+            }
+        ]
+
+    def test_health_check_channel_overview_matches_legacy_quarto_expression(self, sample_dm):
+        active_filter = (
+            pl.col("LastUpdate") > (pl.col("LastUpdate").max() - __import__("datetime").timedelta(days=30))
+        ).fill_null(True)
+
+        shared = sample_dm.aggregates.channel_overview(query=active_filter)
+        legacy = (
+            sample_dm.aggregates.summary_by_channel(
+                query=active_filter,
+                format_flags=True,
+            )
+            .drop(
+                [
+                    "ChannelDirectionGroup",
+                    "DateRange Min",
+                    "DateRange Max",
+                ]
+            )
+            .collect()
+        )
+
+        assert_frame_equal(shared, legacy)
+
+    def test_health_check_active_filter_matches_legacy_expression(self, sample_dm):
+        shared = sample_dm.analysis.health_check_active_filter(active_threshold_days=30)
+        legacy = (
+            pl.col("LastUpdate") > (pl.col("LastUpdate").max() - __import__("datetime").timedelta(days=30))
+        ).fill_null(True)
+
+        shared_ids = sample_dm.model_data.filter(shared).select("ModelID").collect().sort("ModelID")
+        legacy_ids = sample_dm.model_data.filter(legacy).select("ModelID").collect().sort("ModelID")
+
+        assert_frame_equal(shared_ids, legacy_ids)
+
+    def test_health_check_maturity_overview_matches_legacy_quarto_expression(self, analysis):
+        active_filter = analysis.health_check_active_filter(active_threshold_days=30)
+        last_data = analysis._get_last_data()
+        shared = analysis.health_check_maturity_overview(last_data=last_data, active_filter=active_filter)
+
+        min_responses = MetricLimits.minimum("TotalResponseCount")
+        min_positives = MetricLimits.minimum("TotalPositiveCount")
+        bp_min_positives = MetricLimits.best_practice_min("TotalPositiveCount")
+        min_perf = MetricLimits.minimum("ModelPerformance")
+        legacy_criteria = [
+            ("Number of models in last snapshot", pl.lit(True)),
+            ("Models that have never been used (responses = 0)", pl.col("ResponseCount") < min_responses),
+            (
+                "Models that have been used (responses > 0) but never received a positive response",
+                (pl.col("Positives") < min_positives) & (pl.col("ResponseCount") >= min_responses),
+            ),
+            (
+                f"Models that are still in an immature phase of learning (positives < {int(bp_min_positives)})",
+                (pl.col("Positives") < bp_min_positives) & (pl.col("Positives") >= min_positives),
+            ),
+            (
+                "Models that have received sufficient responses but are still at their minimum performance (AUC = 50)",
+                (pl.col("Performance") == 0.5) & (pl.col("Positives") >= bp_min_positives),
+            ),
+            (
+                f"Models that have received sufficient responses but still have a low performance (AUC < {min_perf})",
+                (pl.col("Performance") > 0.5)
+                & (pl.col("Performance") < min_perf)
+                & (pl.col("Positives") >= bp_min_positives),
+            ),
+            (
+                f"Models with sufficient positive responses (≥ {int(bp_min_positives)}) and a decent performance (≥ {min_perf})",
+                (pl.col("Performance") >= min_perf) & (pl.col("Positives") >= bp_min_positives),
+            ),
+        ]
+        legacy = pl.concat(
+            [
+                last_data.lazy()
+                .filter(active_filter)
+                .group_by(None)
+                .agg(
+                    pl.lit(label).alias("Category"),
+                    pl.col("Name").filter(filter_expression).len().alias("Number of Models"),
+                    (
+                        cdh_utils.weighted_average_polars(
+                            pl.col("Performance").filter(filter_expression),
+                            pl.col("ResponseCount").filter(filter_expression),
+                        )
+                        * 100.0
+                    ).alias("Average Performance"),
+                )
+                .drop("literal")
+                .collect()
+                for label, filter_expression in legacy_criteria
+            ]
+        )
+
+        assert_frame_equal(shared, legacy)
+
+    def test_health_check_configuration_overview_matches_legacy_quarto_expression(self, sample_dm):
+        active_filter = sample_dm.analysis.health_check_active_filter(active_threshold_days=30)
+        shared = sample_dm.aggregates.configuration_overview(query=active_filter)
+        legacy = (
+            sample_dm.aggregates.summary_by_configuration(query=active_filter)
+            .with_columns(
+                NBAD=pl.when(pl.col("usesNBAD").is_null())
+                .then(pl.lit("?"))
+                .when(pl.col("usesNBAD"))
+                .then(pl.lit("Yes"))
+                .otherwise(pl.lit("No")),
+                AGB=pl.when(pl.col("usesAGB").is_null())
+                .then(pl.lit("?"))
+                .when(pl.col("usesAGB"))
+                .then(pl.lit("Yes"))
+                .otherwise(pl.lit("No")),
+            )
+            .drop("usesNBAD", "usesAGB")
+            .collect()
+        )
+
+        assert_frame_equal(shared, legacy)
+
+    def test_health_check_predictor_overview_matches_legacy_quarto_expression(self, sample_dm):
+        active_filter = sample_dm.analysis.health_check_active_filter(active_threshold_days=30)
+        shared = sample_dm.aggregates.global_predictor_overview(query=active_filter)
+        legacy = sample_dm.aggregates.predictors_global_overview(query=active_filter).collect()
+
+        assert_frame_equal(shared, legacy)
 
     def test_findings_have_valid_severity(self, analysis):
         for f in analysis.findings():

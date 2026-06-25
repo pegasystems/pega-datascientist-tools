@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 __all__ = ["Aggregates"]
+import datetime
 import logging
 from typing import TYPE_CHECKING, Literal
 
@@ -26,6 +27,16 @@ class Aggregates:
 
     def __init__(self, datamart: "ADMDatamart"):
         self.datamart = datamart
+
+    @staticmethod
+    def _normalize_literal_query(query: QUERY | None) -> tuple[QUERY | None, bool | None]:
+        """Normalize literal-only queries for aggregate helper methods."""
+        if query is None:
+            return None, None
+        if query.meta.root_names():
+            return query, None
+        literal_value = pl.LazyFrame({"_": [1]}).select(query.alias("value")).collect().item()
+        return None, bool(literal_value)
 
     def last(
         self,
@@ -751,6 +762,31 @@ class Aggregates:
 
         return result
 
+    def channel_overview(
+        self,
+        *,
+        query: QUERY | None = None,
+    ) -> pl.DataFrame:
+        """Return the display-ready channel overview table."""
+        normalized_query, literal_value = self._normalize_literal_query(query)
+        overview = (
+            self.summary_by_channel(
+                query=normalized_query,
+                format_flags=True,
+            )
+            .drop(
+                [
+                    "ChannelDirectionGroup",
+                    "DateRange Min",
+                    "DateRange Max",
+                ]
+            )
+            .collect()
+        )
+        if literal_value is False:
+            return overview.head(0)
+        return overview
+
     def summary_by_configuration(
         self,
         *,
@@ -833,6 +869,34 @@ class Aggregates:
 
         return configuration_summary
 
+    def configuration_overview(
+        self,
+        *,
+        query: QUERY | None = None,
+    ) -> pl.DataFrame:
+        """Return the display-ready configuration overview table."""
+        normalized_query, literal_value = self._normalize_literal_query(query)
+        overview = (
+            self.summary_by_configuration(query=normalized_query)
+            .with_columns(
+                NBAD=pl.when(pl.col("usesNBAD").is_null())
+                .then(pl.lit("?"))
+                .when(pl.col("usesNBAD"))
+                .then(pl.lit("Yes"))
+                .otherwise(pl.lit("No")),
+                AGB=pl.when(pl.col("usesAGB").is_null())
+                .then(pl.lit("?"))
+                .when(pl.col("usesAGB"))
+                .then(pl.lit("Yes"))
+                .otherwise(pl.lit("No")),
+            )
+            .drop("usesNBAD", "usesAGB")
+            .collect()
+        )
+        if literal_value is False:
+            return overview.head(0)
+        return overview
+
     def predictors_global_overview(
         self,
         *,
@@ -890,6 +954,18 @@ class Aggregates:
             )
             .sort("PredictorName")
         )
+
+    def global_predictor_overview(
+        self,
+        *,
+        query: QUERY | None = None,
+    ) -> pl.DataFrame:
+        """Return the display-ready global predictor overview table."""
+        normalized_query, literal_value = self._normalize_literal_query(query)
+        overview = self.predictors_global_overview(query=normalized_query).collect()
+        if literal_value is False:
+            return overview.head(0)
+        return overview
 
     def predictors_overview(
         self,
