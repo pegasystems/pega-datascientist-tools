@@ -134,9 +134,9 @@ class TestPureInit:
     def test_init_rejects_positional_paths(self):
         """root_dir / data_folder / data_file must not be constructor params."""
         with pytest.raises(TypeError):
-            Explanations("some_root_dir")  # type: ignore[misc]
+            Explanations("some_root_dir")
         with pytest.raises(TypeError):
-            Explanations(data_folder="some_folder")  # type: ignore[call-arg]
+            Explanations(data_folder="some_folder")
 
     def test_namespaces_attached(self):
         """The five sub-namespace facades must be present after init."""

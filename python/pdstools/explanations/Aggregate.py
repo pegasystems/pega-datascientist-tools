@@ -36,7 +36,7 @@ class Aggregate(LazyNamespace):
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
         self.data_folderpath = explanations.preprocess.data_folderpath
-        self.data_pattern = None
+        self.data_pattern: str | None = None
         self.df_contextual: pl.LazyFrame | None = None
         self.df_overall: pl.LazyFrame | None = None
         self.context_operations = ContextOperations(aggregate=self)
