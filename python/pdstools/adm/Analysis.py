@@ -673,28 +673,6 @@ class Analysis:
             "OmniChannel",
         )
 
-    def _health_check_configuration_summary(
-        self,
-        *,
-        last_data: pl.DataFrame,
-        active_filter: pl.Expr | None,
-    ) -> pl.DataFrame:
-        config_data = last_data.lazy()
-        if active_filter is not None:
-            config_data = config_data.filter(active_filter)
-
-        group_by_cols = ["Configuration"] + [col for col in ["Channel", "Direction"] if col in last_data.columns]
-
-        return (
-            config_data.group_by(group_by_cols)
-            .agg(
-                pl.sum("ResponseCount", "Positives"),
-                cdh_utils.weighted_average_polars("Performance", "ResponseCount").alias("Performance"),
-            )
-            .sort(group_by_cols)
-            .collect()
-        )
-
     def _build_headline(
         self,
         results: list[Finding],
@@ -1873,12 +1851,12 @@ class Analysis:
             # Check control group size
             ctrl_pct = row.get("ControlPercentage")
             if ctrl_pct is not None and not math.isnan(ctrl_pct):
-                if ctrl_pct > 0.10:
+                if ctrl_pct > 10:
                     findings.append(
                         Finding(
                             severity="warning",
                             category="prediction",
-                            title=(f'Large control group ({ctrl_pct:.1%}) for "{ch}"'),
+                            title=(f'Large control group ({ctrl_pct:.1f}%) for "{ch}"'),
                             detail=(
                                 "The control group is larger than typical (1-5%). "
                                 "A larger control group means more customers are "
@@ -1887,12 +1865,12 @@ class Analysis:
                             data={"channel": ch, "control_pct": ctrl_pct},
                         )
                     )
-                elif ctrl_pct < 0.005:
+                elif ctrl_pct < 0.5:
                     findings.append(
                         Finding(
                             severity="info",
                             category="prediction",
-                            title=(f'Very small control group ({ctrl_pct:.2%}) for "{ch}"'),
+                            title=(f'Very small control group ({ctrl_pct:.1f}%) for "{ch}"'),
                             detail=(
                                 "The control group may be too small for reliable "
                                 "lift measurement. Consider increasing to 1-2%."

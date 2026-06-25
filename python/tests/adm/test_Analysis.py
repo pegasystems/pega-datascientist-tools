@@ -1185,7 +1185,7 @@ class TestCheckPredictionsEdgeCases:
                     "Direction": "Inbound",
                     "Lift": -0.05,
                     "Prediction": "WebPrediction",
-                    "ControlPercentage": 0.02,
+                    "ControlPercentage": 2.0,
                 }
             ]
         )
@@ -1200,7 +1200,7 @@ class TestCheckPredictionsEdgeCases:
                     "Direction": "Inbound",
                     "Lift": 0.03,
                     "Prediction": "WebPrediction",
-                    "ControlPercentage": 0.02,
+                    "ControlPercentage": 2.0,
                 }
             ]
         )
@@ -1215,7 +1215,7 @@ class TestCheckPredictionsEdgeCases:
                     "Direction": "Inbound",
                     "Lift": float("nan"),
                     "Prediction": "PredictInboundDefaultPropensity",
-                    "ControlPercentage": 0.02,
+                    "ControlPercentage": 2.0,
                 }
             ]
         )
@@ -1230,12 +1230,13 @@ class TestCheckPredictionsEdgeCases:
                     "Direction": "Inbound",
                     "Lift": float("nan"),
                     "Prediction": "WebPrediction",
-                    "ControlPercentage": 0.15,
+                    "ControlPercentage": 15.0,
                 }
             ]
         )
         results = analysis._check_predictions(pred)
         assert any("Large control group" in f.title for f in results)
+        assert any("15.0%" in f.title for f in results)
 
     def test_small_control_group_is_info(self, analysis):
         pred = self._make_prediction_mock(
@@ -1245,12 +1246,13 @@ class TestCheckPredictionsEdgeCases:
                     "Direction": "Inbound",
                     "Lift": float("nan"),
                     "Prediction": "WebPrediction",
-                    "ControlPercentage": 0.001,
+                    "ControlPercentage": 0.1,
                 }
             ]
         )
         results = analysis._check_predictions(pred)
         assert any("Very small control group" in f.title for f in results)
+        assert any("0.1%" in f.title for f in results)
 
 
 # ── Additional coverage: exception paths & IH predictor branches ─────────
