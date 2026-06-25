@@ -72,11 +72,15 @@ Module Contents
 
 
    .. py:attribute:: dependencies
-      :type:  list[str] | None
+      :type:  ClassVar[list[str] | None]
+      :value: None
+
 
 
    .. py:attribute:: dependency_group
-      :type:  str | None
+      :type:  ClassVar[str | None]
+      :value: None
+
 
 
    .. py:method:: check_dependencies()

@@ -36,8 +36,8 @@ Module Contents
 
 .. py:data:: __version__
 
-.. py:function:: show_versions(print_output: Literal[True] = True) -> None
-                 show_versions(print_output: Literal[False] = False) -> str
+.. py:function:: show_versions(print_output: Literal[True] = True, include_dependencies: bool = True, include_runtime_diagnostics: bool = False) -> None
+                 show_versions(print_output: Literal[False] = False, include_dependencies: bool = True, include_runtime_diagnostics: bool = False) -> str
 
    Get a list of currently installed versions of pdstools and its dependencies.
 

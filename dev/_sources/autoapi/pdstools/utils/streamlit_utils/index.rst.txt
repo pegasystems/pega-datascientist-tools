@@ -221,15 +221,15 @@ Module Contents
    Model selection df.
 
 
-.. py:function:: filter_dataframe(df: polars.LazyFrame, schema: dict | None = None, queries: list | None = None) -> polars.LazyFrame
+.. py:function:: filter_dataframe(df: polars.LazyFrame, schema: dict | None = None, queries: list[polars.Expr] | None = None) -> list[polars.Expr]
 
    Adds a UI on top of a dataframe to let viewers filter columns
 
    :param df: Original dataframe
    :type df: pl.DataFrame
 
-   :returns: The filtered LazyFrame
-   :rtype: pl.LazyFrame
+   :returns: Filter expressions collected from the UI.
+   :rtype: list[pl.Expr]
 
 
 .. py:function:: model_and_row_counts(df: pdstools.utils.types.ANY_FRAME)

@@ -224,7 +224,7 @@ Module Contents
 
 
 
-   .. py:method:: calculate_pmi(count_actions: list[collections.defaultdict], count_sequences: list[collections.defaultdict]) -> dict[tuple[str, Ellipsis], float | dict[str, float | dict]]
+   .. py:method:: calculate_pmi(count_actions: list[collections.defaultdict], count_sequences: list[collections.defaultdict]) -> dict[tuple[str, Ellipsis], float | dict[str, float | dict[tuple[str, Ellipsis], float]]]
       :staticmethod:
 
 

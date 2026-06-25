@@ -37,7 +37,8 @@ Module Contents
       :rtype: PaginatedList[Prediction]
 
 
-   .. py:method:: list_predictions() -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction]
+   .. py:method:: list_predictions(return_df: Literal[False] = False) -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction]
+                  list_predictions(return_df: Literal[True]) -> polars.DataFrame
 
 
    .. py:method:: repository() -> pdstools.infinity.resources.prediction_studio.v24_1.repository.Repository
@@ -63,7 +64,8 @@ Module Contents
       :rtype: AsyncPaginatedList[AsyncPrediction]
 
 
-   .. py:method:: list_predictions() -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction]
+   .. py:method:: list_predictions(return_df: Literal[False] = False) -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction]
+                  list_predictions(return_df: Literal[True]) -> polars.DataFrame
       :async:
 
 

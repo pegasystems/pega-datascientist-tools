@@ -18,7 +18,7 @@ Module Contents
 
 .. py:class:: Model(client, **payload)
 
-   Bases: :py:obj:`_Modelv25_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.Model`
+   Bases: :py:obj:`_Modelv25_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v26_1.model.Model`
 
 
    v25 Model — no performance fields.
@@ -41,7 +41,7 @@ Module Contents
 
 .. py:class:: AsyncModel(client, **payload)
 
-   Bases: :py:obj:`_Modelv25_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncModel`
+   Bases: :py:obj:`_Modelv25_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v26_1.model.AsyncModel`
 
 
    v25 async Model — no performance fields.

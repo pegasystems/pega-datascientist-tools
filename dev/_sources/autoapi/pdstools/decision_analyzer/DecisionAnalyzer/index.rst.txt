@@ -42,7 +42,7 @@ Module Contents
    the top slot. Used to auto-detect mandatory rows when no explicit
    ``mandatory_expr`` is supplied to :class:`DecisionAnalyzer`.
 
-.. py:class:: DecisionAnalyzer(raw_data: polars.LazyFrame, *, level: str = 'Stage Group', sample_size: int = DEFAULT_SAMPLE_SIZE, mandatory_expr: polars.Expr | None = None, additional_columns: dict[str, polars.DataType] | None = None, num_samples: int = 1)
+.. py:class:: DecisionAnalyzer(raw_data: polars.LazyFrame, *, level: str = 'Stage Group', sample_size: int = DEFAULT_SAMPLE_SIZE, mandatory_expr: polars.Expr | None = None, additional_columns: dict[str, type[polars.DataType]] | None = None, num_samples: int = 1)
 
    Analyze NBA decision data from Explainability Extract or Decision Analyzer exports.
 
@@ -154,7 +154,7 @@ Module Contents
       Accessor for re-ranking, sensitivity, and win/loss analysis.
 
 
-   .. py:method:: from_explainability_extract(source: str | os.PathLike, *, level: str = 'Stage Group', sample_size: int = DEFAULT_SAMPLE_SIZE, mandatory_expr: polars.Expr | None = None, additional_columns: dict[str, polars.DataType] | None = None, num_samples: int = 1) -> DecisionAnalyzer
+   .. py:method:: from_explainability_extract(source: str | os.PathLike, *, level: str = 'Stage Group', sample_size: int = DEFAULT_SAMPLE_SIZE, mandatory_expr: polars.Expr | None = None, additional_columns: dict[str, type[polars.DataType]] | None = None, num_samples: int = 1) -> DecisionAnalyzer
       :classmethod:
 
 
@@ -182,7 +182,7 @@ Module Contents
 
 
 
-   .. py:method:: from_decision_analyzer(source: str | os.PathLike, *, level: str = 'Stage Group', sample_size: int = DEFAULT_SAMPLE_SIZE, mandatory_expr: polars.Expr | None = None, additional_columns: dict[str, polars.DataType] | None = None, num_samples: int = 1) -> DecisionAnalyzer
+   .. py:method:: from_decision_analyzer(source: str | os.PathLike, *, level: str = 'Stage Group', sample_size: int = DEFAULT_SAMPLE_SIZE, mandatory_expr: polars.Expr | None = None, additional_columns: dict[str, type[polars.DataType]] | None = None, num_samples: int = 1) -> DecisionAnalyzer
       :classmethod:
 
 
