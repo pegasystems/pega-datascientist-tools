@@ -29,10 +29,10 @@ from ._nodes import (
     _traverse,
     parse_split,
 )
-from ._plots import Plots
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
 
 # Pinned to the original module path so existing log filters and the
 # safe-eval logging test (test_safe_condition_evaluate_handles_bad_numeric)
@@ -102,7 +102,7 @@ class ADMTreesModel:
         self._properties = properties if properties is not None else {}
         self.learning_rate = learning_rate
         self.context_keys = context_keys
-        self.plot = Plots(self)
+        self._init_plot_namespace()
 
     @classmethod
     def from_dict(cls, data: dict, *, context_keys: list | None = None) -> ADMTreesModel:
@@ -264,6 +264,14 @@ class ADMTreesModel:
 
         if self.model is None:  # pragma: no cover
             raise ValueError("Import unsuccessful: no boosters/trees found.")
+
+        self._init_plot_namespace()
+
+    def _init_plot_namespace(self) -> None:
+        # Lazy import: _plots transitively imports pega_template → plotly,
+        # an optional dep. Deferring to instantiation keeps plain
+        # `import pdstools` free of optional requirements.
+        from ._plots import Plots
 
         self.plot = Plots(self)
 
