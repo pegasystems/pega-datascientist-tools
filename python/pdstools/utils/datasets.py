@@ -4,7 +4,6 @@ import pathlib
 import warnings
 
 from ..adm.ADMDatamart import ADMDatamart
-from ..adm.trees import ADMTreesModel
 from ..valuefinder.ValueFinder import ValueFinder
 from typing import TYPE_CHECKING
 
@@ -12,8 +11,11 @@ _REPO_DATA_DIR = pathlib.Path(__file__).parent.parent.parent.parent / "data" / "
 _SAMPLE_TREES_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/agb/ModelExportWithSampleCount.json"
 
 if TYPE_CHECKING:
+    from ..adm.trees import ADMTreesModel
     from ..data_quality._topic_data_quality import TopicDataQuality
     from ..utils.types import QUERY
+else:
+    ADMTreesModel = None
 
 
 def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
@@ -62,6 +64,12 @@ def sample_trees():
     source = local if local.exists() else _SAMPLE_TREES_URL
     with warnings.catch_warnings(record=True) as w:
         try:
+            global ADMTreesModel
+            if ADMTreesModel is None:
+                from ..adm.trees import ADMTreesModel as _ADMTreesModel
+
+                ADMTreesModel = _ADMTreesModel
+
             return ADMTreesModel.from_file(source)
         except Exception as e:
             raise RuntimeError(

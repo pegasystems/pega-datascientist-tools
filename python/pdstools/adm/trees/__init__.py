@@ -18,11 +18,15 @@ Construction uses explicit factory classmethods
 
 from __future__ import annotations
 
-from ._agb import AGB
-from ._model import ADMTreesModel
-from ._multi import MultiTrees
+from typing import TYPE_CHECKING
+
 from ._nodes import Node, Split, SplitOperator, parse_split
-from ._plots import Plots
+
+if TYPE_CHECKING:
+    from ._agb import AGB
+    from ._model import ADMTreesModel
+    from ._multi import MultiTrees
+    from ._plots import Plots
 
 __all__ = [
     "AGB",
@@ -34,3 +38,23 @@ __all__ = [
     "SplitOperator",
     "parse_split",
 ]
+
+
+def __getattr__(name: str):
+    if name == "AGB":
+        from ._agb import AGB
+
+        return AGB
+    if name == "ADMTreesModel":
+        from ._model import ADMTreesModel
+
+        return ADMTreesModel
+    if name == "MultiTrees":
+        from ._multi import MultiTrees
+
+        return MultiTrees
+    if name == "Plots":
+        from ._plots import Plots
+
+        return Plots
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
