@@ -74,6 +74,15 @@ autoapi_options = [
     "special-members",
 ]
 nbsphinx_allow_errors = True
+nbsphinx_execute_arguments = (
+    [
+        # Use local IPC sockets on Unix-like systems to avoid ipykernel's TCP
+        # plaintext transport warning in docs CI while keeping -W strict.
+        "--transport=ipc",
+    ]
+    if os.name != "nt"
+    else []
+)
 autodoc_typehints = "both"
 
 # Map ambiguous short names (used in type hints throughout the codebase) to
