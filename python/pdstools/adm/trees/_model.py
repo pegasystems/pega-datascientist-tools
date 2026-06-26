@@ -268,6 +268,9 @@ class ADMTreesModel:
         self._init_plot_namespace()
 
     def _init_plot_namespace(self) -> None:
+        # Lazy import: _plots transitively imports pega_template → plotly,
+        # an optional dep. Deferring to instantiation keeps plain
+        # `import pdstools` free of optional requirements.
         from ._plots import Plots
 
         self.plot = Plots(self)
