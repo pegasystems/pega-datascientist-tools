@@ -11,6 +11,8 @@ from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
+PRERELEASE_RE = re.compile(r"^(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?P<phase>a|b|rc)(?P<serial>\d+)$")
+PRERELEASE_PHASE_ORDER = {"a": 0, "b": 1, "rc": 2}
 
 
 def normalize_version_slug(ref_type: str, ref_name: str) -> str:
@@ -23,6 +25,67 @@ def normalize_version_slug(ref_type: str, ref_name: str) -> str:
 
 def _stable_release_key(version: str) -> tuple[int, int, int]:
     return tuple(int(part) for part in version.split("."))
+
+
+def _parse_prerelease(version: str) -> tuple[int, int, int, str, int] | None:
+    match = PRERELEASE_RE.match(version)
+    if match is None:
+        return None
+    return (
+        int(match.group("major")),
+        int(match.group("minor")),
+        int(match.group("patch")),
+        match.group("phase"),
+        int(match.group("serial")),
+    )
+
+
+def _prerelease_key(version: str) -> tuple[int, int, int, int, int]:
+    major, minor, patch, phase, serial = _parse_prerelease(version) or (0, 0, 0, "a", 0)
+    return (major, minor, patch, PRERELEASE_PHASE_ORDER[phase], serial)
+
+
+def _collect_ordered_versions(site_root: Path) -> tuple[list[str], list[str], list[str]]:
+    stable_releases: list[str] = []
+    stable_bases: set[tuple[int, int, int]] = set()
+    prereleases_by_base: dict[tuple[int, int, int], str] = {}
+
+    for directory in site_root.iterdir():
+        if not directory.is_dir() or directory.name.startswith("."):
+            continue
+
+        version = directory.name
+        if version == "dev":
+            continue
+
+        if SEMVER_RE.match(version):
+            base = _stable_release_key(version)
+            stable_releases.append(version)
+            stable_bases.add(base)
+            continue
+
+        prerelease = _parse_prerelease(version)
+        if prerelease is None:
+            continue
+
+        base = prerelease[:3]
+        current = prereleases_by_base.get(base)
+        if current is None or _prerelease_key(version) > _prerelease_key(current):
+            prereleases_by_base[base] = version
+
+    stable_releases.sort(key=_stable_release_key, reverse=True)
+    prereleases = sorted(
+        [version for base, version in prereleases_by_base.items() if base not in stable_bases],
+        key=_prerelease_key,
+        reverse=True,
+    )
+
+    ordered_versions = []
+    if (site_root / "dev").is_dir():
+        ordered_versions.append("dev")
+    ordered_versions.extend(stable_releases)
+    ordered_versions.extend(prereleases)
+    return ordered_versions, stable_releases, prereleases
 
 
 def fetch_pypi_version(package_name: str, timeout: int = 10) -> str | None:
@@ -45,28 +108,14 @@ def build_manifest(
 ) -> tuple[list[dict[str, object]], str | None]:
     """Build the versions manifest and preferred version for the site."""
 
-    version_dirs = sorted(
-        directory.name
-        for directory in site_root.iterdir()
-        if directory.is_dir() and not directory.name.startswith(".") and directory.name != "dev"
-    )
-    stable_releases = sorted(
-        [version for version in version_dirs if SEMVER_RE.match(version)],
-        key=_stable_release_key,
-        reverse=True,
-    )
-    other_versions = sorted(version for version in version_dirs if not SEMVER_RE.match(version))
+    ordered_versions, stable_releases, prereleases = _collect_ordered_versions(site_root)
 
-    ordered_versions = []
-    if (site_root / "dev").is_dir():
-        ordered_versions.append("dev")
-    ordered_versions.extend(stable_releases)
-    ordered_versions.extend(other_versions)
-
-    if pypi_version in ordered_versions:
+    if pypi_version in stable_releases:
         preferred_version = pypi_version
     elif stable_releases:
         preferred_version = stable_releases[0]
+    elif prereleases:
+        preferred_version = prereleases[0]
     elif ordered_versions:
         preferred_version = ordered_versions[0]
     else:
