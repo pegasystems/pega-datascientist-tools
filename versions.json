@@ -13,20 +13,5 @@
     "version": "5.0.0rc1",
     "url": "https://pegasystems.github.io/pega-datascientist-tools/5.0.0rc1/",
     "preferred": false
-  },
-  {
-    "version": "articles",
-    "url": "https://pegasystems.github.io/pega-datascientist-tools/articles/",
-    "preferred": false
-  },
-  {
-    "version": "autoapi",
-    "url": "https://pegasystems.github.io/pega-datascientist-tools/autoapi/",
-    "preferred": false
-  },
-  {
-    "version": "latest",
-    "url": "https://pegasystems.github.io/pega-datascientist-tools/latest/",
-    "preferred": false
   }
 ]
