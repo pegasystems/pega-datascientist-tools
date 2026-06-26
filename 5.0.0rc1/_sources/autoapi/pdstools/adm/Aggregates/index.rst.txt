@@ -1,0 +1,326 @@
+pdstools.adm.Aggregates
+=======================
+
+.. py:module:: pdstools.adm.Aggregates
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.adm.Aggregates.Aggregates
+
+
+Module Contents
+---------------
+
+.. py:class:: Aggregates(datamart: pdstools.adm.ADMDatamart.ADMDatamart)
+
+   Aggregates.
+
+
+   .. py:attribute:: datamart
+
+
+   .. py:method:: last(*, data: polars.LazyFrame | None = None, table: Literal['model_data', 'predictor_data', 'combined_data'] = 'model_data') -> polars.LazyFrame
+
+      Gets the last snapshot of the given table
+
+      This method filters the data to include only the rows from the most recent snapshot time.
+
+      :param data: If provided, subsets to just that dataframe, by default None
+      :type data: Optional[pl.LazyFrame], optional
+      :param table: If provided, specifies the table to get data from, by default "model_data"
+      :type table: Literal['model_data', 'predictor_data', 'combined_data'], optional
+
+      :returns: A LazyFrame containing only the rows from the most recent snapshot time
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: predictor_performance_pivot(*, query: pdstools.utils.types.QUERY | None = None, active_only: bool = False, by='Name', top_predictors: int | None = None, top_groups: int | None = None) -> polars.LazyFrame
+
+      Creates a pivot table of the predictor performance per 'group'
+
+      :param query: A query to apply to the data before creating the pivot, by default None
+      :type query: Optional[QUERY], optional
+      :param by: A group by which to 'facet', by default "Name".
+                 If, for instance, the 'by' argument is set to 'Configuration',
+                 each row will be a distinct configuration
+      :type by: str, optional
+      :param top_predictors: Specify the maximum number of predictors, by default None
+      :type top_predictors: Optional[int], optional
+      :param top_groups: Specify the maximum number of 'groups'
+                         specified in the 'by' argument, by default None
+      :type top_groups: Optional[int], optional
+
+      :returns: A LazyFrame with a column for each predictor, and a row for each 'group'.
+                The values represent the weighted performance for that predictor
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: model_summary(by: str = 'Name', query: pdstools.utils.types.QUERY | None = None) -> polars.LazyFrame
+
+      Generate a summary of statistic for each model (based on model ID)
+
+      If you want to generate statistics at a model name or treatment level,
+      specify this in the 'by' column.
+
+      :param by: The column to define the 'counts' for, by default "ModelID"
+                 Must be part of the context keys in the ADMDatamart class
+      :type by: str, optional
+      :param query: A query to apply to the data before summarization, by default None
+      :type query: Optional[QUERY], optional
+
+      :returns: A LazyFrame, with one row for each context key combination
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: summary_by_channel(*, query: pdstools.utils.types.QUERY | None = None, start_date: datetime.datetime | None = None, end_date: datetime.datetime | None = None, window: int | datetime.timedelta | None = None, every: str | None = None, custom_channels: dict[str, str] | None = None, debug: bool = False, format_flags: bool = False) -> polars.LazyFrame
+
+      Summarize ADM models per channel
+
+      :param query: A query to apply to the data, by default None, so no filtering applied
+      :type query: Optional[QUERY], optional
+      :param start_date: Start date of the summary period. If None (default) uses the end date minus the window, or if both absent, the earliest date in the data
+      :type start_date: datetime.datetime, optional
+      :param end_date: End date of the summary period. If None (default) uses the start date plus the window, or if both absent, the latest date in the data
+      :type end_date: datetime.datetime, optional
+      :param window: Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
+      :type window: int or datetime.timedelta, optional
+      :param every: Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
+      :type every: str, optional
+      :param custom_channels: Optional dictionary mapping custom channel names to standard channel groups. Defaults to None.
+      :type custom_channels: dict[str, str], optional
+      :param debug: If True, include diagnostic columns (ResponseCount, Positives) in output.
+                    If False, these intermediate calculation columns are dropped from the results.
+
+                    This parameter affects the return value structure, not logging output.
+                    For debug logging, use logging.basicConfig(level=logging.DEBUG).
+      :type debug: bool, default False
+      :param format_flags: If True, format boolean flag columns (usesNBAD, usesAGB) as "Yes"/"No"/"?" strings
+                           for display in reports. If False, keeps original boolean/null values.
+      :type format_flags: bool, default False
+
+      :returns: Dataframe with summary per channel (and optionally a period) with the following fields:
+
+                Channel Identification:
+                - Channel - The channel name
+                - Direction - The direction (e.g., Inbound, Outbound)
+                - ChannelDirection - Combined Channel/Direction (e.g., "Web/Inbound")
+                - ChannelDirectionGroup - Standardized channel group with direction (e.g., "Web/Inbound")
+
+                Time and Configuration Fields:
+                - DateRange Min - The minimum date in the summary time range
+                - DateRange Max - The maximum date in the summary time range
+                - Duration - The duration in seconds between the minimum and maximum snapshot times
+                - Configuration - A comma-separated list of model configuration names
+
+                Performance Metrics:
+                - Positives - The sum of positive responses across all models in the channel
+                - Responses - The sum of all responses across all models in the channel
+                - Performance - The weighted average performance across all models in the channel (50-100)
+                - CTR - Click-through rate (Positives / Responses) in the channel
+                - isValid - Boolean indicating if the channel has sufficient data (at least 200 positives and 1000 responses)
+
+                Action Statistics:
+                - Actions - The total number of unique actions in the channel
+                - Used Actions - The number of unique actions that have been used (have responses)
+                - New Actions - The number of new actions introduced in the period
+                - Issues - The number of unique issues
+                - Groups - The number of unique issue/group combinations
+
+                Treatment Statistics:
+                - Treatments - The total number of unique treatments
+                - Used Treatments - The number of unique treatments
+
+                Omnichannel Metrics:
+                - OmniChannel - The overlap of actions with other channels (measure of Omni Channel capability)
+
+                Technology Usage Indicators:
+                - usesNBAD - Boolean indicating whether any standard NBAD configurations are used
+                - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: channel_overview(*, query: pdstools.utils.types.QUERY | None = None) -> polars.DataFrame
+
+      Return the display-ready channel overview table.
+
+
+
+   .. py:method:: summary_by_configuration(*, query: pdstools.utils.types.QUERY | None = None) -> polars.LazyFrame
+
+      Generates a summary of the ADM model configurations.
+
+      This method provides an overview of model configurations, including information about
+      the number of models, actions, treatments, and performance metrics.
+
+      :param query: A query to apply to the data, by default None, so no filtering applied
+      :type query: Optional[QUERY], optional
+
+      :returns: A Polars LazyFrame containing the configuration summary with the following fields:
+
+                Configuration Information:
+                - Configuration - The name of the model configuration
+                - Channel - The channel name (if available in context keys)
+                - Direction - The direction (if available in context keys)
+
+                Model Information:
+                - ModelID - The number of unique model IDs for this configuration
+
+                Action Statistics:
+                - Actions - The number of unique actions in this configuration
+                - Unique Treatments - The number of unique treatments (if available)
+                - Used for (Issues) - A comma-separated list of issues this configuration is used for (if available)
+
+                Performance Metrics:
+                - ResponseCount - The total number of responses for this configuration
+                - Positives - The total number of positive responses for this configuration
+                - ModelsPerAction - The ratio of models to actions (models per action)
+                - Performance - The weighted average model performance
+
+                Technology Usage Indicators:
+                - usesNBAD - Boolean indicating whether any standard NBAD configurations are used
+                - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: configuration_overview(*, query: pdstools.utils.types.QUERY | None = None) -> polars.DataFrame
+
+      Return the display-ready configuration overview table.
+
+
+
+   .. py:method:: predictors_global_overview(*, query: pdstools.utils.types.QUERY | None = None) -> polars.LazyFrame
+
+      Generate a global overview of all predictors across all models.
+
+      This method provides a summary of predictor performance and characteristics
+      across all models, including the number of responses, positives, and performance metrics.
+
+      :param query: A query to apply to the data, by default None, so no filtering applied
+      :type query: Optional[QUERY], optional
+
+      :returns: A Polars LazyFrame containing the global predictor overview with the following fields:
+
+                - PredictorName - The name of the predictor
+                - Response Count Min/Max - The total number of responses for this predictor
+                - Positives - The total number of positive responses for this predictor
+                - Min, Mean, Median, Max - The min, mean, median and max performance of the predictor (AUC)
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: global_predictor_overview(*, query: pdstools.utils.types.QUERY | None = None) -> polars.DataFrame
+
+      Return the display-ready global predictor overview table.
+
+
+
+   .. py:method:: predictors_overview(model_id: str | None = None, additional_aggregations: list | None = None) -> polars.LazyFrame | None
+
+      Generate a summary of the last snapshot of predictor data.
+
+      This method provides an overview of predictor performance and characteristics
+      from the most recent snapshot, either for all models or for a specific model.
+
+      :param model_id: If provided, filters the data to include only predictors for the specified model ID.
+                       If None (default), includes predictors for all models.
+      :type model_id: Optional[str], optional
+      :param additional_aggregations: Additional aggregation expressions to include in the result.
+                                      These will be added to the default aggregations.
+      :type additional_aggregations: Optional[list], optional
+
+      :returns: A Polars LazyFrame containing the predictor summary with the following fields:
+
+                Identification:
+                - ModelID - The model ID (only if model_id parameter is None)
+                - PredictorName - The name of the predictor
+
+                Status and Type:
+                - EntryType - The entry type (Active, Inactive, etc.)
+                - isActive - Boolean indicating if the predictor is active
+                - Type - The predictor type
+                - GroupIndex - The group index of the predictor
+
+                Performance Metrics:
+                - Responses - The number of responses for this predictor
+                - Positives - The number of positive responses for this predictor
+                - Univariate Performance - The univariate performance of the predictor (AUC)
+
+                Binning Information:
+                - Bins - The number of bins for this predictor
+                - Missing % - The percentage of responses in the MISSING bin
+                - Residual % - The percentage of responses in the RESIDUAL bin
+
+                Returns None if the required data is not available or an error is encountered.
+      :rtype: pl.LazyFrame or None
+
+
+
+   .. py:method:: overall_summary(*, start_date: datetime.datetime | None = None, end_date: datetime.datetime | None = None, window: int | datetime.timedelta | None = None, every: str | None = None, debug: bool = False) -> polars.LazyFrame
+
+      Overall ADM models summary. Only valid data is included.
+
+      :param start_date: Start date of the summary period. If None (default) uses the end date minus the window, or if both absent, the earliest date in the data
+      :type start_date: datetime.datetime, optional
+      :param end_date: End date of the summary period. If None (default) uses the start date plus the window, or if both absent, the latest date in the data
+      :type end_date: datetime.datetime, optional
+      :param window: Number of days to use for the summary period or an explicit timedelta. If None (default) uses the whole period. Can't be given if start and end date are also given.
+      :type window: int or datetime.timedelta, optional
+      :param every: Optional additional grouping by time period. Format string as in polars.Expr.dt.truncate (https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html), for example "1mo", "1w", "1d" for calendar month, week day. Defaults to None.
+      :type every: str, optional
+      :param debug: If True, include diagnostic columns (ResponseCount, Positives) in output.
+                    If False, these intermediate calculation columns are dropped from the results.
+
+                    This parameter affects the return value structure, not logging output.
+                    For debug logging, use logging.basicConfig(level=logging.DEBUG).
+      :type debug: bool, default False
+
+      :returns: Summary across all valid ADM models as a dataframe with the following fields:
+
+                Time and Configuration Fields:
+                - DateRange Min - The minimum date in the snapshot time range
+                - DateRange Max - The maximum date in the snapshot time range
+                - Duration - The duration in seconds between the minimum and maximum snapshot times
+                - Configuration - A comma-separated list of unique model configurations
+
+                Performance Metrics:
+                - Positives Inbound - The sum of positive responses across all models in the inbound channels
+                - Positives Outbound - The sum of positive responses across all models in the outbound channels
+                - Responses Inbound - The sum of all responses across all models in the inbound channels
+                - Responses Outbound - The sum of all responses across all models in the outbound channels
+                - Performance - The weighted average performance across all models (50-100)
+
+                Action Statistics:
+                - Actions - The total number of unique actions
+                - Used Actions - The number of unique actions that have been used (have responses)
+                - New Actions - The number of new actions introduced in the period
+                - Issues - The number of unique issues
+                - Groups - The number of unique issue/group combinations
+
+                Treatment Statistics:
+                - Treatments - The total number of unique treatments
+                - Used Treatments - The number of unique treatments that have been used
+
+                Channel Statistics:
+                - Number of Valid Channels - The count of valid channels (channels with sufficient data)
+                - Minimum Channel Performance - The performance of the channel with lowest performance
+                - Channel with Minimum Performance - The channel/direction group with the lowest performance
+                - OmniChannel - The average overlap of actions across channels (measure of Omni Channel capability)
+
+                Technology Usage Indicators:
+                - usesNBAD - Boolean indicating whether standard NBAD configurations are used
+                - usesAGB - Boolean indicating whether any Adaptive Gradient Boosting (AGB) models are used
+
+                Note: A channel is considered "valid" if it has at least 200 positives and 1000 responses
+      :rtype: pl.LazyFrame
+
+
+

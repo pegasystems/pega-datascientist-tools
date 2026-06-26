@@ -1,0 +1,18 @@
+pdstools.ih
+===========
+
+.. py:module:: pdstools.ih
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/ih/Aggregates/index
+   /autoapi/pdstools/ih/IH/index
+   /autoapi/pdstools/ih/Plots/index
+   /autoapi/pdstools/ih/Schema/index
+
+

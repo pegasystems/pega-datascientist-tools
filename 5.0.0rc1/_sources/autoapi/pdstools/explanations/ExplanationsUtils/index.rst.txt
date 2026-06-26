@@ -1,0 +1,140 @@
+pdstools.explanations.ExplanationsUtils
+=======================================
+
+.. py:module:: pdstools.explanations.ExplanationsUtils
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.explanations.ExplanationsUtils.SortBy
+   pdstools.explanations.ExplanationsUtils.DisplayBy
+   pdstools.explanations.ExplanationsUtils.ContributionType
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.ExplanationsUtils.ContextInfo
+   pdstools.explanations.ExplanationsUtils.ContextOperations
+
+
+Module Contents
+---------------
+
+.. py:data:: SortBy
+
+.. py:data:: DisplayBy
+
+.. py:data:: ContributionType
+
+.. py:class:: ContextInfo
+
+   Bases: :py:obj:`TypedDict`
+
+
+   Context info.
+
+
+   .. py:attribute:: context_key
+      :type:  str
+
+
+   .. py:attribute:: context_value
+      :type:  str
+
+
+.. py:class:: ContextOperations(aggregate: pdstools.explanations.Aggregate.Aggregate)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Context related operations such as to filter unique contexts.
+
+   :param aggregate: The aggregate object to operate on.
+   :type aggregate: Aggregate
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['polars']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'explanations'
+
+
+
+   .. py:attribute:: aggregate
+      :type:  pdstools.explanations.Aggregate.Aggregate
+
+      Parent aggregate object used to load contextual data.
+
+
+   .. py:attribute:: initialized
+      :type:  bool
+
+      Whether the contextual data cache has been loaded.
+
+
+   .. py:method:: get_context_keys() -> list[str]
+
+      Return the contextual key columns available in the loaded data.
+
+      :returns: Context key names such as ``["pyChannel", "pyDirection", ...]``.
+      :rtype: list[str]
+
+
+
+   .. py:method:: get_df(context_infos: list[ContextInfo] | None = None, with_partition_col: bool = False) -> polars.DataFrame
+
+      Return unique contexts as a DataFrame.
+
+      :param context_infos: Optional context filters. When omitted, returns all unique contexts.
+      :type context_infos: list[ContextInfo] | None, default None
+      :param with_partition_col: Whether to include the raw partition column alongside the expanded
+                                 context keys.
+      :type with_partition_col: bool, default False
+
+      :returns: A DataFrame of unique contexts. When ``with_partition_col`` is
+                ``True``, the partition column is retained in the result.
+      :rtype: pl.DataFrame
+
+
+
+   .. py:method:: get_list(context_infos: list[ContextInfo] | None = None, with_partition_col: bool = False) -> list[ContextInfo]
+
+      Return unique contexts as dictionaries.
+
+      :param context_infos: Optional context filters. When omitted, returns all unique contexts.
+      :type context_infos: list[ContextInfo] | None, default None
+      :param with_partition_col: Whether to include the raw partition column in each returned item.
+      :type with_partition_col: bool, default False
+
+      :returns: Unique context dictionaries, optionally filtered by the provided
+                context information.
+      :rtype: list[ContextInfo]
+
+
+
+   .. py:method:: get_context_info_str(context_info: ContextInfo, sep: str = '-') -> str
+      :staticmethod:
+
+
+      Format a context dictionary as a single string.
+
+      :param context_info: Context values to format.
+      :type context_info: ContextInfo
+      :param sep: Separator inserted between context values.
+      :type sep: str, default "-"
+
+      :returns: A compact context string such as ``channel1-direction1-...``.
+      :rtype: str
+
+
+

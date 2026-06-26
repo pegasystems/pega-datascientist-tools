@@ -1,0 +1,105 @@
+pdstools.explanations.Plots
+===========================
+
+.. py:module:: pdstools.explanations.Plots
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.Plots.Plots
+
+
+Module Contents
+---------------
+
+.. py:class:: Plots(explanations: pdstools.explanations.Explanations.Explanations)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Plots.
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['numpy', 'plotly']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'explanations'
+
+
+
+   .. py:attribute:: X_AXIS_TITLE_DEFAULT
+      :value: 'Contribution'
+
+
+
+   .. py:attribute:: Y_AXIS_TITLE_DEFAULT
+      :value: 'Predictor'
+
+
+
+   .. py:attribute:: explanations
+
+
+   .. py:attribute:: aggregate
+
+
+   .. py:method:: contributions(top_n: int = 20, top_k: int = 20, *, return_df: bool = False, sort_by: pdstools.explanations.ExplanationsUtils.SortBy = 'contribution_abs', display_by: pdstools.explanations.ExplanationsUtils.DisplayBy = 'contribution', descending: bool = True, missing: bool = True, remaining: bool = True, include_numeric_single_bin: bool = False)
+
+      Plots contributions for the overall model or a selected context.
+
+      :param top_n: Number of top predictors to display.
+      :type top_n: int
+      :param top_k: Number of top unique values for each categorical predictor to display.
+      :type top_k: int
+      :param return_df: If True, skip plotting and return the underlying dataframes instead.
+                        When a context is selected, returns
+                        ``(predictor_df, predictor_value_df)``; otherwise returns the same
+                        pair computed against the overall model.
+      :type return_df: bool
+      :param sort_by: Column to rank/select top predictors. One of
+                      ``contribution``, ``contribution_abs``,
+                      ``contribution_weighted``, ``contribution_weighted_abs``.
+                      Default: ``"contribution_abs"``.
+      :type sort_by: str
+      :param display_by: Column to use for the chart axis values.
+                         Default: ``"contribution"``.
+      :type display_by: str
+      :param descending: Sort most- or least-impactful first. Default: ``True``.
+      :type descending: bool
+      :param missing: Include missing-value bins. Default: ``True``.
+      :type missing: bool
+      :param remaining: Include an aggregated "remaining" row. Default: ``True``.
+      :type remaining: bool
+      :param include_numeric_single_bin: Include numeric predictors that have only a single bin.
+                                         Default: ``False``.
+      :type include_numeric_single_bin: bool
+
+      :returns:
+
+                - left: context header if context is selected, otherwise None
+                - right: overall contributions plot and a list of predictor contribution plots.
+      :rtype: tuple[go.Figure, list[go.Figure]]
+
+
+
+   .. py:method:: plot_contributions_for_overall(top_n: int = ..., top_k: int = ..., *, return_df: Literal[False] = ..., sort_by: pdstools.explanations.ExplanationsUtils.SortBy = ..., display_by: pdstools.explanations.ExplanationsUtils.DisplayBy = ..., descending: bool = ..., missing: bool = ..., remaining: bool = ..., include_numeric_single_bin: bool = ...) -> tuple[plotly.graph_objects.Figure, list[plotly.graph_objects.Figure]]
+                  plot_contributions_for_overall(top_n: int = ..., top_k: int = ..., *, return_df: Literal[True], sort_by: pdstools.explanations.ExplanationsUtils.SortBy = ..., display_by: pdstools.explanations.ExplanationsUtils.DisplayBy = ..., descending: bool = ..., missing: bool = ..., remaining: bool = ..., include_numeric_single_bin: bool = ...) -> tuple[polars.DataFrame, polars.DataFrame]
+
+      Plot contributions for overall.
+
+
+
+   .. py:method:: plot_contributions_by_context(context: dict[str, str], top_n: int = ..., top_k: int = ..., *, return_df: Literal[False] = ..., sort_by: pdstools.explanations.ExplanationsUtils.SortBy = ..., display_by: pdstools.explanations.ExplanationsUtils.DisplayBy = ..., descending: bool = ..., missing: bool = ..., remaining: bool = ..., include_numeric_single_bin: bool = ...) -> tuple[plotly.graph_objects.Figure, plotly.graph_objects.Figure, list[plotly.graph_objects.Figure]]
+                  plot_contributions_by_context(context: dict[str, str], top_n: int = ..., top_k: int = ..., *, return_df: Literal[True], sort_by: pdstools.explanations.ExplanationsUtils.SortBy = ..., display_by: pdstools.explanations.ExplanationsUtils.DisplayBy = ..., descending: bool = ..., missing: bool = ..., remaining: bool = ..., include_numeric_single_bin: bool = ...) -> tuple[polars.DataFrame, polars.DataFrame]
+
+      Plot contributions by context.
+
+
+

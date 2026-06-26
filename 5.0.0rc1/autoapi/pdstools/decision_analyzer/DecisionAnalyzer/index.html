@@ -1,0 +1,1113 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../../../genindex.html"><link rel="search" title="Search" href="../../../../search.html"><link rel="next" title="pdstools.decision_analyzer.column_schema" href="../column_schema/index.html"><link rel="prev" title="pdstools.decision_analyzer" href="../index.html">
+        <link rel="prefetch" href="../../../../_static/pegasystems-inc-vector-logo.svg" as="image">
+
+    <link rel="shortcut icon" href="../../../../_static/pegasystems-inc-vector-logo.svg"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>pdstools.decision_analyzer.DecisionAnalyzer - pdstools</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/version-switcher.css?v=6293ef20" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+
+</head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../../index.html"><div class="brand">pdstools</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><div class="sidebar-scroll"><a class="sidebar-brand" href="../../../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">pdstools</span>
+  
+</a><div class="version-switcher" data-current-version="5.0.0rc1">
+  <label for="pdstools-version-select">Version</label>
+  <select id="pdstools-version-select" aria-label="Select documentation version">
+    <option value="">5.0.0rc1</option>
+  </select>
+</div><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GettingStarted.html">Getting Started for Data Scientists</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GettingStartedWithTheStandAloneApplication.html">Getting Started with the ADM Health Check Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GettingStartedWithDecisionAnalyzer.html">Getting Started with the Decision Analyzer Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../logging.html">Logging and Debugging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/Example_ADM_Analysis.html">Example ADM analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/Example_IH_Analysis.html">Example IH (Interaction History) Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/Predictions.html">Example Prediction Studio Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/vf_analysis.html">Value Finder Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/explainability_extract.html">Explainability Extract Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Articles</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/AGBExplained.html">Adaptive Gradient Boosting (AGB) Explained</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference Information</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../reference.html">Additional References</a><input aria-label="Toggle navigation of Additional References" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/releases">Changelog</a></li>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools">GitHub Repository</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli.html">Command Line Interface</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">API Reference</a><input aria-label="Toggle navigation of API Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html">pdstools</a><input aria-label="Toggle navigation of pdstools" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../adm/index.html">pdstools.adm</a><input aria-label="Toggle navigation of pdstools.adm" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/ADMDatamart/index.html">pdstools.adm.ADMDatamart</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/Aggregates/index.html">pdstools.adm.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/Analysis/index.html">pdstools.adm.Analysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/BinAggregator/index.html">pdstools.adm.BinAggregator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/HealthCheckMarkdown/index.html">pdstools.adm.HealthCheckMarkdown</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/Plots/index.html">pdstools.adm.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/Reports/index.html">pdstools.adm.Reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/Schema/index.html">pdstools.adm.Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/trees/index.html">pdstools.adm.trees</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../cli/index.html">pdstools.cli</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_quality/index.html">pdstools.data_quality</a></li>
+<li class="toctree-l3 current has-children"><a class="reference internal" href="../index.html">pdstools.decision_analyzer</a><input aria-label="Toggle navigation of pdstools.decision_analyzer" checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l4 current current-page"><a class="current reference internal" href="#">pdstools.decision_analyzer.DecisionAnalyzer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../column_schema/index.html">pdstools.decision_analyzer.column_schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../data_read_utils/index.html">pdstools.decision_analyzer.data_read_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../plots/index.html">pdstools.decision_analyzer.plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../stage_grouping/index.html">pdstools.decision_analyzer.stage_grouping</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/index.html">pdstools.decision_analyzer.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../explanations/index.html">pdstools.explanations</a><input aria-label="Toggle navigation of pdstools.explanations" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Aggregate/index.html">pdstools.explanations.Aggregate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Explanations/index.html">pdstools.explanations.Explanations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/ExplanationsUtils/index.html">pdstools.explanations.ExplanationsUtils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/FilterWidget/index.html">pdstools.explanations.FilterWidget</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Plots/index.html">pdstools.explanations.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Preprocess/index.html">pdstools.explanations.Preprocess</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Reports/index.html">pdstools.explanations.Reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/Schema/index.html">pdstools.explanations.Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../explanations/resources/index.html">pdstools.explanations.resources</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../ih/index.html">pdstools.ih</a><input aria-label="Toggle navigation of pdstools.ih" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/Aggregates/index.html">pdstools.ih.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/IH/index.html">pdstools.ih.IH</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/Plots/index.html">pdstools.ih.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../ih/Schema/index.html">pdstools.ih.Schema</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../impactanalyzer/index.html">pdstools.impactanalyzer</a><input aria-label="Toggle navigation of pdstools.impactanalyzer" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../impactanalyzer/ImpactAnalyzer/index.html">pdstools.impactanalyzer.ImpactAnalyzer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../impactanalyzer/Plots/index.html">pdstools.impactanalyzer.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../impactanalyzer/Schema/index.html">pdstools.impactanalyzer.Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../impactanalyzer/statistics/index.html">pdstools.impactanalyzer.statistics</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../infinity/index.html">pdstools.infinity</a><input aria-label="Toggle navigation of pdstools.infinity" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../infinity/client/index.html">pdstools.infinity.client</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../infinity/internal/index.html">pdstools.infinity.internal</a></li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../infinity/resources/index.html">pdstools.infinity.resources</a><input aria-label="Toggle navigation of pdstools.infinity.resources" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy</a><input aria-label="Toggle navigation of pdstools.infinity.resources.knowledge_buddy" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/knowledge_buddy/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy.knowledge_buddy</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/base/index.html">pdstools.infinity.resources.prediction_studio.base</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/local_model_utils/index.html">pdstools.infinity.resources.prediction_studio.local_model_utils</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/model_security/index.html">pdstools.infinity.resources.prediction_studio.model_security</a></li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/schemas/index.html">pdstools.infinity.resources.prediction_studio.schemas</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.schemas" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/schemas/model/index.html">pdstools.infinity.resources.prediction_studio.schemas.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/schemas/model_instance/index.html">pdstools.infinity.resources.prediction_studio.schemas.model_instance</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/schemas/notification/index.html">pdstools.infinity.resources.prediction_studio.schemas.notification</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/schemas/prediction/index.html">pdstools.infinity.resources.prediction_studio.schemas.prediction</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="../../infinity/resources/prediction_studio/types/index.html">pdstools.infinity.resources.prediction_studio.types</a></li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/index.html">pdstools.infinity.resources.prediction_studio.v24_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_1" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_1/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_1.repository</a></li>
+</ul>
+</li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/index.html">pdstools.infinity.resources.prediction_studio.v24_2</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_2" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/champion_challenger/index.html">pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/datamart_export/index.html">pdstools.infinity.resources.prediction_studio.v24_2.datamart_export</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/model/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/model_upload/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model_upload</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_2.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_2.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v24_2/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_2.repository</a></li>
+</ul>
+</li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v25_1/index.html">pdstools.infinity.resources.prediction_studio.v25_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v25_1" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v25_1/model/index.html">pdstools.infinity.resources.prediction_studio.v25_1.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v25_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v25_1.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v25_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio</a></li>
+</ul>
+</li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../../infinity/resources/prediction_studio/v26_1/index.html">pdstools.infinity.resources.prediction_studio.v26_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v26_1" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v26_1/champion_challenger/index.html">pdstools.infinity.resources.prediction_studio.v26_1.champion_challenger</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v26_1/datamart_export/index.html">pdstools.infinity.resources.prediction_studio.v26_1.datamart_export</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v26_1/model/index.html">pdstools.infinity.resources.prediction_studio.v26_1.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v26_1/model_upload/index.html">pdstools.infinity.resources.prediction_studio.v26_1.model_upload</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v26_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v26_1.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v26_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v26_1.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../infinity/resources/prediction_studio/v26_1/repository/index.html">pdstools.infinity.resources.prediction_studio.v26_1.repository</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../pega_io/index.html">pdstools.pega_io</a><input aria-label="Toggle navigation of pdstools.pega_io" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/API/index.html">pdstools.pega_io.API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/Anonymization/index.html">pdstools.pega_io.Anonymization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/File/index.html">pdstools.pega_io.File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/S3/index.html">pdstools.pega_io.S3</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../pega_io/action_analysis/index.html">pdstools.pega_io.action_analysis</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../prediction/index.html">pdstools.prediction</a><input aria-label="Toggle navigation of pdstools.prediction" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../prediction/Plots/index.html">pdstools.prediction.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../prediction/Prediction/index.html">pdstools.prediction.Prediction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../prediction/Schema/index.html">pdstools.prediction.Schema</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../reports/index.html">pdstools.reports</a><input aria-label="Toggle navigation of pdstools.reports" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/index.html">pdstools.reports.GlobalExplanations</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/index.html">pdstools.reports.GlobalExplanations.scripts</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations.scripts" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../reports/GlobalExplanations/scripts/generate_report/index.html">pdstools.reports.GlobalExplanations.scripts.generate_report</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../resources/index.html">pdstools.resources</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../utils/index.html">pdstools.utils</a><input aria-label="Toggle navigation of pdstools.utils" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/cdh_utils/index.html">pdstools.utils.cdh_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/color_mapping/index.html">pdstools.utils.color_mapping</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/datasets/index.html">pdstools.utils.datasets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/errors/index.html">pdstools.utils.errors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/metric_limits/index.html">pdstools.utils.metric_limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/namespaces/index.html">pdstools.utils.namespaces</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/number_format/index.html">pdstools.utils.number_format</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/pega_outcomes/index.html">pdstools.utils.pega_outcomes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/pega_template/index.html">pdstools.utils.pega_template</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/plot_utils/index.html">pdstools.utils.plot_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/polars_ext/index.html">pdstools.utils.polars_ext</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/progress_utils/index.html">pdstools.utils.progress_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/report_utils/index.html">pdstools.utils.report_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/show_versions/index.html">pdstools.utils.show_versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/streamlit_utils/index.html">pdstools.utils.streamlit_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/table_definitions/index.html">pdstools.utils.table_definitions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../utils/types/index.html">pdstools.utils.types</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../valuefinder/index.html">pdstools.valuefinder</a><input aria-label="Toggle navigation of pdstools.valuefinder" class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Aggregates/index.html">pdstools.valuefinder.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Plots/index.html">pdstools.valuefinder.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/Schema/index.html">pdstools.valuefinder.Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../valuefinder/ValueFinder/index.html">pdstools.valuefinder.ValueFinder</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../../../_sources/autoapi/pdstools/decision_analyzer/DecisionAnalyzer/index.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="module-pdstools.decision_analyzer.DecisionAnalyzer">
+<span id="pdstools-decision-analyzer-decisionanalyzer"></span><h1>pdstools.decision_analyzer.DecisionAnalyzer<a class="headerlink" href="#module-pdstools.decision_analyzer.DecisionAnalyzer" title="Link to this heading">¶</a></h1>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.logger" title="pdstools.decision_analyzer.DecisionAnalyzer.logger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logger</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DEFAULT_SAMPLE_SIZE" title="pdstools.decision_analyzer.DecisionAnalyzer.DEFAULT_SAMPLE_SIZE"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DEFAULT_SAMPLE_SIZE</span></code></a></p></td>
+<td><p>Default number of unique interactions to sample for resource-intensive analyses.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.MANDATORY_PRIORITY_THRESHOLD" title="pdstools.decision_analyzer.DecisionAnalyzer.MANDATORY_PRIORITY_THRESHOLD"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MANDATORY_PRIORITY_THRESHOLD</span></code></a></p></td>
+<td><p>Priority threshold at or above which actions are treated as mandatory by the</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer" title="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DecisionAnalyzer</span></code></a></p></td>
+<td><p>Analyze NBA decision data from Explainability Extract or Decision Analyzer exports.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.logger">
+<span class="sig-name descname"><span class="pre">logger</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.logger" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DEFAULT_SAMPLE_SIZE">
+<span class="sig-name descname"><span class="pre">DEFAULT_SAMPLE_SIZE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10000</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DEFAULT_SAMPLE_SIZE" title="Link to this definition">¶</a></dt>
+<dd><p>Default number of unique interactions to sample for resource-intensive analyses.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.MANDATORY_PRIORITY_THRESHOLD">
+<span class="sig-name descname"><span class="pre">MANDATORY_PRIORITY_THRESHOLD</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4999999</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.MANDATORY_PRIORITY_THRESHOLD" title="Link to this definition">¶</a></dt>
+<dd><p>Priority threshold at or above which actions are treated as mandatory by the
+arbitration engine. Mandatory actions bypass normal ranking and always land in
+the top slot. Used to auto-detect mandatory rows when no explicit
+<code class="docutils literal notranslate"><span class="pre">mandatory_expr</span></code> is supplied to <a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer" title="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer"><code class="xref py py-class docutils literal notranslate"><span class="pre">DecisionAnalyzer</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">DecisionAnalyzer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Stage</span> <span class="pre">Group'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">DEFAULT_SAMPLE_SIZE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mandatory_expr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="../column_schema/index.html#pdstools.decision_analyzer.column_schema.TableConfig.type" title="pdstools.decision_analyzer.column_schema.TableConfig.type"><span class="pre">type</span></a><span class="p"><span class="pre">[</span></span><span class="pre">polars.DataType</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer" title="Link to this definition">¶</a></dt>
+<dd><p>Analyze NBA decision data from Explainability Extract or Decision Analyzer exports.</p>
+<p>This class processes raw decision data to create a comprehensive analysis
+framework for NBA (Next-Best-Action). It supports two data source formats:</p>
+<ul class="simple">
+<li><p><strong>Explainability Extract (v1)</strong>: Simpler format with actions at the
+arbitration stage. Stages are synthetically derived from ranking.</p></li>
+<li><p><strong>Decision Analyzer / EEV2 (v2)</strong>: Full pipeline data with real stage
+information, filter component names, and detailed strategy tracking.</p></li>
+</ul>
+<p>Data can be loaded via class methods or directly:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_explainability_extract" title="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_explainability_extract"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_explainability_extract()</span></code></a>: Load from an Explainability Extract file.</p></li>
+<li><p><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_decision_analyzer" title="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_decision_analyzer"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_decision_analyzer()</span></code></a>: Load from a Decision Analyzer (EEV2) file.</p></li>
+<li><p>Direct <code class="docutils literal notranslate"><span class="pre">__init__</span></code>: Auto-detects format from the data schema.</p></li>
+</ul>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pdstools</span><span class="w"> </span><span class="kn">import</span> <span class="n">DecisionAnalyzer</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">da</span> <span class="o">=</span> <span class="n">DecisionAnalyzer</span><span class="o">.</span><span class="n">from_explainability_extract</span><span class="p">(</span><span class="s2">&quot;data/sample_explainability_extract.parquet&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">da</span><span class="o">.</span><span class="n">overview_stats</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">da</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">sensitivity</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">da</span><span class="o">.</span><span class="n">aggregates</span><span class="o">.</span><span class="n">get_funnel_data</span><span class="p">()</span>  <span class="c1"># defaults to scope=&quot;Action&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">da</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">get_sensitivity</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">from_*</span></code> classmethods also accept a directory of parquet
+(Hive-partitioned layouts work) or a glob pattern, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">DecisionAnalyzer</span><span class="o">.</span><span class="n">from_decision_analyzer</span><span class="p">(</span><span class="s2">&quot;path/to/extract/&quot;</span><span class="p">)</span>
+<span class="n">DecisionAnalyzer</span><span class="o">.</span><span class="n">from_decision_analyzer</span><span class="p">(</span><span class="s2">&quot;path/**/*.parquet&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<section id="schema-and-column-renaming">
+<h3>Schema and column renaming<a class="headerlink" href="#schema-and-column-renaming" title="Link to this heading">¶</a></h3>
+<p>The class auto-detects whether the input is an Explainability Extract
+(v1) or Decision Analyzer / EEV2 (v2) export and resolves source
+column names against the table definition in
+<a class="reference internal" href="../column_schema/index.html#module-pdstools.decision_analyzer.column_schema" title="pdstools.decision_analyzer.column_schema"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pdstools.decision_analyzer.column_schema</span></code></a>. After ingestion all
+downstream code uses friendly display names like <code class="docutils literal notranslate"><span class="pre">Subject</span> <span class="pre">ID</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">ID</span></code>, <code class="docutils literal notranslate"><span class="pre">Issue</span></code>, <code class="docutils literal notranslate"><span class="pre">Group</span></code>, <code class="docutils literal notranslate"><span class="pre">Action</span></code>, <code class="docutils literal notranslate"><span class="pre">Channel</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Direction</span></code>, <code class="docutils literal notranslate"><span class="pre">Stage</span></code>, <code class="docutils literal notranslate"><span class="pre">Stage</span> <span class="pre">Group</span></code>, <code class="docutils literal notranslate"><span class="pre">Stage</span> <span class="pre">Order</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Propensity</span></code>, <code class="docutils literal notranslate"><span class="pre">Priority</span></code>, <code class="docutils literal notranslate"><span class="pre">Decision</span> <span class="pre">Time</span></code>, etc.</p>
+<p>Common source-name aliases that get mapped automatically include
+<code class="docutils literal notranslate"><span class="pre">Primary_pySubjectID</span></code> / <code class="docutils literal notranslate"><span class="pre">pySubjectID</span></code> → <code class="docutils literal notranslate"><span class="pre">Subject</span> <span class="pre">ID</span></code>,
+<code class="docutils literal notranslate"><span class="pre">pxInteractionID</span></code> → <code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">ID</span></code>,
+<code class="docutils literal notranslate"><span class="pre">pyName</span></code> → <code class="docutils literal notranslate"><span class="pre">Action</span></code>, <code class="docutils literal notranslate"><span class="pre">pyIssue</span></code> → <code class="docutils literal notranslate"><span class="pre">Issue</span></code>, <code class="docutils literal notranslate"><span class="pre">pyGroup</span></code> →
+<code class="docutils literal notranslate"><span class="pre">Group</span></code>, <code class="docutils literal notranslate"><span class="pre">pxDecisionTime</span></code> → <code class="docutils literal notranslate"><span class="pre">Decision</span> <span class="pre">Time</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Primary_ContainerPayload_Channel</span></code> / <code class="docutils literal notranslate"><span class="pre">pyChannel</span></code> → <code class="docutils literal notranslate"><span class="pre">Channel</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Stage_pyName</span></code> → <code class="docutils literal notranslate"><span class="pre">Stage</span></code>, <code class="docutils literal notranslate"><span class="pre">Stage_pyStageGroup</span></code> → <code class="docutils literal notranslate"><span class="pre">Stage</span>
+<span class="pre">Group</span></code>, <code class="docutils literal notranslate"><span class="pre">Stage_pyOrder</span></code> → <code class="docutils literal notranslate"><span class="pre">Stage</span> <span class="pre">Order</span></code>. The critical columns
+that must be resolvable are <code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">ID</span></code>, <code class="docutils literal notranslate"><span class="pre">Issue</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Group</span></code>, and <code class="docutils literal notranslate"><span class="pre">Action</span></code>; everything else is best-effort.</p>
+<p>For the full mapping (including v1-only and v2-only columns), inspect
+<a class="reference internal" href="../column_schema/index.html#pdstools.decision_analyzer.column_schema.DecisionAnalyzer" title="pdstools.decision_analyzer.column_schema.DecisionAnalyzer"><code class="xref py py-data docutils literal notranslate"><span class="pre">pdstools.decision_analyzer.column_schema.DecisionAnalyzer</span></code></a> and
+<a class="reference internal" href="../column_schema/index.html#pdstools.decision_analyzer.column_schema.ExplainabilityExtract" title="pdstools.decision_analyzer.column_schema.ExplainabilityExtract"><code class="xref py py-data docutils literal notranslate"><span class="pre">pdstools.decision_analyzer.column_schema.ExplainabilityExtract</span></code></a>.</p>
+</section>
+<section id="memory-footprint">
+<h3>Memory footprint<a class="headerlink" href="#memory-footprint" title="Link to this heading">¶</a></h3>
+<p>On instantiation, this class triggers several lazy → eager polars
+queries (<code class="docutils literal notranslate"><span class="pre">unique</span></code> interaction count, stage discovery, etc.). For a
+multi-billion-row Hive-partitioned extract these scans alone can
+spike memory well past 10 GB. If you only need aggregate views,
+pre-filter / pre-aggregate the data at the <code class="docutils literal notranslate"><span class="pre">pl.scan_parquet</span></code> level
+before passing it in, or use a downsampled copy. The
+<code class="docutils literal notranslate"><span class="pre">preaggregated_filter_view</span></code> and <code class="docutils literal notranslate"><span class="pre">sample</span></code> cached properties
+additionally materialise data and should be used with care on full
+datasets.</p>
+</section>
+<section id="sample-vs-full-data-convention">
+<h3>Sample vs full-data convention<a class="headerlink" href="#sample-vs-full-data-convention" title="Link to this heading">¶</a></h3>
+<p>Most <code class="xref py py-class docutils literal notranslate"><span class="pre">Aggregates</span></code> methods that compute pre-aggregates
+(<code class="docutils literal notranslate"><span class="pre">get_funnel_data</span></code>, <code class="docutils literal notranslate"><span class="pre">get_optionality_data</span></code>, …) use the
+pre-aggregated view of the <strong>full</strong> dataset under the hood, while
+sensitivity / threshold / win-loss methods on <code class="xref py py-class docutils literal notranslate"><span class="pre">Scoring</span></code>
+operate on the downsampled <code class="docutils literal notranslate"><span class="pre">self.sample</span></code> (≤ <code class="docutils literal notranslate"><span class="pre">sample_size</span></code>
+interactions) for performance. <code class="docutils literal notranslate"><span class="pre">self.decision_data</span></code> is the full
+LazyFrame; <code class="docutils literal notranslate"><span class="pre">self.sample</span></code> is the small one.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.decision_data">
+<span class="sig-name descname"><span class="pre">decision_data</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.decision_data" title="Link to this definition">¶</a></dt>
+<dd><p>Interaction-level decision data (with global filters applied if any).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.extract_type">
+<span class="sig-name descname"><span class="pre">extract_type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.extract_type" title="Link to this definition">¶</a></dt>
+<dd><p>Either <code class="docutils literal notranslate"><span class="pre">&quot;explainability_extract&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;decision_analyzer&quot;</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../plots/index.html#pdstools.decision_analyzer.plots.Plot" title="pdstools.decision_analyzer.plots.Plot"><span class="pre">Plot</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_PlotPlotlyMissing</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.plot" title="Link to this definition">¶</a></dt>
+<dd><p>Plot accessor for visualization methods.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.aggregates">
+<span class="sig-name descname"><span class="pre">aggregates</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pdstools.decision_analyzer._aggregates.Aggregates</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.aggregates" title="Link to this definition">¶</a></dt>
+<dd><p>Accessor for aggregation queries such as funnel and distribution views.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.scoring">
+<span class="sig-name descname"><span class="pre">scoring</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pdstools.decision_analyzer._scoring.Scoring</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.scoring" title="Link to this definition">¶</a></dt>
+<dd><p>Accessor for re-ranking, sensitivity, and win/loss analysis.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_explainability_extract">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_explainability_extract</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.14)"><span class="pre">os.PathLike</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Stage</span> <span class="pre">Group'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">DEFAULT_SAMPLE_SIZE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mandatory_expr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="../column_schema/index.html#pdstools.decision_analyzer.column_schema.TableConfig.type" title="pdstools.decision_analyzer.column_schema.TableConfig.type"><span class="pre">type</span></a><span class="p"><span class="pre">[</span></span><span class="pre">polars.DataType</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer" title="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer"><span class="pre">DecisionAnalyzer</span></a></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_explainability_extract" title="Link to this definition">¶</a></dt>
+<dd><p>Create a DecisionAnalyzer from an Explainability Extract (v1) file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.14)"><em>os.PathLike</em></a>) – <p>Path to the Explainability Extract data. May be:</p>
+<ul>
+<li><p>a single parquet/csv/ndjson file (or remote URL),</p></li>
+<li><p>a directory of parquet files (Hive partitioning supported),</p></li>
+<li><p>a glob pattern (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;path/**/*.parquet&quot;</span></code>).</p></li>
+</ul>
+</p></li>
+<li><p><strong>level</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – See <code class="xref py py-meth docutils literal notranslate"><span class="pre">__init__()</span></code> for details.</p></li>
+<li><p><strong>sample_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – See <code class="xref py py-meth docutils literal notranslate"><span class="pre">__init__()</span></code> for details.</p></li>
+<li><p><strong>mandatory_expr</strong> (<em>polars.Expr</em><em> | </em><em>None</em>) – See <code class="xref py py-meth docutils literal notranslate"><span class="pre">__init__()</span></code> for details.</p></li>
+<li><p><strong>additional_columns</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference internal" href="../column_schema/index.html#pdstools.decision_analyzer.column_schema.TableConfig.type" title="pdstools.decision_analyzer.column_schema.TableConfig.type"><em>type</em></a><em>[</em><em>polars.DataType</em><em>]</em><em>] </em><em>| </em><em>None</em>) – See <code class="xref py py-meth docutils literal notranslate"><span class="pre">__init__()</span></code> for details.</p></li>
+<li><p><strong>num_samples</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – See <code class="xref py py-meth docutils literal notranslate"><span class="pre">__init__()</span></code> for details.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer" title="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer">DecisionAnalyzer</a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">da</span> <span class="o">=</span> <span class="n">DecisionAnalyzer</span><span class="o">.</span><span class="n">from_explainability_extract</span><span class="p">(</span><span class="s2">&quot;data/sample_explainability_extract.parquet&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">da</span> <span class="o">=</span> <span class="n">DecisionAnalyzer</span><span class="o">.</span><span class="n">from_explainability_extract</span><span class="p">(</span><span class="s2">&quot;data/extract_dir/&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">da</span> <span class="o">=</span> <span class="n">DecisionAnalyzer</span><span class="o">.</span><span class="n">from_explainability_extract</span><span class="p">(</span><span class="s2">&quot;data/**/*.parquet&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_decision_analyzer">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_decision_analyzer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.14)"><span class="pre">os.PathLike</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Stage</span> <span class="pre">Group'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">DEFAULT_SAMPLE_SIZE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mandatory_expr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="../column_schema/index.html#pdstools.decision_analyzer.column_schema.TableConfig.type" title="pdstools.decision_analyzer.column_schema.TableConfig.type"><span class="pre">type</span></a><span class="p"><span class="pre">[</span></span><span class="pre">polars.DataType</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer" title="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer"><span class="pre">DecisionAnalyzer</span></a></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_decision_analyzer" title="Link to this definition">¶</a></dt>
+<dd><p>Create a DecisionAnalyzer from a Decision Analyzer / EEV2 (v2) file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.14)"><em>os.PathLike</em></a>) – <p>Path to the Decision Analyzer data. May be:</p>
+<ul>
+<li><p>a single parquet/csv/ndjson file (or remote URL),</p></li>
+<li><p>a directory of parquet files (Hive partitioning supported),</p></li>
+<li><p>a glob pattern (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;path/**/*.parquet&quot;</span></code>).</p></li>
+</ul>
+</p></li>
+<li><p><strong>level</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – See <code class="xref py py-meth docutils literal notranslate"><span class="pre">__init__()</span></code> for details.</p></li>
+<li><p><strong>sample_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – See <code class="xref py py-meth docutils literal notranslate"><span class="pre">__init__()</span></code> for details.</p></li>
+<li><p><strong>mandatory_expr</strong> (<em>polars.Expr</em><em> | </em><em>None</em>) – See <code class="xref py py-meth docutils literal notranslate"><span class="pre">__init__()</span></code> for details.</p></li>
+<li><p><strong>additional_columns</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference internal" href="../column_schema/index.html#pdstools.decision_analyzer.column_schema.TableConfig.type" title="pdstools.decision_analyzer.column_schema.TableConfig.type"><em>type</em></a><em>[</em><em>polars.DataType</em><em>]</em><em>] </em><em>| </em><em>None</em>) – See <code class="xref py py-meth docutils literal notranslate"><span class="pre">__init__()</span></code> for details.</p></li>
+<li><p><strong>num_samples</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – See <code class="xref py py-meth docutils literal notranslate"><span class="pre">__init__()</span></code> for details.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer" title="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer">DecisionAnalyzer</a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">da</span> <span class="o">=</span> <span class="n">DecisionAnalyzer</span><span class="o">.</span><span class="n">from_decision_analyzer</span><span class="p">(</span><span class="s2">&quot;data/sample_eev2.parquet&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">da</span> <span class="o">=</span> <span class="n">DecisionAnalyzer</span><span class="o">.</span><span class="n">from_decision_analyzer</span><span class="p">(</span><span class="s2">&quot;data/eev2_partitioned/&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">da</span> <span class="o">=</span> <span class="n">DecisionAnalyzer</span><span class="o">.</span><span class="n">from_decision_analyzer</span><span class="p">(</span><span class="s2">&quot;data/**/*.parquet&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.level">
+<span class="sig-name descname"><span class="pre">level</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Stage</span> <span class="pre">Group'</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.level" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.sample_size">
+<span class="sig-name descname"><span class="pre">sample_size</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10000</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.sample_size" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.validation_error">
+<span class="sig-name descname"><span class="pre">validation_error</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'The</span> <span class="pre">following</span> <span class="pre">default</span> <span class="pre">columns</span> <span class="pre">are</span> <span class="pre">missing:</span> <span class="pre">'</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.validation_error" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.fields_for_data_filtering">
+<span class="sig-name descname"><span class="pre">fields_for_data_filtering</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.fields_for_data_filtering" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.preaggregation_columns">
+<span class="sig-name descname"><span class="pre">preaggregation_columns</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.preaggregation_columns" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.max_win_rank">
+<span class="sig-name descname"><span class="pre">max_win_rank</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.max_win_rank" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.AvailableNBADStages">
+<span class="sig-name descname"><span class="pre">AvailableNBADStages</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['Arbitration',</span> <span class="pre">'Output']</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.AvailableNBADStages" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.available_levels">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">available_levels</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.available_levels" title="Link to this definition">¶</a></dt>
+<dd><p>Stage granularity levels available for this dataset.</p>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">[&quot;Stage</span> <span class="pre">Group&quot;,</span> <span class="pre">&quot;Stage&quot;]</span></code> for Decision Analyzer (v2) data
+when both columns are present, or <code class="docutils literal notranslate"><span class="pre">[&quot;Stage</span> <span class="pre">Group&quot;]</span></code> for
+Explainability Extract (v1) data where only synthetic stages exist.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.set_level">
+<span class="sig-name descname"><span class="pre">set_level</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.set_level" title="Link to this definition">¶</a></dt>
+<dd><p>Switch the stage granularity level used for all analyses.</p>
+<p>Recomputes the available stages for the new level and invalidates
+all cached properties so subsequent queries use the new granularity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>level</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – <code class="docutils literal notranslate"><span class="pre">&quot;Stage</span> <span class="pre">Group&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;Stage&quot;</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.mandatory_actions">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">mandatory_actions</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.14)"><span class="pre">set</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.mandatory_actions" title="Link to this definition">¶</a></dt>
+<dd><p>Set of action names flagged as mandatory in the current data.</p>
+<p>Mandatory actions bypass normal arbitration and always rank in the
+top slot. Auto-detected from <code class="docutils literal notranslate"><span class="pre">Priority</span></code> (see
+<a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.MANDATORY_PRIORITY_THRESHOLD" title="pdstools.decision_analyzer.DecisionAnalyzer.MANDATORY_PRIORITY_THRESHOLD"><code class="xref py py-data docutils literal notranslate"><span class="pre">MANDATORY_PRIORITY_THRESHOLD</span></code></a>) unless an explicit
+<code class="docutils literal notranslate"><span class="pre">mandatory_expr</span></code> was supplied at construction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Distinct <code class="docutils literal notranslate"><span class="pre">Action</span></code> values where <code class="docutils literal notranslate"><span class="pre">is_mandatory</span></code> is truthy.
+Empty when no mandatory rows or no <code class="docutils literal notranslate"><span class="pre">Action</span></code> / <code class="docutils literal notranslate"><span class="pre">is_mandatory</span></code>
+column is available.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.14)">set</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.color_mappings">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">color_mappings</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.color_mappings" title="Link to this definition">¶</a></dt>
+<dd><p>Compute consistent color mappings for all categorical dimensions.</p>
+<p>Color assignments are based on all unique values in the full dataset
+(before sampling), sorted alphabetically. This ensures colors remain
+consistent throughout the session regardless of filtering.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><p>Nested dictionary mapping dimension names to color dictionaries.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;Issue&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;Retention&quot;</span><span class="p">:</span> <span class="s2">&quot;#001F5F&quot;</span><span class="p">,</span> <span class="s2">&quot;Sales&quot;</span><span class="p">:</span> <span class="s2">&quot;#10A5AC&quot;</span><span class="p">},</span>
+    <span class="s2">&quot;Group&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;CreditCards&quot;</span><span class="p">:</span> <span class="s2">&quot;#001F5F&quot;</span><span class="p">,</span> <span class="s2">&quot;Loans&quot;</span><span class="p">:</span> <span class="s2">&quot;#10A5AC&quot;</span><span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Uses &#64;cached_property so computation happens once on first access.
+Colors are assigned from the Pega colorway using modulo indexing.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="../../utils/color_mapping/index.html#pdstools.utils.color_mapping.create_categorical_color_mappings" title="pdstools.utils.color_mapping.create_categorical_color_mappings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.utils.color_mapping.create_categorical_color_mappings</span></code></a></dt><dd><p>Generic utility for creating color mappings in any Streamlit app.</p>
+</dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.stages_from_arbitration_down">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">stages_from_arbitration_down</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.stages_from_arbitration_down" title="Link to this definition">¶</a></dt>
+<dd><p>All stages from Arbitration onward, respecting the current level.</p>
+<p>At “Stage Group” level this slices from the literal “Arbitration”
+entry.  At “Stage” level it finds stages whose Stage Order is &gt;=
+the Arbitration group order (3800) using the stage_to_group_mapping.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.stages_with_propensity">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">stages_with_propensity</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.stages_with_propensity" title="Link to this definition">¶</a></dt>
+<dd><p>Infer which stages have meaningful propensity scores from the data.</p>
+<p>Examines the sample data to determine which stages have non-null, non-default
+propensity values. Returns stages where propensity-based classification makes sense.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.propensity_validation_warning">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">propensity_validation_warning</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.propensity_validation_warning" title="Link to this definition">¶</a></dt>
+<dd><p>Validate propensity values and return warning message if issues detected.</p>
+<p>Checks for:
+1. Invalid propensities (&gt; 1.0) - mathematically impossible for probabilities
+2. Unusually high propensities (&gt; 0.1) - uncommon for typical marketing interactions</p>
+<p>Returns None if validation passes or propensity data is not available.
+Uses sample data for efficiency.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.arbitration_stage">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">arbitration_stage</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">polars.LazyFrame</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.arbitration_stage" title="Link to this definition">¶</a></dt>
+<dd><p>Sample rows remaining at or after the Arbitration stage.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>polars.LazyFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.num_sample_interactions">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">num_sample_interactions</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.num_sample_interactions" title="Link to this definition">¶</a></dt>
+<dd><p>Number of unique interactions in the sample.
+Automatically triggers sampling if not yet calculated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.preaggregated_filter_view">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">preaggregated_filter_view</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.preaggregated_filter_view" title="Link to this definition">¶</a></dt>
+<dd><p>Pre-aggregates the full dataset over customers and interactions providing
+a view of what is filtered at a stage.</p>
+<p>This pre-aggregation is pretty similar to what “VBD” does to interaction
+history. It aggregates over individual customers and interactions giving
+summary statistics that are sufficient to drive most of the analyses
+(but not all). The results of this pre-aggregation are much smaller
+than the original data and is expected to easily fit in memory. We therefore
+use polars caching to efficiently cache this.</p>
+<p>This “filter” view keeps the same organization as the decision analyzer data
+in that it records the actions that get filtered out at stages. From this
+a “remaining” view is easily derived.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.preaggregated_remaining_view">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">preaggregated_remaining_view</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.preaggregated_remaining_view" title="Link to this definition">¶</a></dt>
+<dd><p>Pre-aggregates the full dataset over customers and interactions providing a view of remaining offers.</p>
+<p>This pre-aggregation builds on the filter view and aggregates over
+the stages remaining.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.sample">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">sample</span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.sample" title="Link to this definition">¶</a></dt>
+<dd><p>Hash-based deterministic sample of interactions for resource-intensive analyses.</p>
+<p>Selects up to <code class="docutils literal notranslate"><span class="pre">sample_size</span></code> unique interactions using a hash of
+Interaction ID. All actions within a selected interaction are kept.
+If fewer interactions exist than <code class="docutils literal notranslate"><span class="pre">sample_size</span></code>, no sampling is performed.</p>
+<p>When the <code class="docutils literal notranslate"><span class="pre">--sample</span></code> CLI flag is active, this operates on the
+already-reduced dataset, so two layers of sampling may apply.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.filtered">
+<span class="sig-name descname"><span class="pre">filtered</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><span class="pre">polars.Expr</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">polars.Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.filtered" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">self.sample</span></code> with the given filter expressions applied.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filters</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><em>pl.Expr</em><em>] </em><em>| </em><em>pl.Expr</em><em> | </em><em>None</em><em>, </em><em>default None</em>) – Filter expressions to AND together. <code class="docutils literal notranslate"><span class="pre">None</span></code> or an empty list
+returns the sample unchanged. Apps should construct this list
+from their own state (for Streamlit pages, see
+<code class="xref py py-func docutils literal notranslate"><span class="pre">pdstools.app.decision_analyzer.da_streamlit_utils.collect_page_filters()</span></code>);
+the library deliberately does not read UI state.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The (possibly filtered) sample.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.LazyFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_available_fields_for_filtering">
+<span class="sig-name descname"><span class="pre">get_available_fields_for_filtering</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">categorical_only</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_available_fields_for_filtering" title="Link to this definition">¶</a></dt>
+<dd><p>Return column names available for data filtering.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>categorical_only</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default False</em>) – If True, return only string/categorical columns.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_possible_scope_values">
+<span class="sig-name descname"><span class="pre">get_possible_scope_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_possible_scope_values" title="Link to this definition">¶</a></dt>
+<dd><p>Return scope hierarchy columns present in the data (e.g. Issue, Group, Action).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_possible_stage_values">
+<span class="sig-name descname"><span class="pre">get_possible_stage_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_possible_stage_values" title="Link to this definition">¶</a></dt>
+<dd><p>Return the list of available stage values for the current level.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.stage_to_group_mapping">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">stage_to_group_mapping</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.stage_to_group_mapping" title="Link to this definition">¶</a></dt>
+<dd><p>Map each Stage name to its Stage Group.</p>
+<p>Only meaningful when <code class="docutils literal notranslate"><span class="pre">level</span> <span class="pre">==</span> <span class="pre">&quot;Stage&quot;</span></code> and both columns exist.
+Returns an empty dict otherwise (including v1 / explainability data).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.overview_stats">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">overview_stats</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.overview_stats" title="Link to this definition">¶</a></dt>
+<dd><p>Creates an overview from the full (filtered) dataset.</p>
+<p>Aggregate metrics (Decisions, Customers, Actions, Channels, Duration)
+are computed over <code class="docutils literal notranslate"><span class="pre">decision_data</span></code> so they reflect the true counts.
+Only the average-offers-per-stage KPI uses the sample (it requires
+interaction-level optionality analysis that would be too expensive on
+the full data).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)">object</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>raw_data</strong> (<em>polars.LazyFrame</em>)</p></li>
+<li><p><strong>level</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+<li><p><strong>sample_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+<li><p><strong>mandatory_expr</strong> (<em>polars.Expr</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>additional_columns</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference internal" href="../column_schema/index.html#pdstools.decision_analyzer.column_schema.TableConfig.type" title="pdstools.decision_analyzer.column_schema.TableConfig.type"><em>type</em></a><em>[</em><em>polars.DataType</em><em>]</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>num_samples</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="../column_schema/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">pdstools.decision_analyzer.column_schema</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../index.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">pdstools.decision_analyzer</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Pegasystems
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/pegasystems/pega-datascientist-tools" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">pdstools.decision_analyzer.DecisionAnalyzer</a><ul>
+<li><a class="reference internal" href="#attributes">Attributes</a></li>
+<li><a class="reference internal" href="#classes">Classes</a></li>
+<li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.logger"><code class="docutils literal notranslate"><span class="pre">logger</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DEFAULT_SAMPLE_SIZE"><code class="docutils literal notranslate"><span class="pre">DEFAULT_SAMPLE_SIZE</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.MANDATORY_PRIORITY_THRESHOLD"><code class="docutils literal notranslate"><span class="pre">MANDATORY_PRIORITY_THRESHOLD</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer"><code class="docutils literal notranslate"><span class="pre">DecisionAnalyzer</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.decision_data"><code class="docutils literal notranslate"><span class="pre">decision_data</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.extract_type"><code class="docutils literal notranslate"><span class="pre">extract_type</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.plot"><code class="docutils literal notranslate"><span class="pre">plot</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.aggregates"><code class="docutils literal notranslate"><span class="pre">aggregates</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.scoring"><code class="docutils literal notranslate"><span class="pre">scoring</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_explainability_extract"><code class="docutils literal notranslate"><span class="pre">from_explainability_extract()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.from_decision_analyzer"><code class="docutils literal notranslate"><span class="pre">from_decision_analyzer()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.level"><code class="docutils literal notranslate"><span class="pre">level</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.sample_size"><code class="docutils literal notranslate"><span class="pre">sample_size</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.validation_error"><code class="docutils literal notranslate"><span class="pre">validation_error</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.fields_for_data_filtering"><code class="docutils literal notranslate"><span class="pre">fields_for_data_filtering</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.preaggregation_columns"><code class="docutils literal notranslate"><span class="pre">preaggregation_columns</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.max_win_rank"><code class="docutils literal notranslate"><span class="pre">max_win_rank</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.AvailableNBADStages"><code class="docutils literal notranslate"><span class="pre">AvailableNBADStages</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.available_levels"><code class="docutils literal notranslate"><span class="pre">available_levels</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.set_level"><code class="docutils literal notranslate"><span class="pre">set_level()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.mandatory_actions"><code class="docutils literal notranslate"><span class="pre">mandatory_actions</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.color_mappings"><code class="docutils literal notranslate"><span class="pre">color_mappings</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.stages_from_arbitration_down"><code class="docutils literal notranslate"><span class="pre">stages_from_arbitration_down</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.stages_with_propensity"><code class="docutils literal notranslate"><span class="pre">stages_with_propensity</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.propensity_validation_warning"><code class="docutils literal notranslate"><span class="pre">propensity_validation_warning</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.arbitration_stage"><code class="docutils literal notranslate"><span class="pre">arbitration_stage</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.num_sample_interactions"><code class="docutils literal notranslate"><span class="pre">num_sample_interactions</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.preaggregated_filter_view"><code class="docutils literal notranslate"><span class="pre">preaggregated_filter_view</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.preaggregated_remaining_view"><code class="docutils literal notranslate"><span class="pre">preaggregated_remaining_view</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.sample"><code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.filtered"><code class="docutils literal notranslate"><span class="pre">filtered()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_available_fields_for_filtering"><code class="docutils literal notranslate"><span class="pre">get_available_fields_for_filtering()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_possible_scope_values"><code class="docutils literal notranslate"><span class="pre">get_possible_scope_values()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_possible_stage_values"><code class="docutils literal notranslate"><span class="pre">get_possible_stage_values()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.stage_to_group_mapping"><code class="docutils literal notranslate"><span class="pre">stage_to_group_mapping</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.overview_stats"><code class="docutils literal notranslate"><span class="pre">overview_stats</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../../_static/documentation_options.js?v=5f826911"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../../_static/version-switcher.js?v=108131f4"></script>
+    </body>
+</html>
