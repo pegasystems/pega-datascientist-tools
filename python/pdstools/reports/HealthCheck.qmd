@@ -883,7 +883,14 @@ try:
     fig = fig_update_facet(fig, facet_cols, 200, 250)  # 200/250
 
     fig = (
-        fig.update_xaxes(tickformat=",.2%", tickangle=45, title="", matches=None)
+        fig.update_xaxes(
+            tickformat=",.2%",
+            tickangle=45,
+            title="",
+            matches=None,
+            showticklabels=True,
+            visible=True,
+        )
         .update_yaxes(
             matches=None, showticklabels=False, visible=False, autorange="reversed"
         )
