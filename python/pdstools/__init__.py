@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__version__ = "5.0.0"
+__version__ = "5.0.0rc1"
 
 from pathlib import Path
 from typing import TYPE_CHECKING

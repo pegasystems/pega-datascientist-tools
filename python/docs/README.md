@@ -57,6 +57,11 @@ After each deploy, `python/docs/versioned_docs.py` regenerates:
 - `/latest/` page aliases plus root-level legacy page redirects for the
   preferred release
 
+The sidebar switcher is intentionally narrower than the published `gh-pages`
+tree: it shows `dev`, stable releases, and at most the newest prerelease for
+each unreleased base version. Helper roots such as `/articles/`, `/autoapi/`,
+and `/latest/` remain published redirects, but are excluded from the selector.
+
 `Python release.yml` triggers a second docs deploy after PyPI publish completes,
 so the redirect flips to the newly-released version only once PyPI has the
 package.
