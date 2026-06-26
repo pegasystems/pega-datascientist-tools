@@ -4,6 +4,14 @@ pdstools.utils.datasets
 .. py:module:: pdstools.utils.datasets
 
 
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.datasets.ADMTreesModel
+
+
 Functions
 ---------
 
@@ -17,6 +25,10 @@ Functions
 
 Module Contents
 ---------------
+
+.. py:data:: ADMTreesModel
+   :value: None
+
 
 .. py:function:: cdh_sample(query: pdstools.utils.types.QUERY | None = None) -> pdstools.adm.ADMDatamart.ADMDatamart
 
