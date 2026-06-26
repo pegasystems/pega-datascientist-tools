@@ -132,7 +132,7 @@ class _OverviewPlotsMixin(_PlotsBase):
             hover_data=["ModelID", *self.datamart.context_keys, "LastUpdate"],
             title=f"Bubble Chart {title}",
             template="pega",
-            facet_row_spacing=0.11,
+            facet_row_spacing=0.06,
             labels={"LastUpdate": "Last Updated"},
         )
         fig = add_bottom_left_text_to_bubble_plot(fig, df, 1)
