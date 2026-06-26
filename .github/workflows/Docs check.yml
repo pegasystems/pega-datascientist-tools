@@ -46,8 +46,4 @@ jobs:
         working-directory: python/docs
         env:
           SPHINXOPTS: -W --keep-going
-        run: |
-          # Use IPC transport
-          mkdir -p /tmp/jupyter_config
-          echo "c.KernelManager.transport = 'ipc'" > /tmp/jupyter_config/jupyter_kernel_config.py
-          JUPYTER_CONFIG_DIR=/tmp/jupyter_config make html
+        run: make html

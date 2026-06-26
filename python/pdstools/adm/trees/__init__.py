@@ -20,12 +20,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ._agb import AGB
+from ._model import ADMTreesModel
+from ._multi import MultiTrees
 from ._nodes import Node, Split, SplitOperator, parse_split
 
 if TYPE_CHECKING:
-    from ._agb import AGB
-    from ._model import ADMTreesModel
-    from ._multi import MultiTrees
     from ._plots import Plots
 
 __all__ = [
@@ -41,18 +41,6 @@ __all__ = [
 
 
 def __getattr__(name: str):
-    if name == "AGB":
-        from ._agb import AGB
-
-        return AGB
-    if name == "ADMTreesModel":
-        from ._model import ADMTreesModel
-
-        return ADMTreesModel
-    if name == "MultiTrees":
-        from ._multi import MultiTrees
-
-        return MultiTrees
     if name == "Plots":
         from ._plots import Plots
 

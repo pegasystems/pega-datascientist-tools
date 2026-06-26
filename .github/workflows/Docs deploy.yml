@@ -105,10 +105,7 @@ jobs:
         env:
           PDSTOOLS_DOCS_VERSION: ${{ steps.version.outputs.slug }}
           SPHINXOPTS: -W --keep-going
-        run: |
-          mkdir -p /tmp/jupyter_config
-          echo "c.KernelManager.transport = 'ipc'" > /tmp/jupyter_config/jupyter_kernel_config.py
-          JUPYTER_CONFIG_DIR=/tmp/jupyter_config make html
+        run: make html
 
       - name: Stage published tree
         env:
