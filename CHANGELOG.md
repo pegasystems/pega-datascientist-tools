@@ -12,6 +12,88 @@ Major release. **Breaking changes** — see
 [`docs/migration-v4-to-v5.md`](docs/migration-v4-to-v5.md) for the upgrade
 guide.
 
+### Highlights
+
+- **Four Streamlit apps, one launcher.** pdstools now ships four
+  end-to-end apps reachable from a single tile-based landing page
+  (`pdstools all`), with a shared sidebar and About section:
+  - **ADM Health Check** — the long-standing report builder, now
+    with a richer programmatic findings namespace (`dm.analysis`).
+  - **Decision Analysis Tool** — substantially refactored and more
+    versatile (see below).
+  - **Impact Analyzer** — **new in v5** (see below).
+  - **Topic Data Quality** — **new in v5**: an NLP-focused app for
+    inspecting topic data — text quality, duplicates, adequacy,
+    tightness, outliers and confused samples, plus UMAP / TF-IDF
+    similarity visualisations and a single "health score" summary.
+- **New Markdown ADM Health Check.** Alongside the existing Quarto
+  report, `dm.generate.health_check_markdown(...)` now produces a
+  compact, Quarto-free Markdown digest of the same findings — ideal
+  for piping into an LLM agent, posting in a chat, or embedding in
+  another report. The Quarto output (HTML/PDF) remains the polished
+  artefact for humans; the Markdown version is the agent-friendly
+  counterpart.
+- **Impact Analyzer is new.** The app reads **Pega Scenario Planner Actuals**, and lets you
+  define the **outcome labels** in the UI so they match the customer
+  implementation. Every metric card now carries an explicit
+  **formula** expander — engagement lift, accept-rate lift, standard
+  errors, confidence intervals (95 % two-sided / 97.5 % one-sided),
+  EWMA trend bands — so the math behind every number is visible
+  inline. New Channel Performance and Click-Through Rates pages
+  (Control Fraction heatmap, CTR trend) replace the old Drill Down
+  view.
+- **Decision Analysis Tool refactor + Single Decision page.** The
+  `DecisionAnalyzer` class is now a namespace facade
+  (`da.aggregates.*` / `da.scoring.*`) matching the `ADMDatamart`
+  pattern. The app gains a new **Single Decision** debugging page
+  that walks through one decision's full pipeline — every action ×
+  every stage — showing how many actions passed, how many were
+  filtered, and which components did the filtering, so individual
+  decisions can be explained end-to-end. Auto-detection of mandatory
+  actions (priority ≥ 5M) is on by default and shown in the
+  win/loss and Global Sensitivity views. The app now routes through
+  `st.navigation()`, hides data-dependent pages until data is
+  uploaded, and uses a global category→colour map so legends stay
+  consistent across plots.
+- **Prediction Studio Python client is now Pydantic-backed.** Models,
+  predictions, model instances and notifications all have
+  schema-locked data models; `return_df=True` paths emit consistent
+  Polars frames even for empty / all-null payloads; the v26.1
+  model-instances endpoint is wrapped; and the data models are
+  re-exported from `pdstools.infinity` for direct validation /
+  schema introspection.
+- **New "AGB Explained" notebook.** A bundled walkthrough of Pega's
+  Adaptive Gradient Boosting algorithm, end-to-end and grounded in
+  the official Pega whitepaper terminology:
+  1. how a single decision tree works — nodes, splits, and the
+     XGBoost-style gradient split-gain formula with ADWIN-driven
+     pruning;
+  2. how trees combine into an additive ensemble, with cold-start /
+     warm-start behaviour and per-tree gain decay;
+  3. tracing a single customer through every tree to reproduce the
+     final propensity by hand;
+  4. feature importance by total split gain — including
+     Predictor-Group breakdowns (Context Keys, IH, Customer,
+     External Models), early-vs-late-refiner analysis, and a
+     feature role map (depth × coverage × gain);
+  5. a model-health diagnostic section aligned with SOP-ADM009 —
+     splits-per-tree, saturation, "not developing" signals;
+  6. AUC and calibration — PAVA isotonic mapping, test-then-train
+     validation, and the pooled-vs-weighted-average AUC distinction.
+
+  New `ADMTreesModel` plots (`gain_per_tree`,
+  `cumulative_gain_share`, `training_stream_timeline`,
+  `inter_tree_gaps`, `gain_decay_dual_lens`, `early_vs_late_gain`,
+  `feature_role_map`, …) back the notebook, and pdstools now ships
+  a **bundled local AGB sample** so the notebook runs without
+  network access.
+- **Other notables.** Python 3.14 support; `ADMDatamart.from_s3`,
+  `Prediction.from_s3` / `from_dataflow_export`, and `IH.from_s3`
+  are now real implementations (were no-op / `NotImplementedError`
+  stubs); `pdstools doctor` and `pdstools list` CLI commands.
+
+See sections below for the full per-area detail.
+
 ### Added
 
 - Python 3.14 support (#416). CI now runs against 3.10–3.14.
@@ -31,15 +113,12 @@ guide.
   form — enables grouping by Channel × Direction etc. in Health Check /
   Model Reports (#700).
 - `ImpactAnalyzer.from_excel` classmethod reads the **Pega Infinity Impact
-  Analyzer Excel export** — specifically the `Data` sheet, which carries
-  one row per (Date × Channel × Direction × Action × Treatment ×
-  Experiment) with pre-paired Test/Control counts. Rows are exploded
-  into the long IA format (`from_vbd`-style); NBA test traffic that
-  appears across multiple NBA-vs-X experiments is deduplicated to avoid
-  double-counting. Date and number parsing is locale-tolerant
-  (handles ISO/US/EU formats and Excel serial dates). Uses polars'
-  built-in calamine engine; no extra deps required. The Streamlit app
-  and `--data-path` CLI flag accept `.xlsx` uploads with auto-detection.
+  Analyzer Excel export** (`Data` sheet from the Scenario Planner
+  *Actuals* download). Rows are exploded into the long IA format
+  (`from_vbd`-style) with NBA test traffic deduplicated across
+  NBA-vs-X experiments; date / number parsing is locale-tolerant.
+  The Streamlit app and `--data-path` CLI flag accept `.xlsx` uploads
+  with auto-detection.
 - `pega_io.read_data` now recognises `.xlsx` / `.xls` and owns the
   `fastexcel` optional-dependency shim.
 - `Prediction.from_s3(bucket, key, *, region=None, ...)` is now
@@ -74,11 +153,12 @@ guide.
   per-node `sampleCount` data, and pdstools now ships a bundled local AGB
   sample export plus the new **AGB Explained** notebook instead of relying
   on a remote sample URL (#833).
-- AppTest-based smoke tests for all three Streamlit apps under
+- AppTest-based smoke tests for all four Streamlit apps under
   `python/tests/streamlit_apps/` — covers Decision Analyzer (Home + 10
-  sub-pages), Health Check (Home + 3 sub-pages) and Impact Analyzer
-  (Home + 3 sub-pages). Uses seeded fixtures so pages render the
-  populated branch, not the upload-prompt branch.
+  sub-pages), Health Check (Home + 3 sub-pages), Impact Analyzer
+  (Home + 3 sub-pages) and Topic NLP Data Quality (Home + state
+  transitions). Uses seeded fixtures so pages render the populated
+  branch, not the upload-prompt branch.
 - AppTest state-transition coverage for Streamlit widgets: Decision
   Analyzer threshold sliders and arbitration scope selector, plus Health
   Check report generation and dataframe filter widgets (#823).
