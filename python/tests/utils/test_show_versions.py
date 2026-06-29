@@ -6,7 +6,6 @@ import polars as pl
 import pytest
 
 import pdstools
-from pdstools import __version__
 from pdstools.utils import show_versions as sv_module
 
 
@@ -15,7 +14,7 @@ def test_show_versions_print(capsys):
     captured = capsys.readouterr()
     assert "Version info" in captured.out
     assert "pdstools" in captured.out
-    assert __version__ in captured.out
+    assert sv_module.__version__ in captured.out
     assert "Dependencies" in captured.out
 
 
@@ -23,7 +22,7 @@ def test_show_versions_return_string():
     result = pdstools.show_versions(False)
     assert isinstance(result, str)
     assert "Version info" in result
-    assert __version__ in result
+    assert sv_module.__version__ in result
     assert "Dependencies" in result
 
 
