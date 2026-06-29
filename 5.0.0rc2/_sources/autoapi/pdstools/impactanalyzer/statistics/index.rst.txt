@@ -1,0 +1,356 @@
+pdstools.impactanalyzer.statistics
+==================================
+
+.. py:module:: pdstools.impactanalyzer.statistics
+
+.. autoapi-nested-parse::
+
+   Statistical calculations for Impact Analyzer experiments.
+
+   Confidence intervals, significance testing, and sample-size planning
+   are integral to interpreting Impact Analyzer results — without them a
+   reported lift cannot be distinguished from noise.
+
+   Formulas follow Pega's server-side implementation and have been
+   validated for PDC parity.  Scenario Planner Actuals validation is
+   pending.
+
+   Key implementation details
+   --------------------------
+   * Pega stores **standard errors** (SE), not confidence intervals.
+     The *z*-score (1.96) is applied only at the significance / display
+     level.
+   * The lift CI uses the **delta method** for the ratio estimator:
+     ``SE(lift) = (1 / ctrl) · √(SE_t² + (test / ctrl)² · SE_c²)``.
+   * For value metrics Pega computes variance as ``p(1-p) · AV²``
+     (Bernoulli scaled by action value), **not** a Poisson approximation.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.impactanalyzer.statistics.Z_95
+   pdstools.impactanalyzer.statistics.FORMULAS
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.impactanalyzer.statistics.Formula
+   pdstools.impactanalyzer.statistics.LiftResult
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.impactanalyzer.statistics.accept_rate
+   pdstools.impactanalyzer.statistics.binomial_se
+   pdstools.impactanalyzer.statistics.binomial_ci
+   pdstools.impactanalyzer.statistics.value_variance
+   pdstools.impactanalyzer.statistics.value_se
+   pdstools.impactanalyzer.statistics.calculate_lift
+   pdstools.impactanalyzer.statistics.lift_pl
+   pdstools.impactanalyzer.statistics.lift_se
+   pdstools.impactanalyzer.statistics.is_significant
+   pdstools.impactanalyzer.statistics.calculate_engagement_lift
+   pdstools.impactanalyzer.statistics.calculate_value_lift
+   pdstools.impactanalyzer.statistics.required_sample_size
+
+
+Module Contents
+---------------
+
+.. py:data:: Z_95
+   :type:  float
+   :value: 1.96
+
+
+   Two-sided 95 % *z*-critical value used by Pega.
+
+.. py:class:: Formula
+
+   Structured representation of a statistical formula.
+
+
+   .. py:attribute:: name
+      :type:  str
+
+      Short identifier, e.g. ``"accept_rate"``.
+
+
+   .. py:attribute:: latex
+      :type:  str
+
+      Raw LaTeX expression for the statistic.
+
+
+   .. py:attribute:: description
+      :type:  str
+
+      One-line plain-English description.
+
+
+.. py:data:: FORMULAS
+   :type:  dict[str, Formula]
+
+.. py:class:: LiftResult
+
+   Result of a lift calculation with standard error.
+
+   .. rubric:: Notes
+
+   Pega stores **standard errors**, not confidence intervals.  The
+   ``se`` field is the raw SE.  Call :meth:`ci_95` to obtain the
+   95 % CI half-width (``Z_95 * se``).
+
+
+   .. py:attribute:: lift
+      :type:  float
+
+      Relative lift ``(test - control) / control``.
+
+
+   .. py:attribute:: se
+      :type:  float
+
+      Delta-method standard error for ``lift`` without any z-multiplier.
+
+
+   .. py:attribute:: significant
+      :type:  bool
+
+      Whether the confidence interval excludes zero.
+
+
+   .. py:attribute:: test_rate
+      :type:  float
+
+      Observed test-group rate.
+
+
+   .. py:attribute:: control_rate
+      :type:  float
+
+      Observed control-group rate.
+
+
+   .. py:attribute:: test_se
+      :type:  float
+
+      Standard error of the test rate.
+
+
+   .. py:attribute:: control_se
+      :type:  float
+
+      Standard error of the control rate.
+
+
+   .. py:method:: ci_95() -> float
+
+      Return the 95 % confidence-interval half-width.
+
+      :returns: ``Z_95 * self.se`` (i.e. ``1.96 * se``).
+      :rtype: float
+
+
+
+.. py:function:: accept_rate(accepts: int, impressions: int) -> float
+
+   Accept / click-through rate.
+
+   In Pega *Accept = Accepted + Clicked* (both count as positive
+   outcomes).
+
+   :param accepts: Number of positive outcomes.
+   :type accepts: int
+   :param impressions: Total number of impressions.
+   :type impressions: int
+
+   :returns: ``accepts / impressions``, or ``0.0`` when *impressions* ≤ 0.
+   :rtype: float
+
+
+.. py:function:: binomial_se(accepts: int, impressions: int) -> float
+
+   Standard error of the accept rate: ``√(p(1-p) / n)``.
+
+   This matches what Pega stores as *TestAcceptRateCI* /
+   *ControlAcceptRateCI* in the ``ConfidenceIntervalCalculation``
+   sheet — note that despite the column name it is a SE, not a CI.
+
+   :param accepts: Number of positive outcomes.
+   :type accepts: int
+   :param impressions: Total number of impressions.
+   :type impressions: int
+
+   :returns: ``√(p(1-p) / n)``, or ``0.0`` when *impressions* ≤ 0 or
+             the rate is 0 or 1.
+   :rtype: float
+
+   .. rubric:: Notes
+
+   Uses the Wald (normal-approximation) formula.  For extreme *p*
+   (close to 0 or 1) or small *n* this can under-cover; Wilson or
+   Clopper-Pearson intervals are more robust alternatives.
+
+
+.. py:function:: binomial_ci(accepts: int, impressions: int, z: float = Z_95) -> float
+
+   Binomial CI half-width: ``z · √(p(1-p) / n)``.
+
+   Returns ``0.0`` when *impressions* ≤ 0 or the rate is 0 or 1.
+
+
+.. py:function:: value_variance(accepts: int, impressions: int, action_value: float) -> float
+
+   Per-observation Bernoulli variance of the value metric.
+
+   Pega computes ``p(1-p) · AV²``.  Each impression is worth either
+   ``action_value`` (with probability *p*) or 0.
+
+   This matches *TestVariance* / *ControlVariance* in the
+   ``ConfidenceIntervalCalculation`` sheet.
+
+
+.. py:function:: value_se(accepts: int, impressions: int, action_value: float) -> float
+
+   SE of value per impression: ``√(Var / n)``.
+
+   Matches Pega's *TestInterval* / *ControlInterval*.
+
+
+.. py:function:: calculate_lift(test: float, control: float) -> float
+
+   Relative lift: ``(test - control) / control``.
+
+   Returns ``0.0`` when *control* ≤ 0.
+
+
+.. py:function:: lift_pl(test_col: str, control_col: str) -> polars.Expr
+
+   Polars expression for relative lift between two columns.
+
+   Intended for ``pl.LazyFrame.with_columns()`` so the formula is
+   defined once.
+
+   :returns: ``(test - control) / control``.
+   :rtype: pl.Expr
+
+
+.. py:function:: lift_se(test: float, control: float, se_test: float, se_control: float) -> float
+
+   Delta-method standard error for the lift ratio ``test / control - 1``.
+
+   Formula::
+
+       (1 / control) · √(se_test² + (test / control)² · se_control²)
+
+   .. important::
+
+      Pass **standard errors** (no *z*-multiplier).  Passing
+      *z*-multiplied CI values will inflate the result by *z*.
+
+   :param test: Test-group rate (accept rate or VPI).
+   :type test: float
+   :param control: Control-group rate.
+   :type control: float
+   :param se_test: Standard error of *test*.
+   :type se_test: float
+   :param se_control: Standard error of *control*.
+   :type se_control: float
+
+   :returns: Full-precision SE of the lift (no rounding).
+   :rtype: float
+
+
+.. py:function:: is_significant(lift: float, se: float, z: float = Z_95) -> bool
+
+   ``True`` when the CI does not cross zero.
+
+   Tests whether ``[lift - z·se, lift + z·se]`` excludes zero,
+   i.e. the lift is statistically significant at the given
+   confidence level.  With the default ``z = 1.96`` this is a
+   **95 % two-sided** test.
+
+   :param lift: Observed relative lift.
+   :type lift: float
+   :param se: Standard error of the lift (not z-multiplied).
+   :type se: float
+   :param z: Critical value.  Default ``1.96`` (95 %).
+   :type z: float, optional
+
+   :returns: ``True`` if the interval excludes zero.
+   :rtype: bool
+
+
+.. py:function:: calculate_engagement_lift(accepts_test: int, impr_test: int, accepts_control: int, impr_control: int) -> LiftResult
+
+   Engagement lift with delta-method SE.
+
+   This is the primary metric in the Impact Analyzer UI.
+
+   :param accepts_test: Positive outcomes in the test group.
+   :type accepts_test: int
+   :param impr_test: Total impressions in the test group.
+   :type impr_test: int
+   :param accepts_control: Positive outcomes in the control group.
+   :type accepts_control: int
+   :param impr_control: Total impressions in the control group.
+   :type impr_control: int
+
+   :returns: Lift, SE, and significance for the engagement metric.
+   :rtype: LiftResult
+
+
+.. py:function:: calculate_value_lift(accepts_test: int, impr_test: int, accepts_control: int, impr_control: int, action_value: float) -> LiftResult
+
+   Value-per-impression lift with delta-method CI.
+
+   Pega computes value as ``accept_rate × action_value`` with
+   Bernoulli variance ``p(1-p) · AV²``.
+
+   :param accepts_test: Positive outcomes in the test group.
+   :type accepts_test: int
+   :param impr_test: Total impressions in the test group.
+   :type impr_test: int
+   :param accepts_control: Positive outcomes in the control group.
+   :type accepts_control: int
+   :param impr_control: Total impressions in the control group.
+   :type impr_control: int
+   :param action_value: Monetary action value per accept.
+   :type action_value: float
+
+   :returns: Lift, SE, and significance for the value metric.
+   :rtype: LiftResult
+
+
+.. py:function:: required_sample_size(baseline_rate: float, mde: float = 0.05, alpha: float = 0.05, power: float = 0.8, control_ratio: float = 0.02) -> int
+
+   Required total impressions for a two-proportion *z*-test.
+
+   :param baseline_rate: Expected control-group accept rate.
+   :type baseline_rate: float
+   :param mde: Minimum detectable effect (relative lift).
+   :type mde: float
+   :param alpha: Significance level.
+   :type alpha: float
+   :param power: Statistical power.
+   :type power: float
+   :param control_ratio: Fraction of traffic allocated to control (default 2 %).
+                         This default matches Pega Impact Analyzer's typical
+                         configuration.  For general power analysis, 0.5 (equal
+                         allocation) is more common.
+   :type control_ratio: float
+
+   :returns: Ceiling of the required sample size.
+   :rtype: int
+
+

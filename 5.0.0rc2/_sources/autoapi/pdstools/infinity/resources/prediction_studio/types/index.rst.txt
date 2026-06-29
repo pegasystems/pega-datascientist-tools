@@ -1,0 +1,47 @@
+pdstools.infinity.resources.prediction_studio.types
+===================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.types
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.types.NotificationCategory
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.types.AdmModelType
+
+
+Module Contents
+---------------
+
+.. py:class:: AdmModelType(*args, **kwds)
+
+   Bases: :py:obj:`enum.Enum`
+
+
+   Supported ADM model techniques for champion/challenger operations.
+
+
+   .. py:attribute:: GRADIENT_BOOSTING
+      :value: 'Gradient_boost'
+
+
+
+   .. py:attribute:: NAIVE_BAYES
+      :value: 'Naive_bayes'
+
+
+
+.. py:type:: NotificationCategory
+   :canonical: Literal['All', 'Responses', 'Performance', 'Model approval', 'Output', 'Predictors', 'Prediction deployment', 'Generic']
+
+

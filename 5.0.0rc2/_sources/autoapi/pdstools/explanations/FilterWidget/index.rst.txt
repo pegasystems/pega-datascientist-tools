@@ -1,0 +1,81 @@
+pdstools.explanations.FilterWidget
+==================================
+
+.. py:module:: pdstools.explanations.FilterWidget
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.FilterWidget.FilterWidget
+
+
+Module Contents
+---------------
+
+.. py:class:: FilterWidget(explanations: pdstools.explanations.Explanations.Explanations)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Filter widget.
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['ipywidgets']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'explanations'
+
+
+
+   .. py:attribute:: explanations
+
+
+   .. py:method:: interactive()
+
+      Initializes the interactive filter widget and displays it.
+
+      This is used in combination with explanations.plot.contributions() to allow users to
+      filter by context if required.
+      Select the context from the list of contexts for plotting contributions for selected context else
+      the overall contributions will be plotted.
+      Alternatively, the context can be set using ``set_selected_context()``.
+
+
+
+   .. py:method:: set_selected_context(context_info: pdstools.explanations.ExplanationsUtils.ContextInfo | None = None)
+
+      Set the selected context information.
+
+      :param context_info: If ``None``, initializes the selected context with ``"Any"`` for all keys,
+                           i.e. overall model contributions.
+                           If provided, sets the selected context to the given context information.
+                           Context is passed as a dictionary::
+
+                               {
+                                   "pyChannel": "channel1",
+                                   "pyDirection": "direction1",
+                                   ...
+                               }
+      :type context_info: ContextInfo | None
+
+
+
+   .. py:method:: is_context_selected() -> bool
+
+      Return True only if all context keys are selected with a value other than ``"Any"``.
+
+
+
+   .. py:method:: get_selected_context()
+
+      Get the currently selected context information.
+
+
+

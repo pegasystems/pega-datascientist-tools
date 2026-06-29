@@ -1,0 +1,23 @@
+pdstools.explanations
+=====================
+
+.. py:module:: pdstools.explanations
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/explanations/Aggregate/index
+   /autoapi/pdstools/explanations/Explanations/index
+   /autoapi/pdstools/explanations/ExplanationsUtils/index
+   /autoapi/pdstools/explanations/FilterWidget/index
+   /autoapi/pdstools/explanations/Plots/index
+   /autoapi/pdstools/explanations/Preprocess/index
+   /autoapi/pdstools/explanations/Reports/index
+   /autoapi/pdstools/explanations/Schema/index
+   /autoapi/pdstools/explanations/resources/index
+
+

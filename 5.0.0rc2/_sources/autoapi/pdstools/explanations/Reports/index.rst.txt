@@ -1,0 +1,81 @@
+pdstools.explanations.Reports
+=============================
+
+.. py:module:: pdstools.explanations.Reports
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.Reports.Reports
+
+
+Module Contents
+---------------
+
+.. py:class:: Reports(explanations: pdstools.explanations.Explanations.Explanations)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Reports.
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['yaml']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'explanations'
+
+
+
+   .. py:attribute:: explanations
+
+
+   .. py:attribute:: report_foldername
+      :value: 'reports'
+
+
+
+   .. py:attribute:: report_folderpath
+
+
+   .. py:attribute:: report_output_dir
+
+
+   .. py:attribute:: aggregate_folder
+
+
+   .. py:attribute:: params_file
+
+
+   .. py:method:: generate(report_filename: str = 'explanations_report.zip', top_n: int = 20, top_k: int = 20, zip_output: bool = False, *, sort_by: pdstools.explanations.ExplanationsUtils.SortBy = 'contribution_abs', display_by: pdstools.explanations.ExplanationsUtils.DisplayBy = 'contribution')
+
+      Generate the explanations report.
+
+      :param report_filename: Name of the output report file.
+      :type report_filename: str
+      :param top_n: Number of top explanations to include.
+      :type top_n: int
+      :param top_k: Number of top features to include in explanations.
+      :type top_k: int
+      :param zip_output: Whether to zip the output report.
+                         The filename will be used as the zip file name.
+      :type zip_output: bool
+      :param sort_by: Column to rank/select top predictors. Default: ``"contribution_abs"``.
+      :type sort_by: str, keyword-only
+      :param display_by: Column to use for the report axis values. Default: ``"contribution"``.
+      :type display_by: str, keyword-only
+
+      .. rubric:: Notes
+
+      Progress and diagnostic information is logged at DEBUG level.
+      Enable debug logging to see detailed report generation steps.
+
+
+

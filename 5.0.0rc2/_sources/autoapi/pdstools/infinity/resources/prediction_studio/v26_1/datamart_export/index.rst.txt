@@ -1,0 +1,38 @@
+pdstools.infinity.resources.prediction_studio.v26_1.datamart_export
+===================================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v26_1.datamart_export
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v26_1.datamart_export.DatamartExport
+   pdstools.infinity.resources.prediction_studio.v26_1.datamart_export.AsyncDatamartExport
+
+
+Module Contents
+---------------
+
+.. py:class:: DatamartExport(client, referenceId: str, location: str, repositoryName: str)
+
+   Bases: :py:obj:`_DatamartExportv26_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v24_2.datamart_export.DatamartExport`
+
+
+   v26 DatamartExport business logic — defined once.
+
+   Add new or overridden methods here.
+
+
+.. py:class:: AsyncDatamartExport(client, referenceId: str, location: str, repositoryName: str)
+
+   Bases: :py:obj:`_DatamartExportv26_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v24_2.datamart_export.AsyncDatamartExport`
+
+
+   v26 DatamartExport business logic — defined once.
+
+   Add new or overridden methods here.
+
+

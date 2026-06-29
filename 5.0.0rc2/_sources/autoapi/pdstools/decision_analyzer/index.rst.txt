@@ -1,0 +1,36 @@
+pdstools.decision_analyzer
+==========================
+
+.. py:module:: pdstools.decision_analyzer
+
+.. autoapi-nested-parse::
+
+   Decision Analyzer module.
+
+   Provides :class:`DecisionAnalyzer` for analysing Pega NBA decision data
+   (Explainability Extract v1 or Decision Analyzer / EEV2 v2 exports).
+
+   Optional dependencies
+   ---------------------
+   The :mod:`pdstools.decision_analyzer.plots` submodule requires ``plotly``
+   (install with ``pdstools[adm]``). The aggregation and scoring APIs work
+   without it; accessing :attr:`DecisionAnalyzer.plot` on a system without
+   plotly raises a friendly
+   :class:`~pdstools.utils.namespaces.MissingDependenciesException`.
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/decision_analyzer/DecisionAnalyzer/index
+   /autoapi/pdstools/decision_analyzer/column_schema/index
+   /autoapi/pdstools/decision_analyzer/data_read_utils/index
+   /autoapi/pdstools/decision_analyzer/plots/index
+   /autoapi/pdstools/decision_analyzer/stage_grouping/index
+   /autoapi/pdstools/decision_analyzer/utils/index
+
+

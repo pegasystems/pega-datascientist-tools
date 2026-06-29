@@ -1,0 +1,49 @@
+pdstools.infinity.resources.prediction_studio
+=============================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/infinity/resources/prediction_studio/base/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/model_security/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/schemas/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/types/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_1/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v25_1/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v26_1/index
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.logger
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.get
+   pdstools.infinity.resources.prediction_studio.get_async
+
+
+Package Contents
+----------------
+
+.. py:data:: logger
+
+.. py:function:: get(version: str) -> type[base.PredictionStudioBase]
+
+.. py:function:: get_async(version: str) -> type[base.AsyncPredictionStudioBase]
+

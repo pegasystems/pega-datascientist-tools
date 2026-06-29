@@ -1,0 +1,23 @@
+pdstools.adm
+============
+
+.. py:module:: pdstools.adm
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/adm/ADMDatamart/index
+   /autoapi/pdstools/adm/Aggregates/index
+   /autoapi/pdstools/adm/Analysis/index
+   /autoapi/pdstools/adm/BinAggregator/index
+   /autoapi/pdstools/adm/HealthCheckMarkdown/index
+   /autoapi/pdstools/adm/Plots/index
+   /autoapi/pdstools/adm/Reports/index
+   /autoapi/pdstools/adm/Schema/index
+   /autoapi/pdstools/adm/trees/index
+
+
