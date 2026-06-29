@@ -10,8 +10,8 @@
     "preferred": true
   },
   {
-    "version": "5.0.0rc1",
-    "url": "https://pegasystems.github.io/pega-datascientist-tools/5.0.0rc1/",
+    "version": "5.0.0rc2",
+    "url": "https://pegasystems.github.io/pega-datascientist-tools/5.0.0rc2/",
     "preferred": false
   }
 ]
