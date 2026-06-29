@@ -46,7 +46,7 @@ def test_build_manifest_ignores_non_version_dirs_and_collapses_prereleases(
         "4.7.1",
         "5.0.0a1",
         "5.0.0b2",
-        "5.0.0rc1",
+        "5.0.0rc2",
         "articles",
         "autoapi",
         "latest",
@@ -60,7 +60,7 @@ def test_build_manifest_ignores_non_version_dirs_and_collapses_prereleases(
     )
 
     assert preferred_version == "4.7.1"
-    assert [entry["version"] for entry in manifest] == ["dev", "4.7.1", "4.7.0", "5.0.0rc1"]
+    assert [entry["version"] for entry in manifest] == ["dev", "4.7.1", "4.7.0", "5.0.0rc2"]
 
 
 def test_build_manifest_hides_prerelease_once_stable_exists(tmp_path: Path) -> None:
