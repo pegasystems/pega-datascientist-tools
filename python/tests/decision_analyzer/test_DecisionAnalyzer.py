@@ -2153,6 +2153,15 @@ class TestMinimalFunnelExactValues:
         total = eligibility["action_occurrences"].sum()
         assert total == 12
 
+    def test_available_at_stage_returns_funnel_rows(self, da_minimal):
+        rows = da_minimal.aggregates.available_at_stage("Eligibility").collect()
+        assert rows.height == 12
+        assert set(rows["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
+
+    def test_get_interaction_count_counts_available_at_stage(self, da_minimal):
+        result = da_minimal.get_interaction_count("aggregates.available_at_stage", "Eligibility")
+        assert result == 3
+
     def test_available_at_eligibility_sales_filter(self, da_minimal):
         """7 Sales action occurrences available at Eligibility."""
         available, _, _ = da_minimal.aggregates.get_funnel_data(
@@ -2178,12 +2187,34 @@ class TestMinimalFunnelExactValues:
         total = eligibility["action_occurrences"].sum()
         assert total == 8
 
+    def test_passing_at_stage_returns_funnel_rows(self, da_minimal):
+        rows = da_minimal.aggregates.passing_at_stage("Eligibility").collect()
+        assert rows.height == 8
+        assert set(rows["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
+
+    def test_get_interaction_count_counts_passing_at_stage(self, da_minimal):
+        result = da_minimal.get_interaction_count(
+            "aggregates.passing_at_stage", "Contact Policies and final Action processing"
+        )
+        assert result == 2
+
     def test_filtered_at_eligibility(self, da_minimal):
         """4 action occurrences filtered at Eligibility overall."""
         _, _, filtered = da_minimal.aggregates.get_funnel_data(scope="Action")
         eligibility = filtered.filter(pl.col(da_minimal.level) == "Eligibility")
         total = eligibility["action_occurrences"].sum()
         assert total == 4
+
+    def test_filtered_at_stage_returns_funnel_rows(self, da_minimal):
+        rows = da_minimal.aggregates.filtered_at_stage("Eligibility").collect()
+        assert rows.height == 4
+        assert set(rows["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
+
+    def test_get_interaction_ids_projects_filtered_at_stage(self, da_minimal):
+        result = da_minimal.get_interaction_ids(
+            "aggregates.filtered_at_stage", "Contact Policies and final Action processing"
+        )
+        assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
 
     def test_funnel_summary_stages_match_funnel(self, da_minimal):
         """Summary table should show Available Actions + filtering stages, no Output."""
@@ -2494,6 +2525,22 @@ class TestMinimalFilterComponents:
         er = df.filter(pl.col("Component Name") == "EligibilityRule")
         assert er["Filtered Decisions"].item() == 3
 
+    def test_filtered_by_component_projects_contact_policy_ids(self, da_minimal):
+        result = da_minimal.get_interaction_ids("aggregates.filtered_by_component", "ContactPolicyRule")
+        assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
+
+    def test_get_interaction_count_counts_filtered_by_component(self, da_minimal):
+        result = da_minimal.get_interaction_count("aggregates.filtered_by_component", "EligibilityRule")
+        assert result == 3
+
+    def test_filtered_by_component_can_narrow_to_stage(self, da_minimal):
+        result = da_minimal.get_interaction_ids(
+            "aggregates.filtered_by_component",
+            "EligibilityRule",
+            stage="Eligibility",
+        )
+        assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
+
     def test_contact_policy_at_correct_stage(self, da_minimal):
         df = da_minimal.aggregates.get_filter_component_data(top_n=10)
         cp = df.filter(pl.col("Component Name") == "ContactPolicyRule")
@@ -2523,6 +2570,20 @@ class TestMinimalDecisionsWithoutActions:
         result = da_minimal.aggregates.get_decisions_without_actions_data()
         cp = result.filter(pl.col("Stage Group").str.contains("Contact Policies"))
         assert cp["decisions_without_actions"].item() == 1
+
+    def test_without_actions_at_stage_projects_knockout_ids(self, da_minimal):
+        result = da_minimal.get_interaction_ids(
+            "aggregates.without_actions_at_stage",
+            "Contact Policies and final Action processing",
+        )
+        assert result.rows() == [("INT-002",)]
+
+    def test_get_interaction_count_counts_without_actions_at_stage(self, da_minimal):
+        result = da_minimal.get_interaction_count(
+            "aggregates.without_actions_at_stage",
+            "Contact Policies and final Action processing",
+        )
+        assert result == 1
 
     def test_total_knockouts_equals_non_survivors(self, da_minimal):
         """Total knockouts = total decisions - Output survivors = 3 - 2 = 1."""

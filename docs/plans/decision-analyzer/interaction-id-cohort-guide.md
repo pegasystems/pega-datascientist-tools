@@ -57,6 +57,42 @@ Use this pattern for public row-producing methods that return `Interaction ID`. 
 
 Aggregate methods can still exist for user-facing summaries, but they should not be the only place where a cohort is defined. If downstream users need both the summary and the exact decisions behind it, keep the cohort logic in a row-producing method and build the summary from that row set.
 
+Common aggregate-to-row mappings:
+
+| Summary question | Aggregate method | Row-producing method for IDs/counts |
+| --- | --- | --- |
+| Distribution at a stage | `da.aggregates.get_distribution_data(...)` | `aggregates.remaining_at_stage` with the same stage and cell filters |
+| Funnel available actions | `da.aggregates.get_funnel_data(...)[0]` | `aggregates.available_at_stage` |
+| Funnel passing actions | `da.aggregates.get_funnel_data(...)[1]` | `aggregates.passing_at_stage` |
+| Funnel filtered actions | `da.aggregates.get_funnel_data(...)[2]` | `aggregates.filtered_at_stage` |
+| Decisions left without actions | `da.aggregates.get_decisions_without_actions_data(...)` | `aggregates.without_actions_at_stage` |
+| Top filter components | `da.aggregates.get_filter_component_data(...)` | `aggregates.filtered_by_component` |
+
+For example, after identifying a funnel stage with many filtered actions:
+
+```python
+filtered_ids = da.get_interaction_ids(
+    "aggregates.filtered_at_stage",
+    "Eligibility",
+    pl.col("Issue") == "Sales",
+)
+filtered_count = da.get_interaction_count(
+    "aggregates.filtered_at_stage",
+    "Eligibility",
+    pl.col("Issue") == "Sales",
+)
+```
+
+After identifying a high-impact filter component:
+
+```python
+component_ids = da.get_interaction_ids(
+    "aggregates.filtered_by_component",
+    "EligibilityRule",
+    stage="Eligibility",
+)
+```
+
 ## Set-derived row cohorts
 
 Some cohorts require set logic before they become rows. Those should still be exposed as row-producing methods first, and then projected with `get_interaction_ids()`.

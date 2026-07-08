@@ -104,6 +104,108 @@ class Aggregates:
         )
         return current.join(next_ids, on="Interaction ID", how="anti")
 
+    def available_at_stage(
+        self,
+        stage: str,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        strict_stage: bool = True,
+    ) -> pl.LazyFrame:
+        """Return action rows available when entering ``stage``.
+
+        This is the row-producing counterpart to the ``available`` frame
+        returned by :meth:`get_funnel_data`.
+        """
+        return self.remaining_at_stage(stage, additional_filters, strict_stage=strict_stage)
+
+    def passing_at_stage(
+        self,
+        stage: str,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        strict_stage: bool = True,
+    ) -> pl.LazyFrame:
+        """Return action rows that pass ``stage`` and remain afterward.
+
+        This is the row-producing counterpart to the ``passing`` frame returned
+        by :meth:`get_funnel_data`. For a pipeline stage, passing rows are the
+        rows available at the next stage. Terminal stages return an empty
+        frame.
+        """
+        stage_idx = self.da._stage_index(stage, strict_stage=strict_stage)
+        if stage_idx is None or stage_idx >= len(self.da.AvailableNBADStages) - 1:
+            return self.remaining_at_stage(stage, additional_filters, strict_stage=False).limit(0)
+
+        next_stage = self.da.AvailableNBADStages[stage_idx + 1]
+        return self.remaining_at_stage(next_stage, additional_filters, strict_stage=strict_stage)
+
+    def filtered_at_stage(
+        self,
+        stage: str,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        strict_stage: bool = True,
+    ) -> pl.LazyFrame:
+        """Return action rows filtered out at ``stage``.
+
+        This is the row-producing counterpart to the ``filtered`` frame
+        returned by :meth:`get_funnel_data` and the per-stage summary returned
+        by :meth:`filtered_actions_per_stage`.
+        """
+        base = apply_filter(self.da.decision_data, additional_filters)
+        stage_idx = self.da._stage_index(stage, strict_stage=strict_stage)
+        if stage_idx is None:
+            return base.limit(0)
+
+        return base.filter((pl.col(self.da.level) == stage) & (pl.col("Record Type") == "FILTERED_OUT"))
+
+    def filtered_by_component(
+        self,
+        component_name: str,
+        stage: str | None = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        strict_stage: bool = True,
+    ) -> pl.LazyFrame:
+        """Return action rows filtered by a named component.
+
+        This is the row-producing counterpart to
+        :meth:`get_filter_component_data` and component impact summaries.
+        Pass ``stage`` to narrow the component cohort to a single pipeline
+        stage.
+        """
+        available = self.da.decision_data.collect_schema().names()
+        if "Component Name" not in available:
+            raise ValueError("Component Name is not available in this Decision Analyzer export.")
+
+        base = apply_filter(self.da.decision_data, additional_filters).filter(
+            (pl.col("Record Type") == "FILTERED_OUT") & (pl.col("Component Name") == component_name)
+        )
+        if stage is None:
+            return base
+
+        stage_idx = self.da._stage_index(stage, strict_stage=strict_stage)
+        if stage_idx is None:
+            return base.limit(0)
+
+        return base.filter(pl.col(self.da.level) == stage)
+
+    def without_actions_at_stage(
+        self,
+        stage: str,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        strict_stage: bool = True,
+    ) -> pl.LazyFrame:
+        """Return rows for interactions newly left without actions at ``stage``.
+
+        This is the row-producing counterpart to
+        :meth:`get_decisions_without_actions_data`. It returns the last rows
+        present before an interaction loses all remaining actions, so callers
+        can project the affected ``Interaction ID`` values.
+        """
+        return self.dropped_at_stage(stage, additional_filters, strict_stage=strict_stage)
+
     def filtered_actions_per_stage(
         self,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
