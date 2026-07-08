@@ -2076,21 +2076,6 @@ class TestMinimalStageCohorts:
         with pytest.raises(ValueError, match="Interaction ID"):
             da_minimal.get_interaction_ids("filtered_actions_per_stage")
 
-    def test_remaining_at_stage_interactions_returns_interaction_ids(self, da_minimal):
-        result = da_minimal.remaining_at_stage_interactions("Output")
-        assert result.columns == ["Interaction ID"]
-        assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-003"}
-
-    def test_remaining_at_stage_interactions_empty_filter(self, da_minimal):
-        result = da_minimal.remaining_at_stage_interactions("Output", pl.col("Channel") == "Missing")
-        assert result.height == 0
-        assert result.columns == ["Interaction ID"]
-
-    def test_remaining_at_stage_interactions_unknown_stage_can_return_empty(self, da_minimal):
-        result = da_minimal.remaining_at_stage_interactions("Not A Stage", strict_stage=False)
-        assert result.height == 0
-        assert result.columns == ["Interaction ID"]
-
     def test_dropped_at_stage_interactions_exact_ids(self, da_minimal):
         result = da_minimal.dropped_at_stage_interactions("Contact Policies and final Action processing")
         assert result.rows() == [("INT-002",)]

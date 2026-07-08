@@ -1042,27 +1042,6 @@ class DecisionAnalyzer:
         remaining_stages = self.AvailableNBADStages[stage_idx:]
         return base.filter(pl.col(self.level).is_in(remaining_stages))
 
-    def remaining_at_stage_interactions(
-        self,
-        stage: str,
-        additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        strict_stage: bool = True,
-    ) -> pl.DataFrame:
-        """Return exact interaction IDs with at least one action remaining at a stage.
-
-        Exact cohort APIs use the full normalized decision data.
-        """
-        if self._stage_index(stage, strict_stage=strict_stage) is None:
-            return self._empty_interaction_frame()
-
-        return self.get_interaction_ids(
-            "remaining_at_stage",
-            stage,
-            additional_filters,
-            strict_stage=strict_stage,
-        )
-
     def get_interaction_ids(self, method_name: str, *args: object, **kwargs: object) -> pl.DataFrame:
         """Return unique interaction IDs from a public row-producing method.
 
