@@ -2059,6 +2059,23 @@ class TestMinimalStageCohorts:
         rows = da_minimal.remaining_at_stage("Not A Stage", strict_stage=False).collect()
         assert rows.height == 0
 
+    def test_get_interaction_ids_projects_public_row_method(self, da_minimal):
+        result = da_minimal.get_interaction_ids("remaining_at_stage", "Output")
+        assert result.columns == ["Interaction ID"]
+        assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-003"}
+
+    def test_get_interaction_ids_rejects_unknown_method(self, da_minimal):
+        with pytest.raises(ValueError, match="Unknown DecisionAnalyzer method"):
+            da_minimal.get_interaction_ids("missing_method")
+
+    def test_get_interaction_ids_rejects_private_method(self, da_minimal):
+        with pytest.raises(ValueError, match="public DecisionAnalyzer method"):
+            da_minimal.get_interaction_ids("_remaining_rows_at_stage")
+
+    def test_get_interaction_ids_requires_interaction_id_column(self, da_minimal):
+        with pytest.raises(ValueError, match="Interaction ID"):
+            da_minimal.get_interaction_ids("filtered_actions_per_stage")
+
     def test_remaining_at_stage_interactions_returns_interaction_ids(self, da_minimal):
         result = da_minimal.remaining_at_stage_interactions("Output")
         assert result.columns == ["Interaction ID"]

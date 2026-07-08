@@ -1056,12 +1056,43 @@ class DecisionAnalyzer:
         if self._stage_index(stage, strict_stage=strict_stage) is None:
             return self._empty_interaction_frame()
 
-        return (
-            self.remaining_at_stage(stage, additional_filters, strict_stage=strict_stage)
-            .select("Interaction ID")
-            .unique()
-            .collect()
+        return self.get_interaction_ids(
+            "remaining_at_stage",
+            stage,
+            additional_filters,
+            strict_stage=strict_stage,
         )
+
+    def get_interaction_ids(self, method_name: str, *args: object, **kwargs: object) -> pl.DataFrame:
+        """Return unique interaction IDs from a public row-producing method.
+
+        Parameters
+        ----------
+        method_name : str
+            Name of a public ``DecisionAnalyzer`` method that returns a
+            Polars DataFrame or LazyFrame containing ``Interaction ID``.
+        *args, **kwargs
+            Arguments forwarded to the selected method.
+        """
+        if method_name.startswith("_"):
+            raise ValueError("method_name must refer to a public DecisionAnalyzer method.")
+
+        method = getattr(self, method_name, None)
+        if not callable(method):
+            raise ValueError(f"Unknown DecisionAnalyzer method: {method_name!r}.")
+
+        result = method(*args, **kwargs)
+        if isinstance(result, pl.LazyFrame):
+            if "Interaction ID" not in result.collect_schema().names():
+                raise ValueError(f"{method_name!r} does not return an 'Interaction ID' column.")
+            return result.select("Interaction ID").unique().collect()
+
+        if isinstance(result, pl.DataFrame):
+            if "Interaction ID" not in result.columns:
+                raise ValueError(f"{method_name!r} does not return an 'Interaction ID' column.")
+            return result.select("Interaction ID").unique()
+
+        raise TypeError(f"{method_name!r} must return a Polars DataFrame or LazyFrame.")
 
     def dropped_at_stage_interactions(
         self,
