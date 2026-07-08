@@ -12,6 +12,12 @@ Decision Analyzer exposes two kinds of answers:
 
 Downstream applications should use `Interaction ID` as the handoff key. Decision Analyzer should not resolve those IDs to customer, subject, or date attributes. The upstream application owns that mapping because it knows which customer identity, time window, and data-retention rules apply.
 
+The generic API architecture for aggregate summaries, row-producing cohorts,
+and interaction-ID/count projection is documented in
+[`docs/decision-analyzer-architecture.md`](../../decision-analyzer-architecture.md).
+This guide applies that pattern to downstream cohort analysis and pen-portrait
+workflows.
+
 ## Aggregate-first workflow
 
 Use aggregate methods to decide where to investigate. These methods answer questions such as:
