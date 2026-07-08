@@ -147,7 +147,7 @@ methods for every summary.
 The generic handoff APIs live on `DecisionAnalyzer`:
 
 ```python
-ids = da.get_interaction_ids("aggregates.filtered_at_stage", "Eligibility")
+ids = da.get_interaction_ids("aggregates.filtered_at_stage", "Engagement Policies")
 count = ids.height
 ```
 

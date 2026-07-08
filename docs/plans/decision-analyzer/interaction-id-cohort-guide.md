@@ -79,7 +79,7 @@ For example, after identifying a funnel stage with many filtered actions:
 ```python
 filtered_ids = da.get_interaction_ids(
     "aggregates.filtered_at_stage",
-    "Eligibility",
+    "Engagement Policies",
     pl.col("Issue") == "Sales",
 )
 filtered_count = filtered_ids.height
@@ -91,7 +91,7 @@ After identifying a high-impact filter component:
 component_ids = da.get_interaction_ids(
     "aggregates.filtered_by_component",
     "EligibilityRule",
-    stage="Eligibility",
+    stage="Engagement Policies",
 )
 ```
 
