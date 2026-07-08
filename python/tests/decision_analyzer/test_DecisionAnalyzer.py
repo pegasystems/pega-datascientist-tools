@@ -2068,6 +2068,19 @@ class TestMinimalStageCohorts:
         result = da_minimal.get_interaction_count("aggregates.remaining_at_stage", "Output")
         assert result == 2
 
+    def test_get_interaction_ids_projects_dataframe_method(self, da_minimal):
+        da_minimal.row_dataframe = lambda: pl.DataFrame({"Interaction ID": ["INT-001", "INT-001", "INT-002"]})
+
+        result = da_minimal.get_interaction_ids("row_dataframe")
+
+        assert result.columns == ["Interaction ID"]
+        assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-002"}
+
+    def test_get_interaction_count_counts_dataframe_method(self, da_minimal):
+        da_minimal.row_dataframe = lambda: pl.DataFrame({"Interaction ID": ["INT-001", "INT-001", "INT-002"]})
+
+        assert da_minimal.get_interaction_count("row_dataframe") == 2
+
     def test_get_interaction_count_counts_dropped_at_stage(self, da_minimal):
         result = da_minimal.get_interaction_count(
             "aggregates.dropped_at_stage",
@@ -2090,6 +2103,18 @@ class TestMinimalStageCohorts:
     def test_get_interaction_count_requires_interaction_id_column(self, da_minimal):
         with pytest.raises(ValueError, match="Interaction ID"):
             da_minimal.get_interaction_count("aggregates.filtered_actions_per_stage")
+
+    def test_get_interaction_ids_requires_interaction_id_column_on_lazyframe(self, da_minimal):
+        da_minimal.row_lazyframe_without_id = lambda: pl.LazyFrame({"Other": ["value"]})
+
+        with pytest.raises(ValueError, match="Interaction ID"):
+            da_minimal.get_interaction_ids("row_lazyframe_without_id")
+
+    def test_get_interaction_ids_rejects_non_polars_result(self, da_minimal):
+        da_minimal.not_a_frame = lambda: {"Interaction ID": ["INT-001"]}
+
+        with pytest.raises(TypeError, match="Polars DataFrame or LazyFrame"):
+            da_minimal.get_interaction_ids("not_a_frame")
 
     def test_dropped_at_stage_returns_rows(self, da_minimal):
         result = da_minimal.aggregates.dropped_at_stage("Contact Policies and final Action processing").collect()
@@ -2192,6 +2217,14 @@ class TestMinimalFunnelExactValues:
         assert rows.height == 8
         assert set(rows["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
 
+    def test_passing_at_terminal_stage_is_empty(self, da_minimal):
+        rows = da_minimal.aggregates.passing_at_stage("Output").collect()
+        assert rows.height == 0
+
+    def test_passing_at_unknown_stage_can_return_empty(self, da_minimal):
+        rows = da_minimal.aggregates.passing_at_stage("Not A Stage", strict_stage=False).collect()
+        assert rows.height == 0
+
     def test_get_interaction_count_counts_passing_at_stage(self, da_minimal):
         result = da_minimal.get_interaction_count(
             "aggregates.passing_at_stage", "Contact Policies and final Action processing"
@@ -2209,6 +2242,10 @@ class TestMinimalFunnelExactValues:
         rows = da_minimal.aggregates.filtered_at_stage("Eligibility").collect()
         assert rows.height == 4
         assert set(rows["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
+
+    def test_filtered_at_unknown_stage_can_return_empty(self, da_minimal):
+        rows = da_minimal.aggregates.filtered_at_stage("Not A Stage", strict_stage=False).collect()
+        assert rows.height == 0
 
     def test_get_interaction_ids_projects_filtered_at_stage(self, da_minimal):
         result = da_minimal.get_interaction_ids(
@@ -2540,6 +2577,21 @@ class TestMinimalFilterComponents:
             stage="Eligibility",
         )
         assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
+
+    def test_filtered_by_component_requires_component_name_column(self, da_minimal):
+        da_minimal.decision_data = da_minimal.decision_data.drop("Component Name")
+
+        with pytest.raises(ValueError, match="Component Name"):
+            da_minimal.aggregates.filtered_by_component("EligibilityRule").collect()
+
+    def test_filtered_by_component_unknown_stage_can_return_empty(self, da_minimal):
+        result = da_minimal.get_interaction_ids(
+            "aggregates.filtered_by_component",
+            "EligibilityRule",
+            stage="Not A Stage",
+            strict_stage=False,
+        )
+        assert result.height == 0
 
     def test_contact_policy_at_correct_stage(self, da_minimal):
         df = da_minimal.aggregates.get_filter_component_data(top_n=10)
