@@ -29,6 +29,146 @@ class Aggregates:
     def __init__(self, da: "DecisionAnalyzer") -> None:
         self.da = da
 
+    def remaining_at_stage(
+        self,
+        stage: str | None = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        strict_stage: bool = True,
+    ) -> pl.LazyFrame:
+        """Return action rows remaining at a stage.
+
+        Rows are considered remaining at ``stage`` when their current stage is
+        the requested stage or any later stage in ``AvailableNBADStages``.
+
+        Parameters
+        ----------
+        stage : str, optional
+            Stage to evaluate. When omitted, returns rows with non-null
+            ``Priority`` after applying filters.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Filters applied before selecting remaining rows.
+        strict_stage : bool, default True
+            Raise ``ValueError`` for unknown stages. When False, unknown stages
+            return an empty frame.
+        """
+        return self._remaining_rows_at_stage(
+            self.da.decision_data,
+            stage,
+            additional_filters,
+            strict_stage=strict_stage,
+        )
+
+    def _remaining_rows_at_stage(
+        self,
+        data: pl.LazyFrame,
+        stage: str | None = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        strict_stage: bool = True,
+    ) -> pl.LazyFrame:
+        base = apply_filter(data, additional_filters)
+        if stage is None:
+            return base.filter(pl.col("Priority").is_not_null())
+
+        stage_idx = self.da._stage_index(stage, strict_stage=strict_stage)
+        if stage_idx is None:
+            return base.limit(0)
+
+        remaining_stages = self.da.AvailableNBADStages[stage_idx:]
+        return base.filter(pl.col(self.da.level).is_in(remaining_stages))
+
+    def dropped_at_stage(
+        self,
+        stage: str,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        strict_stage: bool = True,
+    ) -> pl.LazyFrame:
+        """Return rows for interactions that lose their final action at ``stage``.
+
+        The cohort is computed as interactions remaining at ``stage`` minus
+        interactions remaining at the next stage, using the same filters on
+        both sides. Terminal stages return an empty frame.
+        """
+        stage_idx = self.da._stage_index(stage, strict_stage=strict_stage)
+        if stage_idx is None or stage_idx >= len(self.da.AvailableNBADStages) - 1:
+            return self.remaining_at_stage(stage, additional_filters, strict_stage=False).limit(0)
+
+        current = self.remaining_at_stage(stage, additional_filters, strict_stage=strict_stage)
+        next_stage = self.da.AvailableNBADStages[stage_idx + 1]
+        next_ids = (
+            self.remaining_at_stage(next_stage, additional_filters, strict_stage=strict_stage)
+            .select("Interaction ID")
+            .unique()
+        )
+        return current.join(next_ids, on="Interaction ID", how="anti")
+
+    def filtered_actions_per_stage(
+        self,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        include_zero_stages: bool = True,
+        sort_by: str = "actions_filtered",
+    ) -> pl.DataFrame:
+        """Return per-stage action filtering counts.
+
+        Parameters
+        ----------
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Filters applied before aggregation.
+        include_zero_stages : bool, default True
+            Include all available stages except ``Output``, filling missing
+            stages with zero counts.
+        sort_by : {"actions_filtered", "interactions_affected", "stage"}, default "actions_filtered"
+            Output ordering. Count-based sorts are descending; ``"stage"``
+            preserves pipeline order.
+        """
+        valid_sorts = {"actions_filtered", "interactions_affected", "stage"}
+        if sort_by not in valid_sorts:
+            raise ValueError(f"sort_by must be one of {sorted(valid_sorts)}")
+
+        stage_order = [stage for stage in self.da.AvailableNBADStages if stage != "Output"]
+        filtered_view = apply_filter(self.da.preaggregated_filter_view, additional_filters).filter(
+            pl.col("Record Type") == "FILTERED_OUT"
+        )
+        result = (
+            filtered_view.with_columns(pl.col(self.da.level).cast(pl.Utf8))
+            .group_by(self.da.level)
+            .agg(
+                actions_filtered=pl.sum("Decisions"),
+                interactions_affected=pl.col("Interaction_IDs")
+                .list.explode(keep_nulls=False, empty_as_null=False)
+                .unique()
+                .count(),
+            )
+        )
+
+        if include_zero_stages:
+            result = (
+                pl.LazyFrame({self.da.level: stage_order})
+                .join(result, on=self.da.level, how="left")
+                .with_columns(pl.col("actions_filtered", "interactions_affected").fill_null(0))
+            )
+
+        result_df = result.with_columns(
+            pl.col("actions_filtered").cast(pl.Int64),
+            pl.col("interactions_affected").cast(pl.Int64),
+            pl.col(self.da.level)
+            .replace_strict(
+                {stage: idx for idx, stage in enumerate(stage_order)},
+                default=len(stage_order),
+                return_dtype=pl.Int64,
+            )
+            .alias("_stage_order"),
+        ).collect()
+
+        if sort_by == "stage":
+            result_df = result_df.sort("_stage_order")
+        else:
+            result_df = result_df.sort([sort_by, "_stage_order"], descending=[True, False])
+        return result_df.drop("_stage_order")
+
     def aggregate_remaining_per_stage(
         self,
         df: pl.LazyFrame,

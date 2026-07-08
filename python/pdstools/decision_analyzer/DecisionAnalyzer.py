@@ -1002,26 +1002,10 @@ class DecisionAnalyzer:
     ) -> pl.LazyFrame:
         """Return action rows remaining at a stage.
 
-        Rows are considered remaining at ``stage`` when their current stage is
-        the requested stage or any later stage in ``AvailableNBADStages``.
-
-        Parameters
-        ----------
-        stage : str, optional
-            Stage to evaluate. When omitted, returns rows with non-null
-            ``Priority`` after applying filters.
-        additional_filters : pl.Expr or list[pl.Expr], optional
-            Filters applied before selecting remaining rows.
-        strict_stage : bool, default True
-            Raise ``ValueError`` for unknown stages. When False, unknown stages
-            return an empty frame.
+        Prefer :meth:`aggregates.remaining_at_stage`; this top-level method is
+        retained as a compatibility wrapper.
         """
-        return self._remaining_rows_at_stage(
-            self.decision_data,
-            stage,
-            additional_filters,
-            strict_stage=strict_stage,
-        )
+        return self.aggregates.remaining_at_stage(stage, additional_filters, strict_stage=strict_stage)
 
     def _remaining_rows_at_stage(
         self,
@@ -1031,16 +1015,12 @@ class DecisionAnalyzer:
         *,
         strict_stage: bool = True,
     ) -> pl.LazyFrame:
-        base = apply_filter(data, additional_filters)
-        if stage is None:
-            return base.filter(pl.col("Priority").is_not_null())
-
-        stage_idx = self._stage_index(stage, strict_stage=strict_stage)
-        if stage_idx is None:
-            return base.limit(0)
-
-        remaining_stages = self.AvailableNBADStages[stage_idx:]
-        return base.filter(pl.col(self.level).is_in(remaining_stages))
+        return self.aggregates._remaining_rows_at_stage(
+            data,
+            stage,
+            additional_filters,
+            strict_stage=strict_stage,
+        )
 
     def get_interaction_ids(self, method_name: str, *args: object, **kwargs: object) -> pl.DataFrame:
         """Project unique interaction IDs from a row-producing method.
@@ -1048,8 +1028,8 @@ class DecisionAnalyzer:
         This is the main handoff interface for downstream applications that
         need the exact decision cohort behind a Decision Analyzer question.
         Use aggregate methods first to decide what needs investigation, then
-        call this method with the public row-producing method that defines the
-        cohort. The selected method is called with ``*args`` and ``**kwargs``;
+        call this method with the public row-producing method path that
+        defines the cohort. The selected method is called with ``*args`` and ``**kwargs``;
         its Polars result is reduced to a one-column DataFrame of unique
         ``Interaction ID`` values.
 
@@ -1061,19 +1041,19 @@ class DecisionAnalyzer:
 
         Pass only public methods that still return decision rows containing
         ``Interaction ID``. This works for methods such as
-        ``remaining_at_stage`` because their results still contain the rows
+        ``aggregates.remaining_at_stage`` because their results still contain the rows
         behind the cohort. Aggregate summaries should be built from the same
         row-producing cohort method whenever downstream applications also need
         the exact IDs. For counts, use :meth:`get_interaction_count` on that
         same row-producing method. If a cohort needs custom logic, add that
         logic as a row-producing method first (for example,
-        ``dropped_at_stage``), then project IDs or counts from it.
+        ``aggregates.dropped_at_stage``), then project IDs or counts from it.
 
         Parameters
         ----------
         method_name : str
-            Name of a public ``DecisionAnalyzer`` method that returns a
-            Polars DataFrame or LazyFrame containing ``Interaction ID``.
+            Name or dotted path of a public method on ``DecisionAnalyzer`` that
+            returns a Polars DataFrame or LazyFrame containing ``Interaction ID``.
         *args, **kwargs
             Arguments forwarded to the selected method.
 
@@ -1095,12 +1075,12 @@ class DecisionAnalyzer:
         --------
         Get the decisions that still have at least one action at Output:
 
-        >>> da.get_interaction_ids("remaining_at_stage", "Output")
+        >>> da.get_interaction_ids("aggregates.remaining_at_stage", "Output")
 
         Forward filters to the row-producing method:
 
         >>> da.get_interaction_ids(
-        ...     "remaining_at_stage",
+        ...     "aggregates.remaining_at_stage",
         ...     "Output",
         ...     pl.col("Channel") == "Web",
         ... )
@@ -1108,7 +1088,7 @@ class DecisionAnalyzer:
         Project IDs from a set-derived row cohort:
 
         >>> da.get_interaction_ids(
-        ...     "dropped_at_stage",
+        ...     "aggregates.dropped_at_stage",
         ...     "Contact Policies and final Action processing",
         ... )
         """
@@ -1131,8 +1111,8 @@ class DecisionAnalyzer:
         Parameters
         ----------
         method_name : str
-            Name of a public ``DecisionAnalyzer`` method that returns a
-            Polars DataFrame or LazyFrame containing ``Interaction ID``.
+            Name or dotted path of a public method on ``DecisionAnalyzer`` that
+            returns a Polars DataFrame or LazyFrame containing ``Interaction ID``.
         *args, **kwargs
             Arguments forwarded to the selected method.
 
@@ -1146,12 +1126,12 @@ class DecisionAnalyzer:
         --------
         Count decisions that still have at least one action at Output:
 
-        >>> da.get_interaction_count("remaining_at_stage", "Output")
+        >>> da.get_interaction_count("aggregates.remaining_at_stage", "Output")
 
         Count a set-derived row cohort:
 
         >>> da.get_interaction_count(
-        ...     "dropped_at_stage",
+        ...     "aggregates.dropped_at_stage",
         ...     "Contact Policies and final Action processing",
         ... )
         """
@@ -1167,10 +1147,7 @@ class DecisionAnalyzer:
         *args: object,
         **kwargs: object,
     ) -> pl.LazyFrame | pl.DataFrame:
-        if method_name.startswith("_"):
-            raise ValueError("method_name must refer to a public DecisionAnalyzer method.")
-
-        method = getattr(self, method_name, None)
+        method = self._resolve_public_method(method_name)
         if not callable(method):
             raise ValueError(f"Unknown DecisionAnalyzer method: {method_name!r}.")
 
@@ -1187,6 +1164,16 @@ class DecisionAnalyzer:
 
         raise TypeError(f"{method_name!r} must return a Polars DataFrame or LazyFrame.")
 
+    def _resolve_public_method(self, method_name: str) -> object:
+        target: object = self
+        for part in method_name.split("."):
+            if not part or part.startswith("_"):
+                raise ValueError("method_name must refer to a public DecisionAnalyzer method.")
+            target = getattr(target, part, None)
+            if target is None:
+                break
+        return target
+
     def dropped_at_stage(
         self,
         stage: str,
@@ -1196,22 +1183,10 @@ class DecisionAnalyzer:
     ) -> pl.LazyFrame:
         """Return rows for interactions that lose their final action at ``stage``.
 
-        The cohort is computed as interactions remaining at ``stage`` minus
-        interactions remaining at the next stage, using the same filters on
-        both sides. Terminal stages return an empty frame.
+        Prefer :meth:`aggregates.dropped_at_stage`; this top-level method is
+        retained as a compatibility wrapper.
         """
-        stage_idx = self._stage_index(stage, strict_stage=strict_stage)
-        if stage_idx is None or stage_idx >= len(self.AvailableNBADStages) - 1:
-            return self.remaining_at_stage(stage, additional_filters, strict_stage=False).limit(0)
-
-        current = self.remaining_at_stage(stage, additional_filters, strict_stage=strict_stage)
-        next_stage = self.AvailableNBADStages[stage_idx + 1]
-        next_ids = (
-            self.remaining_at_stage(next_stage, additional_filters, strict_stage=strict_stage)
-            .select("Interaction ID")
-            .unique()
-        )
-        return current.join(next_ids, on="Interaction ID", how="anti")
+        return self.aggregates.dropped_at_stage(stage, additional_filters, strict_stage=strict_stage)
 
     def get_overview_stats(self) -> dict[str, object]:
         """Return overview statistics as a concrete dictionary."""
@@ -1226,61 +1201,14 @@ class DecisionAnalyzer:
     ) -> pl.DataFrame:
         """Return per-stage action filtering counts.
 
-        Parameters
-        ----------
-        additional_filters : pl.Expr or list[pl.Expr], optional
-            Filters applied before aggregation.
-        include_zero_stages : bool, default True
-            Include all available stages except ``Output``, filling missing
-            stages with zero counts.
-        sort_by : {"actions_filtered", "interactions_affected", "stage"}, default "actions_filtered"
-            Output ordering. Count-based sorts are descending; ``"stage"``
-            preserves pipeline order.
+        Prefer :meth:`aggregates.filtered_actions_per_stage`; this top-level
+        method is retained as a compatibility wrapper.
         """
-        valid_sorts = {"actions_filtered", "interactions_affected", "stage"}
-        if sort_by not in valid_sorts:
-            raise ValueError(f"sort_by must be one of {sorted(valid_sorts)}")
-
-        stage_order = [stage for stage in self.AvailableNBADStages if stage != "Output"]
-        filtered_view = apply_filter(self.preaggregated_filter_view, additional_filters).filter(
-            pl.col("Record Type") == "FILTERED_OUT"
+        return self.aggregates.filtered_actions_per_stage(
+            additional_filters,
+            include_zero_stages=include_zero_stages,
+            sort_by=sort_by,
         )
-        result = (
-            filtered_view.with_columns(pl.col(self.level).cast(pl.Utf8))
-            .group_by(self.level)
-            .agg(
-                actions_filtered=pl.sum("Decisions"),
-                interactions_affected=pl.col("Interaction_IDs")
-                .list.explode(keep_nulls=False, empty_as_null=False)
-                .unique()
-                .count(),
-            )
-        )
-
-        if include_zero_stages:
-            result = (
-                pl.LazyFrame({self.level: stage_order})
-                .join(result, on=self.level, how="left")
-                .with_columns(pl.col("actions_filtered", "interactions_affected").fill_null(0))
-            )
-
-        result_df = result.with_columns(
-            pl.col("actions_filtered").cast(pl.Int64),
-            pl.col("interactions_affected").cast(pl.Int64),
-            pl.col(self.level)
-            .replace_strict(
-                {stage: idx for idx, stage in enumerate(stage_order)},
-                default=len(stage_order),
-                return_dtype=pl.Int64,
-            )
-            .alias("_stage_order"),
-        ).collect()
-
-        if sort_by == "stage":
-            result_df = result_df.sort("_stage_order")
-        else:
-            result_df = result_df.sort([sort_by, "_stage_order"], descending=[True, False])
-        return result_df.drop("_stage_order")
 
     def head_to_head_at_stage(
         self,
@@ -1306,7 +1234,7 @@ class DecisionAnalyzer:
         if breakdown not in self.decision_data.collect_schema().names():
             raise ValueError(f"breakdown must be an available column. {breakdown!r} was not found.")
 
-        stage_rows = self.remaining_at_stage(stage, additional_filters)
+        stage_rows = self.aggregates.remaining_at_stage(stage, additional_filters)
         x_rows = apply_filter(stage_rows, filter_x)
         y_rows = apply_filter(stage_rows, filter_y)
 

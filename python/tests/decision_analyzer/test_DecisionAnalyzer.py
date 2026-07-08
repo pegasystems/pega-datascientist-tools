@@ -1729,7 +1729,7 @@ class TestFilteringAndScoping:
 
     def test_remaining_at_stage_none(self, da_v2):
         """stage=None falls back to non-null Priority rows."""
-        result = da_v2.remaining_at_stage(stage=None)
+        result = da_v2.aggregates.remaining_at_stage(stage=None)
         assert isinstance(result, pl.LazyFrame)
         df = result.collect()
         assert df.height == 1143136
@@ -1737,7 +1737,7 @@ class TestFilteringAndScoping:
         assert df["Priority"].null_count() == 0
 
     def test_remaining_at_stage_arbitration(self, da_v2):
-        result = da_v2.remaining_at_stage(stage="Arbitration")
+        result = da_v2.aggregates.remaining_at_stage(stage="Arbitration")
         df = result.collect()
         assert df.height == 29421
         stages = df[da_v2.level].unique().to_list()
@@ -2042,34 +2042,37 @@ class TestMinimalStageCohorts:
     """Verify exact stage row and interaction cohort APIs."""
 
     def test_remaining_at_stage_known_stage(self, da_minimal):
-        rows = da_minimal.remaining_at_stage("Output").collect()
+        rows = da_minimal.aggregates.remaining_at_stage("Output").collect()
         assert rows.height == 3
         assert set(rows["Interaction ID"].to_list()) == {"INT-001", "INT-003"}
 
     def test_remaining_at_stage_none_filters_to_ranked_rows(self, da_minimal):
-        rows = da_minimal.remaining_at_stage().collect()
+        rows = da_minimal.aggregates.remaining_at_stage().collect()
         assert rows.height == 8
         assert rows["Priority"].is_not_null().all()
 
     def test_remaining_at_stage_rejects_unknown_stage(self, da_minimal):
         with pytest.raises(ValueError, match="Unknown stage"):
-            da_minimal.remaining_at_stage("Not A Stage").collect()
+            da_minimal.aggregates.remaining_at_stage("Not A Stage").collect()
 
     def test_remaining_at_stage_unknown_stage_can_return_empty(self, da_minimal):
-        rows = da_minimal.remaining_at_stage("Not A Stage", strict_stage=False).collect()
+        rows = da_minimal.aggregates.remaining_at_stage("Not A Stage", strict_stage=False).collect()
         assert rows.height == 0
 
     def test_get_interaction_ids_projects_public_row_method(self, da_minimal):
-        result = da_minimal.get_interaction_ids("remaining_at_stage", "Output")
+        result = da_minimal.get_interaction_ids("aggregates.remaining_at_stage", "Output")
         assert result.columns == ["Interaction ID"]
         assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-003"}
 
     def test_get_interaction_count_counts_public_row_method(self, da_minimal):
-        result = da_minimal.get_interaction_count("remaining_at_stage", "Output")
+        result = da_minimal.get_interaction_count("aggregates.remaining_at_stage", "Output")
         assert result == 2
 
     def test_get_interaction_count_counts_dropped_at_stage(self, da_minimal):
-        result = da_minimal.get_interaction_count("dropped_at_stage", "Contact Policies and final Action processing")
+        result = da_minimal.get_interaction_count(
+            "aggregates.dropped_at_stage",
+            "Contact Policies and final Action processing",
+        )
         assert result == 1
 
     def test_get_interaction_ids_rejects_unknown_method(self, da_minimal):
@@ -2078,32 +2081,35 @@ class TestMinimalStageCohorts:
 
     def test_get_interaction_ids_rejects_private_method(self, da_minimal):
         with pytest.raises(ValueError, match="public DecisionAnalyzer method"):
-            da_minimal.get_interaction_ids("_remaining_rows_at_stage")
+            da_minimal.get_interaction_ids("aggregates._remaining_rows_at_stage")
 
     def test_get_interaction_ids_requires_interaction_id_column(self, da_minimal):
         with pytest.raises(ValueError, match="Interaction ID"):
-            da_minimal.get_interaction_ids("filtered_actions_per_stage")
+            da_minimal.get_interaction_ids("aggregates.filtered_actions_per_stage")
 
     def test_get_interaction_count_requires_interaction_id_column(self, da_minimal):
         with pytest.raises(ValueError, match="Interaction ID"):
-            da_minimal.get_interaction_count("filtered_actions_per_stage")
+            da_minimal.get_interaction_count("aggregates.filtered_actions_per_stage")
 
     def test_dropped_at_stage_returns_rows(self, da_minimal):
-        result = da_minimal.dropped_at_stage("Contact Policies and final Action processing").collect()
+        result = da_minimal.aggregates.dropped_at_stage("Contact Policies and final Action processing").collect()
         assert set(result["Interaction ID"].to_list()) == {"INT-002"}
         assert result.select("Interaction ID").unique().height == 1
 
     def test_get_interaction_ids_projects_dropped_at_stage(self, da_minimal):
-        result = da_minimal.get_interaction_ids("dropped_at_stage", "Contact Policies and final Action processing")
+        result = da_minimal.get_interaction_ids(
+            "aggregates.dropped_at_stage",
+            "Contact Policies and final Action processing",
+        )
         assert result.rows() == [("INT-002",)]
 
     def test_dropped_at_terminal_stage_is_empty(self, da_minimal):
-        result = da_minimal.get_interaction_ids("dropped_at_stage", "Output")
+        result = da_minimal.get_interaction_ids("aggregates.dropped_at_stage", "Output")
         assert result.columns == ["Interaction ID"]
         assert result.height == 0
 
     def test_dropped_at_stage_unknown_stage_can_return_empty(self, da_minimal):
-        result = da_minimal.get_interaction_ids("dropped_at_stage", "Not A Stage", strict_stage=False)
+        result = da_minimal.get_interaction_ids("aggregates.dropped_at_stage", "Not A Stage", strict_stage=False)
         assert result.height == 0
 
 
@@ -2528,7 +2534,7 @@ class TestMinimalFilteredActionsPerStage:
     """Verify exact filtered action counts by stage."""
 
     def test_filtered_actions_per_stage_includes_zero_stages(self, da_minimal):
-        result = da_minimal.filtered_actions_per_stage(sort_by="stage")
+        result = da_minimal.aggregates.filtered_actions_per_stage(sort_by="stage")
 
         assert result[da_minimal.level].to_list() == [
             "Eligibility",
@@ -2539,7 +2545,7 @@ class TestMinimalFilteredActionsPerStage:
         assert result["interactions_affected"].to_list() == [3, 0, 3]
 
     def test_filtered_actions_per_stage_can_exclude_zero_stages(self, da_minimal):
-        result = da_minimal.filtered_actions_per_stage(include_zero_stages=False, sort_by="stage")
+        result = da_minimal.aggregates.filtered_actions_per_stage(include_zero_stages=False, sort_by="stage")
 
         assert result[da_minimal.level].to_list() == [
             "Eligibility",
@@ -2547,20 +2553,20 @@ class TestMinimalFilteredActionsPerStage:
         ]
 
     def test_filtered_actions_per_stage_sorts_by_actions_filtered(self, da_minimal):
-        result = da_minimal.filtered_actions_per_stage()
+        result = da_minimal.aggregates.filtered_actions_per_stage()
 
         assert result[da_minimal.level].to_list()[0] == "Contact Policies and final Action processing"
         assert result["actions_filtered"].to_list()[0] == 5
 
     def test_filtered_actions_per_stage_applies_filters(self, da_minimal):
-        result = da_minimal.filtered_actions_per_stage(pl.col("Channel") == "Mobile", sort_by="stage")
+        result = da_minimal.aggregates.filtered_actions_per_stage(pl.col("Channel") == "Mobile", sort_by="stage")
 
         assert result["actions_filtered"].to_list() == [2, 0, 2]
         assert result["interactions_affected"].to_list() == [1, 0, 1]
 
     def test_filtered_actions_per_stage_validates_sort_by(self, da_minimal):
         with pytest.raises(ValueError, match="sort_by"):
-            da_minimal.filtered_actions_per_stage(sort_by="not-a-sort")
+            da_minimal.aggregates.filtered_actions_per_stage(sort_by="not-a-sort")
 
 
 class TestMinimalFunnelSummaryExact:

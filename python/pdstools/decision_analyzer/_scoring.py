@@ -292,7 +292,7 @@ class Scoring:
             Extra filters applied to the sample (e.g. channel filter).
         """
         cols = [granularity, component]
-        df = self.da._remaining_rows_at_stage(self.da.sample, stage, additional_filters=additional_filters)
+        df = self.da.aggregates._remaining_rows_at_stage(self.da.sample, stage, additional_filters=additional_filters)
         return df.select(cols).sort(granularity)
 
     def all_components_distribution(
@@ -316,7 +316,7 @@ class Scoring:
 
         available = set(self.da.sample.collect_schema().names())
         cols = [c for c in PRIO_COMPONENTS if c in available]
-        df = self.da._remaining_rows_at_stage(self.da.sample, stage, additional_filters=additional_filters)
+        df = self.da.aggregates._remaining_rows_at_stage(self.da.sample, stage, additional_filters=additional_filters)
         return df.select([granularity, *cols]).sort(granularity)
 
     def get_win_loss_distribution_data(
