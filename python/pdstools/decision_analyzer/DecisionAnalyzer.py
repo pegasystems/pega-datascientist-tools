@@ -32,6 +32,7 @@ from ..pega_io.File import read_data
 from ..utils.namespaces import LazyNamespace
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     import os
     from .plots import Plot
 
@@ -1090,6 +1091,42 @@ class DecisionAnalyzer:
             .unique()
         )
         return current.join(next_ids, on="Interaction ID", how="anti").collect()
+
+    def get_interaction_details(
+        self,
+        interaction_ids: str | Iterable[str],
+        columns: list[str] | None = None,
+    ) -> pl.DataFrame:
+        """Resolve interaction IDs to subject IDs and optional detail columns.
+
+        Parameters
+        ----------
+        interaction_ids : iterable or str
+            Interaction IDs to resolve. Empty input returns an empty DataFrame
+            with the selected output schema.
+        columns : list[str], optional
+            Extra columns to include when present in the data, such as
+            ``Issue``, ``Group``, ``Action``, ``Channel``, ``Direction``, or
+            ``Treatment``.
+        """
+        selected_columns = self._interaction_detail_columns("full", include_subject_id=True)
+        if columns is not None:
+            available = set(self.decision_data.collect_schema().names())
+            selected_columns.extend(col for col in columns if col in available and col not in selected_columns)
+
+        ids = [interaction_ids] if isinstance(interaction_ids, str) else list(interaction_ids)
+
+        if not ids:
+            schema = self.decision_data.collect_schema()
+            return pl.DataFrame(schema={col: schema[col] for col in selected_columns})
+
+        return (
+            self.decision_data.filter(pl.col("Interaction ID").is_in(ids)).select(selected_columns).unique().collect()
+        )
+
+    def get_overview_stats(self) -> dict[str, object]:
+        """Return overview statistics as a concrete dictionary."""
+        return dict(self.overview_stats)
 
     def _stage_source(self, source: str) -> pl.LazyFrame:
         if source == "sample":

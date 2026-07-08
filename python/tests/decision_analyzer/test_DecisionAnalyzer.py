@@ -1970,6 +1970,52 @@ class TestMinimalStageCohorts:
         assert result.height == 0
 
 
+class TestMinimalInteractionDetails:
+    """Verify interaction detail resolution for downstream cohorts."""
+
+    def test_get_interaction_details_defaults_to_subject_id(self, da_minimal):
+        result = da_minimal.get_interaction_details(["INT-001"]).sort("Interaction ID")
+        assert result.columns == ["Interaction ID", "Subject ID"]
+        assert result.rows() == [("INT-001", "CUST-001")]
+
+    def test_get_interaction_details_accepts_single_string(self, da_minimal):
+        result = da_minimal.get_interaction_details("INT-003")
+        assert result.rows() == [("INT-003", "CUST-003")]
+
+    def test_get_interaction_details_adds_available_columns(self, da_minimal):
+        result = da_minimal.get_interaction_details(["INT-001"], columns=["Issue", "Group", "Missing"])
+        assert result.columns == ["Interaction ID", "Subject ID", "Issue", "Group"]
+        assert result.height == 4
+        assert set(result["Issue"].to_list()) == {"Sales", "Retention"}
+
+    def test_get_interaction_details_deduplicates_selected_columns(self, da_minimal):
+        result = da_minimal.get_interaction_details(["INT-001", "INT-001"])
+        assert result.rows() == [("INT-001", "CUST-001")]
+
+    def test_get_interaction_details_empty_input_preserves_schema(self, da_minimal):
+        result = da_minimal.get_interaction_details([], columns=["Issue"])
+        assert result.height == 0
+        assert result.columns == ["Interaction ID", "Subject ID", "Issue"]
+
+    def test_get_interaction_details_without_subject_id_column(self):
+        raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv").drop("Primary_pySubjectID")
+        da = DecisionAnalyzer(raw, sample_size=5000)
+        result = da.get_interaction_details(["INT-001"])
+        assert result.columns == ["Interaction ID"]
+
+
+class TestOverviewStatsAccessor:
+    def test_get_overview_stats_returns_dict(self, da_minimal):
+        result = da_minimal.get_overview_stats()
+        assert isinstance(result, dict)
+        assert result["Decisions"] == 3
+
+    def test_get_overview_stats_returns_copy(self, da_minimal):
+        result = da_minimal.get_overview_stats()
+        result["Decisions"] = -1
+        assert da_minimal.get_overview_stats()["Decisions"] == 3
+
+
 class TestMinimalFunnelExactValues:
     """Exact-value tests for funnel data against the minimal dataset.
 
