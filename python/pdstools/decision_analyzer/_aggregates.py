@@ -72,6 +72,17 @@ class Aggregates:
             ``ValueError``.
         additional_filters : pl.Expr or list[pl.Expr], optional
             Filters applied before selecting remaining rows.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Decision rows that still have an action at the requested stage.
+
+        Raises
+        ------
+        ValueError
+            If ``stage`` is not one of the available Decision Analyzer stage
+            names.
         """
         return self._remaining_rows_at_stage(self.da.decision_data, stage, additional_filters)
 
@@ -99,6 +110,26 @@ class Aggregates:
         interactions remaining at the next stage, using the same filters on
         both sides. Terminal stages return an empty frame. An unknown stage
         raises ``ValueError``.
+
+        Parameters
+        ----------
+        stage : str
+            Stage where the interaction drop-off is evaluated.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Filters applied before computing the current-stage and next-stage
+            cohorts.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Decision rows for interactions present at ``stage`` but absent at
+            the next pipeline stage.
+
+        Raises
+        ------
+        ValueError
+            If ``stage`` is not one of the available Decision Analyzer stage
+            names.
         """
         stage_idx = self._stage_index(stage)
         if stage_idx >= len(self.da.AvailableNBADStages) - 1:
@@ -119,6 +150,24 @@ class Aggregates:
         This is the row-producing counterpart to the ``available`` frame
         returned by :meth:`get_funnel_data`. An unknown stage raises
         ``ValueError``.
+
+        Parameters
+        ----------
+        stage : str
+            Stage whose entering action rows are returned.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Filters applied before selecting available rows.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Decision rows available at the requested stage.
+
+        Raises
+        ------
+        ValueError
+            If ``stage`` is not one of the available Decision Analyzer stage
+            names.
         """
         return self.remaining_at_stage(stage, additional_filters)
 
@@ -133,6 +182,25 @@ class Aggregates:
         by :meth:`get_funnel_data`. For a pipeline stage, passing rows are the
         rows available at the next stage. Terminal stages return an empty
         frame. An unknown stage raises ``ValueError``.
+
+        Parameters
+        ----------
+        stage : str
+            Stage whose passing action rows are returned.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Filters applied before selecting passing rows.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Decision rows available at the next pipeline stage. Terminal
+            stages return an empty frame with the same schema.
+
+        Raises
+        ------
+        ValueError
+            If ``stage`` is not one of the available Decision Analyzer stage
+            names.
         """
         stage_idx = self._stage_index(stage)
         if stage_idx >= len(self.da.AvailableNBADStages) - 1:
@@ -152,6 +220,25 @@ class Aggregates:
         returned by :meth:`get_funnel_data` and the per-stage summary returned
         by :meth:`filtered_actions_per_stage`. An unknown stage raises
         ``ValueError``.
+
+        Parameters
+        ----------
+        stage : str
+            Stage whose filtered action rows are returned.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Filters applied before selecting filtered rows.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Decision rows with ``Record Type == "FILTERED_OUT"`` at the
+            requested stage.
+
+        Raises
+        ------
+        ValueError
+            If ``stage`` is not one of the available Decision Analyzer stage
+            names.
         """
         self._stage_index(stage)
         base = apply_filter(self.da.decision_data, additional_filters)
@@ -169,6 +256,29 @@ class Aggregates:
         :meth:`get_filter_component_data` and component impact summaries.
         Pass ``stage`` to narrow the component cohort to a single pipeline
         stage; an unknown stage raises ``ValueError``.
+
+        Parameters
+        ----------
+        component_name : str
+            Component name from the ``Component Name`` column.
+        stage : str, optional
+            Stage to restrict the component cohort to. When omitted, rows from
+            all stages are returned.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Filters applied before selecting component rows.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Filtered-out decision rows matching ``component_name`` and,
+            optionally, ``stage``.
+
+        Raises
+        ------
+        ValueError
+            If the export does not include ``Component Name`` or if ``stage``
+            is provided but is not one of the available Decision Analyzer stage
+            names.
         """
         available = self.da.decision_data.collect_schema().names()
         if "Component Name" not in available:
@@ -194,6 +304,25 @@ class Aggregates:
         :meth:`get_decisions_without_actions_data`. It returns the last rows
         present before an interaction loses all remaining actions, so callers
         can project the affected ``Interaction ID`` values.
+
+        Parameters
+        ----------
+        stage : str
+            Stage where interactions are evaluated for losing all actions.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Filters applied before computing the drop-off cohort.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Decision rows for interactions that are present at ``stage`` and no
+            longer present at the next pipeline stage.
+
+        Raises
+        ------
+        ValueError
+            If ``stage`` is not one of the available Decision Analyzer stage
+            names.
         """
         return self.dropped_at_stage(stage, additional_filters)
 
@@ -217,6 +346,50 @@ class Aggregates:
         ``other``. Breakdown cells are paired as ``x_<breakdown>`` and
         ``y_<breakdown>`` values so they represent true overlap cells, not only
         the winning side.
+
+        Parameters
+        ----------
+        filter_x : pl.Expr or list[pl.Expr]
+            Filter expression defining the first comparison cohort.
+        filter_y : pl.Expr or list[pl.Expr]
+            Filter expression defining the second comparison cohort.
+        stage : str, default "Arbitration"
+            Stage at which to evaluate the comparison. Rows at this stage and
+            later stages are considered remaining in the cohort.
+        breakdown : str, default "Group"
+            Column used to pair overlap cells. The result contains
+            ``x_<breakdown>`` and ``y_<breakdown>`` columns.
+        min_cell : int, default 20
+            Minimum overlapping interaction count required for a paired
+            breakdown cell to be included in ``cells``.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Filters applied before the two comparison filters are evaluated.
+        include_interaction_ids : bool, default True
+            Include per-outcome interaction-ID cohorts in the returned result.
+            Set to ``False`` when only aggregate counts and cells are needed.
+
+        Returns
+        -------
+        HeadToHeadResult
+            Overall outcome counts, paired breakdown cells, comparison
+            metadata, and optionally per-outcome interaction-ID cohorts.
+
+        Raises
+        ------
+        ValueError
+            If ``stage`` is not one of the available Decision Analyzer stage
+            names, or if ``breakdown`` is not a column in the decision data.
+
+        Examples
+        --------
+        Compare two groups at arbitration and return both summary counts and
+        interaction-ID cohorts:
+
+        >>> da.aggregates.head_to_head_at_stage(
+        ...     pl.col("Group") == "Retention",
+        ...     pl.col("Group") == "Sales",
+        ...     stage="Arbitration",
+        ... )
         """
         if breakdown not in self.da.decision_data.collect_schema().names():
             raise ValueError(f"breakdown must be an available column. {breakdown!r} was not found.")

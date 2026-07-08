@@ -1105,7 +1105,15 @@ class DecisionAnalyzer:
         return target
 
     def get_overview_stats(self) -> dict[str, object]:
-        """Return overview statistics as a concrete dictionary."""
+        """Return overview statistics as a concrete dictionary.
+
+        Returns
+        -------
+        dict[str, object]
+            A shallow copy of the analyzer overview statistics, suitable for
+            downstream serialization or display without exposing the internal
+            cached mapping.
+        """
         return dict(self.overview_stats)
 
     def get_available_fields_for_filtering(self, *, categorical_only: bool = False) -> list[str]:

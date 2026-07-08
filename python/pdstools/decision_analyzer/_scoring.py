@@ -118,6 +118,20 @@ class Scoring:
         downsampled ``sample`` — this backs the sample-scoped win/loss
         summaries and distributions. The exact full-data cohort is provided by
         :meth:`get_winning_or_losing_interactions`.
+
+        Parameters
+        ----------
+        group_filter : pl.Expr or list[pl.Expr]
+            Filter defining the selected comparison group.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Filters applied to the sampled decision rows before selecting the
+            comparison group.
+
+        Returns
+        -------
+        pl.LazyFrame
+            One row per sampled interaction containing the selected group's
+            best rank, worst rank, and row count.
         """
         return self._selected_group_rank_boundaries(self.da.sample, group_filter, additional_filters)
 
