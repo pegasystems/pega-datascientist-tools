@@ -206,6 +206,40 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
+    "#### Row cohorts for downstream handoff\n",
+    "\n",
+    "Aggregate charts and tables are compact summaries. When another application needs the exact decisions behind a summary, use a row-producing cohort method under `decision_data.aggregates`, then project the `Interaction ID` values from that same method (call `.height` on the result for the cohort size)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "filtered_ids = decision_data.get_interaction_ids(\n",
+    "    \"aggregates.filtered_at_stage\",\n",
+    "    \"Engagement Policies\",\n",
+    ")\n",
+    "filtered_count = filtered_ids.height\n",
+    "\n",
+    "component_ids = decision_data.get_interaction_ids(\n",
+    "    \"aggregates.filtered_by_component\",\n",
+    "    filter_table[\"Component Name\"][0],\n",
+    "    stage=filter_table[\"Stage Group\"][0],\n",
+    ")\n",
+    "\n",
+    "{\n",
+    "    \"filtered_at_engagement_policies\": filtered_count,\n",
+    "    \"filtered_at_engagement_policies_ids_preview\": filtered_ids.head(5),\n",
+    "    \"top_component_ids_preview\": component_ids.head(5),\n",
+    "}"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
     "### Action Distribution\n",
     "\n",
     "Distribution of actions at the Arbitration stage. Helps identify action groups that rarely survive to Arbitration."

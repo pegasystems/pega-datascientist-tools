@@ -901,6 +901,93 @@ the library deliberately does not read UI state.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_interaction_ids">
+<span class="sig-name descname"><span class="pre">get_interaction_ids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_interaction_ids" title="Link to this definition">¶</a></dt>
+<dd><p>Project unique interaction IDs from a row-producing method.</p>
+<p>This is the main handoff interface for downstream applications that
+need the exact decision cohort behind a Decision Analyzer question.
+Use aggregate methods first to decide what needs investigation, then
+call this method with the public row-producing method path that
+defines the cohort. The selected method is called with <code class="docutils literal notranslate"><span class="pre">*args</span></code> and <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code>;
+its Polars result is reduced to a one-column DataFrame of unique
+<code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">ID</span></code> values.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">ID</span></code> is the only identity returned by this interface.
+Decision Analyzer does not resolve interaction IDs to subject IDs,
+customer IDs, dates, accounts, households, or profile attributes. That
+resolution belongs in the downstream application, which owns the
+customer identity model, time-window rules, and data-retention context.</p>
+<p>Pass only public methods that still return decision rows containing
+<code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">ID</span></code>. This works for methods such as
+<code class="docutils literal notranslate"><span class="pre">aggregates.remaining_at_stage</span></code> because their results still contain the rows
+behind the cohort. Aggregate summaries should be built from the same
+row-producing cohort method whenever downstream applications also need
+the exact IDs. For a cohort size, call <code class="docutils literal notranslate"><span class="pre">.height</span></code> (or <code class="docutils literal notranslate"><span class="pre">len(...)</span></code>) on
+the returned frame. If a cohort needs custom logic, add that logic as a
+row-producing method first (for example, <code class="docutils literal notranslate"><span class="pre">aggregates.dropped_at_stage</span></code>),
+then project its IDs here.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>method_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Name or dotted path of a public method on <code class="docutils literal notranslate"><span class="pre">DecisionAnalyzer</span></code> that
+returns a Polars DataFrame or LazyFrame containing <code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">ID</span></code>.</p></li>
+<li><p><strong>*args</strong> – Arguments forwarded to the selected method.</p></li>
+<li><p><strong>**kwargs</strong> – Arguments forwarded to the selected method.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A one-column DataFrame containing unique <code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">ID</span></code> values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.DataFrame</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">method_name</span></code> is private, unknown, or returns row data without
+an <code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">ID</span></code> column.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.14)"><strong>TypeError</strong></a> – If the selected method does not return a Polars DataFrame or
+LazyFrame.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Get the decisions that still have at least one action at Output:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">da</span><span class="o">.</span><span class="n">get_interaction_ids</span><span class="p">(</span><span class="s2">&quot;aggregates.remaining_at_stage&quot;</span><span class="p">,</span> <span class="s2">&quot;Output&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Forward filters to the row-producing method:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">da</span><span class="o">.</span><span class="n">get_interaction_ids</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="s2">&quot;aggregates.remaining_at_stage&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">&quot;Output&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Channel&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;Web&quot;</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Project IDs from a set-derived row cohort:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">da</span><span class="o">.</span><span class="n">get_interaction_ids</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="s2">&quot;aggregates.dropped_at_stage&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">&quot;Contact Policies and final Action processing&quot;</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_overview_stats">
+<span class="sig-name descname"><span class="pre">get_overview_stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_overview_stats" title="Link to this definition">¶</a></dt>
+<dd><p>Return overview statistics as a concrete dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A shallow copy of the analyzer overview statistics, suitable for
+downstream serialization or display without exposing the internal
+cached mapping.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)">object</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_available_fields_for_filtering">
 <span class="sig-name descname"><span class="pre">get_available_fields_for_filtering</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">categorical_only</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_available_fields_for_filtering" title="Link to this definition">¶</a></dt>
 <dd><p>Return column names available for data filtering.</p>
@@ -1080,6 +1167,8 @@ the full data).</p>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.preaggregated_remaining_view"><code class="docutils literal notranslate"><span class="pre">preaggregated_remaining_view</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.sample"><code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.filtered"><code class="docutils literal notranslate"><span class="pre">filtered()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_interaction_ids"><code class="docutils literal notranslate"><span class="pre">get_interaction_ids()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_overview_stats"><code class="docutils literal notranslate"><span class="pre">get_overview_stats()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_available_fields_for_filtering"><code class="docutils literal notranslate"><span class="pre">get_available_fields_for_filtering()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_possible_scope_values"><code class="docutils literal notranslate"><span class="pre">get_possible_scope_values()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.get_possible_stage_values"><code class="docutils literal notranslate"><span class="pre">get_possible_stage_values()</span></code></a></li>
