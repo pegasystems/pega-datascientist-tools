@@ -1043,7 +1043,31 @@ class DecisionAnalyzer:
         return base.filter(pl.col(self.level).is_in(remaining_stages))
 
     def get_interaction_ids(self, method_name: str, *args: object, **kwargs: object) -> pl.DataFrame:
-        """Return unique interaction IDs from a public row-producing method.
+        """Project unique interaction IDs from a row-producing method.
+
+        This is the main handoff interface for downstream applications that
+        need the exact decision cohort behind a Decision Analyzer question.
+        Use aggregate methods first to decide what needs investigation, then
+        call this method with the public row-producing method that defines the
+        cohort. The selected method is called with ``*args`` and ``**kwargs``;
+        its Polars result is reduced to a one-column DataFrame of unique
+        ``Interaction ID`` values.
+
+        ``Interaction ID`` is the only identity returned by this interface.
+        Decision Analyzer does not resolve interaction IDs to subject IDs,
+        customer IDs, dates, accounts, households, or profile attributes. That
+        resolution belongs in the downstream application, which owns the
+        customer identity model, time-window rules, and data-retention context.
+
+        Pass only public methods that still return decision rows containing
+        ``Interaction ID``. This works for methods such as
+        ``remaining_at_stage`` because their results still contain the rows
+        behind the cohort. It does not work for aggregate summaries such as
+        counts, distributions, or comparison tables: those methods may say how
+        many interactions were affected, but they no longer contain the actual
+        interaction IDs. If a cohort needs custom logic, add that logic as a
+        row-producing method first (for example, ``dropped_at_stage``), then
+        project IDs through this method.
 
         Parameters
         ----------
@@ -1052,6 +1076,41 @@ class DecisionAnalyzer:
             Polars DataFrame or LazyFrame containing ``Interaction ID``.
         *args, **kwargs
             Arguments forwarded to the selected method.
+
+        Returns
+        -------
+        pl.DataFrame
+            A one-column DataFrame containing unique ``Interaction ID`` values.
+
+        Raises
+        ------
+        ValueError
+            If ``method_name`` is private, unknown, or returns row data without
+            an ``Interaction ID`` column.
+        TypeError
+            If the selected method does not return a Polars DataFrame or
+            LazyFrame.
+
+        Examples
+        --------
+        Get the decisions that still have at least one action at Output:
+
+        >>> da.get_interaction_ids("remaining_at_stage", "Output")
+
+        Forward filters to the row-producing method:
+
+        >>> da.get_interaction_ids(
+        ...     "remaining_at_stage",
+        ...     "Output",
+        ...     pl.col("Channel") == "Web",
+        ... )
+
+        Project IDs from a set-derived row cohort:
+
+        >>> da.get_interaction_ids(
+        ...     "dropped_at_stage",
+        ...     "Contact Policies and final Action processing",
+        ... )
         """
         if method_name.startswith("_"):
             raise ValueError("method_name must refer to a public DecisionAnalyzer method.")
