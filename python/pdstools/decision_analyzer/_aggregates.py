@@ -7,9 +7,10 @@ into the frames consumed by the plot layer and the Streamlit pages.
 
 from __future__ import annotations
 
-__all__ = ["Aggregates"]
+__all__ = ["Aggregates", "HeadToHeadResult"]
 
 from bisect import bisect_left
+from dataclasses import dataclass
 from typing import Literal, TYPE_CHECKING
 
 import polars as pl
@@ -18,6 +19,24 @@ from .utils import apply_filter, gini_coefficient
 
 if TYPE_CHECKING:
     from .DecisionAnalyzer import DecisionAnalyzer
+
+
+@dataclass(frozen=True)
+class HeadToHeadResult:
+    """Result of :meth:`Aggregates.head_to_head_at_stage`."""
+
+    overall: dict[str, int]
+    """Overall outcome counts: ``x_wins``, ``y_wins``, ``other``, ``total_overlap``, ``x_only``, ``y_only``."""
+    cells: pl.DataFrame
+    """Paired ``x_<breakdown>``/``y_<breakdown>`` overlap cells with per-cell outcome counts."""
+    breakdown: str
+    """Breakdown column used to pair the overlap cells."""
+    stage: str
+    """Stage the comparison was evaluated at."""
+    stage_semantics: str
+    """Human-readable description of the stage-cohort semantics."""
+    cohorts: dict[str, pl.DataFrame] | None = None
+    """Per-outcome interaction-ID cohorts, or ``None`` when not requested."""
 
 
 class Aggregates:
@@ -29,12 +48,16 @@ class Aggregates:
     def __init__(self, da: "DecisionAnalyzer") -> None:
         self.da = da
 
+    def _stage_index(self, stage: str) -> int:
+        """Return the pipeline index of ``stage``, raising on unknown stages."""
+        if stage not in self.da.AvailableNBADStages:
+            raise ValueError(f"Unknown stage {stage!r}. Expected one of: {self.da.AvailableNBADStages}")
+        return self.da.AvailableNBADStages.index(stage)
+
     def remaining_at_stage(
         self,
         stage: str | None = None,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        strict_stage: bool = True,
     ) -> pl.LazyFrame:
         """Return action rows remaining at a stage.
 
@@ -45,118 +68,93 @@ class Aggregates:
         ----------
         stage : str, optional
             Stage to evaluate. When omitted, returns rows with non-null
-            ``Priority`` after applying filters.
+            ``Priority`` after applying filters. An unknown stage raises
+            ``ValueError``.
         additional_filters : pl.Expr or list[pl.Expr], optional
             Filters applied before selecting remaining rows.
-        strict_stage : bool, default True
-            Raise ``ValueError`` for unknown stages. When False, unknown stages
-            return an empty frame.
         """
-        return self._remaining_rows_at_stage(
-            self.da.decision_data,
-            stage,
-            additional_filters,
-            strict_stage=strict_stage,
-        )
+        return self._remaining_rows_at_stage(self.da.decision_data, stage, additional_filters)
 
     def _remaining_rows_at_stage(
         self,
         data: pl.LazyFrame,
         stage: str | None = None,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        strict_stage: bool = True,
     ) -> pl.LazyFrame:
         base = apply_filter(data, additional_filters)
         if stage is None:
             return base.filter(pl.col("Priority").is_not_null())
 
-        stage_idx = self.da._stage_index(stage, strict_stage=strict_stage)
-        if stage_idx is None:
-            return base.limit(0)
-
-        remaining_stages = self.da.AvailableNBADStages[stage_idx:]
+        remaining_stages = self.da.AvailableNBADStages[self._stage_index(stage) :]
         return base.filter(pl.col(self.da.level).is_in(remaining_stages))
 
     def dropped_at_stage(
         self,
         stage: str,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        strict_stage: bool = True,
     ) -> pl.LazyFrame:
         """Return rows for interactions that lose their final action at ``stage``.
 
         The cohort is computed as interactions remaining at ``stage`` minus
         interactions remaining at the next stage, using the same filters on
-        both sides. Terminal stages return an empty frame.
+        both sides. Terminal stages return an empty frame. An unknown stage
+        raises ``ValueError``.
         """
-        stage_idx = self.da._stage_index(stage, strict_stage=strict_stage)
-        if stage_idx is None or stage_idx >= len(self.da.AvailableNBADStages) - 1:
-            return self.remaining_at_stage(stage, additional_filters, strict_stage=False).limit(0)
+        stage_idx = self._stage_index(stage)
+        if stage_idx >= len(self.da.AvailableNBADStages) - 1:
+            return self.remaining_at_stage(stage, additional_filters).limit(0)
 
-        current = self.remaining_at_stage(stage, additional_filters, strict_stage=strict_stage)
+        current = self.remaining_at_stage(stage, additional_filters)
         next_stage = self.da.AvailableNBADStages[stage_idx + 1]
-        next_ids = (
-            self.remaining_at_stage(next_stage, additional_filters, strict_stage=strict_stage)
-            .select("Interaction ID")
-            .unique()
-        )
+        next_ids = self.remaining_at_stage(next_stage, additional_filters).select("Interaction ID").unique()
         return current.join(next_ids, on="Interaction ID", how="anti")
 
     def available_at_stage(
         self,
         stage: str,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        strict_stage: bool = True,
     ) -> pl.LazyFrame:
         """Return action rows available when entering ``stage``.
 
         This is the row-producing counterpart to the ``available`` frame
-        returned by :meth:`get_funnel_data`.
+        returned by :meth:`get_funnel_data`. An unknown stage raises
+        ``ValueError``.
         """
-        return self.remaining_at_stage(stage, additional_filters, strict_stage=strict_stage)
+        return self.remaining_at_stage(stage, additional_filters)
 
     def passing_at_stage(
         self,
         stage: str,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        strict_stage: bool = True,
     ) -> pl.LazyFrame:
         """Return action rows that pass ``stage`` and remain afterward.
 
         This is the row-producing counterpart to the ``passing`` frame returned
         by :meth:`get_funnel_data`. For a pipeline stage, passing rows are the
         rows available at the next stage. Terminal stages return an empty
-        frame.
+        frame. An unknown stage raises ``ValueError``.
         """
-        stage_idx = self.da._stage_index(stage, strict_stage=strict_stage)
-        if stage_idx is None or stage_idx >= len(self.da.AvailableNBADStages) - 1:
-            return self.remaining_at_stage(stage, additional_filters, strict_stage=False).limit(0)
+        stage_idx = self._stage_index(stage)
+        if stage_idx >= len(self.da.AvailableNBADStages) - 1:
+            return self.remaining_at_stage(stage, additional_filters).limit(0)
 
         next_stage = self.da.AvailableNBADStages[stage_idx + 1]
-        return self.remaining_at_stage(next_stage, additional_filters, strict_stage=strict_stage)
+        return self.remaining_at_stage(next_stage, additional_filters)
 
     def filtered_at_stage(
         self,
         stage: str,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        strict_stage: bool = True,
     ) -> pl.LazyFrame:
         """Return action rows filtered out at ``stage``.
 
         This is the row-producing counterpart to the ``filtered`` frame
         returned by :meth:`get_funnel_data` and the per-stage summary returned
-        by :meth:`filtered_actions_per_stage`.
+        by :meth:`filtered_actions_per_stage`. An unknown stage raises
+        ``ValueError``.
         """
+        self._stage_index(stage)
         base = apply_filter(self.da.decision_data, additional_filters)
-        stage_idx = self.da._stage_index(stage, strict_stage=strict_stage)
-        if stage_idx is None:
-            return base.limit(0)
-
         return base.filter((pl.col(self.da.level) == stage) & (pl.col("Record Type") == "FILTERED_OUT"))
 
     def filtered_by_component(
@@ -164,15 +162,13 @@ class Aggregates:
         component_name: str,
         stage: str | None = None,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        strict_stage: bool = True,
     ) -> pl.LazyFrame:
         """Return action rows filtered by a named component.
 
         This is the row-producing counterpart to
         :meth:`get_filter_component_data` and component impact summaries.
         Pass ``stage`` to narrow the component cohort to a single pipeline
-        stage.
+        stage; an unknown stage raises ``ValueError``.
         """
         available = self.da.decision_data.collect_schema().names()
         if "Component Name" not in available:
@@ -184,18 +180,13 @@ class Aggregates:
         if stage is None:
             return base
 
-        stage_idx = self.da._stage_index(stage, strict_stage=strict_stage)
-        if stage_idx is None:
-            return base.limit(0)
-
+        self._stage_index(stage)
         return base.filter(pl.col(self.da.level) == stage)
 
     def without_actions_at_stage(
         self,
         stage: str,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        strict_stage: bool = True,
     ) -> pl.LazyFrame:
         """Return rows for interactions newly left without actions at ``stage``.
 
@@ -204,7 +195,118 @@ class Aggregates:
         present before an interaction loses all remaining actions, so callers
         can project the affected ``Interaction ID`` values.
         """
-        return self.dropped_at_stage(stage, additional_filters, strict_stage=strict_stage)
+        return self.dropped_at_stage(stage, additional_filters)
+
+    def head_to_head_at_stage(
+        self,
+        filter_x: pl.Expr | list[pl.Expr],
+        filter_y: pl.Expr | list[pl.Expr],
+        *,
+        stage: str = "Arbitration",
+        breakdown: str = "Group",
+        min_cell: int = 20,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        include_interaction_ids: bool = True,
+    ) -> HeadToHeadResult:
+        """Compare two cohorts head-to-head among interactions where both participate.
+
+        The comparison uses full normalized decision data rows remaining at
+        ``stage`` and later stages. Within overlapping interactions, a side
+        wins when its best row is rank 1 and ranked above the other side;
+        overlaps won by a third action or tied on best rank are counted as
+        ``other``. Breakdown cells are paired as ``x_<breakdown>`` and
+        ``y_<breakdown>`` values so they represent true overlap cells, not only
+        the winning side.
+        """
+        if breakdown not in self.da.decision_data.collect_schema().names():
+            raise ValueError(f"breakdown must be an available column. {breakdown!r} was not found.")
+
+        stage_rows = self.remaining_at_stage(stage, additional_filters)
+        x_rows = apply_filter(stage_rows, filter_x)
+        y_rows = apply_filter(stage_rows, filter_y)
+
+        x_boundaries = x_rows.group_by("Interaction ID").agg(
+            x_best_rank=pl.col("Rank").min(),
+            x_worst_rank=pl.col("Rank").max(),
+            x_row_count=pl.len(),
+        )
+        y_boundaries = y_rows.group_by("Interaction ID").agg(
+            y_best_rank=pl.col("Rank").min(),
+            y_worst_rank=pl.col("Rank").max(),
+            y_row_count=pl.len(),
+        )
+
+        overlap = x_boundaries.join(y_boundaries, on="Interaction ID", how="inner").with_columns(
+            pl.when((pl.col("x_best_rank") == 1) & (pl.col("x_best_rank") < pl.col("y_best_rank")))
+            .then(pl.lit("x_wins"))
+            .when((pl.col("y_best_rank") == 1) & (pl.col("y_best_rank") < pl.col("x_best_rank")))
+            .then(pl.lit("y_wins"))
+            .otherwise(pl.lit("other"))
+            .alias("outcome")
+        )
+
+        x_ids = x_boundaries.select("Interaction ID")
+        y_ids = y_boundaries.select("Interaction ID")
+        x_only = x_ids.join(y_ids, on="Interaction ID", how="anti")
+        y_only = y_ids.join(x_ids, on="Interaction ID", how="anti")
+
+        counts = overlap.select(
+            x_wins=(pl.col("outcome") == "x_wins").sum(),
+            y_wins=(pl.col("outcome") == "y_wins").sum(),
+            other=(pl.col("outcome") == "other").sum(),
+            total_overlap=pl.len(),
+        ).collect()
+        overall = counts.row(0, named=True)
+        overall["x_only"] = x_only.select(pl.len()).collect().item()
+        overall["y_only"] = y_only.select(pl.len()).collect().item()
+
+        x_breakdown_col = f"x_{breakdown}"
+        y_breakdown_col = f"y_{breakdown}"
+        x_breakdown = x_rows.select("Interaction ID", pl.col(breakdown).alias(x_breakdown_col)).unique()
+        y_breakdown = y_rows.select("Interaction ID", pl.col(breakdown).alias(y_breakdown_col)).unique()
+        cells = (
+            x_breakdown.join(y_breakdown, on="Interaction ID", how="inner")
+            .join(overlap.select("Interaction ID", "outcome"), on="Interaction ID", how="inner")
+            .group_by([x_breakdown_col, y_breakdown_col])
+            .agg(
+                x_wins=pl.col("Interaction ID").filter(pl.col("outcome") == "x_wins").n_unique(),
+                y_wins=pl.col("Interaction ID").filter(pl.col("outcome") == "y_wins").n_unique(),
+                other=pl.col("Interaction ID").filter(pl.col("outcome") == "other").n_unique(),
+                total_overlap=pl.col("Interaction ID").n_unique(),
+            )
+            .filter(pl.col("total_overlap") >= min_cell)
+            .sort("total_overlap", descending=True)
+            .collect()
+        )
+
+        cohorts: dict[str, pl.DataFrame] | None = None
+        if include_interaction_ids:
+            outcome_ids = overlap.select("Interaction ID", "outcome")
+            cohorts = {
+                "x_wins": self._interaction_id_frame(
+                    outcome_ids.filter(pl.col("outcome") == "x_wins").select("Interaction ID")
+                ),
+                "y_wins": self._interaction_id_frame(
+                    outcome_ids.filter(pl.col("outcome") == "y_wins").select("Interaction ID")
+                ),
+                "other": self._interaction_id_frame(
+                    outcome_ids.filter(pl.col("outcome") == "other").select("Interaction ID")
+                ),
+                "x_only": self._interaction_id_frame(x_only),
+                "y_only": self._interaction_id_frame(y_only),
+            }
+
+        return HeadToHeadResult(
+            overall=overall,
+            cells=cells,
+            breakdown=breakdown,
+            stage=stage,
+            stage_semantics="rows remaining at the requested stage and later stages",
+            cohorts=cohorts,
+        )
+
+    def _interaction_id_frame(self, interaction_ids: pl.LazyFrame) -> pl.DataFrame:
+        return interaction_ids.select("Interaction ID").unique().collect()
 
     def filtered_actions_per_stage(
         self,

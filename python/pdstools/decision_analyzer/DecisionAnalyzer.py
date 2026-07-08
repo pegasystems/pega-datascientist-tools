@@ -2,7 +2,7 @@ from __future__ import annotations
 
 # python/pdstools/decision_analyzer/DecisionAnalyzer.py
 from pathlib import Path
-from typing import ClassVar, TYPE_CHECKING
+from typing import ClassVar, TYPE_CHECKING, cast
 from functools import cached_property
 import logging
 import os
@@ -33,6 +33,8 @@ from ..utils.namespaces import LazyNamespace
 
 if TYPE_CHECKING:
     import os
+    from collections.abc import Callable
+
     from .plots import Plot
 
 logger = logging.getLogger(__name__)
@@ -1015,10 +1017,10 @@ class DecisionAnalyzer:
         ``aggregates.remaining_at_stage`` because their results still contain the rows
         behind the cohort. Aggregate summaries should be built from the same
         row-producing cohort method whenever downstream applications also need
-        the exact IDs. For counts, use :meth:`get_interaction_count` on that
-        same row-producing method. If a cohort needs custom logic, add that
-        logic as a row-producing method first (for example,
-        ``aggregates.dropped_at_stage``), then project IDs or counts from it.
+        the exact IDs. For a cohort size, call ``.height`` (or ``len(...)``) on
+        the returned frame. If a cohort needs custom logic, add that logic as a
+        row-producing method first (for example, ``aggregates.dropped_at_stage``),
+        then project its IDs here.
 
         Parameters
         ----------
@@ -1069,49 +1071,6 @@ class DecisionAnalyzer:
 
         return result.select("Interaction ID").unique()
 
-    def get_interaction_count(self, method_name: str, *args: object, **kwargs: object) -> int:
-        """Count unique interaction IDs from a row-producing method.
-
-        This is the count companion to :meth:`get_interaction_ids`. Use it
-        when an aggregate view needs the number of interactions in a cohort,
-        but downstream applications may also need the exact IDs for that same
-        cohort. Both methods accept the same ``method_name``, ``*args``, and
-        ``**kwargs`` so the cohort definition stays in one row-producing
-        method.
-
-        Parameters
-        ----------
-        method_name : str
-            Name or dotted path of a public method on ``DecisionAnalyzer`` that
-            returns a Polars DataFrame or LazyFrame containing ``Interaction ID``.
-        *args, **kwargs
-            Arguments forwarded to the selected method.
-
-        Returns
-        -------
-        int
-            Number of unique ``Interaction ID`` values returned by the selected
-            row-producing method.
-
-        Examples
-        --------
-        Count decisions that still have at least one action at Output:
-
-        >>> da.get_interaction_count("aggregates.remaining_at_stage", "Output")
-
-        Count a set-derived row cohort:
-
-        >>> da.get_interaction_count(
-        ...     "aggregates.dropped_at_stage",
-        ...     "Contact Policies and final Action processing",
-        ... )
-        """
-        result = self._row_result_for_interaction_projection(method_name, *args, **kwargs)
-        if isinstance(result, pl.LazyFrame):
-            return result.select(pl.n_unique("Interaction ID")).collect().item()
-
-        return result.select(pl.n_unique("Interaction ID")).item()
-
     def _row_result_for_interaction_projection(
         self,
         method_name: str,
@@ -1122,7 +1081,7 @@ class DecisionAnalyzer:
         if not callable(method):
             raise ValueError(f"Unknown DecisionAnalyzer method: {method_name!r}.")
 
-        result = method(*args, **kwargs)
+        result = cast("Callable[..., object]", method)(*args, **kwargs)
         if isinstance(result, pl.LazyFrame):
             if "Interaction ID" not in result.collect_schema().names():
                 raise ValueError(f"{method_name!r} does not return an 'Interaction ID' column.")
@@ -1148,122 +1107,6 @@ class DecisionAnalyzer:
     def get_overview_stats(self) -> dict[str, object]:
         """Return overview statistics as a concrete dictionary."""
         return dict(self.overview_stats)
-
-    def head_to_head_at_stage(
-        self,
-        filter_x: pl.Expr | list[pl.Expr],
-        filter_y: pl.Expr | list[pl.Expr],
-        *,
-        stage: str = "Arbitration",
-        breakdown: str = "Group",
-        min_cell: int = 20,
-        additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        include_interaction_ids: bool = True,
-    ) -> dict[str, object]:
-        """Compare two cohorts head-to-head among interactions where both participate.
-
-        The comparison uses full normalized decision data rows remaining at
-        ``stage`` and later stages. Within overlapping interactions, a side
-        wins when its best row is rank 1 and ranked above the other side;
-        overlaps won by a third action or tied on best rank are counted as
-        ``other``. Breakdown cells are paired as ``x_<breakdown>`` and
-        ``y_<breakdown>`` values so they represent true overlap cells, not only
-        the winning side.
-        """
-        if breakdown not in self.decision_data.collect_schema().names():
-            raise ValueError(f"breakdown must be an available column. {breakdown!r} was not found.")
-
-        stage_rows = self.aggregates.remaining_at_stage(stage, additional_filters)
-        x_rows = apply_filter(stage_rows, filter_x)
-        y_rows = apply_filter(stage_rows, filter_y)
-
-        x_boundaries = x_rows.group_by("Interaction ID").agg(
-            x_best_rank=pl.col("Rank").min(),
-            x_worst_rank=pl.col("Rank").max(),
-            x_row_count=pl.len(),
-        )
-        y_boundaries = y_rows.group_by("Interaction ID").agg(
-            y_best_rank=pl.col("Rank").min(),
-            y_worst_rank=pl.col("Rank").max(),
-            y_row_count=pl.len(),
-        )
-
-        overlap = x_boundaries.join(y_boundaries, on="Interaction ID", how="inner").with_columns(
-            pl.when((pl.col("x_best_rank") == 1) & (pl.col("x_best_rank") < pl.col("y_best_rank")))
-            .then(pl.lit("x_wins"))
-            .when((pl.col("y_best_rank") == 1) & (pl.col("y_best_rank") < pl.col("x_best_rank")))
-            .then(pl.lit("y_wins"))
-            .otherwise(pl.lit("other"))
-            .alias("outcome")
-        )
-
-        x_ids = x_boundaries.select("Interaction ID")
-        y_ids = y_boundaries.select("Interaction ID")
-        x_only = x_ids.join(y_ids, on="Interaction ID", how="anti")
-        y_only = y_ids.join(x_ids, on="Interaction ID", how="anti")
-
-        counts = overlap.select(
-            x_wins=(pl.col("outcome") == "x_wins").sum(),
-            y_wins=(pl.col("outcome") == "y_wins").sum(),
-            other=(pl.col("outcome") == "other").sum(),
-            total_overlap=pl.len(),
-        ).collect()
-        overall = counts.row(0, named=True)
-        overall["x_only"] = x_only.select(pl.len()).collect().item()
-        overall["y_only"] = y_only.select(pl.len()).collect().item()
-
-        x_breakdown_col = f"x_{breakdown}"
-        y_breakdown_col = f"y_{breakdown}"
-        x_breakdown = x_rows.select("Interaction ID", pl.col(breakdown).alias(x_breakdown_col)).unique()
-        y_breakdown = y_rows.select("Interaction ID", pl.col(breakdown).alias(y_breakdown_col)).unique()
-        cells = (
-            x_breakdown.join(y_breakdown, on="Interaction ID", how="inner")
-            .join(overlap.select("Interaction ID", "outcome"), on="Interaction ID", how="inner")
-            .group_by([x_breakdown_col, y_breakdown_col])
-            .agg(
-                x_wins=pl.col("Interaction ID").filter(pl.col("outcome") == "x_wins").n_unique(),
-                y_wins=pl.col("Interaction ID").filter(pl.col("outcome") == "y_wins").n_unique(),
-                other=pl.col("Interaction ID").filter(pl.col("outcome") == "other").n_unique(),
-                total_overlap=pl.col("Interaction ID").n_unique(),
-            )
-            .filter(pl.col("total_overlap") >= min_cell)
-            .sort("total_overlap", descending=True)
-            .collect()
-        )
-
-        result: dict[str, object] = {
-            "overall": overall,
-            "cells": cells,
-            "breakdown": breakdown,
-            "stage": stage,
-            "stage_semantics": "rows remaining at the requested stage and later stages",
-        }
-        if include_interaction_ids:
-            outcome_ids = overlap.select("Interaction ID", "outcome")
-            result["cohorts"] = {
-                "x_wins": self._interaction_id_frame(
-                    outcome_ids.filter(pl.col("outcome") == "x_wins").select("Interaction ID")
-                ),
-                "y_wins": self._interaction_id_frame(
-                    outcome_ids.filter(pl.col("outcome") == "y_wins").select("Interaction ID")
-                ),
-                "other": self._interaction_id_frame(
-                    outcome_ids.filter(pl.col("outcome") == "other").select("Interaction ID")
-                ),
-                "x_only": self._interaction_id_frame(x_only),
-                "y_only": self._interaction_id_frame(y_only),
-            }
-        return result
-
-    def _interaction_id_frame(self, interaction_ids: pl.LazyFrame) -> pl.DataFrame:
-        return interaction_ids.select("Interaction ID").unique().collect()
-
-    def _stage_index(self, stage: str, *, strict_stage: bool) -> int | None:
-        if stage in self.AvailableNBADStages:
-            return self.AvailableNBADStages.index(stage)
-        if strict_stage:
-            raise ValueError(f"Unknown stage {stage!r}. Expected one of: {self.AvailableNBADStages}")
-        return None
 
     def get_available_fields_for_filtering(self, *, categorical_only: bool = False) -> list[str]:
         """Return column names available for data filtering.

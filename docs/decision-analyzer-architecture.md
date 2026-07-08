@@ -148,19 +148,20 @@ The generic handoff APIs live on `DecisionAnalyzer`:
 
 ```python
 ids = da.get_interaction_ids("aggregates.filtered_at_stage", "Eligibility")
-count = da.get_interaction_count("aggregates.filtered_at_stage", "Eligibility")
+count = ids.height
 ```
 
-They accept a public dotted method path, call that row-producing method with the
-remaining arguments, and project unique `Interaction ID` values or their count.
-`Interaction ID` is the boundary: Decision Analyzer must not resolve it to
-customer IDs, subject IDs, decision dates, accounts, households, or profile
-attributes. That join belongs in the downstream application that owns the
-identity model and retention rules.
+`get_interaction_ids` accepts a public dotted method path, calls that
+row-producing method with the remaining arguments, and projects unique
+`Interaction ID` values. Call `.height` (or `len(...)`) on the returned frame
+when you need the cohort size. `Interaction ID` is the boundary: Decision
+Analyzer must not resolve it to customer IDs, subject IDs, decision dates,
+accounts, households, or profile attributes. That join belongs in the downstream
+application that owns the identity model and retention rules.
 
 Canonical aggregate-to-row mappings:
 
-| Summary question | Aggregate method | Row-producing method for IDs/counts |
+| Summary question | Aggregate method | Row-producing method for IDs |
 | --- | --- | --- |
 | Distribution at a stage | `da.aggregates.get_distribution_data(...)` | `aggregates.remaining_at_stage` with the same stage and cell filters |
 | Funnel available actions | `da.aggregates.get_funnel_data(...)[0]` | `aggregates.available_at_stage` |
@@ -217,8 +218,8 @@ Rules of thumb:
    for explicitly sample-backed methods.
 4. If a summary identifies a cohort that downstream may need, add or reuse a
    row-producing method that returns rows with `Interaction ID`, then let callers
-   use `get_interaction_ids("aggregates.method_name", ...)` or
-   `get_interaction_count("aggregates.method_name", ...)`.
+   use `get_interaction_ids("aggregates.method_name", ...)` and call `.height` on
+   the result for the cohort size.
 5. If it needs stage filtering, reuse the aggregate namespace stage helpers such
    as `remaining_at_stage(...)`, `available_at_stage(...)`, or
    `filtered_at_stage(...)`.

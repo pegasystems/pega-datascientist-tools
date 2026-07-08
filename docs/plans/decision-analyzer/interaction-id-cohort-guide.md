@@ -13,7 +13,7 @@ Decision Analyzer exposes two kinds of answers:
 Downstream applications should use `Interaction ID` as the handoff key. Decision Analyzer should not resolve those IDs to customer, subject, or date attributes. The upstream application owns that mapping because it knows which customer identity, time window, and data-retention rules apply.
 
 The generic API architecture for aggregate summaries, row-producing cohorts,
-and interaction-ID/count projection is documented in
+and interaction-ID projection is documented in
 [`docs/decision-analyzer-architecture.md`](../../decision-analyzer-architecture.md).
 This guide applies that pattern to downstream cohort analysis and pen-portrait
 workflows.
@@ -31,7 +31,7 @@ Examples:
 
 ```python
 stage_summary = da.aggregates.filtered_actions_per_stage()
-head_to_head = da.head_to_head_at_stage(
+head_to_head = da.aggregates.head_to_head_at_stage(
     pl.col("Group") == "Retention",
     pl.col("Group") == "Sales",
     stage="Arbitration",
@@ -42,14 +42,14 @@ Aggregate results are intentionally compact. They should not carry customer or s
 
 ## Interaction ID workflow
 
-When a downstream workflow needs the exact decisions behind an aggregate, define the cohort as rows first. From that same row-producing method, ask for either the interaction IDs or the interaction count.
+When a downstream workflow needs the exact decisions behind an aggregate, define the cohort as rows first. From that same row-producing method, ask for the interaction IDs, and call `.height` on the returned frame when you need the cohort size.
 
 ```python
 output_ids = da.get_interaction_ids("aggregates.remaining_at_stage", "Output")
-output_count = da.get_interaction_count("aggregates.remaining_at_stage", "Output")
+output_count = output_ids.height
 ```
 
-`get_interaction_ids()` and `get_interaction_count()` forward all positional and keyword arguments to the named public method. The first projects unique `Interaction ID` values from the returned Polars frame; the second counts them.
+`get_interaction_ids()` forwards all positional and keyword arguments to the named public method and projects unique `Interaction ID` values from the returned Polars frame. For a cohort size, call `.height` (or `len(...)`) on that frame.
 
 ```python
 web_output_ids = da.get_interaction_ids(
@@ -65,7 +65,7 @@ Aggregate methods can still exist for user-facing summaries, but they should not
 
 Common aggregate-to-row mappings:
 
-| Summary question | Aggregate method | Row-producing method for IDs/counts |
+| Summary question | Aggregate method | Row-producing method for IDs |
 | --- | --- | --- |
 | Distribution at a stage | `da.aggregates.get_distribution_data(...)` | `aggregates.remaining_at_stage` with the same stage and cell filters |
 | Funnel available actions | `da.aggregates.get_funnel_data(...)[0]` | `aggregates.available_at_stage` |
@@ -82,11 +82,7 @@ filtered_ids = da.get_interaction_ids(
     "Eligibility",
     pl.col("Issue") == "Sales",
 )
-filtered_count = da.get_interaction_count(
-    "aggregates.filtered_at_stage",
-    "Eligibility",
-    pl.col("Issue") == "Sales",
-)
+filtered_count = filtered_ids.height
 ```
 
 After identifying a high-impact filter component:
@@ -114,10 +110,7 @@ dropped_ids = da.get_interaction_ids(
     "aggregates.dropped_at_stage",
     "Contact Policies and final Action processing",
 )
-dropped_count = da.get_interaction_count(
-    "aggregates.dropped_at_stage",
-    "Contact Policies and final Action processing",
-)
+dropped_count = dropped_ids.height
 ```
 
 Use specific row-producing methods only when the cohort logic is distinct. Do not add convenience `*_interactions()` wrappers.
@@ -147,8 +140,8 @@ The clean contract is:
     method path under `aggregates.*`, passing the same stage, scope, component,
     and filter arguments that define the selected cohort.
 3. Call `get_interaction_ids(...)` when the downstream app needs the handoff
-    key, and `get_interaction_count(...)` when it needs the exact cohort size for
-    display or validation.
+    key, and call `.height` on the returned frame when it needs the exact cohort
+    size for display or validation.
 4. Store the cohort recipe with the output: method path, positional arguments,
     keyword arguments, user-selected filters, generated count, and generation
     timestamp. That makes the pen portrait auditable and reproducible.
@@ -175,11 +168,7 @@ interaction_ids = da.get_interaction_ids(
      *cohort_args,
      **cohort_kwargs,
 )
-interaction_count = da.get_interaction_count(
-     cohort_method,
-     *cohort_args,
-     **cohort_kwargs,
-)
+interaction_count = interaction_ids.height
 ```
 
 The downstream app can then enrich `interaction_ids` using its own data and
@@ -189,7 +178,7 @@ render the pen portrait from that enriched dataset.
 
 - Prefer aggregate methods for summary analysis.
 - Prefer `get_interaction_ids("aggregates.method_name", ...)` for direct row-cohort handoff.
-- Prefer `get_interaction_count("aggregates.method_name", ...)` when an aggregate needs the count for the same cohort.
+- Call `.height` on the returned frame when an aggregate needs the count for the same cohort.
 - Add named row-producing methods for distinct set logic, then use `get_interaction_ids()` to project their IDs.
 - Do not add convenience `*_interactions()` wrappers.
 - Do not add `include_subject_id`, `include_customer_id`, or date-resolution arguments to Decision Analyzer cohort APIs.

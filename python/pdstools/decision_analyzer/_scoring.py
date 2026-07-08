@@ -114,10 +114,21 @@ class Scoring:
 
         For each interaction where the selected comparison group is present,
         returns the best (lowest) and worst (highest) rank observed for the
-        selected rows in arbitration-relevant stages.
+        selected rows in arbitration-relevant stages. Computed on the
+        downsampled ``sample`` — this backs the sample-scoped win/loss
+        summaries and distributions. The exact full-data cohort is provided by
+        :meth:`get_winning_or_losing_interactions`.
         """
+        return self._selected_group_rank_boundaries(self.da.sample, group_filter, additional_filters)
+
+    def _selected_group_rank_boundaries(
+        self,
+        data: pl.LazyFrame,
+        group_filter: pl.Expr | list[pl.Expr],
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> pl.LazyFrame:
         selected_rows = (
-            apply_filter(apply_filter(self.da.decision_data, additional_filters), group_filter)
+            apply_filter(apply_filter(data, additional_filters), group_filter)
             .filter(pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down))
             .select(["Interaction ID", "Rank"])
         )
@@ -523,6 +534,12 @@ class Scoring:
     ) -> pl.LazyFrame:
         """Interaction IDs where the comparison group wins or loses.
 
+        This is the exact-cohort handoff API and is computed on the full
+        ``decision_data`` (not the sample), so the returned interaction IDs
+        cover every matching decision. The sample-scoped win/loss *summaries*
+        (:meth:`get_win_loss_counts`, :meth:`get_win_loss_distribution_data`)
+        remain sample-backed for performance.
+
         Parameters
         ----------
         group_filter : pl.Expr or list of pl.Expr
@@ -540,7 +557,8 @@ class Scoring:
         pl.LazyFrame
             A single-column frame of unique ``Interaction ID`` values.
         """
-        selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
+        selected_group_rank_boundaries = self._selected_group_rank_boundaries(
+            self.da.decision_data,
             group_filter=group_filter,
             additional_filters=additional_filters,
         )
