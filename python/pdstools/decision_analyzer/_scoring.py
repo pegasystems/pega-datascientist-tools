@@ -545,8 +545,6 @@ class Scoring:
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         *,
         source: str = "sample",
-        include_subject_id: bool = False,
-        include_group_columns: bool = False,
     ) -> pl.LazyFrame:
         """Interaction IDs where the comparison group wins or loses.
 
@@ -563,17 +561,11 @@ class Scoring:
             Extra filters (e.g. channel filter).
         source : {"sample", "full"}, default "sample"
             Data source to query.
-        include_subject_id : bool, default False
-            Include ``Subject ID`` when present.
-        include_group_columns : bool, default False
-            Include available ``Issue``, ``Group``, and ``Action`` detail columns.
 
         Returns
         -------
         pl.LazyFrame
-            By default, a single-column frame of unique ``Interaction ID``
-            values. Detail options add available columns and unique rows by
-            the selected output schema.
+            A single-column frame of unique ``Interaction ID`` values.
         """
         selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
             group_filter=group_filter,
@@ -589,17 +581,10 @@ class Scoring:
         else:
             interaction_filter = pl.col("Rank") < pl.col("selected_group_best_rank")
 
-        output_columns = ["Interaction ID"]
-        if include_subject_id and "Subject ID" in stage_filtered_data.collect_schema().names():
-            output_columns.append("Subject ID")
-        if include_group_columns:
-            available = set(stage_filtered_data.collect_schema().names())
-            output_columns.extend(col for col in ["Issue", "Group", "Action"] if col in available)
-
         return (
             stage_filtered_data.join(selected_group_rank_boundaries, on="Interaction ID", how="inner")
             .filter(interaction_filter)
-            .select(output_columns)
+            .select("Interaction ID")
             .unique()
         )
 

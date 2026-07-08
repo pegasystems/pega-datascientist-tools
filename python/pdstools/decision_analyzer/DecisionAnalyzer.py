@@ -32,7 +32,6 @@ from ..pega_io.File import read_data
 from ..utils.namespaces import LazyNamespace
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
     import os
     from .plots import Plot
 
@@ -1040,7 +1039,6 @@ class DecisionAnalyzer:
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         *,
         source: str = "full",
-        include_subject_id: bool = True,
         strict_stage: bool = True,
     ) -> pl.DataFrame:
         """Return exact interaction IDs with at least one action remaining at a stage.
@@ -1050,11 +1048,11 @@ class DecisionAnalyzer:
         are acceptable.
         """
         if self._stage_index(stage, strict_stage=strict_stage) is None:
-            return self._empty_interaction_frame(source, include_subject_id)
+            return self._empty_interaction_frame(source)
 
         return (
             self.remaining_at_stage(stage, additional_filters, source=source, strict_stage=strict_stage)
-            .select(self._interaction_detail_columns(source, include_subject_id))
+            .select("Interaction ID")
             .unique()
             .collect()
         )
@@ -1065,7 +1063,6 @@ class DecisionAnalyzer:
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         *,
         source: str = "full",
-        include_subject_id: bool = True,
         strict_stage: bool = True,
     ) -> pl.DataFrame:
         """Return exact interactions that lose their final action at ``stage``.
@@ -1076,12 +1073,11 @@ class DecisionAnalyzer:
         """
         stage_idx = self._stage_index(stage, strict_stage=strict_stage)
         if stage_idx is None or stage_idx >= len(self.AvailableNBADStages) - 1:
-            return self._empty_interaction_frame(source, include_subject_id)
+            return self._empty_interaction_frame(source)
 
-        id_columns = self._interaction_detail_columns(source, include_subject_id)
         current = (
             self.remaining_at_stage(stage, additional_filters, source=source, strict_stage=strict_stage)
-            .select(id_columns)
+            .select("Interaction ID")
             .unique()
         )
         next_stage = self.AvailableNBADStages[stage_idx + 1]
@@ -1091,38 +1087,6 @@ class DecisionAnalyzer:
             .unique()
         )
         return current.join(next_ids, on="Interaction ID", how="anti").collect()
-
-    def get_interaction_details(
-        self,
-        interaction_ids: str | Iterable[str],
-        columns: list[str] | None = None,
-    ) -> pl.DataFrame:
-        """Resolve interaction IDs to subject IDs and optional detail columns.
-
-        Parameters
-        ----------
-        interaction_ids : iterable or str
-            Interaction IDs to resolve. Empty input returns an empty DataFrame
-            with the selected output schema.
-        columns : list[str], optional
-            Extra columns to include when present in the data, such as
-            ``Issue``, ``Group``, ``Action``, ``Channel``, ``Direction``, or
-            ``Treatment``.
-        """
-        selected_columns = self._interaction_detail_columns("full", include_subject_id=True)
-        if columns is not None:
-            available = set(self.decision_data.collect_schema().names())
-            selected_columns.extend(col for col in columns if col in available and col not in selected_columns)
-
-        ids = [interaction_ids] if isinstance(interaction_ids, str) else list(interaction_ids)
-
-        if not ids:
-            schema = self.decision_data.collect_schema()
-            return pl.DataFrame(schema={col: schema[col] for col in selected_columns})
-
-        return (
-            self.decision_data.filter(pl.col("Interaction ID").is_in(ids)).select(selected_columns).unique().collect()
-        )
 
     def get_overview_stats(self) -> dict[str, object]:
         """Return overview statistics as a concrete dictionary."""
@@ -1286,27 +1250,22 @@ class DecisionAnalyzer:
         if include_interaction_ids:
             outcome_ids = overlap.select("Interaction ID", "outcome")
             result["cohorts"] = {
-                "x_wins": self._details_for_interaction_frame(
+                "x_wins": self._interaction_id_frame(
                     outcome_ids.filter(pl.col("outcome") == "x_wins").select("Interaction ID")
                 ),
-                "y_wins": self._details_for_interaction_frame(
+                "y_wins": self._interaction_id_frame(
                     outcome_ids.filter(pl.col("outcome") == "y_wins").select("Interaction ID")
                 ),
-                "other": self._details_for_interaction_frame(
+                "other": self._interaction_id_frame(
                     outcome_ids.filter(pl.col("outcome") == "other").select("Interaction ID")
                 ),
-                "x_only": self._details_for_interaction_frame(x_only),
-                "y_only": self._details_for_interaction_frame(y_only),
+                "x_only": self._interaction_id_frame(x_only),
+                "y_only": self._interaction_id_frame(y_only),
             }
         return result
 
-    def _details_for_interaction_frame(self, interaction_ids: pl.LazyFrame) -> pl.DataFrame:
-        return (
-            self.decision_data.join(interaction_ids.unique(), on="Interaction ID", how="inner")
-            .select(self._interaction_detail_columns("full", include_subject_id=True))
-            .unique()
-            .collect()
-        )
+    def _interaction_id_frame(self, interaction_ids: pl.LazyFrame) -> pl.DataFrame:
+        return interaction_ids.select("Interaction ID").unique().collect()
 
     def _stage_source(self, source: str) -> pl.LazyFrame:
         if source == "sample":
@@ -1322,18 +1281,9 @@ class DecisionAnalyzer:
             raise ValueError(f"Unknown stage {stage!r}. Expected one of: {self.AvailableNBADStages}")
         return None
 
-    def _interaction_detail_columns(self, source: str, include_subject_id: bool) -> list[str]:
-        available = set(self._stage_source(source).collect_schema().names())
-        columns = ["Interaction ID"]
-        if include_subject_id and "Subject ID" in available:
-            columns.append("Subject ID")
-        return columns
-
-    def _empty_interaction_frame(self, source: str, include_subject_id: bool) -> pl.DataFrame:
+    def _empty_interaction_frame(self, source: str) -> pl.DataFrame:
         schema = self._stage_source(source).collect_schema()
-        return pl.DataFrame(
-            schema={col: schema[col] for col in self._interaction_detail_columns(source, include_subject_id)}
-        )
+        return pl.DataFrame(schema={"Interaction ID": schema["Interaction ID"]})
 
     def get_available_fields_for_filtering(self, *, categorical_only: bool = False) -> list[str]:
         """Return column names available for data filtering.
