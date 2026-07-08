@@ -2468,6 +2468,45 @@ class TestMinimalDecisionsWithoutActions:
         assert result["decisions_without_actions"].sum() == 1
 
 
+class TestMinimalFilteredActionsPerStage:
+    """Verify exact filtered action counts by stage."""
+
+    def test_filtered_actions_per_stage_includes_zero_stages(self, da_minimal):
+        result = da_minimal.filtered_actions_per_stage(sort_by="stage")
+
+        assert result[da_minimal.level].to_list() == [
+            "Eligibility",
+            "Arbitration",
+            "Contact Policies and final Action processing",
+        ]
+        assert result["actions_filtered"].to_list() == [4, 0, 5]
+        assert result["interactions_affected"].to_list() == [3, 0, 3]
+
+    def test_filtered_actions_per_stage_can_exclude_zero_stages(self, da_minimal):
+        result = da_minimal.filtered_actions_per_stage(include_zero_stages=False, sort_by="stage")
+
+        assert result[da_minimal.level].to_list() == [
+            "Eligibility",
+            "Contact Policies and final Action processing",
+        ]
+
+    def test_filtered_actions_per_stage_sorts_by_actions_filtered(self, da_minimal):
+        result = da_minimal.filtered_actions_per_stage()
+
+        assert result[da_minimal.level].to_list()[0] == "Contact Policies and final Action processing"
+        assert result["actions_filtered"].to_list()[0] == 5
+
+    def test_filtered_actions_per_stage_applies_filters(self, da_minimal):
+        result = da_minimal.filtered_actions_per_stage(pl.col("Channel") == "Mobile", sort_by="stage")
+
+        assert result["actions_filtered"].to_list() == [2, 0, 2]
+        assert result["interactions_affected"].to_list() == [1, 0, 1]
+
+    def test_filtered_actions_per_stage_validates_sort_by(self, da_minimal):
+        with pytest.raises(ValueError, match="sort_by"):
+            da_minimal.filtered_actions_per_stage(sort_by="not-a-sort")
+
+
 class TestMinimalFunnelSummaryExact:
     """Verify exact funnel summary values (percentages and averages).
 

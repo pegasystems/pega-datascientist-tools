@@ -1128,6 +1128,71 @@ class DecisionAnalyzer:
         """Return overview statistics as a concrete dictionary."""
         return dict(self.overview_stats)
 
+    def filtered_actions_per_stage(
+        self,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        include_zero_stages: bool = True,
+        sort_by: str = "actions_filtered",
+    ) -> pl.DataFrame:
+        """Return per-stage action filtering counts.
+
+        Parameters
+        ----------
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Filters applied before aggregation.
+        include_zero_stages : bool, default True
+            Include all available stages except ``Output``, filling missing
+            stages with zero counts.
+        sort_by : {"actions_filtered", "interactions_affected", "stage"}, default "actions_filtered"
+            Output ordering. Count-based sorts are descending; ``"stage"``
+            preserves pipeline order.
+        """
+        valid_sorts = {"actions_filtered", "interactions_affected", "stage"}
+        if sort_by not in valid_sorts:
+            raise ValueError(f"sort_by must be one of {sorted(valid_sorts)}")
+
+        stage_order = [stage for stage in self.AvailableNBADStages if stage != "Output"]
+        filtered_view = apply_filter(self.preaggregated_filter_view, additional_filters).filter(
+            pl.col("Record Type") == "FILTERED_OUT"
+        )
+        result = (
+            filtered_view.with_columns(pl.col(self.level).cast(pl.Utf8))
+            .group_by(self.level)
+            .agg(
+                actions_filtered=pl.sum("Decisions"),
+                interactions_affected=pl.col("Interaction_IDs")
+                .list.explode(keep_nulls=False, empty_as_null=False)
+                .unique()
+                .count(),
+            )
+        )
+
+        if include_zero_stages:
+            result = (
+                pl.LazyFrame({self.level: stage_order})
+                .join(result, on=self.level, how="left")
+                .with_columns(pl.col("actions_filtered", "interactions_affected").fill_null(0))
+            )
+
+        result_df = result.with_columns(
+            pl.col("actions_filtered").cast(pl.Int64),
+            pl.col("interactions_affected").cast(pl.Int64),
+            pl.col(self.level)
+            .replace_strict(
+                {stage: idx for idx, stage in enumerate(stage_order)},
+                default=len(stage_order),
+                return_dtype=pl.Int64,
+            )
+            .alias("_stage_order"),
+        ).collect()
+
+        if sort_by == "stage":
+            result_df = result_df.sort("_stage_order")
+        else:
+            result_df = result_df.sort([sort_by, "_stage_order"], descending=[True, False])
+        return result_df.drop("_stage_order")
+
     def _stage_source(self, source: str) -> pl.LazyFrame:
         if source == "sample":
             return self.sample
