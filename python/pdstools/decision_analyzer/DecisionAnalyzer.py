@@ -1062,12 +1062,12 @@ class DecisionAnalyzer:
         Pass only public methods that still return decision rows containing
         ``Interaction ID``. This works for methods such as
         ``remaining_at_stage`` because their results still contain the rows
-        behind the cohort. It does not work for aggregate summaries such as
-        counts, distributions, or comparison tables: those methods may say how
-        many interactions were affected, but they no longer contain the actual
-        interaction IDs. If a cohort needs custom logic, add that logic as a
-        row-producing method first (for example, ``dropped_at_stage``), then
-        project IDs through this method.
+        behind the cohort. Aggregate summaries should be built from the same
+        row-producing cohort method whenever downstream applications also need
+        the exact IDs. For counts, use :meth:`get_interaction_count` on that
+        same row-producing method. If a cohort needs custom logic, add that
+        logic as a row-producing method first (for example,
+        ``dropped_at_stage``), then project IDs or counts from it.
 
         Parameters
         ----------
@@ -1112,6 +1112,61 @@ class DecisionAnalyzer:
         ...     "Contact Policies and final Action processing",
         ... )
         """
+        result = self._row_result_for_interaction_projection(method_name, *args, **kwargs)
+        if isinstance(result, pl.LazyFrame):
+            return result.select("Interaction ID").unique().collect()
+
+        return result.select("Interaction ID").unique()
+
+    def get_interaction_count(self, method_name: str, *args: object, **kwargs: object) -> int:
+        """Count unique interaction IDs from a row-producing method.
+
+        This is the count companion to :meth:`get_interaction_ids`. Use it
+        when an aggregate view needs the number of interactions in a cohort,
+        but downstream applications may also need the exact IDs for that same
+        cohort. Both methods accept the same ``method_name``, ``*args``, and
+        ``**kwargs`` so the cohort definition stays in one row-producing
+        method.
+
+        Parameters
+        ----------
+        method_name : str
+            Name of a public ``DecisionAnalyzer`` method that returns a
+            Polars DataFrame or LazyFrame containing ``Interaction ID``.
+        *args, **kwargs
+            Arguments forwarded to the selected method.
+
+        Returns
+        -------
+        int
+            Number of unique ``Interaction ID`` values returned by the selected
+            row-producing method.
+
+        Examples
+        --------
+        Count decisions that still have at least one action at Output:
+
+        >>> da.get_interaction_count("remaining_at_stage", "Output")
+
+        Count a set-derived row cohort:
+
+        >>> da.get_interaction_count(
+        ...     "dropped_at_stage",
+        ...     "Contact Policies and final Action processing",
+        ... )
+        """
+        result = self._row_result_for_interaction_projection(method_name, *args, **kwargs)
+        if isinstance(result, pl.LazyFrame):
+            return result.select(pl.n_unique("Interaction ID")).collect().item()
+
+        return result.select(pl.n_unique("Interaction ID")).item()
+
+    def _row_result_for_interaction_projection(
+        self,
+        method_name: str,
+        *args: object,
+        **kwargs: object,
+    ) -> pl.LazyFrame | pl.DataFrame:
         if method_name.startswith("_"):
             raise ValueError("method_name must refer to a public DecisionAnalyzer method.")
 
@@ -1123,12 +1178,12 @@ class DecisionAnalyzer:
         if isinstance(result, pl.LazyFrame):
             if "Interaction ID" not in result.collect_schema().names():
                 raise ValueError(f"{method_name!r} does not return an 'Interaction ID' column.")
-            return result.select("Interaction ID").unique().collect()
+            return result
 
         if isinstance(result, pl.DataFrame):
             if "Interaction ID" not in result.columns:
                 raise ValueError(f"{method_name!r} does not return an 'Interaction ID' column.")
-            return result.select("Interaction ID").unique()
+            return result
 
         raise TypeError(f"{method_name!r} must return a Polars DataFrame or LazyFrame.")
 

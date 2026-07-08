@@ -36,13 +36,14 @@ Aggregate results are intentionally compact. They should not carry customer or s
 
 ## Interaction ID workflow
 
-When a downstream workflow needs the exact decisions behind an aggregate, ask for interaction IDs from the row-producing method that defines that cohort.
+When a downstream workflow needs the exact decisions behind an aggregate, define the cohort as rows first. From that same row-producing method, ask for either the interaction IDs or the interaction count.
 
 ```python
 output_ids = da.get_interaction_ids("remaining_at_stage", "Output")
+output_count = da.get_interaction_count("remaining_at_stage", "Output")
 ```
 
-`get_interaction_ids()` forwards all positional and keyword arguments to the named public method, then projects unique `Interaction ID` values from the returned Polars frame.
+`get_interaction_ids()` and `get_interaction_count()` forward all positional and keyword arguments to the named public method. The first projects unique `Interaction ID` values from the returned Polars frame; the second counts them.
 
 ```python
 web_output_ids = da.get_interaction_ids(
@@ -53,6 +54,8 @@ web_output_ids = da.get_interaction_ids(
 ```
 
 Use this pattern for public row-producing methods that return `Interaction ID`. If a method returns an aggregate summary without `Interaction ID`, `get_interaction_ids()` raises an error instead of guessing.
+
+Aggregate methods can still exist for user-facing summaries, but they should not be the only place where a cohort is defined. If downstream users need both the summary and the exact decisions behind it, keep the cohort logic in a row-producing method and build the summary from that row set.
 
 ## Set-derived row cohorts
 
@@ -66,6 +69,10 @@ dropped_rows = da.dropped_at_stage(
 )
 
 dropped_ids = da.get_interaction_ids(
+    "dropped_at_stage",
+    "Contact Policies and final Action processing",
+)
+dropped_count = da.get_interaction_count(
     "dropped_at_stage",
     "Contact Policies and final Action processing",
 )
@@ -89,6 +96,7 @@ That join should happen outside pdstools.
 
 - Prefer aggregate methods for summary analysis.
 - Prefer `get_interaction_ids("method_name", ...)` for direct row-cohort handoff.
+- Prefer `get_interaction_count("method_name", ...)` when an aggregate needs the count for the same cohort.
 - Add named row-producing methods for distinct set logic, then use `get_interaction_ids()` to project their IDs.
 - Do not add convenience `*_interactions()` wrappers.
 - Do not add `include_subject_id`, `include_customer_id`, or date-resolution arguments to Decision Analyzer cohort APIs.

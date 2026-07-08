@@ -2064,6 +2064,14 @@ class TestMinimalStageCohorts:
         assert result.columns == ["Interaction ID"]
         assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-003"}
 
+    def test_get_interaction_count_counts_public_row_method(self, da_minimal):
+        result = da_minimal.get_interaction_count("remaining_at_stage", "Output")
+        assert result == 2
+
+    def test_get_interaction_count_counts_dropped_at_stage(self, da_minimal):
+        result = da_minimal.get_interaction_count("dropped_at_stage", "Contact Policies and final Action processing")
+        assert result == 1
+
     def test_get_interaction_ids_rejects_unknown_method(self, da_minimal):
         with pytest.raises(ValueError, match="Unknown DecisionAnalyzer method"):
             da_minimal.get_interaction_ids("missing_method")
@@ -2075,6 +2083,10 @@ class TestMinimalStageCohorts:
     def test_get_interaction_ids_requires_interaction_id_column(self, da_minimal):
         with pytest.raises(ValueError, match="Interaction ID"):
             da_minimal.get_interaction_ids("filtered_actions_per_stage")
+
+    def test_get_interaction_count_requires_interaction_id_column(self, da_minimal):
+        with pytest.raises(ValueError, match="Interaction ID"):
+            da_minimal.get_interaction_count("filtered_actions_per_stage")
 
     def test_dropped_at_stage_returns_rows(self, da_minimal):
         result = da_minimal.dropped_at_stage("Contact Policies and final Action processing").collect()
