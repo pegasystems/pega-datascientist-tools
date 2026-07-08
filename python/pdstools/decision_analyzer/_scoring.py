@@ -114,10 +114,35 @@ class Scoring:
 
         For each interaction where the selected comparison group is present,
         returns the best (lowest) and worst (highest) rank observed for the
-        selected rows in arbitration-relevant stages.
+        selected rows in arbitration-relevant stages. Computed on the
+        downsampled ``sample`` — this backs the sample-scoped win/loss
+        summaries and distributions. The exact full-data cohort is provided by
+        :meth:`get_winning_or_losing_interactions`.
+
+        Parameters
+        ----------
+        group_filter : pl.Expr or list[pl.Expr]
+            Filter defining the selected comparison group.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Filters applied to the sampled decision rows before selecting the
+            comparison group.
+
+        Returns
+        -------
+        pl.LazyFrame
+            One row per sampled interaction containing the selected group's
+            best rank, worst rank, and row count.
         """
+        return self._selected_group_rank_boundaries(self.da.sample, group_filter, additional_filters)
+
+    def _selected_group_rank_boundaries(
+        self,
+        data: pl.LazyFrame,
+        group_filter: pl.Expr | list[pl.Expr],
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> pl.LazyFrame:
         selected_rows = (
-            apply_filter(apply_filter(self.da.sample, additional_filters), group_filter)
+            apply_filter(apply_filter(data, additional_filters), group_filter)
             .filter(pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down))
             .select(["Interaction ID", "Rank"])
         )
@@ -127,24 +152,6 @@ class Scoring:
             selected_group_worst_rank=pl.col("Rank").max(),
             selected_group_row_count=pl.len(),
         )
-
-    def _remaining_at_stage(
-        self,
-        stage: str | None = None,
-        additional_filters: pl.Expr | list[pl.Expr] | None = None,
-    ) -> pl.LazyFrame:
-        """Return sample rows remaining at *stage*.
-
-        Uses the ``aggregate_remaining_per_stage`` logic: rows whose stage
-        order is >= the selected stage are "remaining" there.  If *stage*
-        is None, falls back to rows with non-null Priority.
-        """
-        base = apply_filter(self.da.sample, additional_filters)
-        if stage is None:
-            return base.filter(pl.col("Priority").is_not_null())
-        stage_idx = self.da.AvailableNBADStages.index(stage) if stage in self.da.AvailableNBADStages else 0
-        remaining_stages = self.da.AvailableNBADStages[stage_idx:]
-        return base.filter(pl.col(self.da.level).is_in(remaining_stages))
 
     def get_sensitivity(
         self,
@@ -310,7 +317,7 @@ class Scoring:
             Extra filters applied to the sample (e.g. channel filter).
         """
         cols = [granularity, component]
-        df = self._remaining_at_stage(stage, additional_filters=additional_filters)
+        df = self.da.aggregates._remaining_rows_at_stage(self.da.sample, stage, additional_filters=additional_filters)
         return df.select(cols).sort(granularity)
 
     def all_components_distribution(
@@ -334,7 +341,7 @@ class Scoring:
 
         available = set(self.da.sample.collect_schema().names())
         cols = [c for c in PRIO_COMPONENTS if c in available]
-        df = self._remaining_at_stage(stage, additional_filters=additional_filters)
+        df = self.da.aggregates._remaining_rows_at_stage(self.da.sample, stage, additional_filters=additional_filters)
         return df.select([granularity, *cols]).sort(granularity)
 
     def get_win_loss_distribution_data(
@@ -541,6 +548,12 @@ class Scoring:
     ) -> pl.LazyFrame:
         """Interaction IDs where the comparison group wins or loses.
 
+        This is the exact-cohort handoff API and is computed on the full
+        ``decision_data`` (not the sample), so the returned interaction IDs
+        cover every matching decision. The sample-scoped win/loss *summaries*
+        (:meth:`get_win_loss_counts`, :meth:`get_win_loss_distribution_data`)
+        remain sample-backed for performance.
+
         Parameters
         ----------
         group_filter : pl.Expr or list of pl.Expr
@@ -556,13 +569,14 @@ class Scoring:
         Returns
         -------
         pl.LazyFrame
-            Single-column frame of unique ``Interaction ID`` values.
+            A single-column frame of unique ``Interaction ID`` values.
         """
-        selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
+        selected_group_rank_boundaries = self._selected_group_rank_boundaries(
+            self.da.decision_data,
             group_filter=group_filter,
             additional_filters=additional_filters,
         )
-        stage_filtered_data = apply_filter(self.da.sample, additional_filters).filter(
+        stage_filtered_data = apply_filter(self.da.decision_data, additional_filters).filter(
             pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down)
         )
 
@@ -574,7 +588,8 @@ class Scoring:
         return (
             stage_filtered_data.join(selected_group_rank_boundaries, on="Interaction ID", how="inner")
             .filter(interaction_filter)
-            .select(pl.col("Interaction ID").unique())
+            .select("Interaction ID")
+            .unique()
         )
 
     def get_win_loss_counts(

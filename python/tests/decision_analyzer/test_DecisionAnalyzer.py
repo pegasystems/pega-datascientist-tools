@@ -656,6 +656,48 @@ def da_win_loss_boundary_tiny():
     return DecisionAnalyzer(tiny_data, sample_size=10)
 
 
+@pytest.fixture
+def da_head_to_head_tiny():
+    """Tiny dataset with X wins, Y wins, third-party win, and one-sided rows."""
+    rows = [
+        ("S1", "I1", "X", "X1", 10.0),
+        ("S1", "I1", "Y", "Y1", 5.0),
+        ("S1", "I1", "Z", "Z1", 1.0),
+        ("S2", "I2", "X", "X1", 5.0),
+        ("S2", "I2", "Y", "Y1", 10.0),
+        ("S3", "I3", "X", "X1", 5.0),
+        ("S3", "I3", "Y", "Y1", 1.0),
+        ("S3", "I3", "Z", "Z1", 10.0),
+        ("S4", "I4", "X", "X1", 10.0),
+        ("S5", "I5", "Y", "Y1", 10.0),
+    ]
+    tiny_data = pl.LazyFrame(
+        {
+            "Primary_pySubjectID": [row[0] for row in rows],
+            "pxInteractionID": [row[1] for row in rows],
+            "pxDecisionTime": [datetime(2024, 1, 1, 0, 0, idx) for idx, _row in enumerate(rows)],
+            "pyIssue": ["Issue" for _row in rows],
+            "pyGroup": [row[2] for row in rows],
+            "pyName": [row[3] for row in rows],
+            "pyChannel": ["Web" for _row in rows],
+            "pyDirection": ["Inbound" for _row in rows],
+            "Value": [1.0 for _row in rows],
+            "ContextWeight": [1.0 for _row in rows],
+            "Weight": [1.0 for _row in rows],
+            "FinalPropensity": [1.0 for _row in rows],
+            "Priority": [row[4] for row in rows],
+            "Stage_pyStageGroup": ["Arbitration" for _row in rows],
+            "Stage_pyName": ["Arbitration" for _row in rows],
+            "Stage_pyOrder": [3000 for _row in rows],
+            "pxRecordType": ["FILTERED_OUT" for _row in rows],
+            "pxComponentName": ["Arbitration" for _row in rows],
+            "pxComponentType": ["Strategy" for _row in rows],
+            "pxStrategyName": ["Strategy" for _row in rows],
+        }
+    )
+    return DecisionAnalyzer(tiny_data, sample_size=10)
+
+
 class TestSelectedGroupRankBoundariesWinLoss:
     def test_selected_group_rank_boundaries_are_computed_per_interaction(self, da_win_loss_boundary_tiny):
         selected_group_filter = pl.col("Group") == "Selected"
@@ -705,6 +747,26 @@ class TestSelectedGroupRankBoundariesWinLoss:
 
         assert losses_to_selected == ["I2"]
         assert wins_against_selected == ["I1"]
+
+    def test_winning_or_losing_interactions_default_schema_is_unchanged(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        result = da_win_loss_boundary_tiny.scoring.get_winning_or_losing_interactions(
+            group_filter=selected_group_filter,
+            win=True,
+        ).collect()
+
+        assert result.columns == ["Interaction ID"]
+
+    def test_winning_or_losing_interactions_uses_full_data(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        result = da_win_loss_boundary_tiny.scoring.get_winning_or_losing_interactions(
+            group_filter=selected_group_filter,
+            win=False,
+        ).collect()
+
+        assert result.rows() == [("I1",)]
 
     def test_group_filter_status_distributions_match_expected_actions(self, da_win_loss_boundary_tiny):
         selected_group_filter = pl.col("Group") == "Selected"
@@ -840,6 +902,76 @@ class TestSelectedGroupRankBoundariesWinLoss:
                 win_rank=n,
             )
             assert counts["wins"] + counts["losses"] == counts["total"]
+
+
+class TestHeadToHeadAtStage:
+    def test_head_to_head_overall_counts(self, da_head_to_head_tiny):
+        result = da_head_to_head_tiny.aggregates.head_to_head_at_stage(
+            pl.col("Group") == "X",
+            pl.col("Group") == "Y",
+            min_cell=1,
+        )
+
+        assert result.overall == {
+            "x_wins": 1,
+            "y_wins": 1,
+            "other": 1,
+            "total_overlap": 3,
+            "x_only": 1,
+            "y_only": 1,
+        }
+        assert result.stage_semantics == "rows remaining at the requested stage and later stages"
+
+    def test_head_to_head_cells_are_paired_breakdowns(self, da_head_to_head_tiny):
+        result = da_head_to_head_tiny.aggregates.head_to_head_at_stage(
+            pl.col("Group") == "X",
+            pl.col("Group") == "Y",
+            min_cell=1,
+        )
+
+        cells = result.cells
+        assert cells.rows(named=True) == [
+            {
+                "x_Group": "X",
+                "y_Group": "Y",
+                "x_wins": 1,
+                "y_wins": 1,
+                "other": 1,
+                "total_overlap": 3,
+            }
+        ]
+
+    def test_head_to_head_returns_cohort_dataframes(self, da_head_to_head_tiny):
+        result = da_head_to_head_tiny.aggregates.head_to_head_at_stage(
+            pl.col("Group") == "X",
+            pl.col("Group") == "Y",
+            min_cell=1,
+        )
+
+        cohorts = result.cohorts
+        assert cohorts["x_wins"].rows() == [("I1",)]
+        assert cohorts["y_wins"].rows() == [("I2",)]
+        assert cohorts["other"].rows() == [("I3",)]
+        assert cohorts["x_only"].rows() == [("I4",)]
+        assert cohorts["y_only"].rows() == [("I5",)]
+
+    def test_head_to_head_can_omit_cohorts(self, da_head_to_head_tiny):
+        result = da_head_to_head_tiny.aggregates.head_to_head_at_stage(
+            pl.col("Group") == "X",
+            pl.col("Group") == "Y",
+            min_cell=1,
+            include_interaction_ids=False,
+        )
+
+        assert result.cohorts is None
+
+    def test_head_to_head_validates_breakdown(self, da_head_to_head_tiny):
+        with pytest.raises(ValueError, match="breakdown"):
+            da_head_to_head_tiny.aggregates.head_to_head_at_stage(
+                pl.col("Group") == "X",
+                pl.col("Group") == "Y",
+                breakdown="Missing",
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -1597,17 +1729,17 @@ class TestFilteringAndScoping:
 
     def test_remaining_at_stage_none(self, da_v2):
         """stage=None falls back to non-null Priority rows."""
-        result = da_v2.scoring._remaining_at_stage(stage=None)
+        result = da_v2.aggregates.remaining_at_stage(stage=None)
         assert isinstance(result, pl.LazyFrame)
         df = result.collect()
-        assert df.height == 816372
+        assert df.height == 1143136
         # All rows should have non-null Priority
         assert df["Priority"].null_count() == 0
 
     def test_remaining_at_stage_arbitration(self, da_v2):
-        result = da_v2.scoring._remaining_at_stage(stage="Arbitration")
+        result = da_v2.aggregates.remaining_at_stage(stage="Arbitration")
         df = result.collect()
-        assert df.height == 21133
+        assert df.height == 29421
         stages = df[da_v2.level].unique().to_list()
         for s in stages:
             assert s in da_v2.stages_from_arbitration_down
@@ -1906,6 +2038,94 @@ class TestMinimalDatasetBasics:
         assert set(issues) == {"Sales", "Retention"}
 
 
+class TestMinimalStageCohorts:
+    """Verify exact stage row and interaction cohort APIs."""
+
+    def test_remaining_at_stage_known_stage(self, da_minimal):
+        rows = da_minimal.aggregates.remaining_at_stage("Output").collect()
+        assert rows.height == 3
+        assert set(rows["Interaction ID"].to_list()) == {"INT-001", "INT-003"}
+
+    def test_remaining_at_stage_none_filters_to_ranked_rows(self, da_minimal):
+        rows = da_minimal.aggregates.remaining_at_stage().collect()
+        assert rows.height == 8
+        assert rows["Priority"].is_not_null().all()
+
+    def test_remaining_at_stage_rejects_unknown_stage(self, da_minimal):
+        with pytest.raises(ValueError, match="Unknown stage"):
+            da_minimal.aggregates.remaining_at_stage("Not A Stage").collect()
+
+    def test_get_interaction_ids_projects_public_row_method(self, da_minimal):
+        result = da_minimal.get_interaction_ids("aggregates.remaining_at_stage", "Output")
+        assert result.columns == ["Interaction ID"]
+        assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-003"}
+
+    def test_get_interaction_ids_height_counts_cohort(self, da_minimal):
+        assert da_minimal.get_interaction_ids("aggregates.remaining_at_stage", "Output").height == 2
+
+    def test_get_interaction_ids_projects_dataframe_method(self, da_minimal):
+        da_minimal.row_dataframe = lambda: pl.DataFrame({"Interaction ID": ["INT-001", "INT-001", "INT-002"]})
+
+        result = da_minimal.get_interaction_ids("row_dataframe")
+
+        assert result.columns == ["Interaction ID"]
+        assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-002"}
+        assert result.height == 2
+
+    def test_get_interaction_ids_rejects_unknown_method(self, da_minimal):
+        with pytest.raises(ValueError, match="Unknown DecisionAnalyzer method"):
+            da_minimal.get_interaction_ids("missing_method")
+
+    def test_get_interaction_ids_rejects_private_method(self, da_minimal):
+        with pytest.raises(ValueError, match="public DecisionAnalyzer method"):
+            da_minimal.get_interaction_ids("aggregates._remaining_rows_at_stage")
+
+    def test_get_interaction_ids_requires_interaction_id_column(self, da_minimal):
+        with pytest.raises(ValueError, match="Interaction ID"):
+            da_minimal.get_interaction_ids("aggregates.filtered_actions_per_stage")
+
+    def test_get_interaction_ids_requires_interaction_id_column_on_lazyframe(self, da_minimal):
+        da_minimal.row_lazyframe_without_id = lambda: pl.LazyFrame({"Other": ["value"]})
+
+        with pytest.raises(ValueError, match="Interaction ID"):
+            da_minimal.get_interaction_ids("row_lazyframe_without_id")
+
+    def test_get_interaction_ids_rejects_non_polars_result(self, da_minimal):
+        da_minimal.not_a_frame = lambda: {"Interaction ID": ["INT-001"]}
+
+        with pytest.raises(TypeError, match="Polars DataFrame or LazyFrame"):
+            da_minimal.get_interaction_ids("not_a_frame")
+
+    def test_dropped_at_stage_returns_rows(self, da_minimal):
+        result = da_minimal.aggregates.dropped_at_stage("Contact Policies and final Action processing").collect()
+        assert set(result["Interaction ID"].to_list()) == {"INT-002"}
+        assert result.select("Interaction ID").unique().height == 1
+
+    def test_get_interaction_ids_projects_dropped_at_stage(self, da_minimal):
+        result = da_minimal.get_interaction_ids(
+            "aggregates.dropped_at_stage",
+            "Contact Policies and final Action processing",
+        )
+        assert result.rows() == [("INT-002",)]
+
+    def test_dropped_at_terminal_stage_is_empty(self, da_minimal):
+        result = da_minimal.get_interaction_ids("aggregates.dropped_at_stage", "Output")
+        assert result.columns == ["Interaction ID"]
+        assert result.height == 0
+
+
+class TestOverviewStatsAccessor:
+    def test_get_overview_stats_returns_dict(self, da_minimal):
+        result = da_minimal.get_overview_stats()
+        assert isinstance(result, dict)
+        assert result["Decisions"] == 3
+
+    def test_get_overview_stats_returns_copy(self, da_minimal):
+        result = da_minimal.get_overview_stats()
+        result["Decisions"] = -1
+        assert da_minimal.get_overview_stats()["Decisions"] == 3
+
+
 class TestMinimalFunnelExactValues:
     """Exact-value tests for funnel data against the minimal dataset.
 
@@ -1934,6 +2154,14 @@ class TestMinimalFunnelExactValues:
         total = eligibility["action_occurrences"].sum()
         assert total == 12
 
+    def test_available_at_stage_returns_funnel_rows(self, da_minimal):
+        rows = da_minimal.aggregates.available_at_stage("Eligibility").collect()
+        assert rows.height == 12
+        assert set(rows["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
+
+    def test_available_at_stage_height_counts_interactions(self, da_minimal):
+        assert da_minimal.get_interaction_ids("aggregates.available_at_stage", "Eligibility").height == 3
+
     def test_available_at_eligibility_sales_filter(self, da_minimal):
         """7 Sales action occurrences available at Eligibility."""
         available, _, _ = da_minimal.aggregates.get_funnel_data(
@@ -1959,12 +2187,38 @@ class TestMinimalFunnelExactValues:
         total = eligibility["action_occurrences"].sum()
         assert total == 8
 
+    def test_passing_at_stage_returns_funnel_rows(self, da_minimal):
+        rows = da_minimal.aggregates.passing_at_stage("Eligibility").collect()
+        assert rows.height == 8
+        assert set(rows["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
+
+    def test_passing_at_terminal_stage_is_empty(self, da_minimal):
+        rows = da_minimal.aggregates.passing_at_stage("Output").collect()
+        assert rows.height == 0
+
+    def test_passing_at_stage_height_counts_interactions(self, da_minimal):
+        result = da_minimal.get_interaction_ids(
+            "aggregates.passing_at_stage", "Contact Policies and final Action processing"
+        )
+        assert result.height == 2
+
     def test_filtered_at_eligibility(self, da_minimal):
         """4 action occurrences filtered at Eligibility overall."""
         _, _, filtered = da_minimal.aggregates.get_funnel_data(scope="Action")
         eligibility = filtered.filter(pl.col(da_minimal.level) == "Eligibility")
         total = eligibility["action_occurrences"].sum()
         assert total == 4
+
+    def test_filtered_at_stage_returns_funnel_rows(self, da_minimal):
+        rows = da_minimal.aggregates.filtered_at_stage("Eligibility").collect()
+        assert rows.height == 4
+        assert set(rows["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
+
+    def test_get_interaction_ids_projects_filtered_at_stage(self, da_minimal):
+        result = da_minimal.get_interaction_ids(
+            "aggregates.filtered_at_stage", "Contact Policies and final Action processing"
+        )
+        assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
 
     def test_funnel_summary_stages_match_funnel(self, da_minimal):
         """Summary table should show Available Actions + filtering stages, no Output."""
@@ -2275,6 +2529,27 @@ class TestMinimalFilterComponents:
         er = df.filter(pl.col("Component Name") == "EligibilityRule")
         assert er["Filtered Decisions"].item() == 3
 
+    def test_filtered_by_component_projects_contact_policy_ids(self, da_minimal):
+        result = da_minimal.get_interaction_ids("aggregates.filtered_by_component", "ContactPolicyRule")
+        assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
+
+    def test_filtered_by_component_height_counts_interactions(self, da_minimal):
+        assert da_minimal.get_interaction_ids("aggregates.filtered_by_component", "EligibilityRule").height == 3
+
+    def test_filtered_by_component_can_narrow_to_stage(self, da_minimal):
+        result = da_minimal.get_interaction_ids(
+            "aggregates.filtered_by_component",
+            "EligibilityRule",
+            stage="Eligibility",
+        )
+        assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-002", "INT-003"}
+
+    def test_filtered_by_component_requires_component_name_column(self, da_minimal):
+        da_minimal.decision_data = da_minimal.decision_data.drop("Component Name")
+
+        with pytest.raises(ValueError, match="Component Name"):
+            da_minimal.aggregates.filtered_by_component("EligibilityRule").collect()
+
     def test_contact_policy_at_correct_stage(self, da_minimal):
         df = da_minimal.aggregates.get_filter_component_data(top_n=10)
         cp = df.filter(pl.col("Component Name") == "ContactPolicyRule")
@@ -2305,10 +2580,63 @@ class TestMinimalDecisionsWithoutActions:
         cp = result.filter(pl.col("Stage Group").str.contains("Contact Policies"))
         assert cp["decisions_without_actions"].item() == 1
 
+    def test_without_actions_at_stage_projects_knockout_ids(self, da_minimal):
+        result = da_minimal.get_interaction_ids(
+            "aggregates.without_actions_at_stage",
+            "Contact Policies and final Action processing",
+        )
+        assert result.rows() == [("INT-002",)]
+
+    def test_without_actions_at_stage_height_counts_interactions(self, da_minimal):
+        result = da_minimal.get_interaction_ids(
+            "aggregates.without_actions_at_stage",
+            "Contact Policies and final Action processing",
+        )
+        assert result.height == 1
+
     def test_total_knockouts_equals_non_survivors(self, da_minimal):
         """Total knockouts = total decisions - Output survivors = 3 - 2 = 1."""
         result = da_minimal.aggregates.get_decisions_without_actions_data()
         assert result["decisions_without_actions"].sum() == 1
+
+
+class TestMinimalFilteredActionsPerStage:
+    """Verify exact filtered action counts by stage."""
+
+    def test_filtered_actions_per_stage_includes_zero_stages(self, da_minimal):
+        result = da_minimal.aggregates.filtered_actions_per_stage(sort_by="stage")
+
+        assert result[da_minimal.level].to_list() == [
+            "Eligibility",
+            "Arbitration",
+            "Contact Policies and final Action processing",
+        ]
+        assert result["actions_filtered"].to_list() == [4, 0, 5]
+        assert result["interactions_affected"].to_list() == [3, 0, 3]
+
+    def test_filtered_actions_per_stage_can_exclude_zero_stages(self, da_minimal):
+        result = da_minimal.aggregates.filtered_actions_per_stage(include_zero_stages=False, sort_by="stage")
+
+        assert result[da_minimal.level].to_list() == [
+            "Eligibility",
+            "Contact Policies and final Action processing",
+        ]
+
+    def test_filtered_actions_per_stage_sorts_by_actions_filtered(self, da_minimal):
+        result = da_minimal.aggregates.filtered_actions_per_stage()
+
+        assert result[da_minimal.level].to_list()[0] == "Contact Policies and final Action processing"
+        assert result["actions_filtered"].to_list()[0] == 5
+
+    def test_filtered_actions_per_stage_applies_filters(self, da_minimal):
+        result = da_minimal.aggregates.filtered_actions_per_stage(pl.col("Channel") == "Mobile", sort_by="stage")
+
+        assert result["actions_filtered"].to_list() == [2, 0, 2]
+        assert result["interactions_affected"].to_list() == [1, 0, 1]
+
+    def test_filtered_actions_per_stage_validates_sort_by(self, da_minimal):
+        with pytest.raises(ValueError, match="sort_by"):
+            da_minimal.aggregates.filtered_actions_per_stage(sort_by="not-a-sort")
 
 
 class TestMinimalFunnelSummaryExact:
