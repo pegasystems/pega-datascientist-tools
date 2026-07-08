@@ -1193,6 +1193,121 @@ class DecisionAnalyzer:
             result_df = result_df.sort([sort_by, "_stage_order"], descending=[True, False])
         return result_df.drop("_stage_order")
 
+    def head_to_head_at_stage(
+        self,
+        filter_x: pl.Expr | list[pl.Expr],
+        filter_y: pl.Expr | list[pl.Expr],
+        *,
+        stage: str = "Arbitration",
+        breakdown: str = "Group",
+        min_cell: int = 20,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        source: str = "full",
+        include_interaction_ids: bool = True,
+    ) -> dict[str, object]:
+        """Compare two cohorts head-to-head among interactions where both participate.
+
+        The comparison uses rows remaining at ``stage`` and later stages for
+        the selected ``source``. Within overlapping interactions, a side wins
+        when its best row is rank 1 and ranked above the other side; overlaps
+        won by a third action or tied on best rank are counted as ``other``.
+        Breakdown cells are paired as ``x_<breakdown>`` and ``y_<breakdown>``
+        values so they represent true overlap cells, not only the winning side.
+        """
+        if breakdown not in self._stage_source(source).collect_schema().names():
+            raise ValueError(f"breakdown must be an available column. {breakdown!r} was not found.")
+
+        stage_rows = self.remaining_at_stage(stage, additional_filters, source=source)
+        x_rows = apply_filter(stage_rows, filter_x)
+        y_rows = apply_filter(stage_rows, filter_y)
+
+        x_boundaries = x_rows.group_by("Interaction ID").agg(
+            x_best_rank=pl.col("Rank").min(),
+            x_worst_rank=pl.col("Rank").max(),
+            x_row_count=pl.len(),
+        )
+        y_boundaries = y_rows.group_by("Interaction ID").agg(
+            y_best_rank=pl.col("Rank").min(),
+            y_worst_rank=pl.col("Rank").max(),
+            y_row_count=pl.len(),
+        )
+
+        overlap = x_boundaries.join(y_boundaries, on="Interaction ID", how="inner").with_columns(
+            pl.when((pl.col("x_best_rank") == 1) & (pl.col("x_best_rank") < pl.col("y_best_rank")))
+            .then(pl.lit("x_wins"))
+            .when((pl.col("y_best_rank") == 1) & (pl.col("y_best_rank") < pl.col("x_best_rank")))
+            .then(pl.lit("y_wins"))
+            .otherwise(pl.lit("other"))
+            .alias("outcome")
+        )
+
+        x_ids = x_boundaries.select("Interaction ID")
+        y_ids = y_boundaries.select("Interaction ID")
+        x_only = x_ids.join(y_ids, on="Interaction ID", how="anti")
+        y_only = y_ids.join(x_ids, on="Interaction ID", how="anti")
+
+        counts = overlap.select(
+            x_wins=(pl.col("outcome") == "x_wins").sum(),
+            y_wins=(pl.col("outcome") == "y_wins").sum(),
+            other=(pl.col("outcome") == "other").sum(),
+            total_overlap=pl.len(),
+        ).collect()
+        overall = counts.row(0, named=True)
+        overall["x_only"] = x_only.select(pl.len()).collect().item()
+        overall["y_only"] = y_only.select(pl.len()).collect().item()
+
+        x_breakdown_col = f"x_{breakdown}"
+        y_breakdown_col = f"y_{breakdown}"
+        x_breakdown = x_rows.select("Interaction ID", pl.col(breakdown).alias(x_breakdown_col)).unique()
+        y_breakdown = y_rows.select("Interaction ID", pl.col(breakdown).alias(y_breakdown_col)).unique()
+        cells = (
+            x_breakdown.join(y_breakdown, on="Interaction ID", how="inner")
+            .join(overlap.select("Interaction ID", "outcome"), on="Interaction ID", how="inner")
+            .group_by([x_breakdown_col, y_breakdown_col])
+            .agg(
+                x_wins=pl.col("Interaction ID").filter(pl.col("outcome") == "x_wins").n_unique(),
+                y_wins=pl.col("Interaction ID").filter(pl.col("outcome") == "y_wins").n_unique(),
+                other=pl.col("Interaction ID").filter(pl.col("outcome") == "other").n_unique(),
+                total_overlap=pl.col("Interaction ID").n_unique(),
+            )
+            .filter(pl.col("total_overlap") >= min_cell)
+            .sort("total_overlap", descending=True)
+            .collect()
+        )
+
+        result: dict[str, object] = {
+            "overall": overall,
+            "cells": cells,
+            "breakdown": breakdown,
+            "stage": stage,
+            "source": source,
+            "stage_semantics": "rows remaining at the requested stage and later stages",
+        }
+        if include_interaction_ids:
+            outcome_ids = overlap.select("Interaction ID", "outcome")
+            result["cohorts"] = {
+                "x_wins": self._details_for_interaction_frame(
+                    outcome_ids.filter(pl.col("outcome") == "x_wins").select("Interaction ID")
+                ),
+                "y_wins": self._details_for_interaction_frame(
+                    outcome_ids.filter(pl.col("outcome") == "y_wins").select("Interaction ID")
+                ),
+                "other": self._details_for_interaction_frame(
+                    outcome_ids.filter(pl.col("outcome") == "other").select("Interaction ID")
+                ),
+                "x_only": self._details_for_interaction_frame(x_only),
+                "y_only": self._details_for_interaction_frame(y_only),
+            }
+        return result
+
+    def _details_for_interaction_frame(self, interaction_ids: pl.LazyFrame) -> pl.DataFrame:
+        return (
+            self.decision_data.join(interaction_ids.unique(), on="Interaction ID", how="inner")
+            .select(self._interaction_detail_columns("full", include_subject_id=True))
+            .unique()
+            .collect()
+        )
+
     def _stage_source(self, source: str) -> pl.LazyFrame:
         if source == "sample":
             return self.sample

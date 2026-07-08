@@ -656,6 +656,48 @@ def da_win_loss_boundary_tiny():
     return DecisionAnalyzer(tiny_data, sample_size=10)
 
 
+@pytest.fixture
+def da_head_to_head_tiny():
+    """Tiny dataset with X wins, Y wins, third-party win, and one-sided rows."""
+    rows = [
+        ("S1", "I1", "X", "X1", 10.0),
+        ("S1", "I1", "Y", "Y1", 5.0),
+        ("S1", "I1", "Z", "Z1", 1.0),
+        ("S2", "I2", "X", "X1", 5.0),
+        ("S2", "I2", "Y", "Y1", 10.0),
+        ("S3", "I3", "X", "X1", 5.0),
+        ("S3", "I3", "Y", "Y1", 1.0),
+        ("S3", "I3", "Z", "Z1", 10.0),
+        ("S4", "I4", "X", "X1", 10.0),
+        ("S5", "I5", "Y", "Y1", 10.0),
+    ]
+    tiny_data = pl.LazyFrame(
+        {
+            "Primary_pySubjectID": [row[0] for row in rows],
+            "pxInteractionID": [row[1] for row in rows],
+            "pxDecisionTime": [datetime(2024, 1, 1, 0, 0, idx) for idx, _row in enumerate(rows)],
+            "pyIssue": ["Issue" for _row in rows],
+            "pyGroup": [row[2] for row in rows],
+            "pyName": [row[3] for row in rows],
+            "pyChannel": ["Web" for _row in rows],
+            "pyDirection": ["Inbound" for _row in rows],
+            "Value": [1.0 for _row in rows],
+            "ContextWeight": [1.0 for _row in rows],
+            "Weight": [1.0 for _row in rows],
+            "FinalPropensity": [1.0 for _row in rows],
+            "Priority": [row[4] for row in rows],
+            "Stage_pyStageGroup": ["Arbitration" for _row in rows],
+            "Stage_pyName": ["Arbitration" for _row in rows],
+            "Stage_pyOrder": [3000 for _row in rows],
+            "pxRecordType": ["FILTERED_OUT" for _row in rows],
+            "pxComponentName": ["Arbitration" for _row in rows],
+            "pxComponentType": ["Strategy" for _row in rows],
+            "pxStrategyName": ["Strategy" for _row in rows],
+        }
+    )
+    return DecisionAnalyzer(tiny_data, sample_size=10)
+
+
 class TestSelectedGroupRankBoundariesWinLoss:
     def test_selected_group_rank_boundaries_are_computed_per_interaction(self, da_win_loss_boundary_tiny):
         selected_group_filter = pl.col("Group") == "Selected"
@@ -887,6 +929,76 @@ class TestSelectedGroupRankBoundariesWinLoss:
                 win_rank=n,
             )
             assert counts["wins"] + counts["losses"] == counts["total"]
+
+
+class TestHeadToHeadAtStage:
+    def test_head_to_head_overall_counts(self, da_head_to_head_tiny):
+        result = da_head_to_head_tiny.head_to_head_at_stage(
+            pl.col("Group") == "X",
+            pl.col("Group") == "Y",
+            min_cell=1,
+        )
+
+        assert result["overall"] == {
+            "x_wins": 1,
+            "y_wins": 1,
+            "other": 1,
+            "total_overlap": 3,
+            "x_only": 1,
+            "y_only": 1,
+        }
+        assert result["stage_semantics"] == "rows remaining at the requested stage and later stages"
+
+    def test_head_to_head_cells_are_paired_breakdowns(self, da_head_to_head_tiny):
+        result = da_head_to_head_tiny.head_to_head_at_stage(
+            pl.col("Group") == "X",
+            pl.col("Group") == "Y",
+            min_cell=1,
+        )
+
+        cells = result["cells"]
+        assert cells.rows(named=True) == [
+            {
+                "x_Group": "X",
+                "y_Group": "Y",
+                "x_wins": 1,
+                "y_wins": 1,
+                "other": 1,
+                "total_overlap": 3,
+            }
+        ]
+
+    def test_head_to_head_returns_cohort_dataframes(self, da_head_to_head_tiny):
+        result = da_head_to_head_tiny.head_to_head_at_stage(
+            pl.col("Group") == "X",
+            pl.col("Group") == "Y",
+            min_cell=1,
+        )
+
+        cohorts = result["cohorts"]
+        assert cohorts["x_wins"].rows() == [("I1", "S1")]
+        assert cohorts["y_wins"].rows() == [("I2", "S2")]
+        assert cohorts["other"].rows() == [("I3", "S3")]
+        assert cohorts["x_only"].rows() == [("I4", "S4")]
+        assert cohorts["y_only"].rows() == [("I5", "S5")]
+
+    def test_head_to_head_can_omit_cohorts(self, da_head_to_head_tiny):
+        result = da_head_to_head_tiny.head_to_head_at_stage(
+            pl.col("Group") == "X",
+            pl.col("Group") == "Y",
+            min_cell=1,
+            include_interaction_ids=False,
+        )
+
+        assert "cohorts" not in result
+
+    def test_head_to_head_validates_breakdown(self, da_head_to_head_tiny):
+        with pytest.raises(ValueError, match="breakdown"):
+            da_head_to_head_tiny.head_to_head_at_stage(
+                pl.col("Group") == "X",
+                pl.col("Group") == "Y",
+                breakdown="Missing",
+            )
 
 
 # ---------------------------------------------------------------------------
