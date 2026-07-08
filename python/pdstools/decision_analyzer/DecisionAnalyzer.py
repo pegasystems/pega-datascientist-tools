@@ -1073,14 +1073,14 @@ class DecisionAnalyzer:
 
         raise TypeError(f"{method_name!r} must return a Polars DataFrame or LazyFrame.")
 
-    def dropped_at_stage_interactions(
+    def dropped_at_stage(
         self,
         stage: str,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         *,
         strict_stage: bool = True,
-    ) -> pl.DataFrame:
-        """Return exact interactions that lose their final action at ``stage``.
+    ) -> pl.LazyFrame:
+        """Return rows for interactions that lose their final action at ``stage``.
 
         The cohort is computed as interactions remaining at ``stage`` minus
         interactions remaining at the next stage, using the same filters on
@@ -1088,20 +1088,16 @@ class DecisionAnalyzer:
         """
         stage_idx = self._stage_index(stage, strict_stage=strict_stage)
         if stage_idx is None or stage_idx >= len(self.AvailableNBADStages) - 1:
-            return self._empty_interaction_frame()
+            return self.remaining_at_stage(stage, additional_filters, strict_stage=False).limit(0)
 
-        current = (
-            self.remaining_at_stage(stage, additional_filters, strict_stage=strict_stage)
-            .select("Interaction ID")
-            .unique()
-        )
+        current = self.remaining_at_stage(stage, additional_filters, strict_stage=strict_stage)
         next_stage = self.AvailableNBADStages[stage_idx + 1]
         next_ids = (
             self.remaining_at_stage(next_stage, additional_filters, strict_stage=strict_stage)
             .select("Interaction ID")
             .unique()
         )
-        return current.join(next_ids, on="Interaction ID", how="anti").collect()
+        return current.join(next_ids, on="Interaction ID", how="anti")
 
     def get_overview_stats(self) -> dict[str, object]:
         """Return overview statistics as a concrete dictionary."""
@@ -1287,10 +1283,6 @@ class DecisionAnalyzer:
         if strict_stage:
             raise ValueError(f"Unknown stage {stage!r}. Expected one of: {self.AvailableNBADStages}")
         return None
-
-    def _empty_interaction_frame(self) -> pl.DataFrame:
-        schema = self.decision_data.collect_schema()
-        return pl.DataFrame(schema={"Interaction ID": schema["Interaction ID"]})
 
     def get_available_fields_for_filtering(self, *, categorical_only: bool = False) -> list[str]:
         """Return column names available for data filtering.

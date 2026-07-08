@@ -2076,17 +2076,22 @@ class TestMinimalStageCohorts:
         with pytest.raises(ValueError, match="Interaction ID"):
             da_minimal.get_interaction_ids("filtered_actions_per_stage")
 
-    def test_dropped_at_stage_interactions_exact_ids(self, da_minimal):
-        result = da_minimal.dropped_at_stage_interactions("Contact Policies and final Action processing")
+    def test_dropped_at_stage_returns_rows(self, da_minimal):
+        result = da_minimal.dropped_at_stage("Contact Policies and final Action processing").collect()
+        assert set(result["Interaction ID"].to_list()) == {"INT-002"}
+        assert result.select("Interaction ID").unique().height == 1
+
+    def test_get_interaction_ids_projects_dropped_at_stage(self, da_minimal):
+        result = da_minimal.get_interaction_ids("dropped_at_stage", "Contact Policies and final Action processing")
         assert result.rows() == [("INT-002",)]
 
     def test_dropped_at_terminal_stage_is_empty(self, da_minimal):
-        result = da_minimal.dropped_at_stage_interactions("Output")
-        assert result.height == 0
+        result = da_minimal.get_interaction_ids("dropped_at_stage", "Output")
         assert result.columns == ["Interaction ID"]
+        assert result.height == 0
 
-    def test_dropped_at_stage_interactions_unknown_stage_can_return_empty(self, da_minimal):
-        result = da_minimal.dropped_at_stage_interactions("Not A Stage", strict_stage=False)
+    def test_dropped_at_stage_unknown_stage_can_return_empty(self, da_minimal):
+        result = da_minimal.get_interaction_ids("dropped_at_stage", "Not A Stage", strict_stage=False)
         assert result.height == 0
 
 

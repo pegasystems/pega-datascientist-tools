@@ -54,19 +54,24 @@ web_output_ids = da.get_interaction_ids(
 
 Use this pattern for public row-producing methods that return `Interaction ID`. If a method returns an aggregate summary without `Interaction ID`, `get_interaction_ids()` raises an error instead of guessing.
 
-## Set-derived cohorts
+## Set-derived row cohorts
 
-Some cohorts are not a direct projection from one row-producing method. Those can have specific interaction-ID methods.
+Some cohorts require set logic before they become rows. Those should still be exposed as row-producing methods first, and then projected with `get_interaction_ids()`.
 
-`dropped_at_stage_interactions()` is one example: it returns interactions that were present at one stage and absent at the next stage. That is a set difference, not a plain projection.
+`dropped_at_stage()` is one example: it returns rows for interactions that were present at one stage and absent at the next stage. The interaction IDs are still requested through the generic projector.
 
 ```python
-dropped_ids = da.dropped_at_stage_interactions(
+dropped_rows = da.dropped_at_stage(
     "Contact Policies and final Action processing"
+)
+
+dropped_ids = da.get_interaction_ids(
+    "dropped_at_stage",
+    "Contact Policies and final Action processing",
 )
 ```
 
-Use specific cohort methods only when the cohort logic is distinct. Do not add one convenience wrapper per aggregate method.
+Use specific row-producing methods only when the cohort logic is distinct. Do not add convenience `*_interactions()` wrappers.
 
 ## Downstream resolution boundary
 
@@ -84,6 +89,7 @@ That join should happen outside pdstools.
 
 - Prefer aggregate methods for summary analysis.
 - Prefer `get_interaction_ids("method_name", ...)` for direct row-cohort handoff.
-- Add a named `*_interactions()` method only for set logic that cannot be represented as a direct projection.
+- Add named row-producing methods for distinct set logic, then use `get_interaction_ids()` to project their IDs.
+- Do not add convenience `*_interactions()` wrappers.
 - Do not add `include_subject_id`, `include_customer_id`, or date-resolution arguments to Decision Analyzer cohort APIs.
 - Do not expose `source` switches for exact cohort APIs; interaction cohorts use the full normalized decision data.
