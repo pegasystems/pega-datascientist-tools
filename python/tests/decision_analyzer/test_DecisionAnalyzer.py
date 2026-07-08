@@ -706,6 +706,53 @@ class TestSelectedGroupRankBoundariesWinLoss:
         assert losses_to_selected == ["I2"]
         assert wins_against_selected == ["I1"]
 
+    def test_winning_or_losing_interactions_default_schema_is_unchanged(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        result = da_win_loss_boundary_tiny.scoring.get_winning_or_losing_interactions(
+            group_filter=selected_group_filter,
+            win=True,
+        ).collect()
+
+        assert result.columns == ["Interaction ID"]
+
+    def test_winning_or_losing_interactions_can_include_details(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        result = (
+            da_win_loss_boundary_tiny.scoring.get_winning_or_losing_interactions(
+                group_filter=selected_group_filter,
+                win=True,
+                include_subject_id=True,
+                include_group_columns=True,
+            )
+            .sort("Action")
+            .collect()
+        )
+
+        assert result.columns == ["Interaction ID", "Subject ID", "Issue", "Group", "Action"]
+        assert result.rows() == [
+            ("I2", "S2", "Issue2", "Other", "F"),
+            ("I2", "S2", "Issue2", "Other", "G"),
+        ]
+
+    def test_winning_or_losing_interactions_supports_full_source(self, da_win_loss_boundary_tiny):
+        selected_group_filter = pl.col("Group") == "Selected"
+
+        result = (
+            da_win_loss_boundary_tiny.scoring.get_winning_or_losing_interactions(
+                group_filter=selected_group_filter,
+                win=False,
+                source="full",
+                include_subject_id=True,
+                include_group_columns=True,
+            )
+            .sort("Action")
+            .collect()
+        )
+
+        assert result.rows() == [("I1", "S1", "Issue1", "Other", "A")]
+
     def test_group_filter_status_distributions_match_expected_actions(self, da_win_loss_boundary_tiny):
         selected_group_filter = pl.col("Group") == "Selected"
 

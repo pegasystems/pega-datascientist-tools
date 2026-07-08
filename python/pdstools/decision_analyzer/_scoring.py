@@ -109,6 +109,8 @@ class Scoring:
         self,
         group_filter: pl.Expr | list[pl.Expr],
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        source: str = "sample",
     ) -> pl.LazyFrame:
         """Compute selected-group rank boundaries per interaction.
 
@@ -117,7 +119,7 @@ class Scoring:
         selected rows in arbitration-relevant stages.
         """
         selected_rows = (
-            apply_filter(apply_filter(self.da.sample, additional_filters), group_filter)
+            apply_filter(apply_filter(self.da._stage_source(source), additional_filters), group_filter)
             .filter(pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down))
             .select(["Interaction ID", "Rank"])
         )
@@ -541,6 +543,10 @@ class Scoring:
         group_filter: pl.Expr | list[pl.Expr],
         win: bool,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        source: str = "sample",
+        include_subject_id: bool = False,
+        include_group_columns: bool = False,
     ) -> pl.LazyFrame:
         """Interaction IDs where the comparison group wins or loses.
 
@@ -555,17 +561,26 @@ class Scoring:
             actions outside the group).
         additional_filters : pl.Expr or list of pl.Expr, optional
             Extra filters (e.g. channel filter).
+        source : {"sample", "full"}, default "sample"
+            Data source to query.
+        include_subject_id : bool, default False
+            Include ``Subject ID`` when present.
+        include_group_columns : bool, default False
+            Include available ``Issue``, ``Group``, and ``Action`` detail columns.
 
         Returns
         -------
         pl.LazyFrame
-            Single-column frame of unique ``Interaction ID`` values.
+            By default, a single-column frame of unique ``Interaction ID``
+            values. Detail options add available columns and unique rows by
+            the selected output schema.
         """
         selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
             group_filter=group_filter,
             additional_filters=additional_filters,
+            source=source,
         )
-        stage_filtered_data = apply_filter(self.da.sample, additional_filters).filter(
+        stage_filtered_data = apply_filter(self.da._stage_source(source), additional_filters).filter(
             pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down)
         )
 
@@ -574,10 +589,18 @@ class Scoring:
         else:
             interaction_filter = pl.col("Rank") < pl.col("selected_group_best_rank")
 
+        output_columns = ["Interaction ID"]
+        if include_subject_id and "Subject ID" in stage_filtered_data.collect_schema().names():
+            output_columns.append("Subject ID")
+        if include_group_columns:
+            available = set(stage_filtered_data.collect_schema().names())
+            output_columns.extend(col for col in ["Issue", "Group", "Action"] if col in available)
+
         return (
             stage_filtered_data.join(selected_group_rank_boundaries, on="Interaction ID", how="inner")
             .filter(interaction_filter)
-            .select(pl.col("Interaction ID").unique())
+            .select(output_columns)
+            .unique()
         )
 
     def get_win_loss_counts(
