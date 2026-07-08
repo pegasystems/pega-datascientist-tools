@@ -993,35 +993,6 @@ class DecisionAnalyzer:
             return self.sample
         return apply_filter(self.sample, filters)
 
-    def remaining_at_stage(
-        self,
-        stage: str | None = None,
-        additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        strict_stage: bool = True,
-    ) -> pl.LazyFrame:
-        """Return action rows remaining at a stage.
-
-        Prefer :meth:`aggregates.remaining_at_stage`; this top-level method is
-        retained as a compatibility wrapper.
-        """
-        return self.aggregates.remaining_at_stage(stage, additional_filters, strict_stage=strict_stage)
-
-    def _remaining_rows_at_stage(
-        self,
-        data: pl.LazyFrame,
-        stage: str | None = None,
-        additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        strict_stage: bool = True,
-    ) -> pl.LazyFrame:
-        return self.aggregates._remaining_rows_at_stage(
-            data,
-            stage,
-            additional_filters,
-            strict_stage=strict_stage,
-        )
-
     def get_interaction_ids(self, method_name: str, *args: object, **kwargs: object) -> pl.DataFrame:
         """Project unique interaction IDs from a row-producing method.
 
@@ -1174,41 +1145,9 @@ class DecisionAnalyzer:
                 break
         return target
 
-    def dropped_at_stage(
-        self,
-        stage: str,
-        additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        strict_stage: bool = True,
-    ) -> pl.LazyFrame:
-        """Return rows for interactions that lose their final action at ``stage``.
-
-        Prefer :meth:`aggregates.dropped_at_stage`; this top-level method is
-        retained as a compatibility wrapper.
-        """
-        return self.aggregates.dropped_at_stage(stage, additional_filters, strict_stage=strict_stage)
-
     def get_overview_stats(self) -> dict[str, object]:
         """Return overview statistics as a concrete dictionary."""
         return dict(self.overview_stats)
-
-    def filtered_actions_per_stage(
-        self,
-        additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        include_zero_stages: bool = True,
-        sort_by: str = "actions_filtered",
-    ) -> pl.DataFrame:
-        """Return per-stage action filtering counts.
-
-        Prefer :meth:`aggregates.filtered_actions_per_stage`; this top-level
-        method is retained as a compatibility wrapper.
-        """
-        return self.aggregates.filtered_actions_per_stage(
-            additional_filters,
-            include_zero_stages=include_zero_stages,
-            sort_by=sort_by,
-        )
 
     def head_to_head_at_stage(
         self,

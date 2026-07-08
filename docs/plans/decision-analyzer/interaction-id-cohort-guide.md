@@ -134,6 +134,57 @@ Decision Analyzer returns only `Interaction ID` for cohort handoff. A downstream
 
 That join should happen outside pdstools.
 
+## What the downstream pen-portrait app should do
+
+The pen-portrait app should treat Decision Analyzer as the owner of decision
+cohort definitions, not as the owner of customer identity or profile enrichment.
+The clean contract is:
+
+1. Use aggregate methods to let the user find an interesting cohort, such as a
+    high-filtering component, a funnel stage with heavy drop-off, or a sparse
+    action distribution cell.
+2. Convert that selected summary cell into the matching public row-producing
+    method path under `aggregates.*`, passing the same stage, scope, component,
+    and filter arguments that define the selected cohort.
+3. Call `get_interaction_ids(...)` when the downstream app needs the handoff
+    key, and `get_interaction_count(...)` when it needs the exact cohort size for
+    display or validation.
+4. Store the cohort recipe with the output: method path, positional arguments,
+    keyword arguments, user-selected filters, generated count, and generation
+    timestamp. That makes the pen portrait auditable and reproducible.
+5. Join the returned `Interaction ID` values to downstream-owned identity,
+    profile, and time-window data outside pdstools.
+
+The pen-portrait app should not reconstruct cohorts by reversing aggregate
+tables. Aggregate tables are summaries and may collapse away row identity. It
+should also not ask Decision Analyzer for subject IDs, customer IDs, dates,
+accounts, households, or profile attributes. Those fields depend on the
+downstream data model, retention policy, and enrichment rules, so they belong in
+the downstream app.
+
+For example, a selected filter component can be represented as a stable cohort
+recipe:
+
+```python
+cohort_method = "aggregates.filtered_by_component"
+cohort_args = (component_name,)
+cohort_kwargs = {"stage": stage, "additional_filters": selected_filters}
+
+interaction_ids = da.get_interaction_ids(
+     cohort_method,
+     *cohort_args,
+     **cohort_kwargs,
+)
+interaction_count = da.get_interaction_count(
+     cohort_method,
+     *cohort_args,
+     **cohort_kwargs,
+)
+```
+
+The downstream app can then enrich `interaction_ids` using its own data and
+render the pen portrait from that enriched dataset.
+
 ## Design rules
 
 - Prefer aggregate methods for summary analysis.

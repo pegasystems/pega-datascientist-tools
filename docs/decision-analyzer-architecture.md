@@ -172,8 +172,7 @@ Canonical aggregate-to-row mappings:
 Rules of thumb:
 
 - Put aggregate and row-cohort methods in `_aggregates.py` under
-   `da.aggregates`, not directly on `DecisionAnalyzer`, unless a compatibility
-   wrapper is required.
+   `da.aggregates`, not directly on `DecisionAnalyzer`.
 - Use full `decision_data` for exact row cohorts. Sample-backed scoring methods
    can stay sample-backed for performance, but they should not pretend to provide
    exact downstream cohorts.
