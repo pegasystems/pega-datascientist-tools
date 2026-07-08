@@ -998,16 +998,12 @@ class DecisionAnalyzer:
         stage: str | None = None,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         *,
-        source: str = "sample",
         strict_stage: bool = True,
     ) -> pl.LazyFrame:
         """Return action rows remaining at a stage.
 
         Rows are considered remaining at ``stage`` when their current stage is
         the requested stage or any later stage in ``AvailableNBADStages``.
-        ``source="sample"`` uses the deterministic sampled data used by
-        exploratory analyses; ``source="full"`` uses the full normalized
-        decision data for exact cohort work.
 
         Parameters
         ----------
@@ -1016,13 +1012,26 @@ class DecisionAnalyzer:
             ``Priority`` after applying filters.
         additional_filters : pl.Expr or list[pl.Expr], optional
             Filters applied before selecting remaining rows.
-        source : {"sample", "full"}, default "sample"
-            Data source to query.
         strict_stage : bool, default True
             Raise ``ValueError`` for unknown stages. When False, unknown stages
             return an empty frame.
         """
-        base = apply_filter(self._stage_source(source), additional_filters)
+        return self._remaining_rows_at_stage(
+            self.decision_data,
+            stage,
+            additional_filters,
+            strict_stage=strict_stage,
+        )
+
+    def _remaining_rows_at_stage(
+        self,
+        data: pl.LazyFrame,
+        stage: str | None = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        strict_stage: bool = True,
+    ) -> pl.LazyFrame:
+        base = apply_filter(data, additional_filters)
         if stage is None:
             return base.filter(pl.col("Priority").is_not_null())
 
@@ -1038,20 +1047,17 @@ class DecisionAnalyzer:
         stage: str,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         *,
-        source: str = "full",
         strict_stage: bool = True,
     ) -> pl.DataFrame:
         """Return exact interaction IDs with at least one action remaining at a stage.
 
-        Exact cohort APIs default to ``source="full"``. Use
-        ``source="sample"`` only for exploratory workflows where sampled IDs
-        are acceptable.
+        Exact cohort APIs use the full normalized decision data.
         """
         if self._stage_index(stage, strict_stage=strict_stage) is None:
-            return self._empty_interaction_frame(source)
+            return self._empty_interaction_frame()
 
         return (
-            self.remaining_at_stage(stage, additional_filters, source=source, strict_stage=strict_stage)
+            self.remaining_at_stage(stage, additional_filters, strict_stage=strict_stage)
             .select("Interaction ID")
             .unique()
             .collect()
@@ -1062,27 +1068,26 @@ class DecisionAnalyzer:
         stage: str,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         *,
-        source: str = "full",
         strict_stage: bool = True,
     ) -> pl.DataFrame:
         """Return exact interactions that lose their final action at ``stage``.
 
         The cohort is computed as interactions remaining at ``stage`` minus
-        interactions remaining at the next stage, using the same filters and
-        source on both sides. Terminal stages return an empty frame.
+        interactions remaining at the next stage, using the same filters on
+        both sides. Terminal stages return an empty frame.
         """
         stage_idx = self._stage_index(stage, strict_stage=strict_stage)
         if stage_idx is None or stage_idx >= len(self.AvailableNBADStages) - 1:
-            return self._empty_interaction_frame(source)
+            return self._empty_interaction_frame()
 
         current = (
-            self.remaining_at_stage(stage, additional_filters, source=source, strict_stage=strict_stage)
+            self.remaining_at_stage(stage, additional_filters, strict_stage=strict_stage)
             .select("Interaction ID")
             .unique()
         )
         next_stage = self.AvailableNBADStages[stage_idx + 1]
         next_ids = (
-            self.remaining_at_stage(next_stage, additional_filters, source=source, strict_stage=strict_stage)
+            self.remaining_at_stage(next_stage, additional_filters, strict_stage=strict_stage)
             .select("Interaction ID")
             .unique()
         )
@@ -1166,22 +1171,22 @@ class DecisionAnalyzer:
         breakdown: str = "Group",
         min_cell: int = 20,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        source: str = "full",
         include_interaction_ids: bool = True,
     ) -> dict[str, object]:
         """Compare two cohorts head-to-head among interactions where both participate.
 
-        The comparison uses rows remaining at ``stage`` and later stages for
-        the selected ``source``. Within overlapping interactions, a side wins
-        when its best row is rank 1 and ranked above the other side; overlaps
-        won by a third action or tied on best rank are counted as ``other``.
-        Breakdown cells are paired as ``x_<breakdown>`` and ``y_<breakdown>``
-        values so they represent true overlap cells, not only the winning side.
+        The comparison uses full normalized decision data rows remaining at
+        ``stage`` and later stages. Within overlapping interactions, a side
+        wins when its best row is rank 1 and ranked above the other side;
+        overlaps won by a third action or tied on best rank are counted as
+        ``other``. Breakdown cells are paired as ``x_<breakdown>`` and
+        ``y_<breakdown>`` values so they represent true overlap cells, not only
+        the winning side.
         """
-        if breakdown not in self._stage_source(source).collect_schema().names():
+        if breakdown not in self.decision_data.collect_schema().names():
             raise ValueError(f"breakdown must be an available column. {breakdown!r} was not found.")
 
-        stage_rows = self.remaining_at_stage(stage, additional_filters, source=source)
+        stage_rows = self.remaining_at_stage(stage, additional_filters)
         x_rows = apply_filter(stage_rows, filter_x)
         y_rows = apply_filter(stage_rows, filter_y)
 
@@ -1244,7 +1249,6 @@ class DecisionAnalyzer:
             "cells": cells,
             "breakdown": breakdown,
             "stage": stage,
-            "source": source,
             "stage_semantics": "rows remaining at the requested stage and later stages",
         }
         if include_interaction_ids:
@@ -1267,13 +1271,6 @@ class DecisionAnalyzer:
     def _interaction_id_frame(self, interaction_ids: pl.LazyFrame) -> pl.DataFrame:
         return interaction_ids.select("Interaction ID").unique().collect()
 
-    def _stage_source(self, source: str) -> pl.LazyFrame:
-        if source == "sample":
-            return self.sample
-        if source == "full":
-            return self.decision_data
-        raise ValueError("source must be either 'sample' or 'full'.")
-
     def _stage_index(self, stage: str, *, strict_stage: bool) -> int | None:
         if stage in self.AvailableNBADStages:
             return self.AvailableNBADStages.index(stage)
@@ -1281,8 +1278,8 @@ class DecisionAnalyzer:
             raise ValueError(f"Unknown stage {stage!r}. Expected one of: {self.AvailableNBADStages}")
         return None
 
-    def _empty_interaction_frame(self, source: str) -> pl.DataFrame:
-        schema = self._stage_source(source).collect_schema()
+    def _empty_interaction_frame(self) -> pl.DataFrame:
+        schema = self.decision_data.collect_schema()
         return pl.DataFrame(schema={"Interaction ID": schema["Interaction ID"]})
 
     def get_available_fields_for_filtering(self, *, categorical_only: bool = False) -> list[str]:

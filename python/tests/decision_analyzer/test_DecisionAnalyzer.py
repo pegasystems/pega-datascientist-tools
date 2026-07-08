@@ -758,13 +758,12 @@ class TestSelectedGroupRankBoundariesWinLoss:
 
         assert result.columns == ["Interaction ID"]
 
-    def test_winning_or_losing_interactions_supports_full_source(self, da_win_loss_boundary_tiny):
+    def test_winning_or_losing_interactions_uses_full_data(self, da_win_loss_boundary_tiny):
         selected_group_filter = pl.col("Group") == "Selected"
 
         result = da_win_loss_boundary_tiny.scoring.get_winning_or_losing_interactions(
             group_filter=selected_group_filter,
             win=False,
-            source="full",
         ).collect()
 
         assert result.rows() == [("I1",)]
@@ -1730,17 +1729,17 @@ class TestFilteringAndScoping:
 
     def test_remaining_at_stage_none(self, da_v2):
         """stage=None falls back to non-null Priority rows."""
-        result = da_v2.scoring._remaining_at_stage(stage=None)
+        result = da_v2.remaining_at_stage(stage=None)
         assert isinstance(result, pl.LazyFrame)
         df = result.collect()
-        assert df.height == 816372
+        assert df.height == 1143136
         # All rows should have non-null Priority
         assert df["Priority"].null_count() == 0
 
     def test_remaining_at_stage_arbitration(self, da_v2):
-        result = da_v2.scoring._remaining_at_stage(stage="Arbitration")
+        result = da_v2.remaining_at_stage(stage="Arbitration")
         df = result.collect()
-        assert df.height == 21133
+        assert df.height == 29421
         stages = df[da_v2.level].unique().to_list()
         for s in stages:
             assert s in da_v2.stages_from_arbitration_down
@@ -2042,32 +2041,23 @@ class TestMinimalDatasetBasics:
 class TestMinimalStageCohorts:
     """Verify exact stage row and interaction cohort APIs."""
 
-    def test_remaining_at_stage_known_stage_full_source(self, da_minimal):
-        rows = da_minimal.remaining_at_stage("Output", source="full").collect()
-        assert rows.height == 3
-        assert set(rows["Interaction ID"].to_list()) == {"INT-001", "INT-003"}
-
-    def test_remaining_at_stage_known_stage_sample_source(self, da_minimal):
-        rows = da_minimal.remaining_at_stage("Output", source="sample").collect()
+    def test_remaining_at_stage_known_stage(self, da_minimal):
+        rows = da_minimal.remaining_at_stage("Output").collect()
         assert rows.height == 3
         assert set(rows["Interaction ID"].to_list()) == {"INT-001", "INT-003"}
 
     def test_remaining_at_stage_none_filters_to_ranked_rows(self, da_minimal):
-        rows = da_minimal.remaining_at_stage(source="full").collect()
+        rows = da_minimal.remaining_at_stage().collect()
         assert rows.height == 8
         assert rows["Priority"].is_not_null().all()
 
     def test_remaining_at_stage_rejects_unknown_stage(self, da_minimal):
         with pytest.raises(ValueError, match="Unknown stage"):
-            da_minimal.remaining_at_stage("Not A Stage", source="full").collect()
+            da_minimal.remaining_at_stage("Not A Stage").collect()
 
     def test_remaining_at_stage_unknown_stage_can_return_empty(self, da_minimal):
-        rows = da_minimal.remaining_at_stage("Not A Stage", source="full", strict_stage=False).collect()
+        rows = da_minimal.remaining_at_stage("Not A Stage", strict_stage=False).collect()
         assert rows.height == 0
-
-    def test_legacy_scoring_remaining_keeps_unknown_stage_fallback(self, da_minimal):
-        rows = da_minimal.scoring._remaining_at_stage("Not A Stage").collect()
-        assert rows.height == da_minimal.sample.collect().height
 
     def test_remaining_at_stage_interactions_returns_interaction_ids(self, da_minimal):
         result = da_minimal.remaining_at_stage_interactions("Output")

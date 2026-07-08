@@ -109,8 +109,6 @@ class Scoring:
         self,
         group_filter: pl.Expr | list[pl.Expr],
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        source: str = "sample",
     ) -> pl.LazyFrame:
         """Compute selected-group rank boundaries per interaction.
 
@@ -119,7 +117,7 @@ class Scoring:
         selected rows in arbitration-relevant stages.
         """
         selected_rows = (
-            apply_filter(apply_filter(self.da._stage_source(source), additional_filters), group_filter)
+            apply_filter(apply_filter(self.da.decision_data, additional_filters), group_filter)
             .filter(pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down))
             .select(["Interaction ID", "Rank"])
         )
@@ -128,27 +126,6 @@ class Scoring:
             selected_group_best_rank=pl.col("Rank").min(),
             selected_group_worst_rank=pl.col("Rank").max(),
             selected_group_row_count=pl.len(),
-        )
-
-    def _remaining_at_stage(
-        self,
-        stage: str | None = None,
-        additional_filters: pl.Expr | list[pl.Expr] | None = None,
-    ) -> pl.LazyFrame:
-        """Return sample rows remaining at *stage*.
-
-        Uses the ``aggregate_remaining_per_stage`` logic: rows whose stage
-        order is >= the selected stage are "remaining" there.  If *stage*
-        is None, falls back to rows with non-null Priority.
-        """
-        legacy_stage = stage
-        if stage is not None and stage not in self.da.AvailableNBADStages:
-            legacy_stage = self.da.AvailableNBADStages[0]
-        return self.da.remaining_at_stage(
-            legacy_stage,
-            additional_filters,
-            source="sample",
-            strict_stage=False,
         )
 
     def get_sensitivity(
@@ -315,7 +292,7 @@ class Scoring:
             Extra filters applied to the sample (e.g. channel filter).
         """
         cols = [granularity, component]
-        df = self._remaining_at_stage(stage, additional_filters=additional_filters)
+        df = self.da._remaining_rows_at_stage(self.da.sample, stage, additional_filters=additional_filters)
         return df.select(cols).sort(granularity)
 
     def all_components_distribution(
@@ -339,7 +316,7 @@ class Scoring:
 
         available = set(self.da.sample.collect_schema().names())
         cols = [c for c in PRIO_COMPONENTS if c in available]
-        df = self._remaining_at_stage(stage, additional_filters=additional_filters)
+        df = self.da._remaining_rows_at_stage(self.da.sample, stage, additional_filters=additional_filters)
         return df.select([granularity, *cols]).sort(granularity)
 
     def get_win_loss_distribution_data(
@@ -543,8 +520,6 @@ class Scoring:
         group_filter: pl.Expr | list[pl.Expr],
         win: bool,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
-        *,
-        source: str = "sample",
     ) -> pl.LazyFrame:
         """Interaction IDs where the comparison group wins or loses.
 
@@ -559,8 +534,6 @@ class Scoring:
             actions outside the group).
         additional_filters : pl.Expr or list of pl.Expr, optional
             Extra filters (e.g. channel filter).
-        source : {"sample", "full"}, default "sample"
-            Data source to query.
 
         Returns
         -------
@@ -570,9 +543,8 @@ class Scoring:
         selected_group_rank_boundaries = self.get_selected_group_rank_boundaries(
             group_filter=group_filter,
             additional_filters=additional_filters,
-            source=source,
         )
-        stage_filtered_data = apply_filter(self.da._stage_source(source), additional_filters).filter(
+        stage_filtered_data = apply_filter(self.da.decision_data, additional_filters).filter(
             pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down)
         )
 
