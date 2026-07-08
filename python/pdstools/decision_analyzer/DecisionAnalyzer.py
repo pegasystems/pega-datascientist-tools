@@ -993,6 +993,131 @@ class DecisionAnalyzer:
             return self.sample
         return apply_filter(self.sample, filters)
 
+    def remaining_at_stage(
+        self,
+        stage: str | None = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        source: str = "sample",
+        strict_stage: bool = True,
+    ) -> pl.LazyFrame:
+        """Return action rows remaining at a stage.
+
+        Rows are considered remaining at ``stage`` when their current stage is
+        the requested stage or any later stage in ``AvailableNBADStages``.
+        ``source="sample"`` uses the deterministic sampled data used by
+        exploratory analyses; ``source="full"`` uses the full normalized
+        decision data for exact cohort work.
+
+        Parameters
+        ----------
+        stage : str, optional
+            Stage to evaluate. When omitted, returns rows with non-null
+            ``Priority`` after applying filters.
+        additional_filters : pl.Expr or list[pl.Expr], optional
+            Filters applied before selecting remaining rows.
+        source : {"sample", "full"}, default "sample"
+            Data source to query.
+        strict_stage : bool, default True
+            Raise ``ValueError`` for unknown stages. When False, unknown stages
+            return an empty frame.
+        """
+        base = apply_filter(self._stage_source(source), additional_filters)
+        if stage is None:
+            return base.filter(pl.col("Priority").is_not_null())
+
+        stage_idx = self._stage_index(stage, strict_stage=strict_stage)
+        if stage_idx is None:
+            return base.limit(0)
+
+        remaining_stages = self.AvailableNBADStages[stage_idx:]
+        return base.filter(pl.col(self.level).is_in(remaining_stages))
+
+    def remaining_at_stage_interactions(
+        self,
+        stage: str,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        source: str = "full",
+        include_subject_id: bool = True,
+        strict_stage: bool = True,
+    ) -> pl.DataFrame:
+        """Return exact interaction IDs with at least one action remaining at a stage.
+
+        Exact cohort APIs default to ``source="full"``. Use
+        ``source="sample"`` only for exploratory workflows where sampled IDs
+        are acceptable.
+        """
+        if self._stage_index(stage, strict_stage=strict_stage) is None:
+            return self._empty_interaction_frame(source, include_subject_id)
+
+        return (
+            self.remaining_at_stage(stage, additional_filters, source=source, strict_stage=strict_stage)
+            .select(self._interaction_detail_columns(source, include_subject_id))
+            .unique()
+            .collect()
+        )
+
+    def dropped_at_stage_interactions(
+        self,
+        stage: str,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        *,
+        source: str = "full",
+        include_subject_id: bool = True,
+        strict_stage: bool = True,
+    ) -> pl.DataFrame:
+        """Return exact interactions that lose their final action at ``stage``.
+
+        The cohort is computed as interactions remaining at ``stage`` minus
+        interactions remaining at the next stage, using the same filters and
+        source on both sides. Terminal stages return an empty frame.
+        """
+        stage_idx = self._stage_index(stage, strict_stage=strict_stage)
+        if stage_idx is None or stage_idx >= len(self.AvailableNBADStages) - 1:
+            return self._empty_interaction_frame(source, include_subject_id)
+
+        id_columns = self._interaction_detail_columns(source, include_subject_id)
+        current = (
+            self.remaining_at_stage(stage, additional_filters, source=source, strict_stage=strict_stage)
+            .select(id_columns)
+            .unique()
+        )
+        next_stage = self.AvailableNBADStages[stage_idx + 1]
+        next_ids = (
+            self.remaining_at_stage(next_stage, additional_filters, source=source, strict_stage=strict_stage)
+            .select("Interaction ID")
+            .unique()
+        )
+        return current.join(next_ids, on="Interaction ID", how="anti").collect()
+
+    def _stage_source(self, source: str) -> pl.LazyFrame:
+        if source == "sample":
+            return self.sample
+        if source == "full":
+            return self.decision_data
+        raise ValueError("source must be either 'sample' or 'full'.")
+
+    def _stage_index(self, stage: str, *, strict_stage: bool) -> int | None:
+        if stage in self.AvailableNBADStages:
+            return self.AvailableNBADStages.index(stage)
+        if strict_stage:
+            raise ValueError(f"Unknown stage {stage!r}. Expected one of: {self.AvailableNBADStages}")
+        return None
+
+    def _interaction_detail_columns(self, source: str, include_subject_id: bool) -> list[str]:
+        available = set(self._stage_source(source).collect_schema().names())
+        columns = ["Interaction ID"]
+        if include_subject_id and "Subject ID" in available:
+            columns.append("Subject ID")
+        return columns
+
+    def _empty_interaction_frame(self, source: str, include_subject_id: bool) -> pl.DataFrame:
+        schema = self._stage_source(source).collect_schema()
+        return pl.DataFrame(
+            schema={col: schema[col] for col in self._interaction_detail_columns(source, include_subject_id)}
+        )
+
     def get_available_fields_for_filtering(self, *, categorical_only: bool = False) -> list[str]:
         """Return column names available for data filtering.
 

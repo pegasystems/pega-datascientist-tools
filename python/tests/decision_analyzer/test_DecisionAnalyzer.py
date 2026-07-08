@@ -1906,6 +1906,70 @@ class TestMinimalDatasetBasics:
         assert set(issues) == {"Sales", "Retention"}
 
 
+class TestMinimalStageCohorts:
+    """Verify exact stage row and interaction cohort APIs."""
+
+    def test_remaining_at_stage_known_stage_full_source(self, da_minimal):
+        rows = da_minimal.remaining_at_stage("Output", source="full").collect()
+        assert rows.height == 3
+        assert set(rows["Interaction ID"].to_list()) == {"INT-001", "INT-003"}
+
+    def test_remaining_at_stage_known_stage_sample_source(self, da_minimal):
+        rows = da_minimal.remaining_at_stage("Output", source="sample").collect()
+        assert rows.height == 3
+        assert set(rows["Interaction ID"].to_list()) == {"INT-001", "INT-003"}
+
+    def test_remaining_at_stage_none_filters_to_ranked_rows(self, da_minimal):
+        rows = da_minimal.remaining_at_stage(source="full").collect()
+        assert rows.height == 8
+        assert rows["Priority"].is_not_null().all()
+
+    def test_remaining_at_stage_rejects_unknown_stage(self, da_minimal):
+        with pytest.raises(ValueError, match="Unknown stage"):
+            da_minimal.remaining_at_stage("Not A Stage", source="full").collect()
+
+    def test_remaining_at_stage_unknown_stage_can_return_empty(self, da_minimal):
+        rows = da_minimal.remaining_at_stage("Not A Stage", source="full", strict_stage=False).collect()
+        assert rows.height == 0
+
+    def test_legacy_scoring_remaining_keeps_unknown_stage_fallback(self, da_minimal):
+        rows = da_minimal.scoring._remaining_at_stage("Not A Stage").collect()
+        assert rows.height == da_minimal.sample.collect().height
+
+    def test_remaining_at_stage_interactions_includes_subject_id(self, da_minimal):
+        result = da_minimal.remaining_at_stage_interactions("Output")
+        assert result.columns == ["Interaction ID", "Subject ID"]
+        assert set(result["Interaction ID"].to_list()) == {"INT-001", "INT-003"}
+        assert set(result["Subject ID"].to_list()) == {"CUST-001", "CUST-003"}
+
+    def test_remaining_at_stage_interactions_can_omit_subject_id(self, da_minimal):
+        result = da_minimal.remaining_at_stage_interactions("Output", include_subject_id=False)
+        assert result.columns == ["Interaction ID"]
+
+    def test_remaining_at_stage_interactions_empty_filter(self, da_minimal):
+        result = da_minimal.remaining_at_stage_interactions("Output", pl.col("Channel") == "Missing")
+        assert result.height == 0
+        assert result.columns == ["Interaction ID", "Subject ID"]
+
+    def test_remaining_at_stage_interactions_unknown_stage_can_return_empty(self, da_minimal):
+        result = da_minimal.remaining_at_stage_interactions("Not A Stage", strict_stage=False)
+        assert result.height == 0
+        assert result.columns == ["Interaction ID", "Subject ID"]
+
+    def test_dropped_at_stage_interactions_exact_ids(self, da_minimal):
+        result = da_minimal.dropped_at_stage_interactions("Contact Policies and final Action processing")
+        assert result.rows() == [("INT-002", "CUST-002")]
+
+    def test_dropped_at_terminal_stage_is_empty(self, da_minimal):
+        result = da_minimal.dropped_at_stage_interactions("Output")
+        assert result.height == 0
+        assert result.columns == ["Interaction ID", "Subject ID"]
+
+    def test_dropped_at_stage_interactions_unknown_stage_can_return_empty(self, da_minimal):
+        result = da_minimal.dropped_at_stage_interactions("Not A Stage", strict_stage=False)
+        assert result.height == 0
+
+
 class TestMinimalFunnelExactValues:
     """Exact-value tests for funnel data against the minimal dataset.
 

@@ -139,12 +139,15 @@ class Scoring:
         order is >= the selected stage are "remaining" there.  If *stage*
         is None, falls back to rows with non-null Priority.
         """
-        base = apply_filter(self.da.sample, additional_filters)
-        if stage is None:
-            return base.filter(pl.col("Priority").is_not_null())
-        stage_idx = self.da.AvailableNBADStages.index(stage) if stage in self.da.AvailableNBADStages else 0
-        remaining_stages = self.da.AvailableNBADStages[stage_idx:]
-        return base.filter(pl.col(self.da.level).is_in(remaining_stages))
+        legacy_stage = stage
+        if stage is not None and stage not in self.da.AvailableNBADStages:
+            legacy_stage = self.da.AvailableNBADStages[0]
+        return self.da.remaining_at_stage(
+            legacy_stage,
+            additional_filters,
+            source="sample",
+            strict_stage=False,
+        )
 
     def get_sensitivity(
         self,
