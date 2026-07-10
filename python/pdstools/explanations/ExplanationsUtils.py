@@ -154,19 +154,12 @@ if TYPE_CHECKING:
 
 
 class ContextOperations(LazyNamespace):
-    """Context related operations such as to filter unique contexts.
+    """Context-related operations for querying unique contexts.
 
     Parameters
     ----------
-        aggregate (Aggregate): The aggregate object to operate on.
-
-    Attributes
-    ----------
-        aggregate (Aggregate): The aggregate object.
-        _df (pl.DataFrame | None): DataFrame containing context information.
-        _context_keys (list[str] | None): list of context keys.
-        initialized (bool): Flag indicating if the context operations have been initialized.
-
+    aggregate : Aggregate
+        Aggregate namespace instance that provides contextual explanation data.
     """
 
     dependencies: ClassVar[list[str]] = ["polars"]
@@ -206,9 +199,12 @@ class ContextOperations(LazyNamespace):
         self.initialized = True
 
     def get_context_keys(self) -> list[str]:
-        """Get context keys.
-        Returns the list of context keys from loaded data.
-            Eg. ['pyChannel', 'pyDirection', ...]
+        """Get available context keys.
+
+        Returns
+        -------
+        list[str]
+            Context key column names, for example ``["pyChannel", "pyDirection"]``.
         """
         self._load()
         assert self._context_keys is not None
@@ -219,16 +215,20 @@ class ContextOperations(LazyNamespace):
         context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
     ) -> pl.DataFrame:
-        """Get the DataFrame filtered by the provided context information.
-        Returns a DataFrame containing unique contexts
-            If `with_partition_col` is True, includes the partition column.
-            If `context_infos` is None, returns the full unique contexts,
-            else filtered by the context
-            Eg. with partition column:
-            | pyChannel | pyDirection | ... | partition |
-            |-----------|-------------|-----|-----------|
-            | channel1  | direction1  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction1"}} |
-            | channel1  | direction2  | ... | {"partition": {"pyChannel": "channel1", "pyDirection": "direction2"}} |
+        """Return unique contexts as a DataFrame, optionally filtered.
+
+        Parameters
+        ----------
+        context_infos : list[ContextInfo] | None, default None
+            Optional context filters. When provided, rows are filtered to the
+            matching contexts.
+        with_partition_col : bool, default False
+            Whether to include the raw ``partition`` column in the output.
+
+        Returns
+        -------
+        pl.DataFrame
+            Unique contexts with one row per context.
         """
         self._load()
         assert self._df is not None
@@ -244,16 +244,20 @@ class ContextOperations(LazyNamespace):
         context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
     ) -> list[ContextInfo]:
-        """Get the list of context information filtered by the provided context information.
-        Returns a list[ContextInfo] containing unique contexts
-            If `with_partition_col` is True, includes the partition column.
-            If `context_infos` is None, returns the full unique contexts,
-            else filtered by the context
-            Eg. without partition column:
-            [
-                {"pyChannel": "channel1", "pyDirection": "direction1", ...},
-                {"pyChannel": "channel1", "pyDirection": "direction2", ...},
-            ]
+        """Return unique contexts as dictionaries, optionally filtered.
+
+        Parameters
+        ----------
+        context_infos : list[ContextInfo] | None, default None
+            Optional context filters. When provided, rows are filtered to the
+            matching contexts.
+        with_partition_col : bool, default False
+            Whether to include the raw ``partition`` field in each dictionary.
+
+        Returns
+        -------
+        list[ContextInfo]
+            Unique contexts represented as dictionaries.
         """
         self._load()
         df = self.get_df(context_infos, with_partition_col)
@@ -316,9 +320,19 @@ class ContextOperations(LazyNamespace):
 
     @staticmethod
     def get_context_info_str(context_info: ContextInfo, sep: str = "-") -> str:
-        """Get context info str.
-        Returns a string representation of a single context information.
-            Eg. channel1-direction1-...
+        """Format a context dictionary into a compact string.
+
+        Parameters
+        ----------
+        context_info : ContextInfo
+            Context dictionary to format.
+        sep : str, default "-"
+            Separator inserted between values.
+
+        Returns
+        -------
+        str
+            String containing context values joined by ``sep``.
         """
         return sep.join(f"{value}".strip() for value in context_info.values())
 
