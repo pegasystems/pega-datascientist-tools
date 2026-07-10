@@ -96,7 +96,7 @@ class TestPureInit:
         """Test that relative data_folder path is split into root_dir and data_folder."""
         exp = Explanations(data_folder="custom/path/mydata")
 
-        assert exp.root_dir == "custom/path"
+        assert Path(exp.root_dir).as_posix() == "custom/path"
         assert exp.data_folder == "mydata"
 
     def test_path_object_accepted(self, tmp_path):
