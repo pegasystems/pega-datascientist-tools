@@ -57,14 +57,17 @@ class _TABLE_NAME(Enum):
 
 # can also be sort order
 class _CONTRIBUTION_TYPE(Enum):
-    def __new__(cls, default, alt, text):
+    alt: str
+    text: str
+
+    def __new__(cls, default: str, alt: str, text: str):
         obj = object.__new__(cls)
         obj._value_ = default
         obj.alt = alt
         obj.text = text
         return obj
 
-    def __init__(self, default, alt, text):
+    def __init__(self, default: str, alt: str, text: str):
         self.text = text
 
     @classmethod

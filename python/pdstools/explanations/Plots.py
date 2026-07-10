@@ -84,17 +84,13 @@ class Plots(LazyNamespace):
     ) -> tuple[go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
         """Plot contributions for overall."""
         display_by_enum = _resolve_contribution_type(display_by)
-        agg_kwargs = {
-            "sort_by": sort_by,
-            "descending": descending,
-            "missing": missing,
-            "remaining": remaining,
-            "include_numeric_single_bin": include_numeric_single_bin,
-        }
-
         df = self.aggregate.get_predictor_contributions(
             top_n=top_n,
-            **agg_kwargs,
+            sort_by=sort_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
         predictors = (
@@ -108,7 +104,11 @@ class Plots(LazyNamespace):
         df_predictors = self.aggregate.get_predictor_value_contributions(
             predictors=predictors,
             top_k=top_k,
-            **agg_kwargs,
+            sort_by=sort_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
         if return_df:
@@ -177,18 +177,14 @@ class Plots(LazyNamespace):
     ) -> tuple[go.Figure, go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
         """Plot contributions by context."""
         display_by_enum = _resolve_contribution_type(display_by)
-        agg_kwargs = {
-            "sort_by": sort_by,
-            "descending": descending,
-            "missing": missing,
-            "remaining": remaining,
-            "include_numeric_single_bin": include_numeric_single_bin,
-        }
-
         df_context = self.aggregate.get_predictor_contributions(
             context,
             top_n=top_n,
-            **agg_kwargs,
+            sort_by=sort_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
         # filter out the context rows for plotting by context
@@ -211,7 +207,11 @@ class Plots(LazyNamespace):
             predictors,
             context=context,
             top_k=top_k,
-            **agg_kwargs,
+            sort_by=sort_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
         if return_df:

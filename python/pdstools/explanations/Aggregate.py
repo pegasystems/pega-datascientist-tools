@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ["Aggregate"]
 
 import logging
-from typing import ClassVar, TYPE_CHECKING, cast
+from typing import ClassVar, TYPE_CHECKING, cast, overload
 from pathlib import Path
 
 import polars as pl
@@ -551,12 +551,26 @@ class Aggregate(LazyNamespace):
         return self._agg_over_columns_in_df(data, aggregate_over)
 
     @staticmethod
-    def _add_total_frequency_to_df(df, group_by):
-        df_grouped = df.group_by(group_by).agg(pl.sum(_COL.FREQUENCY.value).alias(_SPECIAL.TOTAL_FREQUENCY.value))
+    @overload
+    def _add_total_frequency_to_df(df: pl.DataFrame, group_by: list[str]) -> pl.DataFrame: ...
 
-        return df_grouped.join(df, on=group_by, how="left")
+    @staticmethod
+    @overload
+    def _add_total_frequency_to_df(df: pl.LazyFrame, group_by: list[str]) -> pl.LazyFrame: ...
 
-    def add_frequency_pct_to_df(self, df, group_by) -> pl.LazyFrame:
+    @staticmethod
+    def _add_total_frequency_to_df(
+        df: pl.DataFrame | pl.LazyFrame,
+        group_by: list[str],
+    ) -> pl.DataFrame | pl.LazyFrame:
+        if isinstance(df, pl.DataFrame):
+            grouped_df = df.group_by(group_by).agg(pl.sum(_COL.FREQUENCY.value).alias(_SPECIAL.TOTAL_FREQUENCY.value))
+            return grouped_df.join(df, on=group_by, how="left")
+
+        grouped_lf = df.group_by(group_by).agg(pl.sum(_COL.FREQUENCY.value).alias(_SPECIAL.TOTAL_FREQUENCY.value))
+        return grouped_lf.join(df, on=group_by, how="left")
+
+    def add_frequency_pct_to_df(self, df: pl.DataFrame, group_by: list[str]) -> pl.DataFrame:
         """Add a frequency percentage column to the dataframe based on the total frequency per group."""
 
         df_with_total_frequency = self._add_total_frequency_to_df(df, group_by)
