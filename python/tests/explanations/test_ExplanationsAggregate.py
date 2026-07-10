@@ -300,6 +300,58 @@ class TestContextOperations:
         assert after == before
 
 
+class TestAggregateAndContextOperationHelpers:
+    """Coverage for helper paths in Aggregate and ContextOperations."""
+
+    def test_get_unique_contexts_list_returns_contexts(self, aggregate):
+        contexts = aggregate.get_unique_contexts_list()
+        assert len(contexts) > 0
+        assert isinstance(contexts[0], dict)
+        assert "pyChannel" in contexts[0]
+
+    def test_internal_get_predictor_contributions_filters_predictors(self, aggregate, selected_context):
+        df = aggregate._get_predictor_contributions(
+            contexts=[selected_context],
+            predictors=["Age"],
+            remaining=False,
+        )
+        assert set(df["predictor_name"].unique().to_list()) == {"Age"}
+
+    def test_get_base_df_triggers_load_when_frames_are_missing(self, aggregate):
+        aggregate.initialized = False
+        aggregate.df_overall = None
+        aggregate.df_contextual = None
+
+        df = aggregate._get_base_df().collect()
+
+        assert aggregate.initialized is True
+        assert df.height > 0
+
+    def test_get_sort_over_columns_with_predictors(self, aggregate):
+        assert aggregate._get_sort_over_columns(["Age"]) == [_COL.PARTITION.value]
+
+    def test_context_operations_get_context_keys(self, aggregate):
+        keys = aggregate.context_operations.get_context_keys()
+        assert keys
+        assert all(key.startswith("py") for key in keys)
+
+    def test_context_operations_get_df_default_and_with_partition(self, aggregate):
+        df_default = aggregate.context_operations.get_df()
+        assert _COL.PARTITION.value not in df_default.columns
+
+        df_with_partition = aggregate.context_operations.get_df(with_partition_col=True)
+        assert _COL.PARTITION.value in df_with_partition.columns
+
+    def test_context_operations_get_list_and_context_string(self, aggregate, selected_context):
+        contexts = aggregate.context_operations.get_list([selected_context], with_partition_col=False)
+        assert len(contexts) == 1
+        assert contexts[0]["pyChannel"] == selected_context["pyChannel"]
+
+        context_str = ContextOperations.get_context_info_str(selected_context, sep="|")
+        assert "PegaBatch" in context_str
+        assert "|" in context_str
+
+
 class TestAggregatePredictorContributions:
     """Test cases for Aggregate contribution methods."""
 

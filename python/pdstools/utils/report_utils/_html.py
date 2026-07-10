@@ -88,18 +88,18 @@ def generate_zipped_report(output_filename: str, folder_to_zip: Path):
 
     Examples
     --------
-    >>> generate_zipped_report("my_archive.zip", "/path/to/directory")
-    >>> generate_zipped_report("report_2023", "/tmp/report_output")
+    >>> generate_zipped_report("my_archive.zip", Path("/path/to/directory"))
+    >>> generate_zipped_report("report_2023", Path("/tmp/report_output"))
 
     """
-    if not folder_to_zip.is_dir():
-        logger.error(f"The output path {folder_to_zip} is not a directory.")
-        return
-
     if not folder_to_zip.exists():
         logger.warning(
             f"The {folder_to_zip} directory does not exist. Skipping zip creation.",
         )
+        return
+
+    if not folder_to_zip.is_dir():
+        logger.error(f"The output path {folder_to_zip} is not a directory.")
         return
 
     base_filename = Path(output_filename).with_suffix("")

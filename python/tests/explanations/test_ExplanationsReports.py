@@ -1,6 +1,7 @@
 """Test cases for the Reports class that handles generating reports from aggregated data."""
 
 import logging
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
@@ -249,3 +250,103 @@ class TestGenerateFilterKwargs:
             reports.generate()
 
         mock_create_batch_parquet_files.assert_called_once_with(contexts)
+
+    def test_generate_raises_when_validation_fails(self, report_paths):
+        reports = report_paths
+        with patch.object(
+            reports.explanations,
+            "validate_data_folder",
+            side_effect=FileNotFoundError("missing parquet"),
+        ):
+            with pytest.raises(FileNotFoundError, match="missing parquet"):
+                reports.generate()
+
+    def test_generate_raises_when_copy_fails(self, report_paths):
+        reports = report_paths
+        with (
+            patch.object(reports, "_copy_report_resources", side_effect=OSError("copy failed")),
+            patch.object(
+                reports.explanations.aggregate.context_operations,
+                "create_unique_contexts_file",
+                return_value={"100": ["ctx1"]},
+            ),
+            patch.object(
+                reports.explanations.aggregate.context_operations,
+                "create_batch_parquet_files",
+            ),
+        ):
+            with pytest.raises(OSError, match="copy failed"):
+                reports.generate()
+
+    def test_generate_raises_when_quarto_process_errors(self, report_paths):
+        reports = report_paths
+        with (
+            patch.object(reports, "_validate_report_dir"),
+            patch.object(reports, "_copy_report_resources"),
+            patch.object(reports, "_set_params"),
+            patch.object(
+                reports.explanations.aggregate.context_operations,
+                "create_unique_contexts_file",
+                return_value={"100": ["ctx1"]},
+            ),
+            patch.object(
+                reports.explanations.aggregate.context_operations,
+                "create_batch_parquet_files",
+            ),
+            patch(
+                "pdstools.explanations.Reports.run_quarto",
+                side_effect=subprocess.CalledProcessError(1, "quarto"),
+            ),
+        ):
+            with pytest.raises(subprocess.CalledProcessError):
+                reports.generate()
+
+    def test_generate_raises_when_quarto_returns_nonzero(self, report_paths):
+        reports = report_paths
+        with (
+            patch.object(reports, "_validate_report_dir"),
+            patch.object(reports, "_copy_report_resources"),
+            patch.object(reports, "_set_params"),
+            patch.object(
+                reports.explanations.aggregate.context_operations,
+                "create_unique_contexts_file",
+                return_value={"100": ["ctx1"]},
+            ),
+            patch.object(
+                reports.explanations.aggregate.context_operations,
+                "create_batch_parquet_files",
+            ),
+            patch(
+                "pdstools.explanations.Reports.run_quarto",
+                return_value=2,
+            ),
+        ):
+            with pytest.raises(RuntimeError, match="return code 2"):
+                reports.generate()
+
+    def test_generate_with_zip_output_creates_zip(self, report_paths):
+        reports = report_paths
+        with (
+            patch.object(reports, "_validate_report_dir"),
+            patch.object(reports, "_copy_report_resources"),
+            patch.object(reports, "_set_params"),
+            patch.object(
+                reports.explanations.aggregate.context_operations,
+                "create_unique_contexts_file",
+                return_value={"100": ["ctx1"]},
+            ),
+            patch.object(
+                reports.explanations.aggregate.context_operations,
+                "create_batch_parquet_files",
+            ),
+            patch(
+                "pdstools.explanations.Reports.run_quarto",
+                return_value=0,
+            ),
+            patch(
+                "pdstools.explanations.Reports.generate_zipped_report",
+            ) as mock_zip,
+        ):
+            reports.generate(report_filename="out.zip", zip_output=True)
+
+        mock_zip.assert_called_once_with("out.zip", reports.report_output_dir)
