@@ -167,16 +167,18 @@ See sections below for the full per-area detail.
 
 ### Changed
 
-- **`Explanations.__init__` no longer accepts filesystem paths.** The
-  `root_dir`, `data_folder`, and `data_file` parameters have moved to a
-  new `Explanations.from_local_directory(...)` classmethod. The
+- **`Explanations.__init__` no longer loads explanation data.** The
+  explanations API now expects pre-aggregated parquet files loaded through
+  `Explanations.from_aggregates(...)`. The
   constructor now takes only configuration (`model_name`, `from_date`,
   `to_date`) and performs no I/O — matching the pure-`__init__` pattern
   used by `ADMDatamart`, `IH`, `Prediction`, and other analyzer classes.
-  All path-keyword arguments are now keyword-only on the classmethod.
+  All aggregate path-keyword arguments are now keyword-only on the classmethod.
   **Migration:**
   `Explanations(data_folder="...", model_name="...", from_date=..., to_date=...)`
-  → `Explanations.from_local_directory(data_folder="...", model_name="...", from_date=..., to_date=...)`.
+  → `Explanations.from_aggregates(data_folder="...", model_name="...", from_date=..., to_date=...)`.
+  Raw single-file / remote-URL aggregation has been removed from this API;
+  provide `BY_CONTEXT.parquet` and `OVERALL.parquet` in the aggregate folder.
   Quarto report templates that previously did
   `Explanations(root_dir="...")` followed by manual
   `aggregate.data_folderpath = "..."` should drop the `root_dir`

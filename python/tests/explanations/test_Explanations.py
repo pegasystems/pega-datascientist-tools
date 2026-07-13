@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 from pdstools.explanations import Explanations
 
+DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
+
 
 class TestExplanationsDateRange:
     """Test the initialization of the Explanations class."""
@@ -98,6 +100,19 @@ class TestPureInit:
 
         assert Path(exp.root_dir).as_posix() == "custom/path"
         assert exp.data_folder == "mydata"
+
+    def test_explicit_root_dir_with_relative_data_folder(self, tmp_path):
+        """A relative aggregate folder resolves under the explicit root_dir."""
+        data_dir = tmp_path / "custom_aggs"
+        data_dir.mkdir()
+        for filename in ("BY_CONTEXT.parquet", "OVERALL.parquet"):
+            (data_dir / filename).write_bytes((DATA_DIR / filename).read_bytes())
+
+        exp = Explanations.from_aggregates(root_dir=str(tmp_path), data_folder="custom_aggs")
+
+        assert exp.root_dir == str(tmp_path)
+        assert exp.data_folder == "custom_aggs"
+        assert exp.aggregate.data_folderpath == data_dir
 
     def test_path_object_accepted(self, tmp_path):
         """Test that Path objects are accepted for data_folder."""

@@ -168,17 +168,16 @@ class Explanations:
         self.root_dir = root_dir
         self.data_folder = str(data_folder) if isinstance(data_folder, Path) else data_folder
 
-        # Path splitting heuristic:
-        # If the provided data_folder is the default literal ("aggregated_data"),
-        # keep it as-is and use root_dir as the parent.
-        # Otherwise, treat it as a full path (absolute or relative) and extract
-        # the parent as root_dir and the name as data_folder.
-        # This allows flexible initialization:
-        #   - Explanations(root_dir=".tmp", data_folder="aggregated_data") -> .tmp/aggregated_data
-        #   - Explanations(data_folder="/custom/path/mydata") -> root_dir="/custom/path", data_folder="mydata"
-        #   - Explanations(data_folder="relative/path/data") -> root_dir="relative/path", data_folder="data"
-        if self.data_folder != self._DEFAULT_DATA_FOLDER:
-            data_folder_path = Path(self.data_folder)
+        data_folder_path = Path(self.data_folder)
+        root_is_default = root_dir == self._DEFAULT_ROOT_DIR
+        should_split_data_folder = self.data_folder != self._DEFAULT_DATA_FOLDER and (
+            data_folder_path.is_absolute() or (root_is_default and data_folder_path.parent != Path("."))
+        )
+
+        # Treat absolute paths and default-root multi-part relative paths as full
+        # aggregate paths. When callers pass root_dir explicitly, a relative
+        # data_folder remains relative to that root.
+        if should_split_data_folder:
             self.data_folder = str(data_folder_path.name)
             self.root_dir = str(data_folder_path.parent)
             logger.info(

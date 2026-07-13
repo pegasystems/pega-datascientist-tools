@@ -149,7 +149,7 @@ model=...)` directly.
 Previously `def __init__(self, *args, **kwargs)`. Now uses explicit
 parameters matching the documented constructor signature.
 
-### `Explanations.__init__` is pure config; loading moves to `from_local_directory`
+### `Explanations.__init__` is pure config; loading moves to `from_aggregates`
 
 The `Explanations` constructor used to accept filesystem paths
 (`root_dir`, `data_folder`, `data_file`) and run the DuckDB
@@ -158,9 +158,9 @@ violated the project's pure-`__init__` rule (see AGENTS.md, "I/O lives
 in classmethods, not `__init__`").
 
 In v5 the constructor takes only configuration (`model_name`,
-`from_date`, `to_date`, all keyword-only) and performs no I/O. All
-path-driven loading moves to a new `from_local_directory` classmethod
-that mirrors `ADMDatamart.from_ds_export` / `from_s3`.
+`from_date`, `to_date`, all keyword-only) and performs no I/O. The
+explanations API now expects pre-aggregated parquet files and loads them
+with `from_aggregates`.
 
 ```python
 # Before (v4.x):
@@ -172,7 +172,7 @@ exp = Explanations(
 )
 
 # After (v5):
-exp = Explanations.from_local_directory(
+exp = Explanations.from_aggregates(
     data_folder="explanations_data",
     model_name="AdaptiveBoostCT",
     from_date=datetime(2025, 3, 28),
@@ -180,16 +180,13 @@ exp = Explanations.from_local_directory(
 )
 ```
 
-Single-file / remote-URL loading still works the same way, just on the
-classmethod:
+Raw single-file / remote-URL aggregation is no longer part of this API.
+Generate or provide a folder containing the pre-aggregated parquet files
+(`BY_CONTEXT.parquet` and `OVERALL.parquet`) before constructing
+`Explanations`:
 
 ```python
-# Before:
-exp = Explanations(data_file="https://.../file.parquet", model_name="...")
-# After:
-exp = Explanations.from_local_directory(
-    data_file="https://.../file.parquet", model_name="...",
-)
+exp = Explanations.from_aggregates(data_folder=".tmp/aggregated_data")
 ```
 
 Quarto report templates that previously did
