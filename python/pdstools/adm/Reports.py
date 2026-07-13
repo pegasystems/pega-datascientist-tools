@@ -366,8 +366,13 @@ class Reports(LazyNamespace):
             ):
                 selected_model_ids = None
                 if self.datamart.model_data is not None and self.datamart.predictor_data is not None:
+                    model_data_for_cache = (
+                        cdh_utils._apply_query(self.datamart.model_data, query)
+                        if query is not None
+                        else self.datamart.model_data
+                    )
                     selected_model_ids = (
-                        self.datamart.model_data.select("ModelID")
+                        model_data_for_cache.select("ModelID")
                         .unique()
                         .collect(engine="streaming")["ModelID"]
                         .to_list()

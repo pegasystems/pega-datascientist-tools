@@ -1,5 +1,6 @@
 """Testing the functionality of the adm Reports module"""
 
+import pathlib
 import zipfile
 
 import polars as pl
@@ -212,3 +213,39 @@ def test_health_check_markdown_rejects_query_with_preaggregates(tmp_path):
             query=pl.col("Channel") == "Web",
             preaggregates=preaggregates,
         )
+
+
+def test_health_check_query_consolidates_predictors_to_filter(tmp_path, monkeypatch):
+    datamart = datasets.cdh_sample()
+    reports = Reports(datamart)
+    query = pl.col("Channel") == "Web"
+
+    captured: dict[str, object] = {}
+
+    def fake_copy_quarto_file(qmd_filename, temp_dir):
+        (temp_dir / qmd_filename).write_text("", encoding="utf-8")
+
+    def fake_save_data(path, selected_model_ids=None):
+        captured["selected_model_ids"] = selected_model_ids
+        return pathlib.Path(path) / "model.parquet", pathlib.Path(path) / "predictor.parquet"
+
+    def fake_run_quarto(*, output_filename, temp_dir, **_kwargs):
+        (temp_dir / output_filename).write_text("", encoding="utf-8")
+        return None
+
+    monkeypatch.setattr("pdstools.adm.Reports.copy_quarto_file", fake_copy_quarto_file)
+    monkeypatch.setattr("pdstools.adm.Reports.run_quarto", fake_run_quarto)
+    monkeypatch.setattr(datamart, "save_data", fake_save_data)
+
+    reports.health_check(output_dir=tmp_path, query=query)
+
+    expected_model_ids = (
+        datamart.model_data.filter(query)
+        .select("ModelID")
+        .unique()
+        .collect(engine="streaming")["ModelID"]
+        .to_list()
+    )
+
+    assert captured["selected_model_ids"] is not None
+    assert sorted(captured["selected_model_ids"]) == sorted(expected_model_ids)
