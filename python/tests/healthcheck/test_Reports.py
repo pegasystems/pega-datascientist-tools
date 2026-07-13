@@ -240,11 +240,7 @@ def test_health_check_query_consolidates_predictors_to_filter(tmp_path, monkeypa
     reports.health_check(output_dir=tmp_path, query=query)
 
     expected_model_ids = (
-        datamart.model_data.filter(query)
-        .select("ModelID")
-        .unique()
-        .collect(engine="streaming")["ModelID"]
-        .to_list()
+        datamart.model_data.filter(query).select("ModelID").unique().collect(engine="streaming")["ModelID"].to_list()
     )
 
     assert captured["selected_model_ids"] is not None

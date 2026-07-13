@@ -372,10 +372,7 @@ class Reports(LazyNamespace):
                         else self.datamart.model_data
                     )
                     selected_model_ids = (
-                        model_data_for_cache.select("ModelID")
-                        .unique()
-                        .collect(engine="streaming")["ModelID"]
-                        .to_list()
+                        model_data_for_cache.select("ModelID").unique().collect(engine="streaming")["ModelID"].to_list()
                     )
                 model_file_path, predictor_file_path = self.datamart.save_data(
                     temp_dir,
