@@ -30,6 +30,7 @@ class _PerformancePlotsMixin(_PlotsBase):
         cumulative: bool = True,
         query: QUERY | None = None,
         facet: str | None = None,
+        facet_col_spacing: float | None = None,
         show_metric_limits: bool = False,
         return_df: bool = False,
     ):
@@ -54,6 +55,10 @@ class _PerformancePlotsMixin(_PlotsBase):
             The query to apply to the data, by default None
         facet : Optional[str], optional
             Whether to facet the plot into subplots, by default None
+        facet_col_spacing : float, optional
+            Horizontal spacing between facet columns, using Plotly Express'
+            ``facet_col_spacing`` scale from 0 to 1. By default, Plotly's
+            standard spacing is used.
         show_metric_limits : bool, optional
             Whether to show dashed horizontal lines at the metric limit
             thresholds (from MetricLimits.csv), by default False.
@@ -228,12 +233,13 @@ class _PerformancePlotsMixin(_PlotsBase):
         }
         if facet_col_wrap is not None:
             line_kwargs["facet_col_wrap"] = facet_col_wrap
+        if facet_col_spacing is not None:
+            line_kwargs["facet_col_spacing"] = facet_col_spacing
 
         fig = px.line(final_df, **line_kwargs)
 
         if metric == "SuccessRate":
-            fig.update_yaxes(tickformat=".2%")
-            fig.update_layout(yaxis={"rangemode": "tozero"})
+            fig.update_yaxes(tickformat=".2%", rangemode="nonnegative")
 
         if show_metric_limits and metric == "Performance":
             fig = add_metric_limit_lines(fig, orientation="horizontal")

@@ -419,7 +419,7 @@ try:
         query=active_models_filter_expr,
         show_fraction=False,
     )
-    fig.update_layout(title="Number of Overlapping Actions<br><sub>by Channel</sub>", width=500, height=500)
+    fig.update_layout(title="Number of Overlapping Actions<br><sub>by Channel/Direction</sub>", width=500, height=500)
     fig.update_xaxes(title="")
     fig.update_yaxes(title="")
 
@@ -430,7 +430,7 @@ try:
         overlap_col="Name",
         query=active_models_filter_expr,
     )
-    fig.update_layout(title="Percentage of Overlapping Actions<br><sub>by Channel</sub>",
+    fig.update_layout(title="Percentage of Overlapping Actions<br><sub>by Channel/Direction</sub>",
     width=500, height=500)
     fig.update_xaxes(title="")
     fig.update_yaxes(title="")
@@ -818,6 +818,13 @@ In the detailed analyses after the model overview, the following channels that h
 ```
 
 ```{python}
+# | echo: false
+# Trend plots use the same post-channel-filter dataset; later configuration
+# exclusions are for current-state detail sections only.
+trend_datamart = datamart
+```
+
+```{python}
 report_utils.quarto_print(
     f"""
 Just showing the top {barchart_max_bars} actions here and limiting to the propositions that have received at least {responsecount_analysis_threshold} responses (the rates reported by the models are unreliable otherwise).
@@ -871,7 +878,7 @@ try:
         template="pega",
         text="Label",
         title=(
-            "Success Rates per Channel<br><sup>%s — models updated since %s</sup>"
+            "Success Rates per Channel/Direction<br><sup>%s — models updated since %s</sup>"
             % (
                 "/".join(report_utils.polars_subset_to_existing_cols(datamart_all_columns, ["Name", "Treatment"])),
                 active_models_threshold_date_string,
@@ -931,38 +938,38 @@ except Exception as e:
 
 ## Success Rates over Time
 
-Showing how the overall channel success rates evolved over the time that the data export covers. Split by Channel and model configuration. Usually there are separate model configurations for different channels but sometimes there are also additional model configurations for different outcomes (e.g. conversion) or different customers (e.g. anonymous).
+Showing how the overall success rates evolved over the time that the data export covers. Lines are colored by channel and direction, and the plot is split into one facet per model technique.
 
 ```{python}
-if datamart.has_single_snapshot:
+if trend_datamart.has_single_snapshot:
     display(Markdown("::: {.callout-note title='Trend unavailable'}\nThis dataset contains only one snapshot. Trend plots require multiple snapshots captured over time.\n:::"))
 else:
-    # Count unique ModelTechnique values for safe facet layout
-    n_model_techniques = (
-        datamart.model_data
-        .select(pl.col("ModelTechnique").n_unique())
-        .collect()
-        .item()
-    )
+    n_model_techniques = trend_datamart.model_data.select(pl.col("ModelTechnique").n_unique()).collect().item()
     facet_col_wrap = safe_facet_col_wrap(n_model_techniques, max_rows=15)
-    by = pl.concat_str(["Channel", "Direction"], separator="/")
+    by = pl.concat_str(["Channel", "Direction"], separator="/").alias("Channel/Direction")
     try:
-        fig = datamart.plot.over_time(
-            metric="SuccessRate",
-            facet="ModelTechnique",
-            by=by,
-        )
+        plot_kwargs = {
+            "metric": "SuccessRate",
+            "by": by,
+            "facet": "ModelTechnique",
+            "facet_col_spacing": 0.08,
+        }
+
+        fig = trend_datamart.plot.over_time(**plot_kwargs)
         fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
         fig = (
-            fig.update_yaxes(matches=None, title="", showticklabels=True, tickformat=".2%")
+            fig.update_yaxes(title="", showticklabels=True, tickformat=".2%")
             .update_xaxes(showticklabels=True, title="")
-            .update_layout(title=f"Trend of Success Rates by Channel")
+            .update_layout(
+                title="Trend of Success Rates by Channel/Direction and Model Technique",
+                margin=dict(t=70),
+            )
         )
 
         fig.show()
     except ValueError as e:
         print(
-            f"Error {str(e)}\nPossibly too many facets: {len(facets)} for {facet_col_wrap} columns."
+            f"Error {str(e)}\nPossibly too many ModelTechnique facets for {facet_col_wrap} columns."
         )
     except Exception as e:
         report_utils.quarto_plot_exception("Success Rates over Time", e)
@@ -1130,6 +1137,7 @@ The data contains many ({n_configs}) model configurations. To limit the size of 
                 pl.col("ModelTechnique").cast(pl.Utf8).fill_null(""),
                 separator="/"
             ).alias("Facet")
+            bubble_title_detail = "Channel/Direction and Model Technique"
         else:
             # ModelTechnique is all null - just use Channel/Direction
             n_facets = all_facets.select([
@@ -1147,6 +1155,7 @@ The data contains many ({n_configs}) model configurations. To limit the size of 
                 pl.col("Direction").cast(pl.Utf8).fill_null(""),
                 separator="/"
             ).alias("Facet")
+            bubble_title_detail = "Channel/Direction"
     else:
         # Reasonable number of configurations - include all dimensions
         facet = pl.concat_str(
@@ -1155,16 +1164,17 @@ The data contains many ({n_configs}) model configurations. To limit the size of 
             pl.col("Direction").cast(pl.Utf8).fill_null(""),
             separator="/"
         ).alias("Facet")
+        bubble_title_detail = "Configuration and Channel/Direction"
 
     fig = datamart.plot.bubble_chart(facet=facet, query=active_models_filter_expr, show_metric_limits=True)
     fig = (
-        fig_update_facet(fig, step_height=300)
+        fig_update_facet(fig, step_height=430)
         .update_layout(
-            title=f"ADM Models per Channel<br><sup>updated since {active_models_threshold_date_string}</sup>",
+            title=f"ADM Models by {bubble_title_detail}<br><sup>updated since {active_models_threshold_date_string}</sup>",
             font=dict(size=9),
             autosize=False,
             width=900,
-            margin=dict(t=100),
+            margin=dict(t=140),
         )
         .for_each_annotation(lambda a: a.update(text="<br>".join(a.text.split("/", 1))))
         .for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True, visible=True))
@@ -1205,28 +1215,27 @@ On the x-axis Model Performance measured in AUC-ROC, on the y-axis the Success R
 
 ### Model Performance over Time
 
-The trend chart shows how model performance evolves over time. Note that ADM is by default configured to track performance over *all* time. You can configure a window for monitoring but this is not commonly done. In Pega Prediction Studio you can monitor models per month, year etc.
+The trend chart shows how model performance evolves over time. Lines are colored by channel and direction, and the plot is split into one facet per model technique. Note that ADM is by default configured to track performance over *all* time. You can configure a window for monitoring but this is not commonly done. In Pega Prediction Studio you can monitor models per month, year etc.
 
 ```{python}
-if datamart.has_single_snapshot:
+if trend_datamart.has_single_snapshot:
     display(Markdown("::: {.callout-note title='Trend unavailable'}\nThis dataset contains only one snapshot. Trend plots require multiple snapshots captured over time.\n:::"))
 else:
     by = pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/").alias(
         "Channel/Direction"
     )
-    # Count unique ModelTechnique values for safe facet layout
-    n_model_techniques = (
-        datamart.model_data
-        .select(pl.col("ModelTechnique").n_unique())
-        .collect()
-        .item()
-    )
+    n_model_techniques = trend_datamart.model_data.select(pl.col("ModelTechnique").n_unique()).collect().item()
     facet_col_wrap = safe_facet_col_wrap(n_model_techniques, max_rows=15)
     try:
-        fig = datamart.plot.over_time(metric="Performance", facet="ModelTechnique", by=by, show_metric_limits=True)
+        fig = trend_datamart.plot.over_time(
+            metric="Performance", facet="ModelTechnique", by=by, show_metric_limits=True
+        )
         fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
         fig = (
-            fig.update_layout(title="Trend of Model Performance")
+            fig.update_layout(
+                title="Trend of Model Performance by Channel/Direction and Model Technique",
+                margin=dict(t=70),
+            )
             .update_yaxes(showticklabels=True, title="", range=[50, 100])
             .update_xaxes(title="")
         )
@@ -1234,7 +1243,7 @@ else:
         fig.show()
     except ValueError as e:
         print(
-            f"Error {str(e)}\nPossibly too many ModelTechnique facets: {n_model_techniques} with {facet_col_wrap} columns."
+            f"Error {str(e)}\nPossibly too many ModelTechnique facets for {facet_col_wrap} columns."
         )
     except Exception as e:
         report_utils.quarto_plot_exception("Model Performance over Time", e)
@@ -1260,7 +1269,9 @@ try:
     )
 
     fig = fig.update_layout(
-        title=f"Overview of Model Performance<br><sup>models updated since {active_models_threshold_date_string}</sup>", showlegend=False
+        title=f"Overview of Model Performance<br><sup>models updated since {active_models_threshold_date_string}</sup>",
+        showlegend=False,
+        margin=dict(t=90),
     ).update_coloraxes(showscale=False)
 
     fig.show()
@@ -1284,7 +1295,9 @@ try:
     )
 
     fig = fig.update_layout(
-        title=f"Overview of Response Counts<br><sup>models updated since {active_models_threshold_date_string}</sup>", showlegend=False
+        title=f"Overview of Response Counts<br><sup>models updated since {active_models_threshold_date_string}</sup>",
+        showlegend=False,
+        margin=dict(t=90),
     ).update_coloraxes(showscale=False)
 
     fig.show()
@@ -1782,7 +1795,10 @@ else:
         )
 
         fig.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
-        fig.update_layout(legend_title_text="Model Maturity")
+        fig.update_layout(
+            title="Number of Empty/Immature Models over Time by Channel/Direction",
+            legend_title_text="Model Maturity",
+        )
         fig = fig_update_facet(fig, 3, 200, 250)
 
         fig.update_layout(legend=dict(yanchor="bottom", y=-400, xanchor="left", x=0))
@@ -1792,7 +1808,11 @@ else:
         report_utils.quarto_plot_exception("Number of Empty/Immature Models over time", e)
 ```
 
-Guidance ::: {.callout-tip title="Guidance"} \* Empty models shouldnt be increasing too much \* Good models (AUC 55-80) should increase or at least not decrease \* Good models should be much higher than problem kids :::
+::: {.callout-tip title="Guidance"}
+- Empty models shouldn't be increasing too much
+- Good models (AUC 55-80) should increase or at least not decrease
+- Good models should be much higher than problem kids
+:::
 
 ## Number of Responses over Time
 
@@ -1812,7 +1832,7 @@ else:
         response_counts.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
         response_counts.update_layout(yaxis_title="Responses")
         response_counts.for_each_yaxis(lambda yaxis: yaxis.update(title="Responses"))
-        response_counts.update_layout(title="Responses over time")
+        response_counts.update_layout(title="Responses over Time by Channel/Direction")
 
         response_counts.show()
     except Exception as e:
@@ -1820,7 +1840,10 @@ else:
 
 ```
 
-Guidance ::: {.callout-tip title="Guidance"} - Look out for consecutive days without any responses - Response counts should be cumulative, so negative spikes in the delta view may indicate that models have been 'reset' :::
+::: {.callout-tip title="Guidance"}
+- Look out for consecutive days without any responses
+- Response counts should be cumulative, so negative spikes in the delta view may indicate that models have been 'reset'
+:::
 
 # Which Models drive most of the Volume
 
@@ -1867,7 +1890,10 @@ except Exception as e:
     report_utils.quarto_plot_exception("Cumulative Positives", e)
 ```
 
-Guidance ::: {.callout-tip title="Guidance"} \*Area under this curve should be \> 0.5 but not too close to 1, which means that most of the responses are driven by relatively few actions, but not too extreme
+:::
+
+::: {.callout-tip title="Guidance"}
+- Area under this curve should be > 0.5 but not too close to 1, which means that most of the responses are driven by relatively few actions, but not too extreme
 :::
 
 ## Analysis of Performance vs Volume
