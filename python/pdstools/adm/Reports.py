@@ -364,7 +364,20 @@ class Reports(LazyNamespace):
             if (model_file_path is None and self.datamart.model_data is not None) or (
                 predictor_file_path is None and self.datamart.predictor_data is not None
             ):
-                model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
+                selected_model_ids = None
+                if self.datamart.model_data is not None and self.datamart.predictor_data is not None:
+                    model_data_for_cache = (
+                        cdh_utils._apply_query(self.datamart.model_data, query)
+                        if query is not None
+                        else self.datamart.model_data
+                    )
+                    selected_model_ids = (
+                        model_data_for_cache.select("ModelID").unique().collect(engine="streaming")["ModelID"].to_list()
+                    )
+                model_file_path, predictor_file_path = self.datamart.save_data(
+                    temp_dir,
+                    selected_model_ids=selected_model_ids,
+                )
 
             if prediction_file_path is None and prediction is not None:
                 prediction_file_path = prediction.save_data(temp_dir)
