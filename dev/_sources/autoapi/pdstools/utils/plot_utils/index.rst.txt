@@ -166,8 +166,8 @@ Module Contents
    than ``facet_col_wrap``. This function suppresses annotation text on non-rightmost
    subplots, using only axes that have actual traces to exclude phantom empty-slot axes.
 
-   Annotations whose text contains ``"="`` are assumed to be facet titles and are
-   left untouched.
+   Facet-title annotations are left untouched, including after
+   :func:`simplify_facet_titles` has removed the ``"<column>="`` prefix.
 
    :param fig: A faceted figure produced by ``px.line`` or ``px.scatter`` with
                ``show_metric_limits=True``.

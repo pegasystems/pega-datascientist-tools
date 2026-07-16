@@ -675,8 +675,8 @@ more facets are introduced.</p>
 <p>Plotly creates axes for all grid positions even when a row has fewer subplots
 than <code class="docutils literal notranslate"><span class="pre">facet_col_wrap</span></code>. This function suppresses annotation text on non-rightmost
 subplots, using only axes that have actual traces to exclude phantom empty-slot axes.</p>
-<p>Annotations whose text contains <code class="docutils literal notranslate"><span class="pre">&quot;=&quot;</span></code> are assumed to be facet titles and are
-left untouched.</p>
+<p>Facet-title annotations are left untouched, including after
+<a class="reference internal" href="#pdstools.utils.plot_utils.simplify_facet_titles" title="pdstools.utils.plot_utils.simplify_facet_titles"><code class="xref py py-func docutils literal notranslate"><span class="pre">simplify_facet_titles()</span></code></a> has removed the <code class="docutils literal notranslate"><span class="pre">&quot;&lt;column&gt;=&quot;</span></code> prefix.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>fig</strong> (<a class="reference internal" href="#pdstools.utils.plot_utils.Figure" title="pdstools.utils.plot_utils.Figure"><em>Figure</em></a>) – A faceted figure produced by <code class="docutils literal notranslate"><span class="pre">px.line</span></code> or <code class="docutils literal notranslate"><span class="pre">px.scatter</span></code> with
