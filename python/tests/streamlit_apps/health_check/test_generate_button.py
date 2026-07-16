@@ -41,14 +41,20 @@ def test_generate_button_shows_download_button(
     """
     mock_output = tmp_path / "mock_healthcheck.html"
     mock_output.write_text("<html><body>Mock Health Check</body></html>")
+    captured_kwargs = {}
 
     # Patch health_check on the generate namespace instance.
     # AppTest runs in the same process, so instance-attribute shadowing works.
-    seeded_admdatamart.generate.health_check = lambda **kwargs: str(mock_output)
+    def fake_health_check(**kwargs):
+        captured_kwargs.update(kwargs)
+        return str(mock_output)
+
+    seeded_admdatamart.generate.health_check = fake_health_check
 
     page = hc_app_dir / "pages" / "2_Reports.py"
     at = AppTest.from_file(str(page), default_timeout=30)
     at.session_state["dm"] = seeded_admdatamart
+    at.session_state["_hc_output_dir"] = str(tmp_path / "HC")
     at.run()
     assert not at.exception, f"Page raised on initial run: {at.exception}"
 
@@ -80,6 +86,44 @@ def test_generate_button_shows_download_button(
     assert "file" in at.session_state["run"].get(run_id, {}), (
         f"session_state['run'][{run_id}] should contain a 'file' key after generation."
     )
+    assert captured_kwargs["output_dir"] == tmp_path / "HC"
+
+
+def test_report_full_embed_option_is_in_normal_options(
+    hc_app_dir,
+    seeded_admdatamart,
+) -> None:
+    """The full-embed checkbox belongs with normal report options."""
+    page = hc_app_dir / "pages" / "2_Reports.py"
+    at = AppTest.from_file(str(page), default_timeout=30)
+    at.session_state["dm"] = seeded_admdatamart
+    at.run()
+
+    assert not at.exception
+    assert "Health Check options" in [expander.label for expander in at.expander]
+    assert "Advanced" not in [expander.label for expander in at.expander]
+    working_dir_input = next(widget for widget in at.text_input if widget.label == "Change working directory")
+    assert working_dir_input.value == "healthCheckDir"
+    labels = [checkbox.label for checkbox in at.checkbox]
+    assert "Embed JavaScript/CSS into a single document" in labels
+    assert "Embed JS/CSS for offline viewing (slower, larger file)" not in labels
+
+
+def test_report_output_defaults_to_import_hc_folder(
+    hc_app_dir,
+    seeded_admdatamart,
+    tmp_path,
+) -> None:
+    """Report generation defaults to the HC folder selected during import."""
+    page = hc_app_dir / "pages" / "2_Reports.py"
+    at = AppTest.from_file(str(page), default_timeout=30)
+    at.session_state["dm"] = seeded_admdatamart
+    at.session_state["_hc_output_dir"] = str(tmp_path / "HC")
+    at.run()
+
+    assert not at.exception
+    working_dir_input = next(widget for widget in at.text_input if widget.label == "Change working directory")
+    assert working_dir_input.value == str(tmp_path / "HC")
 
 
 def test_generate_button_increments_run_id_on_successive_clicks(

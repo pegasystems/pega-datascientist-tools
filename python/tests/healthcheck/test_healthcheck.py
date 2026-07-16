@@ -51,6 +51,16 @@ def test_GenerateHealthCheck(sample: ADMDatamart, tmp_path):
     assert len(errors) == 0, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
 
 
+def test_GenerateHealthCheck_custom_categorization_with_unmatched_predictors(sample: ADMDatamart, tmp_path):
+    sample.apply_predictor_categorization({"External Model": "Propensity"})
+
+    hc = sample.generate.health_check(output_dir=tmp_path, name="CustomCategorization")
+
+    _assert_report_path(hc, tmp_path, "HealthCheck_CustomCategorization")
+    errors = check_report_for_errors(hc)
+    assert len(errors) == 0, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
+
+
 @pytest.mark.slow
 def test_HealthCheck_full_embed(sample: ADMDatamart, tmp_path):
     """Test health check file sizes for full_embed options."""

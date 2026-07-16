@@ -18,6 +18,7 @@ class ADMModelSnapshot:
     pyDirection = pl.Categorical
     pyTreatment = pl.Utf8
     pyPerformance = pl.Float64
+    pyModelTechnique = pl.Utf8
     pySuccessRate = pl.Float64
     pyResponseCount = pl.Float32
     pxObjClass = pl.Categorical

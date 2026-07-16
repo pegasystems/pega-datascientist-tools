@@ -4,15 +4,99 @@ Runs the actual script as a subprocess with sample data, verifying it
 produces valid HTML healthcheck reports, model reports, and Excel exports.
 """
 
+import importlib.util
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import polars as pl
 import pytest
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data"
 SCRIPT = Path(__file__).parent.parent.parent.parent / "scripts" / "batch_healthcheck.py"
+SPEC = importlib.util.spec_from_file_location("batch_healthcheck", SCRIPT)
+assert SPEC is not None and SPEC.loader is not None
+batch = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(batch)
+
+
+def test_find_data_directories_discovers_canonical_prediction(tmp_path):
+    hc_dir = tmp_path / "Dataset" / "HC"
+    hc_dir.mkdir(parents=True)
+    model = hc_dir / "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
+    predictor = hc_dir / "PR_DATA_DM_ADMMART_PRED.parquet"
+    prediction = hc_dir / "PR_DATA_DM_SNAPSHOTS.parquet"
+    for path in (model, predictor, prediction):
+        path.touch()
+
+    datasets = batch.find_data_directories(tmp_path)
+
+    assert datasets == [
+        {
+            "name": "Dataset",
+            "data_dir": hc_dir,
+            "model_file": model,
+            "predictor_file": predictor,
+            "prediction_file": prediction,
+        }
+    ]
+
+
+def test_process_dataset_passes_prediction_and_canonical_paths(tmp_path):
+    model = tmp_path / "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
+    predictor = tmp_path / "PR_DATA_DM_ADMMART_PRED.parquet"
+    prediction_file = tmp_path / "PR_DATA_DM_SNAPSHOTS.parquet"
+    for path in (model, predictor, prediction_file):
+        path.write_bytes(b"data")
+    dataset = {
+        "name": "Dataset",
+        "data_dir": tmp_path,
+        "model_file": model,
+        "predictor_file": predictor,
+        "prediction_file": prediction_file,
+    }
+    datamart = MagicMock()
+    datamart.model_data = pl.LazyFrame({"ModelID": ["model-1"]})
+    datamart.generate.health_check = MagicMock()
+    datamart.generate.excel_report.return_value = (None, [])
+    prediction = MagicMock()
+
+    with (
+        patch.object(batch.ADMDatamart, "from_ds_export", return_value=datamart),
+        patch.object(batch.Prediction, "from_ds_export", return_value=prediction),
+        patch.object(batch, "select_interesting_models", return_value=[]),
+        patch.object(batch, "_generate_quarto_report", return_value=(1.0, "Success", None)) as generate,
+    ):
+        result = batch.process_dataset(dataset, tmp_path / "reports")
+
+    assert result["Prediction_File_MB"] > 0
+    assert generate.call_count == 2
+    for call in generate.call_args_list:
+        assert call.kwargs["prediction"] is prediction
+        assert call.kwargs["model_file_path"] == model
+        assert call.kwargs["predictor_file_path"] == predictor
+        assert call.kwargs["prediction_file_path"] == prediction_file
+
+
+def test_generate_quarto_report_fails_when_rendered_html_contains_errors(tmp_path):
+    def generate_error_report(output_dir, full_embed):
+        report = Path(output_dir) / "HealthCheck.html"
+        report.write_text("<html><body>Error rendering Predictor Importance plot: TypeError:</body></html>")
+        return report
+
+    size_mb, status, errors = batch._generate_quarto_report(
+        generate_error_report,
+        "HealthCheck",
+        tmp_path,
+        full_embed=False,
+    )
+
+    assert size_mb > 0
+    assert status == "Error"
+    assert errors is not None
+    assert "Plot rendering error" in errors
+    assert "TypeError exception" in errors
 
 
 @pytest.fixture

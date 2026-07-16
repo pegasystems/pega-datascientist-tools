@@ -66,9 +66,14 @@ class _PredictorPlotsMixin(_PlotsBase):
 
         fig = go.Figure()
 
+        def display_category(value: Any) -> str:
+            return "Missing" if value is None else str(value)
+
         # Build a color map from the provided global map, falling back to the
         # pega colorway for any category not covered.
-        present_categories = sorted(pre_aggs.select(pl.col(legend_col).unique())[legend_col].to_list())
+        present_categories = sorted(
+            display_category(category) for category in pre_aggs.select(pl.col(legend_col).unique())[legend_col]
+        )
         base_map: dict[str, str] = color_discrete_map or {}
         fallback_index = 0
         color_map: dict[str, str] = {}
@@ -84,9 +89,10 @@ class _PredictorPlotsMixin(_PlotsBase):
 
         # Create a box plot for each predictor
         for _i, row in enumerate(pre_aggs.iter_rows(named=True)):
-            show_in_legend = row[legend_col] not in legend_added
+            legend_value = display_category(row[legend_col])
+            show_in_legend = legend_value not in legend_added
             if show_in_legend:
-                legend_added.add(row[legend_col])
+                legend_added.add(legend_value)
 
             fig.add_trace(
                 go.Box(
@@ -98,9 +104,9 @@ class _PredictorPlotsMixin(_PlotsBase):
                     mean=[row["mean"]],
                     y=[row[y_col]],
                     boxpoints=False,
-                    marker=dict(color=color_map[row[legend_col]]),
-                    name=row[legend_col],
-                    legendgroup=row[legend_col],
+                    marker=dict(color=color_map[legend_value]),
+                    name=legend_value,
+                    legendgroup=legend_value,
                     orientation="h",
                     showlegend=show_in_legend,
                 ),

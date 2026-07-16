@@ -560,7 +560,7 @@ class ADMDatamart:
         # Model technique (NaiveBayes or GradientBoost) added in '24 (US-648869 and related)
         if "ModelTechnique" not in schema.names():
             df = df.with_columns(
-                ModelTechnique=pl.lit(None),
+                ModelTechnique=pl.lit(None, dtype=pl.String),
             )
         self.context_keys = [k for k in self.context_keys if k in schema.names()]
 
@@ -676,7 +676,7 @@ class ADMDatamart:
             A Polars Expression (or method that returns one) that returns the
             predictor categories. Should be based on Polars' when.then.otherwise syntax.
             Alternatively can be a dictionary of categories to (list of) string matches
-            which can be either exact (the default) or regular expressions.
+            which can be either literal substring matches (the default) or regular expressions.
             By default, `pdstools.utils.cdh_utils.default_predictor_categorization` is used.
         use_regexp: bool, optional
             Treat the mapping patterns in the `categorization` dictionary as regular expressions

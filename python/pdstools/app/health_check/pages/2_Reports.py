@@ -30,27 +30,29 @@ health_check, model_report = st.tabs(
     ],
 )
 
+
+def _default_output_dir() -> Path:
+    configured = st.session_state.get("_hc_output_dir")
+    return Path(configured) if configured else Path("healthCheckDir")
+
+
 with health_check:
     st.title("Generate Health Check")
     """To begin monitoring your models, you can create a Health Check document that provides a summary of all models and predictors."""
+    _FULL_EMBED_HELP = (
+        "Bundle JavaScript and CSS libraries directly into the HTML file so "
+        "the report works offline and in air-gapped environments. "
+        "When unchecked, libraries are loaded from CDN and require an internet "
+        "connection when viewing the report."
+    )
     with st.expander("Health Check options"):
         name_input = st.text_input("Customer name")
         name: str | None = name_input if name_input != "" else None
         output_type = st.selectbox("Select output type", ["html"], index=0)
-        working_dir = Path(st.text_input("Change working directory", "healthCheckDir"))
+        working_dir = Path(st.text_input("Change working directory", str(_default_output_dir())))
         keep_temp_files = st.checkbox("Keep temporary files", False)
-
-    _FULL_EMBED_HELP = (
-        "When checked, all JavaScript and CSS libraries (Plotly, itables, etc.) "
-        "are bundled directly into the HTML file. "
-        "The report works offline and in air-gapped environments, but the file is larger "
-        "and esbuild is required. "
-        "When unchecked, libraries are loaded from CDN — smaller file, "
-        "but requires an internet connection when viewing the report."
-    )
-    with st.expander("Advanced"):
         full_embed = st.checkbox(
-            "Embed JS/CSS for offline viewing (slower, larger file)",
+            "Embed JavaScript/CSS into a single document",
             value=_cli_full_embed if _cli_full_embed is not None else True,
             help=_FULL_EMBED_HELP,
         )
@@ -114,7 +116,8 @@ with health_check:
                     st.session_state["dm"].predictor_data,
                     query=st.session_state.get("filters", None),
                 )
-                tablename = "HealthCheckExport.xlsx"
+                working_dir.mkdir(parents=True, exist_ok=True)
+                tablename = working_dir / "HealthCheckExport.xlsx"
                 tables, warning_messages = filtered_datamart.generate.excel_report(
                     tablename,
                     predictor_binning=include_binning,
@@ -161,7 +164,7 @@ if st.session_state["dm"].predictor_data is not None:
         log_file_path = None
         try:
             if "working_dir" not in locals():
-                working_dir = Path("healthCheckDir")
+                working_dir = _default_output_dir()
             if "model_selection_df" not in st.session_state:
                 st.session_state["model_selection_df"] = model_selection_df(
                     df=_apply_query(
@@ -184,13 +187,12 @@ if st.session_state["dm"].predictor_data is not None:
                 edited_df.filter(pl.col("Generate Report")).get_column("ModelID").to_list()
             )
             st.write(f"{len(st.session_state['selected_models'])} models are selected")
-            with st.expander("Advanced"):
-                model_report_full_embed = st.checkbox(
-                    "Embed JS/CSS for offline viewing (slower, larger file)",
-                    value=_cli_full_embed if _cli_full_embed is not None else True,
-                    help=_FULL_EMBED_HELP,
-                    key="model_report_full_embed",
-                )
+            model_report_full_embed = st.checkbox(
+                "Embed JavaScript/CSS into a single document",
+                value=_cli_full_embed if _cli_full_embed is not None else True,
+                help=_FULL_EMBED_HELP,
+                key="model_report_full_embed",
+            )
             if len(st.session_state["selected_models"]) > 0:
                 if st.button("Create Model Report(s) for selected model(s)"):
                     with st.spinner("Running Model Reports..."):

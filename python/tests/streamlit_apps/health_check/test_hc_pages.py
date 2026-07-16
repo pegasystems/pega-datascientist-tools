@@ -22,16 +22,20 @@ if TYPE_CHECKING:
 def test_home_renders_without_data(hc_app_dir: Path):
     """Home renders cleanly before any data is uploaded.
 
-    The data-source picker (selectbox) and the "Adaptive Model Health
-    Check" branding markdown both have to be present — together they
-    prove ``standard_page_config`` ran *and* the data-entry surface
-    is wired up.
+    The upload widgets and the "Adaptive Model Health Check" branding
+    markdown both have to be present — together they prove
+    ``standard_page_config`` ran *and* the data-entry surface is wired up.
     """
     at = AppTest.from_file(str(hc_app_dir / "Home.py"), default_timeout=30)
     at.run()
     assert not at.exception, f"HC Home raised: {at.exception}"
     assert any("Adaptive Model Health Check" in m.value for m in at.markdown), "HC Home missing branding markdown"
-    assert len(at.selectbox) >= 1, "HC Home expected at least one selectbox (data source picker)"
+    uploader_labels = [uploader.label for uploader in at.get("file_uploader")]
+    assert any("Model Snapshot" in label for label in uploader_labels), "HC Home missing model upload widget"
+    assert any("Predictor" in label for label in uploader_labels), "HC Home missing predictor upload widget"
+    assert any(text_input.label == "Model Snapshot path" for text_input in at.text_input), (
+        "HC Home missing file-path fallback"
+    )
 
 
 # Page 3 (About) renders the shared about page with no session_state

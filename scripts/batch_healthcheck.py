@@ -4,7 +4,7 @@
 Generate ADM HealthCheck reports, Model Reports, and Excel exports for
 multiple datasets.
 
-This script discovers ADM model and predictor data files, generates reports
+This script discovers ADM model, predictor, and prediction data files, generates reports
 in both CDN and full-embed modes, and creates a summary of results with
 error detection.
 
@@ -36,6 +36,7 @@ The script automatically discovers data in these patterns:
 Required files:
 - Model file: PR_DATA_DM_ADMMART_MDL_FACT.parquet (or *MDL_FACT.parquet)
 - Predictor file: PR_DATA_DM_ADMMART_PRED.parquet (optional, or *PRED.parquet)
+- Prediction file: PR_DATA_DM_SNAPSHOTS.parquet (optional, or *SNAPSHOTS.parquet)
 """
 
 import argparse
@@ -48,13 +49,37 @@ from pathlib import Path
 
 import polars as pl
 
-from pdstools import ADMDatamart
+from pdstools import ADMDatamart, Prediction
 from pdstools.utils.report_utils import check_report_for_errors
 
 
 # Default file name patterns
 MODEL_FILE_PATTERNS = ["PR_DATA_DM_ADMMART_MDL_FACT.parquet", "*MDL_FACT.parquet"]
 PREDICTOR_FILE_PATTERNS = ["PR_DATA_DM_ADMMART_PRED.parquet", "*PRED.parquet"]
+PREDICTION_FILE_PATTERNS = ["PR_DATA_DM_SNAPSHOTS.parquet", "*SNAPSHOTS.parquet"]
+
+
+def _first_matching_file(directory: Path, patterns: list[str]) -> Path | None:
+    """Return the first file matching the configured pattern priority."""
+    for pattern in patterns:
+        matches = sorted(directory.glob(pattern))
+        if matches:
+            return matches[0]
+    return None
+
+
+def _dataset_in_directory(name: str, directory: Path) -> dict | None:
+    """Build one dataset entry when a directory contains model data."""
+    model_file = _first_matching_file(directory, MODEL_FILE_PATTERNS)
+    if model_file is None:
+        return None
+    return {
+        "name": name,
+        "data_dir": directory,
+        "model_file": model_file,
+        "predictor_file": _first_matching_file(directory, PREDICTOR_FILE_PATTERNS),
+        "prediction_file": _first_matching_file(directory, PREDICTION_FILE_PATTERNS),
+    }
 
 
 def find_data_directories(root_path: Path) -> list[dict]:
@@ -68,56 +93,21 @@ def find_data_directories(root_path: Path) -> list[dict]:
     Returns
     -------
     list[dict]
-        List of dictionaries with keys: name, data_dir, model_file, predictor_file
+        List of dictionaries with keys: name, data_dir, model_file,
+        predictor_file, and prediction_file.
     """
     datasets = []
 
-    # Check if root_path itself contains data files
-    for pattern in MODEL_FILE_PATTERNS:
-        model_files = list(root_path.glob(pattern))
-        if model_files:
-            # Found data at root level
-            model_file = model_files[0]
-            predictor_file = None
-            for pred_pattern in PREDICTOR_FILE_PATTERNS:
-                pred_files = list(root_path.glob(pred_pattern))
-                if pred_files:
-                    predictor_file = pred_files[0]
-                    break
-
-            datasets.append(
-                {
-                    "name": root_path.name,
-                    "data_dir": root_path,
-                    "model_file": model_file,
-                    "predictor_file": predictor_file,
-                }
-            )
-            return datasets  # If we found data at root, don't search subdirs
+    root_dataset = _dataset_in_directory(root_path.name, root_path)
+    if root_dataset is not None:
+        return [root_dataset]
 
     # Check for HC subdirectory at root level
     hc_dir = root_path / "HC"
     if hc_dir.exists() and hc_dir.is_dir():
-        for pattern in MODEL_FILE_PATTERNS:
-            model_files = list(hc_dir.glob(pattern))
-            if model_files:
-                model_file = model_files[0]
-                predictor_file = None
-                for pred_pattern in PREDICTOR_FILE_PATTERNS:
-                    pred_files = list(hc_dir.glob(pred_pattern))
-                    if pred_files:
-                        predictor_file = pred_files[0]
-                        break
-
-                datasets.append(
-                    {
-                        "name": root_path.name,
-                        "data_dir": hc_dir,
-                        "model_file": model_file,
-                        "predictor_file": predictor_file,
-                    }
-                )
-                return datasets
+        root_hc_dataset = _dataset_in_directory(root_path.name, hc_dir)
+        if root_hc_dataset is not None:
+            return [root_hc_dataset]
 
     # Search subdirectories for HC folders or direct data
     for subdir in sorted(root_path.iterdir()):
@@ -127,49 +117,15 @@ def find_data_directories(root_path: Path) -> list[dict]:
         # Check subdir/HC pattern
         hc_dir = subdir / "HC"
         if hc_dir.exists() and hc_dir.is_dir():
-            for pattern in MODEL_FILE_PATTERNS:
-                model_files = list(hc_dir.glob(pattern))
-                if model_files:
-                    model_file = model_files[0]
-                    predictor_file = None
-                    for pred_pattern in PREDICTOR_FILE_PATTERNS:
-                        pred_files = list(hc_dir.glob(pred_pattern))
-                        if pred_files:
-                            predictor_file = pred_files[0]
-                            break
-
-                    datasets.append(
-                        {
-                            "name": subdir.name,
-                            "data_dir": hc_dir,
-                            "model_file": model_file,
-                            "predictor_file": predictor_file,
-                        }
-                    )
-                    break
+            dataset = _dataset_in_directory(subdir.name, hc_dir)
+            if dataset is not None:
+                datasets.append(dataset)
 
         # Check subdir directly for data files
         if not any(d["name"] == subdir.name for d in datasets):
-            for pattern in MODEL_FILE_PATTERNS:
-                model_files = list(subdir.glob(pattern))
-                if model_files:
-                    model_file = model_files[0]
-                    predictor_file = None
-                    for pred_pattern in PREDICTOR_FILE_PATTERNS:
-                        pred_files = list(subdir.glob(pred_pattern))
-                        if pred_files:
-                            predictor_file = pred_files[0]
-                            break
-
-                    datasets.append(
-                        {
-                            "name": subdir.name,
-                            "data_dir": subdir,
-                            "model_file": model_file,
-                            "predictor_file": predictor_file,
-                        }
-                    )
-                    break
+            dataset = _dataset_in_directory(subdir.name, subdir)
+            if dataset is not None:
+                datasets.append(dataset)
 
     return datasets
 
@@ -200,11 +156,15 @@ def select_interesting_models(datamart: ADMDatamart, max_n: int = 3) -> list[str
     list[str]
         List of ModelID strings
     """
-    group_keys = [c for c in ["Channel", "Direction", "Issue"] if c in datamart.combined_data.collect_schema().names()]
-
     if datamart.predictor_data is None:
         print("  ℹ No predictor data — skipping model selection")
         return []
+
+    if datamart.combined_data is None:
+        print("  ℹ No combined data — skipping model selection")
+        return []
+
+    group_keys = [c for c in ["Channel", "Direction", "Issue"] if c in datamart.combined_data.collect_schema().names()]
 
     # Exclude AGB models: only keep models that have real predictor bins
     nb_model_ids = set(
@@ -312,7 +272,7 @@ def _generate_quarto_report(
             print(f"  ⚠ HTML errors in {label} ({mode}):")
             for error in html_errors:
                 print(f"    - {error}")
-            return size_mb, "Success (with errors)", errors_str
+            return size_mb, "Error", errors_str
 
         print(f"  ✓ No errors in {label} ({mode})")
         return size_mb, "Success", None
@@ -337,7 +297,8 @@ def process_dataset(
     Parameters
     ----------
     dataset : dict
-        Dataset information (name, data_dir, model_file, predictor_file)
+        Dataset information (name, data_dir, model_file, predictor_file,
+        prediction_file)
     output_dir : Path
         Directory for output reports
     max_models : int
@@ -358,6 +319,7 @@ def process_dataset(
         "Dataset": name,
         "Model_File_MB": 0.0,
         "Predictor_File_MB": 0.0,
+        "Prediction_File_MB": 0.0,
         "HC_CDN_MB": 0.0,
         "HC_CDN_Status": "Not Found",
         "HC_CDN_Errors": None,
@@ -367,23 +329,31 @@ def process_dataset(
         "ModelReport_Models": 0,
         "ModelReport_CDN_MB": 0.0,
         "ModelReport_CDN_Status": "Skipped",
+        "ModelReport_CDN_Errors": None,
         "ModelReport_Embed_MB": 0.0,
         "ModelReport_Embed_Status": "Skipped",
+        "ModelReport_Embed_Errors": None,
         "Excel_MB": 0.0,
         "Excel_Status": "Skipped",
     }
 
     model_file = dataset["model_file"]
     predictor_file = dataset["predictor_file"]
+    prediction_file = dataset.get("prediction_file")
 
     result["Model_File_MB"] = get_file_size_mb(model_file)
     result["Predictor_File_MB"] = get_file_size_mb(predictor_file)
+    result["Prediction_File_MB"] = get_file_size_mb(prediction_file)
 
     print(f"  ✓ Model file: {result['Model_File_MB']:.1f} MB")
     if predictor_file:
         print(f"  ✓ Predictor file: {result['Predictor_File_MB']:.1f} MB")
     else:
         print("  ℹ No predictor file found")
+    if prediction_file:
+        print(f"  ✓ Prediction file: {result['Prediction_File_MB']:.1f} MB")
+    else:
+        print("  ℹ No prediction file found")
 
     try:
         print("  → Loading datamart...")
@@ -391,6 +361,7 @@ def process_dataset(
             model_filename=str(model_file),
             predictor_filename=str(predictor_file) if predictor_file else None,
         )
+        prediction = Prediction.from_ds_export(str(prediction_file)) if prediction_file else None
         n_models = len(datamart.model_data.collect())
         print(f"  ✓ Datamart loaded: {n_models} models")
 
@@ -409,6 +380,10 @@ def process_dataset(
                 name=safe_name + suffix,
                 title=f"ADM Health Check - {name}",
                 subtitle=f"Generated on {timestamp}",
+                prediction=prediction,
+                model_file_path=model_file,
+                predictor_file_path=predictor_file,
+                prediction_file_path=prediction_file,
             )
             result[f"{key_prefix}_MB"] = mb
             result[f"{key_prefix}_Status"] = status
@@ -439,6 +414,7 @@ def process_dataset(
                 )
                 result[f"{key_prefix}_MB"] = mb
                 result[f"{key_prefix}_Status"] = status
+                result[f"{key_prefix}_Errors"] = errors
 
             if result["ModelReport_CDN_MB"] > 0 and result["ModelReport_Embed_MB"] > 0:
                 ratio = result["ModelReport_Embed_MB"] / result["ModelReport_CDN_MB"]
@@ -545,6 +521,7 @@ For more information, see:
         print("\nExpected file patterns:")
         print(f"  Model: {', '.join(MODEL_FILE_PATTERNS)}")
         print(f"  Predictor: {', '.join(PREDICTOR_FILE_PATTERNS)}")
+        print(f"  Prediction: {', '.join(PREDICTION_FILE_PATTERNS)}")
         print("\nExpected directory structures:")
         print("  - /path/to/data/Dataset1/HC/*.parquet")
         print("  - /path/to/data/Dataset1/*.parquet")
@@ -618,12 +595,17 @@ For more information, see:
 
     print(summary_table)
 
-    # Show HC HTML errors if any
-    for mode, col in [("HC CDN", "HC_CDN_Errors"), ("HC Embed", "HC_Embed_Errors")]:
+    # Show rendered-report errors if any
+    for mode, col in [
+        ("HC CDN", "HC_CDN_Errors"),
+        ("HC Embed", "HC_Embed_Errors"),
+        ("ModelReport CDN", "ModelReport_CDN_Errors"),
+        ("ModelReport Embed", "ModelReport_Embed_Errors"),
+    ]:
         errors_df = df.filter(pl.col(col).is_not_null())
         if len(errors_df) > 0:
             print(f"\n{'=' * 60}")
-            print(f"HTML Errors Detected ({mode})")
+            print(f"Report Errors Detected ({mode})")
             print(f"{'=' * 60}")
             for row in errors_df.iter_rows(named=True):
                 print(f"\n{row['Dataset']}:")
@@ -635,11 +617,17 @@ For more information, see:
     # Print statistics
     print(f"\n{'=' * 60}")
     print("Results:")
-    for report, prefix in [("HealthCheck", "HC_CDN"), ("HC full-embed", "HC_Embed")]:
-        s = (df[f"{prefix}_Status"] == "Success").sum()
-        e = (df[f"{prefix}_Status"] == "Success (with errors)").sum()
-        f = len(df) - s - e
-        print(f"  {report}: {s} success, {e} with errors, {f} failed")
+    generated_report_prefixes = [
+        ("HealthCheck", "HC_CDN"),
+        ("HealthCheck full-embed", "HC_Embed"),
+        ("Model reports", "ModelReport_CDN"),
+        ("Model reports full-embed", "ModelReport_Embed"),
+    ]
+    for report, prefix in generated_report_prefixes:
+        s = int((df[f"{prefix}_Status"] == "Success").sum())
+        skipped = int((df[f"{prefix}_Status"] == "Skipped").sum())
+        failed = len(df) - s - skipped
+        print(f"  {report}: {s} success, {skipped} skipped, {failed} failed")
     print(f"  Model reports generated: {df['ModelReport_Models'].sum()} total")
     print(f"  Excel exports: {(df['Excel_Status'] == 'Success').sum()} success")
     print(f"\nTotal HC CDN:    {df['HC_CDN_MB'].sum():.1f} MB")
@@ -648,6 +636,15 @@ For more information, see:
     print(f"Total MR embed:  {df['ModelReport_Embed_MB'].sum():.1f} MB")
     print(f"Total Excel:     {df['Excel_MB'].sum():.1f} MB")
     print(f"{'=' * 60}")
+
+    failed_reports = df.select(
+        [
+            (pl.col(f"{prefix}_Status") != "Success") & (pl.col(f"{prefix}_Status") != "Skipped")
+            for _, prefix in generated_report_prefixes
+        ]
+    ).sum_horizontal()
+    if failed_reports.sum() > 0:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

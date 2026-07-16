@@ -365,6 +365,48 @@ def test_predictor_performance(sample: ADMDatamart):
     assert isinstance(plot, Figure)
 
 
+def test_predictor_performance_handles_null_predictor_category_after_custom_categorization():
+    model_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1"],
+            "Configuration": ["Config"],
+            "SnapshotTime": [datetime(2024, 1, 1)],
+            "Positives": [10.0],
+            "Negatives": [90.0],
+            "ResponseCount": [100.0],
+            "Performance": [0.7],
+            "Channel": ["Web"],
+            "Direction": ["Inbound"],
+            "Issue": ["Issue"],
+            "Group": ["Group"],
+            "Name": ["Action"],
+        },
+    )
+    predictor_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m1"],
+            "PredictorName": ["Customer.Propensity", "Customer.Age"],
+            "PredictorCategory": [None, None],
+            "EntryType": ["Active", "Active"],
+            "BinIndex": [1, 1],
+            "BinPositives": [8.0, 4.0],
+            "BinNegatives": [12.0, 16.0],
+            "BinResponseCount": [20.0, 20.0],
+            "ResponseCount": [20.0, 20.0],
+            "Performance": [0.72, 0.62],
+            "SnapshotTime": [datetime(2024, 1, 1), datetime(2024, 1, 1)],
+            "Type": ["numeric", "numeric"],
+        },
+    )
+    datamart = ADMDatamart(model_df=model_df, predictor_df=predictor_df)
+    datamart.apply_predictor_categorization({"External Model": "Propensity"})
+
+    plot = datamart.plot.predictor_performance()
+
+    assert isinstance(plot, Figure)
+    assert {trace.name for trace in plot.data} == {"External Model", "Missing"}
+
+
 def test_predictor_category_performance(sample: ADMDatamart):
     df = sample.plot.predictor_category_performance(return_df=True)
     assert df.shape == (3, 10)
