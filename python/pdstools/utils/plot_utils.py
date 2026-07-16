@@ -225,8 +225,8 @@ def hide_metric_annotations_on_non_rightmost(fig: "Figure") -> "Figure":
     than ``facet_col_wrap``. This function suppresses annotation text on non-rightmost
     subplots, using only axes that have actual traces to exclude phantom empty-slot axes.
 
-    Annotations whose text contains ``"="`` are assumed to be facet titles and are
-    left untouched.
+    Facet-title annotations are left untouched, including after
+    :func:`simplify_facet_titles` has removed the ``"<column>="`` prefix.
 
     Parameters
     ----------
@@ -270,7 +270,8 @@ def hide_metric_annotations_on_non_rightmost(fig: "Figure") -> "Figure":
     rightmost_xrefs = {v["xref"] for v in rows.values()}
 
     for a in fig.layout.annotations:
-        if "=" not in (a.text or "") and a.xref not in rightmost_xrefs:
+        is_facet_title = "=" in (a.text or "") or (a.xref == "paper" and a.yref == "paper" and not a.showarrow)
+        if not is_facet_title and a.xref not in rightmost_xrefs:
             a.text = ""
     return fig
 

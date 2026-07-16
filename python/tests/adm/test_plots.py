@@ -173,6 +173,17 @@ def test_over_time(sample2: ADMDatamart):
     assert {t.name for t in fig_faceted.data} == {"1", "2"}
     assert "xaxis2" in fig_faceted.layout and "yaxis2" in fig_faceted.layout
 
+    fig_success_rate = sample2.plot.over_time(
+        metric="SuccessRate",
+        by="ModelID",
+        facet="Group",
+        facet_col_spacing=0.08,
+    )
+    assert fig_success_rate.layout.yaxis.rangemode == "nonnegative"
+    assert fig_success_rate.layout.yaxis2.rangemode == "nonnegative"
+    assert fig_success_rate.layout.yaxis2.matches == "y"
+    assert fig_success_rate.layout.xaxis2.domain[0] - fig_success_rate.layout.xaxis.domain[1] == pytest.approx(0.08)
+
     with pytest.raises(
         ValueError,
         match="The given query resulted in an empty dataframe",

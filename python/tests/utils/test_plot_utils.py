@@ -117,6 +117,19 @@ class TestHideMetricAnnotationsOnNonRightmost:
         facet_titles = [a.text for a in fig.layout.annotations if "=" in (a.text or "")]
         assert len(facet_titles) == 3
 
+    def test_simplified_facet_title_annotations_are_preserved(self):
+        """Facet titles remain visible after fig_update_facet strips 'f=' prefixes."""
+        fig = _make_faceted_line(2, col_wrap=2)
+        fig.add_hline(y=52, annotation_text="Min (52)")
+        fig_update_facet(fig, n_cols=2)
+
+        hide_metric_annotations_on_non_rightmost(fig)
+
+        visible_annotations = [a.text for a in fig.layout.annotations if a.text]
+        assert "A" in visible_annotations
+        assert "B" in visible_annotations
+        assert "Min (52)" in visible_annotations
+
     def test_single_subplot_keeps_label(self):
         """Single subplot is by definition the rightmost — label must be kept."""
         fig = _make_faceted_line(1, col_wrap=2)
