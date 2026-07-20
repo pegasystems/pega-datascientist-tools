@@ -570,6 +570,16 @@ def test_preview_and_import_health_check_data_read_excel_header_row():
     }
 
 
+def test_preview_health_check_columns_reads_uploaded_csv_header_only():
+    uploaded = BytesIO(b'"a","b"\n1,2\n')
+    uploaded.name = "model.csv"
+
+    with patch("pdstools.adm.HealthCheckImport.read_data", side_effect=RuntimeError("should not read full CSV")):
+        columns = preview_health_check_columns(uploaded)
+
+    assert columns == ("a", "b")
+
+
 def test_import_health_check_data_rejects_missing_model_source():
     with pytest.raises(ValueError, match="model_source is required"):
         import_health_check_data(None)  # type: ignore[arg-type]

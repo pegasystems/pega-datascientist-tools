@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import csv
+import logging
 import os
 import re
 import uuid
-import logging
 from dataclasses import dataclass, field
 from io import BytesIO
 from pathlib import Path
@@ -530,6 +531,43 @@ def _readable_source(source: HealthCheckSource) -> str | Path | BytesIO:
     return source if isinstance(source, (str, BytesIO)) else Path(source)
 
 
+def _parse_delimited_header(header_line: str, options: HealthCheckReadOptions, extension: str) -> tuple[str, ...]:
+    delimiter = options.delimiter if options.delimiter is not None else "\t" if extension in {".tsv", ".txt"} else ","
+    if options.quote_char is None:
+        return tuple(next(csv.reader([header_line], delimiter=delimiter, quoting=csv.QUOTE_NONE)))
+    return tuple(next(csv.reader([header_line], delimiter=delimiter, quotechar=options.quote_char)))
+
+
+def _preview_delimited_header(
+    source: HealthCheckSource,
+    options: HealthCheckReadOptions,
+    extension: str,
+) -> tuple[str, ...] | None:
+    if extension not in {".csv", ".tsv", ".txt"} or not options.has_header:
+        return None
+
+    metadata = _source_metadata(source)
+    if metadata.extension in {".gz", ".zip"}:
+        return None
+
+    if isinstance(source, BytesIO):
+        original_position = source.tell()
+        try:
+            source.seek(0)
+            for _ in range(options.skip_rows):
+                source.readline()
+            header = source.readline().decode(options.encoding, errors="replace")
+        finally:
+            source.seek(original_position)
+    else:
+        with Path(source).open(encoding=options.encoding, errors="replace") as file:
+            for _ in range(options.skip_rows):
+                file.readline()
+            header = file.readline()
+
+    return _parse_delimited_header(header, options, extension) if header else None
+
+
 def _import_source(
     source: HealthCheckSource,
     options: SourceImportOptions | None,
@@ -575,10 +613,13 @@ def preview_health_check_columns(
         Column names found in the source.
     """
     options = options or HealthCheckReadOptions()
+    extension = _source_read_extension(source)
+    if (columns := _preview_delimited_header(source, options, extension)) is not None:
+        return columns
     return tuple(
         read_data(
             _readable_source(source),
-            read_options=_polars_read_options(options, _source_read_extension(source)),
+            read_options=_polars_read_options(options, extension),
         )
         .collect_schema()
         .names()
