@@ -182,8 +182,7 @@ def test_custom_quote_character_and_timestamp_fallback(hc_app_dir: Path, tmp_pat
     quote_input = next(widget for widget in at.text_input if widget.key == "_hc_model_quote_char")
     quote_input.set_value("'").run()
 
-    timestamp_column = next(widget for widget in at.text_input if widget.key == "_hc_model_timestamp_column")
-    timestamp_column.set_value("pySnapshotTime").run()
+    assert not any(widget.key == "_hc_model_timestamp_column" for widget in at.text_input)
 
     timestamp_format = next(widget for widget in at.text_input if widget.key == "_hc_model_timestamp_format")
     timestamp_format.set_value("%Y-%m-%d %H:%M:%S").run()

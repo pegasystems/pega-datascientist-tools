@@ -444,6 +444,19 @@ def test_import_health_check_data_auto_parses_ampm_snapshot_timestamp():
     ]
 
 
+def test_import_health_check_data_skips_pyname_extraction_when_context_present():
+    model = _uploaded_csv(
+        "pyModelID,pyConfigurationName,pySnapshotTime,pyPositives,pyNegatives,"
+        "pyResponseCount,pyPerformance,pyChannel,pyDirection,pyIssue,pyGroup,pyName\n"
+        "model-1,Config,09/30/2024 06:00 PM,10,90,100,70,Web,Inbound,Issue,Group,Action\n",
+    )
+
+    with patch("pdstools.utils.cdh_utils._extract_keys", side_effect=RuntimeError("should not extract keys")):
+        result = import_health_check_data(model)
+
+    assert result.datamart.model_data.select("Name").collect().to_series().to_list() == ["Action"]
+
+
 def test_import_health_check_data_reads_tab_delimited_path_with_null_values(tmp_path):
     model_path = tmp_path / "quoted-model.txt"
     model_path.write_text(

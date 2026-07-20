@@ -139,12 +139,14 @@ class ADMDatamart:
         self.analysis = Analysis(datamart=self)
         self.generate = Reports(datamart=self)
 
+        logger.info("Validating ADM model data.")
         model_data_validated = self._validate_model_data(
             model_df,
             extract_pyname_keys=extract_pyname_keys,
         )
 
         # First occurence of actions (before filtering!) kept here so we can derive the "New Actions"
+        logger.info("Preparing ADM first action dates.")
         self.first_action_dates = self._get_first_action_dates(model_data_validated)
 
         self.model_data = (
@@ -156,8 +158,10 @@ class ADMDatamart:
         # contain rows for ModelIDs no longer in the filtered model_data.
         # Downstream joins handle this; revisit if a stricter intersection
         # is needed.
+        logger.info("Validating ADM predictor data.")
         self.predictor_data = self._validate_predictor_data(predictor_df)
 
+        logger.info("Preparing combined ADM data.")
         self.combined_data = self.aggregates._combine_data(
             self.model_data,
             self.predictor_data,
@@ -657,13 +661,11 @@ class ADMDatamart:
         """Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale."""
         if "Performance" not in df.collect_schema().names():
             return df
-        logger.info("Checking ADM Performance scale.")
-        perf_max = df.select(pl.col("Performance").max()).collect().item()
-        if perf_max is not None and perf_max > 1.0:
-            df = df.with_columns(
-                Performance=pl.col("Performance") / 100.0,
-            )
-        return df
+        return df.with_columns(
+            Performance=pl.when(pl.col("Performance").is_finite() & (pl.col("Performance") > 1.0))
+            .then(pl.col("Performance") / 100.0)
+            .otherwise(pl.col("Performance")),
+        )
 
     def apply_predictor_categorization(
         self,

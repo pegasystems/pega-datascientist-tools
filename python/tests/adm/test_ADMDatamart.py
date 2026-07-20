@@ -3,6 +3,7 @@
 import datetime
 import os
 import pathlib
+from unittest.mock import patch
 
 import polars as pl
 import pytest
@@ -575,6 +576,15 @@ def test_normalize_performance_scale_no_performance_column():
     out = ADMDatamart._normalize_performance_scale(df).collect()
     assert out["Other"].to_list() == [1, 2, 3]
     assert "Performance" not in out.columns
+
+
+def test_normalize_performance_scale_is_lazy():
+    df = pl.LazyFrame({"Performance": [55.0, 70.0, 100.0]})
+
+    with patch.object(pl.LazyFrame, "collect", side_effect=RuntimeError("should stay lazy")):
+        out = ADMDatamart._normalize_performance_scale(df)
+
+    assert isinstance(out, pl.LazyFrame)
 
 
 # ---- _validate_model_data -------------------------------------------------

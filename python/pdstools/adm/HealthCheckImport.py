@@ -44,6 +44,7 @@ _DTYPE_ALIASES: dict[str, pl.DataType | type[pl.DataType]] = {
 MODEL_CACHE_FILENAME = "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
 PREDICTOR_CACHE_FILENAME = "PR_DATA_DM_ADMMART_PRED.parquet"
 PREDICTION_CACHE_FILENAME = "PR_DATA_DM_SNAPSHOTS.parquet"
+_MODEL_CONTEXT_COLUMNS = frozenset({"Channel", "Direction", "Issue", "Group"})
 
 
 @dataclass(frozen=True)
@@ -546,6 +547,13 @@ def _import_source(
     return normalize_health_check_data(raw, options.normalize)
 
 
+def _should_extract_pyname_keys(df: pl.LazyFrame, extract_pyname_keys: bool) -> bool:
+    if not extract_pyname_keys:
+        return False
+    schema_names = set(cdh_utils._polars_capitalize(df).collect_schema().names())
+    return "Name" in schema_names and not _MODEL_CONTEXT_COLUMNS.issubset(schema_names)
+
+
 def preview_health_check_columns(
     source: HealthCheckSource,
     options: HealthCheckReadOptions | None = None,
@@ -646,10 +654,13 @@ def import_health_check_data(
         sources["prediction"] = prediction_metadata
 
     logger.info("Validating Health Check datamart.")
+    datamart_extract_pyname_keys = _should_extract_pyname_keys(model_data, extract_pyname_keys)
+    if extract_pyname_keys and not datamart_extract_pyname_keys:
+        logger.info("Skipping pyName key extraction; model context columns are already present.")
     datamart = ADMDatamart(
         model_df=model_data,
         predictor_df=predictor_data,
-        extract_pyname_keys=extract_pyname_keys,
+        extract_pyname_keys=datamart_extract_pyname_keys,
     )
 
     if predictor_data is not None and predictor_categorization:
@@ -663,7 +674,7 @@ def import_health_check_data(
         datamart = ADMDatamart(
             model_df=model_data,
             predictor_df=predictor_data,
-            extract_pyname_keys=extract_pyname_keys,
+            extract_pyname_keys=datamart_extract_pyname_keys,
         )
 
     prediction = Prediction(prediction_data) if prediction_data is not None else None

@@ -230,6 +230,20 @@ def _field_repairs_text_area(
     )
 
 
+def _timestamp_column_for_ui_options(
+    source_columns: tuple[str, ...],
+    timestamp_format: str | None,
+    timestamp_fallback: datetime | None,
+) -> str | None:
+    if timestamp_format is None and timestamp_fallback is None:
+        return None
+    lookup = {column.casefold(): column for column in source_columns}
+    for candidate in ("pySnapshotTime", "pySnapShotTime", "pxSnapshotTime", "SnapshotTime"):
+        if (column := lookup.get(candidate.casefold())) is not None:
+            return column
+    return "pySnapshotTime" if timestamp_fallback is not None else None
+
+
 def _source_import_options(
     role: str,
     source: HealthCheckSource,
@@ -381,15 +395,6 @@ def _source_import_options(
     )
     field_repairs_text, source_columns = _field_repairs_text_area(role, prefix, source, read_options)
     fill_null_values, derived_columns, constant_columns = _split_field_repairs(field_repairs_text, source_columns)
-    timestamp_column = (
-        st.text_input(
-            "Timestamp column",
-            help="Usually optional: standard snapshot timestamp columns are detected and parsed automatically. Set this only to override the column to parse or to create it from a fallback value.",
-            key=f"{prefix}_timestamp_column",
-            on_change=_invalidate_manual_import,
-        ).strip()
-        or None
-    )
     timestamp_format = (
         st.text_input(
             "Timestamp format",
@@ -404,10 +409,11 @@ def _source_import_options(
         "Timestamp fallback",
         key=f"{prefix}_timestamp_fallback",
         placeholder="2026-01-01T00:00:00",
-        help="Optional fallback used when the configured timestamp column is missing or contains values that cannot be parsed.",
+        help="Optional fallback used when the snapshot timestamp is missing or contains values that cannot be parsed.",
         on_change=_invalidate_manual_import,
     ).strip()
     timestamp_fallback = datetime.fromisoformat(fallback_text) if fallback_text else None
+    timestamp_column = _timestamp_column_for_ui_options(source_columns, timestamp_format, timestamp_fallback)
 
     return SourceImportOptions(
         read=read_options,
