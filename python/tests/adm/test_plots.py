@@ -708,3 +708,17 @@ def test_predictor_category_performance_consistent_colors(sample: ADMDatamart):
         assert trace.marker.color == color_map[trace.name], (
             f"Category {trace.name!r}: expected {color_map[trace.name]!r}, got {trace.marker.color!r}"
         )
+
+
+def test_predictor_count_inactive_trace_is_muted(sample: ADMDatamart):
+    """Inactive predictor-count boxes are visible but visually subdued."""
+    fig = sample.plot.predictor_count(by=["EntryType", "Type", "Configuration"])
+    assert isinstance(fig, Figure)
+
+    traces = {trace.name: trace for trace in fig.data}
+    assert {"Active", "Inactive"}.issubset(traces)
+    assert traces["Inactive"].marker.color == "#9AA9B5"
+    assert traces["Inactive"].line.color == "#6B7C88"
+    assert traces["Inactive"].fillcolor == "rgba(154, 169, 181, 0.35)"
+    assert traces["Inactive"].opacity == 0.65
+    assert traces["Inactive"].marker.color != traces["Active"].marker.color

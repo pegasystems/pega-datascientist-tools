@@ -578,6 +578,15 @@ class _PredictorPlotsMixin(_PlotsBase):
             template="pega",
         )
 
+        if by_list[0] == "EntryType":
+            fig.update_traces(
+                selector=dict(name="Inactive"),
+                marker=dict(color="#9AA9B5"),
+                line=dict(color="#6B7C88"),
+                fillcolor="rgba(154, 169, 181, 0.35)",
+                opacity=0.65,
+            )
+
         # Update title and x-axis label if we have a figure (not None and not a DataFrame)
         if fig is not None and not return_df:
             fig.update_layout(title="Predictors by Type")
