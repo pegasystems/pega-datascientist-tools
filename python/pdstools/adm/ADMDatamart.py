@@ -752,12 +752,18 @@ class ADMDatamart:
                     .unique()
                     .with_columns(NewPredictorCategory=categorization_expr)
                     .with_columns(
+                        DefaultPredictorCategory=cdh_utils.default_predictor_categorization().alias(
+                            "DefaultPredictorCategory",
+                        ),
+                    )
+                    .with_columns(
                         PredictorCategory=pl.coalesce(
                             "NewPredictorCategory",
                             "PredictorCategory",
+                            "DefaultPredictorCategory",
                         ),
                     )
-                    .drop("NewPredictorCategory")
+                    .drop("NewPredictorCategory", "DefaultPredictorCategory")
                 )
                 df = df.drop("PredictorCategory").join(
                     predictor_mapping,

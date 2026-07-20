@@ -242,6 +242,56 @@ def test_predictor_categorization_dictionary(sample):
     assert _check_cat(sample, "Customer.CreditScore") == "XGBoost Model"
 
 
+def test_predictor_categorization_falls_back_to_default_when_existing_category_is_null():
+    model_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1"],
+            "SnapshotTime": ["20240101"],
+            "Configuration": ["Config"],
+            "Issue": ["Issue"],
+            "Group": ["Group"],
+            "Name": ["Action"],
+            "Channel": ["Web"],
+            "Direction": ["Inbound"],
+            "Performance": [0.7],
+            "ResponseCount": [100],
+            "Positives": [10],
+        },
+    )
+    predictor_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m1"],
+            "PredictorName": ["Customer.Account.Balance", "Customer.Propensity"],
+            "PredictorCategory": [None, None],
+            "EntryType": ["Active", "Active"],
+            "BinIndex": [1, 1],
+            "BinPositives": [4.0, 8.0],
+            "BinNegatives": [16.0, 12.0],
+            "BinResponseCount": [20.0, 20.0],
+            "ResponseCount": [20.0, 20.0],
+            "Performance": [0.62, 0.72],
+            "SnapshotTime": ["20240101", "20240101"],
+            "Type": ["numeric", "numeric"],
+        },
+    )
+
+    datamart = ADMDatamart(model_df=model_df, predictor_df=predictor_df)
+    datamart.apply_predictor_categorization({"External Model": "Propensity"})
+
+    categories = (
+        datamart.predictor_data.select("PredictorName", "PredictorCategory")
+        .unique()
+        .sort("PredictorName")
+        .collect()
+        .to_dict(as_series=False)
+    )
+
+    assert categories == {
+        "PredictorName": ["Customer.Account.Balance", "Customer.Propensity"],
+        "PredictorCategory": ["Customer", "External Model"],
+    }
+
+
 def test_predictor_categorization_dictionary_regexps(sample):
     # Using a reg exp w/o setting the flag should not match anything
     categorization = {"XGBoost Model": "Score$"}

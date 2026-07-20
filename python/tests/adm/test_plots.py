@@ -404,7 +404,7 @@ def test_predictor_performance_handles_null_predictor_category_after_custom_cate
     plot = datamart.plot.predictor_performance()
 
     assert isinstance(plot, Figure)
-    assert {trace.name for trace in plot.data} == {"External Model", "Missing"}
+    assert {trace.name for trace in plot.data} == {"Customer", "External Model"}
 
 
 def test_predictor_category_performance(sample: ADMDatamart):
