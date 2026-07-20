@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 _STANDARD_PREDICTOR_CATEGORY_COLORS = {
     "Customer": "#001F5F",
     "IH": "#10A5AC",
+    "Primary": "#63666F",
     "Param": "#F76923",
     "Account": "#661D34",
     "External Model": "#DE4342",

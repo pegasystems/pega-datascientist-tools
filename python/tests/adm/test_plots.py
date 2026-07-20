@@ -711,6 +711,48 @@ def test_predictor_category_color_map_pins_standard_categories(sample: ADMDatama
     }
 
 
+def test_predictor_category_color_map_pins_primary_distinct_from_ih():
+    datamart = ADMDatamart(
+        model_df=pl.LazyFrame(
+            {
+                "ModelID": ["m1"],
+                "Configuration": ["Config"],
+                "SnapshotTime": [datetime(2024, 1, 1)],
+                "Positives": [10.0],
+                "Negatives": [90.0],
+                "ResponseCount": [100.0],
+                "Performance": [0.7],
+                "Channel": ["Web"],
+                "Direction": ["Inbound"],
+                "Issue": ["Issue"],
+                "Group": ["Group"],
+                "Name": ["Action"],
+            },
+        ),
+        predictor_df=pl.LazyFrame(
+            {
+                "ModelID": ["m1", "m1"],
+                "PredictorName": ["PrimarySignal", "IH.Foo"],
+                "PredictorCategory": [None, None],
+                "EntryType": ["Active", "Active"],
+                "BinIndex": [1, 1],
+                "BinPositives": [8.0, 4.0],
+                "BinNegatives": [12.0, 16.0],
+                "BinResponseCount": [20.0, 20.0],
+                "ResponseCount": [20.0, 20.0],
+                "Performance": [0.72, 0.62],
+                "SnapshotTime": [datetime(2024, 1, 1), datetime(2024, 1, 1)],
+                "Type": ["numeric", "numeric"],
+            },
+        ),
+    )
+
+    color_map = datamart.predictor_category_color_map
+
+    assert color_map["IH"] == "#10A5AC"
+    assert color_map["Primary"] == "#63666F"
+
+
 def test_predictor_performance_consistent_colors(sample: ADMDatamart):
     """Same predictor category gets the same colour in two different filtered plots."""
     fig_all = sample.plot.predictor_performance()
