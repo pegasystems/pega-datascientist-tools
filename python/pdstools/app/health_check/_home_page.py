@@ -87,8 +87,8 @@ interactive visuals and an Excel export for further exploration.
 
     st.markdown(
         """
-Upload ADM Health Check data below, or expand the file path section to load files
-from disk. Advanced import options are at the bottom of the data import section.
+Upload ADM Health Check data below, or expand **File paths** to load files from disk.
+Advanced import options are at the bottom of this section.
 """
     )
 

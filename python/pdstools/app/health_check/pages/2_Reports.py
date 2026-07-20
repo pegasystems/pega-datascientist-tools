@@ -44,7 +44,7 @@ def _show_generated_path(label: str, path: str | Path | None) -> None:
 
 with health_check:
     st.title("Generate Health Check")
-    """To begin monitoring your models, you can create a Health Check document that provides a summary of all models and predictors."""
+    """Create a Health Check document: a single report that summarizes the health of all your models and predictors."""
     _FULL_EMBED_HELP = (
         "Bundle JavaScript and CSS libraries directly into the HTML file so "
         "the report works offline and in air-gapped environments. "
@@ -111,7 +111,7 @@ with health_check:
             )
         st.title("Create Excel Tables")
         st.write(
-            "If you prefer conducting a custom analysis in Excel, you can easily transform your data into Excel format.",
+            "Prefer to explore the data yourself? Export it to Excel for your own analysis.",
         )
         include_binning = st.checkbox(
             "Include Binning",
@@ -189,7 +189,7 @@ if st.session_state["dm"].predictor_data is not None:
                     ),
                     context_keys=st.session_state["dm"].context_keys,
                 )
-            st.write("Please choose the models for which you wish to generate a report")
+            st.write("Select the models you want to generate a report for.")
             edited_df = st.data_editor(
                 st.session_state["model_selection_df"],
                 disabled=[*st.session_state["dm"].context_keys, "Name"],
@@ -274,6 +274,6 @@ if st.session_state["dm"].predictor_data is not None:
                 os.remove(log_file_path)
 else:
     st.info(
-        "You can generate individual model reports if you provide Predictor Snapshot in 'Data Import' stage.",
+        "To generate individual model reports, import a Predictor Binning snapshot on the Home page.",
         icon="ℹ️",
     )
