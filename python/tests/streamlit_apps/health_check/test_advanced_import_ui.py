@@ -147,6 +147,25 @@ def test_upload_cache_uses_configured_output_folder(hc_app_dir: Path, tmp_path: 
     assert at.session_state["_hc_written_paths"] == (str(canonical_model),)
 
 
+def test_single_quoted_model_path_imports(hc_app_dir: Path, tmp_path: Path) -> None:
+    model_path = tmp_path / "model.csv"
+    _write_model_missing_repairable_required_fields(model_path)
+
+    at = AppTest.from_file(str(hc_app_dir / "Home.py"), default_timeout=60).run()
+    assert not at.exception
+
+    model_input = next(widget for widget in at.text_input if widget.label == "Model Snapshot path")
+    model_input.set_value(f"'{model_path}'").run()
+
+    import_button = next(button for button in at.button if button.label == "Import")
+    import_button.click().run()
+
+    assert not at.exception
+    assert "dm" in at.session_state
+    model_data = at.session_state["dm"].model_data.select("ModelID").collect()
+    assert model_data["ModelID"].to_list() == ["model-1"]
+
+
 def test_custom_quote_character_and_timestamp_fallback(hc_app_dir: Path, tmp_path: Path) -> None:
     model_path = tmp_path / "model.csv"
     _write_single_quoted_model_with_bad_timestamp(model_path)

@@ -414,6 +414,7 @@ def _source_import_options(
 
 def _detected_sources(directory: str) -> tuple[str | None, str | None, str | None]:
     """Return standard files auto-detected in a pasted directory path."""
+    directory = _strip_outer_path_quotes(directory)
     if not directory:
         return None, None, None
     path = Path(directory).expanduser()
@@ -430,6 +431,14 @@ def _detected_sources(directory: str) -> tuple[str | None, str | None, str | Non
     )
 
 
+def _strip_outer_path_quotes(value: str) -> str:
+    """Remove matching shell quotes around a pasted path string."""
+    path = value.strip()
+    if len(path) >= 2 and path[0] == path[-1] and path[0] in {"'", '"'}:
+        return path[1:-1].strip()
+    return path
+
+
 def _path_sources() -> tuple[str | None, str | None, str | None]:
     st.text_input(
         "Data folder for automatic file detection",
@@ -441,21 +450,21 @@ def _path_sources() -> tuple[str | None, str | None, str | None]:
         "Model Snapshot path",
         key="_hc_model_path",
         on_change=_invalidate_manual_import,
-    ).strip()
+    )
     predictor_path = st.text_input(
         "Predictor Binning snapshot path (optional)",
         key="_hc_predictor_path",
         on_change=_invalidate_manual_import,
-    ).strip()
+    )
     prediction_path = st.text_input(
         "Prediction Table path (optional)",
         key="_hc_prediction_path",
         on_change=_invalidate_manual_import,
-    ).strip()
+    )
     sources = (
-        model_path or detected[0],
-        predictor_path or detected[1],
-        prediction_path or detected[2],
+        _strip_outer_path_quotes(model_path) or detected[0],
+        _strip_outer_path_quotes(predictor_path) or detected[1],
+        _strip_outer_path_quotes(prediction_path) or detected[2],
     )
     for label, source in zip(("Model", "Predictor", "Prediction"), sources, strict=True):
         if source:
@@ -563,7 +572,7 @@ def render_import_ui() -> None:
                     value=str(Path.cwd()),
                     key="_hc_output_parent",
                 )
-                output_parent = Path(output_parent_text).expanduser()
+                output_parent = Path(_strip_outer_path_quotes(output_parent_text)).expanduser()
                 output_dir = resolve_health_check_output_dir(output_parent=output_parent)
             st.caption(f"Processed parquet destination: {output_dir}")
 
@@ -773,7 +782,7 @@ def handle_data_path_hc() -> ADMDatamart | None:
     unsupported file type. The caller is expected to fall back to the
     bundled sample in the latter cases.
     """
-    data_path = get_data_path()
+    data_path = _strip_outer_path_quotes(get_data_path() or "")
     if not data_path:
         return None
 
