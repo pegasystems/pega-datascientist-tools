@@ -657,6 +657,7 @@ class ADMDatamart:
         """Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale."""
         if "Performance" not in df.collect_schema().names():
             return df
+        logger.info("Checking ADM Performance scale.")
         perf_max = df.select(pl.col("Performance").max()).collect().item()
         if perf_max is not None and perf_max > 1.0:
             df = df.with_columns(

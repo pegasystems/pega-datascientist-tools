@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import uuid
+import logging
 from dataclasses import dataclass, field
 from io import BytesIO
 from pathlib import Path
@@ -21,6 +22,8 @@ if TYPE_CHECKING:
 
 HealthCheckSource = str | os.PathLike[str] | BytesIO
 ConfiguredDtype = str | pl.DataType | type[pl.DataType]
+
+logger = logging.getLogger(__name__)
 
 _DTYPE_ALIASES: dict[str, pl.DataType | type[pl.DataType]] = {
     "bool": pl.Boolean,
@@ -425,19 +428,10 @@ def normalize_health_check_data(
             timestamp_type = df.collect_schema()[timestamp_column]
             if timestamp_type.is_temporal():
                 timestamp_expr = pl.col(timestamp_column).cast(pl.Datetime)
-            elif options.timestamp_format is not None:
-                timestamp_expr = (
-                    pl.col(timestamp_column)
-                    .cast(pl.String)
-                    .str.strptime(
-                        pl.Datetime,
-                        format=options.timestamp_format,
-                        strict=False,
-                    )
-                )
             else:
-                raise ValueError(
-                    f"timestamp_format is required to parse non-temporal column '{timestamp_column}'",
+                timestamp_expr = cdh_utils.parse_pega_date_time_formats(
+                    timestamp_column,
+                    timestamp_fmt=options.timestamp_format,
                 )
             if options.timestamp_fallback is not None:
                 timestamp_expr = timestamp_expr.fill_null(pl.lit(options.timestamp_fallback).cast(pl.Datetime))
@@ -625,26 +619,33 @@ def import_health_check_data(
     if model_source is None:
         raise ValueError("model_source is required")
 
+    model_metadata = _source_metadata(model_source)
+    logger.info("Importing Health Check model source '%s'.", model_metadata.name)
     model_data, model_warnings = _import_source(model_source, model_options)
     predictor_data: pl.LazyFrame | None = None
     prediction_data: pl.LazyFrame | None = None
     warnings = [f"Model: {warning}" for warning in model_warnings]
-    sources: dict[str, HealthCheckSourceMetadata] = {"model": _source_metadata(model_source)}
+    sources: dict[str, HealthCheckSourceMetadata] = {"model": model_metadata}
 
     if predictor_source is not None:
+        predictor_metadata = _source_metadata(predictor_source)
+        logger.info("Importing Health Check predictor source '%s'.", predictor_metadata.name)
         predictor_data, predictor_warnings = _import_source(predictor_source, predictor_options)
         warnings.extend(f"Predictor: {warning}" for warning in predictor_warnings)
-        sources["predictor"] = _source_metadata(predictor_source)
+        sources["predictor"] = predictor_metadata
 
     if prediction_source is not None:
+        prediction_metadata = _source_metadata(prediction_source)
+        logger.info("Importing Health Check prediction source '%s'.", prediction_metadata.name)
         prediction_data, prediction_warnings = _import_source(
             prediction_source,
             prediction_options,
             full_schema_inference=True,
         )
         warnings.extend(f"Prediction: {warning}" for warning in prediction_warnings)
-        sources["prediction"] = _source_metadata(prediction_source)
+        sources["prediction"] = prediction_metadata
 
+    logger.info("Validating Health Check datamart.")
     datamart = ADMDatamart(
         model_df=model_data,
         predictor_df=predictor_data,
@@ -652,6 +653,7 @@ def import_health_check_data(
     )
 
     if predictor_data is not None and predictor_categorization:
+        logger.info("Applying Health Check predictor categorization.")
         predictor_data = cdh_utils._polars_capitalize(predictor_data)
         predictor_data = datamart.apply_predictor_categorization(
             categorization=dict(predictor_categorization),
@@ -665,6 +667,7 @@ def import_health_check_data(
         )
 
     prediction = Prediction(prediction_data) if prediction_data is not None else None
+    logger.info("Health Check import complete.")
 
     return HealthCheckImportResult(
         datamart=datamart,

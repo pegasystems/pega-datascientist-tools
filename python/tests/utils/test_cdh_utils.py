@@ -944,7 +944,9 @@ def test_extract_keys():
 # "%Y-%m-%d %H:%M:%S"
 #     - "%Y%m%dT%H%M%S.%f %Z"
 #     - "%d-%b-%y"
+#     - "%d/%b/%y"
 #     - "%d%b%Y:%H:%M:%S"
+#     - "%m/%d/%Y %I:%M %p"
 #     - "%Y%m%d"
 
 
@@ -954,11 +956,13 @@ def test_parse_pega_date_time_formats():
             "Snappy": [
                 "2020-01-01 15:05:03",
                 "20241201T150503.847 GMT",
-                # "31-Mar-23", # should work?! or give null. polars panics in 1.28
+                "30-Sep-24",
+                "30/Sep/24",
                 "31032023:15:05:03",
                 "20180316T134127.847345",
                 "20180316T134127.8",
                 "20180316T134127",
+                "09/30/2024 06:00 PM",
                 "20241201",
                 # "09MAY2025:06:00:05" # Polars panics. Invariant when calling StrpTimeState.parse was not upheld. https://github.com/pola-rs/polars/issues/22495
             ],
@@ -976,10 +980,10 @@ def test_parse_pega_date_time_formats():
 
     assert df.schema["SnapshotTime"] == pl.Datetime
     assert df.schema["SnapshotDate"] == pl.Date
-    assert df["SnapshotTime"].to_list()[2] is None
-    assert df.select(pl.col("SnapshotTime").is_not_null().sum()).item() == 6
-    assert df["SnapshotTime2"].to_list()[2] is not None
-    assert df.select(pl.col("SnapshotTime2").is_not_null().sum()).item() == 7
+    assert df["SnapshotTime"].to_list()[4] is None
+    assert df.select(pl.col("SnapshotTime").is_not_null().sum()).item() == 9
+    assert df["SnapshotTime2"].to_list()[4] is not None
+    assert df.select(pl.col("SnapshotTime2").is_not_null().sum()).item() == 10
 
 
 # ── Tests for _combine_queries ──────────────────────────────────────────────

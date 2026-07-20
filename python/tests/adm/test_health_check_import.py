@@ -334,12 +334,6 @@ def test_normalize_health_check_data_rejects_conflicting_and_duplicate_columns()
             SourceNormalizationOptions(type_overrides={"value": "definitely-not-a-type"}),
         )
 
-    with pytest.raises(ValueError, match="timestamp_format is required"):
-        normalize_health_check_data(
-            pl.LazyFrame({"SnapshotTime": ["20260716T103000.000 GMT"]}),
-            SourceNormalizationOptions(timestamp_column="SnapshotTime"),
-        )
-
     with pytest.raises(ValueError, match="no fallback was configured"):
         normalize_health_check_data(
             pl.LazyFrame({"ModelID": ["model-1"]}),
@@ -362,6 +356,16 @@ def test_normalize_health_check_data_casts_existing_temporal_timestamp():
     )
 
     assert actual.collect().get_column("SnapshotTime").to_list() == [datetime(2026, 7, 16, 10, 30)]
+    assert warnings == ("Parsed timestamp column 'SnapshotTime'.",)
+
+
+def test_normalize_health_check_data_auto_parses_configured_timestamp_column():
+    actual, warnings = normalize_health_check_data(
+        pl.LazyFrame({"SnapshotTime": ["09/30/2024 06:00 PM"]}),
+        SourceNormalizationOptions(timestamp_column="SnapshotTime"),
+    )
+
+    assert actual.collect().get_column("SnapshotTime").to_list() == [datetime(2024, 9, 30, 18, 0)]
     assert warnings == ("Parsed timestamp column 'SnapshotTime'.",)
 
 
@@ -424,6 +428,20 @@ def test_import_health_check_data_reads_and_validates_nonstandard_csv():
         "SuccessRate": [0.1],
     }
     assert result.model_data.collect().get_column("PYSNAPSHOTTIME").dtype == pl.Datetime
+
+
+def test_import_health_check_data_auto_parses_ampm_snapshot_timestamp():
+    model = _uploaded_csv(
+        "pyModelID,pyConfigurationName,pySnapshotTime,pyPositives,pyNegatives,"
+        "pyResponseCount,pyPerformance,pyChannel,pyDirection,pyIssue,pyGroup,pyName\n"
+        "model-1,Config,09/30/2024 06:00 PM,10,90,100,70,Web,Inbound,Issue,Group,Action\n",
+    )
+
+    result = import_health_check_data(model, extract_pyname_keys=False)
+
+    assert result.datamart.model_data.select("SnapshotTime").collect().to_series().to_list() == [
+        datetime(2024, 9, 30, 18, 0),
+    ]
 
 
 def test_import_health_check_data_reads_tab_delimited_path_with_null_values(tmp_path):

@@ -23,7 +23,9 @@ def parse_pega_date_time_formats(
     - "%Y-%m-%d %H:%M:%S"
     - "%Y%m%dT%H%M%S.%f %Z"
     - "%d-%b-%y"
+    - "%d/%b/%y"
     - "%d%b%Y:%H:%M:%S"
+    - "%m/%d/%Y %I:%M %p"
     - "%Y%m%d"
 
     Removes timezones, and rounds to seconds, with a 'ns' time unit.
@@ -61,10 +63,22 @@ def parse_pega_date_time_formats(
             strict=False,
             ambiguous="null",
         ),
+        pl.col(timestamp_col).str.strptime(
+            timestamp_dtype,
+            "%m/%d/%Y %I:%M %p",
+            strict=False,
+            ambiguous="null",
+        ),
         pl.col(timestamp_col).str.slice(0, 8).str.strptime(timestamp_dtype, "%Y%m%d", strict=False, ambiguous="null"),
         pl.col(timestamp_col).str.strptime(
             timestamp_dtype,
             "%d-%b-%y",
+            strict=False,
+            ambiguous="null",
+        ),
+        pl.col(timestamp_col).str.strptime(
+            timestamp_dtype,
+            "%d/%b/%y",
             strict=False,
             ambiguous="null",
         ),

@@ -212,6 +212,13 @@ def _field_repairs_text_area(
     if key not in st.session_state or st.session_state[key] == previous_default:
         st.session_state[key] = default_repairs
     st.session_state[default_key] = default_repairs
+    st.info(
+        "Use these repairs when an export is missing required Health Check fields. "
+        "This is common for process AI exports, where context fields such as "
+        "Channel, Direction, Issue, or Group may not exist. Constant values like "
+        "`pyDirection=NA` and simple derived fields like `pyNegatives=pyResponseCount-pyPositives` are supported.",
+        icon=":material/help:",
+    )
     return (
         st.text_area(
             "Missing required field repairs",
@@ -377,6 +384,7 @@ def _source_import_options(
     timestamp_column = (
         st.text_input(
             "Timestamp column",
+            help="Usually optional: standard snapshot timestamp columns are detected and parsed automatically. Set this only to override the column to parse or to create it from a fallback value.",
             key=f"{prefix}_timestamp_column",
             on_change=_invalidate_manual_import,
         ).strip()
@@ -386,7 +394,8 @@ def _source_import_options(
         st.text_input(
             "Timestamp format",
             key=f"{prefix}_timestamp_format",
-            placeholder="%Y-%m-%d %H:%M:%S",
+            placeholder="Auto-detected; override with e.g. %m/%d/%Y %I:%M %p",
+            help="Usually optional. The importer already tries common Pega snapshot formats, including AM/PM CSV timestamps. Provide a format only when automatic parsing is not enough.",
             on_change=_invalidate_manual_import,
         ).strip()
         or None
@@ -395,6 +404,7 @@ def _source_import_options(
         "Timestamp fallback",
         key=f"{prefix}_timestamp_fallback",
         placeholder="2026-01-01T00:00:00",
+        help="Optional fallback used when the configured timestamp column is missing or contains values that cannot be parsed.",
         on_change=_invalidate_manual_import,
     ).strip()
     timestamp_fallback = datetime.fromisoformat(fallback_text) if fallback_text else None

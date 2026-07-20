@@ -213,6 +213,10 @@ def test_missing_required_field_repairs_are_auto_populated(hc_app_dir: Path, tmp
     model_input = next(widget for widget in at.text_input if widget.label == "Model Snapshot path")
     model_input.set_value(str(model_path)).run()
 
+    import_tips = " ".join(info.value for info in at.info)
+    assert "process AI exports" in import_tips
+    assert "Channel, Direction, Issue, or Group" in import_tips
+
     field_repairs = next(widget for widget in at.text_area if widget.key == "_hc_model_field_repairs")
     assert field_repairs.value.splitlines() == [
         "pyNegatives=pyResponseCount-pyPositives",
