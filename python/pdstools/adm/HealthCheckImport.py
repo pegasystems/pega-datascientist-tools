@@ -519,6 +519,8 @@ def _source_metadata(source: HealthCheckSource) -> HealthCheckSourceMetadata:
 
 def _source_read_extension(source: HealthCheckSource) -> str:
     metadata = _source_metadata(source)
+    if metadata.extension == ".zip":
+        return Path(metadata.name.removesuffix(".zip")).suffix.casefold() or ".zip"
     if metadata.extension == ".gz":
         return Path(metadata.name.removesuffix(".gz")).suffix.casefold() or ".json"
     return metadata.extension

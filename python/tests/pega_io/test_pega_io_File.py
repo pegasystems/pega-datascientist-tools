@@ -119,12 +119,18 @@ class TestReadFromBytesIO:
         out = F._read_from_bytesio(zip_buf, ".zip").collect()
         assert out["a"].to_list() == [7]
 
-    def test_zip_without_data_json_raises(self):
+    def test_zip_without_data_json_reads_supported_file(self):
         zip_buf = BytesIO()
         with zipfile.ZipFile(zip_buf, "w") as zf:
-            zf.writestr("other.txt", "hello")
+            zf.writestr("model.csv", "a,b\n1,2\n3,4\n")
         zip_buf.seek(0)
-        with pytest.raises(FileNotFoundError):
+        out = F._read_from_bytesio(zip_buf, ".zip").collect()
+        assert out.to_dict(as_series=False) == {"a": [1, 3], "b": [2, 4]}
+
+    def test_zip_with_bad_directory_raises_actionable_message(self):
+        zip_buf = BytesIO(b"PK\x03\x04not-a-complete-zip")
+
+        with pytest.raises(ValueError, match="not a complete ZIP archive"):
             F._read_from_bytesio(zip_buf, ".zip")
 
     def test_unsupported_extension_raises(self):

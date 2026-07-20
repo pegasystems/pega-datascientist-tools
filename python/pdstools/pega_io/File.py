@@ -124,8 +124,14 @@ def _extract_zip(archive_path: Path) -> str:
     tmp_dir = tempfile.mkdtemp(prefix="pdstools_zip_")
     # lgtm [py/path-injection]
     # CodeQL suppression: archive_path is user-specified - expected for data reading library
-    with zipfile.ZipFile(archive_path, "r") as zf:
-        zf.extractall(tmp_dir)
+    try:
+        with zipfile.ZipFile(archive_path, "r") as zf:
+            zf.extractall(tmp_dir)
+    except zipfile.BadZipFile as exc:
+        raise ValueError(
+            "Could not open ZIP archive. The file has a .zip extension or ZIP header, "
+            "but it is not a complete ZIP archive that Python can extract.",
+        ) from exc
     return tmp_dir
 
 
@@ -280,16 +286,25 @@ def _read_from_bytesio(
 
     # Handle .zip archives (extract data.json)
     if extension == ".zip":
-        with zipfile.ZipFile(file, "r") as zf:
-            if "data.json" in zf.namelist():
-                with zf.open("data.json") as data_file:
-                    return pl.read_ndjson(BytesIO(data_file.read()), **(read_options or {})).lazy()
-            # Try to find data.json in subdirectories
-            for name in zf.namelist():
-                if name.endswith("data.json"):
-                    with zf.open(name) as data_file:
+        tmp_dir = tempfile.mkdtemp(prefix="pdstools_zip_")
+        try:
+            with zipfile.ZipFile(file, "r") as zf:
+                if "data.json" in zf.namelist():
+                    with zf.open("data.json") as data_file:
                         return pl.read_ndjson(BytesIO(data_file.read()), **(read_options or {})).lazy()
-        raise FileNotFoundError("Cannot find 'data.json' in zip archive")
+                # Try to find data.json in subdirectories
+                for name in zf.namelist():
+                    if name.endswith("data.json"):
+                        with zf.open(name) as data_file:
+                            return pl.read_ndjson(BytesIO(data_file.read()), **(read_options or {})).lazy()
+                zf.extractall(tmp_dir)
+        except zipfile.BadZipFile as exc:
+            raise ValueError(
+                "Could not open ZIP archive. The uploaded file has a .zip extension or ZIP header, "
+                "but it is not a complete ZIP archive that Python can extract.",
+            ) from exc
+        _clean_artifacts(tmp_dir)
+        return read_data(tmp_dir, read_options=read_options)
 
     return _scan_by_extension(file, extension, read_options=read_options)
 

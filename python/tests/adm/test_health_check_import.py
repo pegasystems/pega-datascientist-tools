@@ -457,6 +457,26 @@ def test_import_health_check_data_skips_pyname_extraction_when_context_present()
     assert result.datamart.model_data.select("Name").collect().to_series().to_list() == ["Action"]
 
 
+def test_import_health_check_data_reads_zipped_csv_upload():
+    model = BytesIO()
+    with zipfile.ZipFile(model, "w") as archive:
+        archive.writestr(
+            "MD_FACT.csv",
+            "pyModelID,pyConfigurationName,pySnapshotTime,pyPositives,pyNegatives,"
+            "pyResponseCount,pyPerformance,pyChannel,pyDirection,pyIssue,pyGroup,pyName\n"
+            "model-1,Config,09/30/2024 06:00 PM,10,90,100,70,Web,Inbound,Issue,Group,Action\n",
+        )
+    model.seek(0)
+    model.name = "MD_FACT.csv.zip"
+
+    result = import_health_check_data(model, extract_pyname_keys=False)
+
+    assert result.datamart.model_data.select("Name", "SnapshotTime").collect().to_dict(as_series=False) == {
+        "Name": ["Action"],
+        "SnapshotTime": [datetime(2024, 9, 30, 18, 0)],
+    }
+
+
 def test_import_health_check_data_reads_tab_delimited_path_with_null_values(tmp_path):
     model_path = tmp_path / "quoted-model.txt"
     model_path.write_text(
