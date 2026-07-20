@@ -95,6 +95,7 @@ with health_check:
 
                 if len(st.session_state["run"][st.session_state["runID"]]) == 0:
                     st.stop()
+                st.balloons()
         _show_generated_path(
             "Generated health check file",
             st.session_state["run"][st.session_state["runID"]].get("name"),
@@ -151,6 +152,7 @@ with health_check:
                 file_name=Path(st.session_state["run"][st.session_state["runID"]]["tables"]).name,
                 key="TablesDownload",
             )
+            st.balloons()
 
     except Exception as e:
         logger.exception(f"An error occurred during Health Check generation: {e}")

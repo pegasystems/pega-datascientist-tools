@@ -29,6 +29,7 @@ def test_generate_button_shows_download_button(
     hc_app_dir,
     seeded_admdatamart,
     tmp_path,
+    monkeypatch,
 ) -> None:
     """Clicking 'Generate Health Check' renders a download button.
 
@@ -50,6 +51,8 @@ def test_generate_button_shows_download_button(
         return str(mock_output)
 
     seeded_admdatamart.generate.health_check = fake_health_check
+    balloon_calls: list[None] = []
+    monkeypatch.setattr("streamlit.balloons", lambda: balloon_calls.append(None))
 
     page = hc_app_dir / "pages" / "2_Reports.py"
     at = AppTest.from_file(str(page), default_timeout=30)
@@ -87,6 +90,7 @@ def test_generate_button_shows_download_button(
         f"session_state['run'][{run_id}] should contain a 'file' key after generation."
     )
     assert captured_kwargs["output_dir"] == tmp_path / "HC"
+    assert balloon_calls == [None]
 
 
 def test_generate_button_shows_generated_health_check_path(
@@ -121,10 +125,13 @@ def test_create_tables_shows_generated_excel_path(
     hc_app_dir,
     seeded_admdatamart,
     tmp_path,
+    monkeypatch,
 ) -> None:
     table_output = tmp_path / "HealthCheckExport.xlsx"
     table_output.write_bytes(b"mock xlsx")
     seeded_admdatamart.generate.excel_report = lambda *args, **kwargs: (table_output, [])
+    balloon_calls: list[None] = []
+    monkeypatch.setattr("streamlit.balloons", lambda: balloon_calls.append(None))
 
     written_path = tmp_path / "HC" / "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
     page = hc_app_dir / "pages" / "2_Reports.py"
@@ -143,6 +150,7 @@ def test_create_tables_shows_generated_excel_path(
     assert f"Generated Excel tables file: {tmp_path / 'HC' / 'HealthCheckExport.xlsx'}" in info_text
     assert "Processed parquet destination" not in info_text
     assert str(written_path) not in info_text
+    assert balloon_calls == [None]
 
 
 def test_report_full_embed_option_is_in_normal_options(
