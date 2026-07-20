@@ -200,6 +200,23 @@ class TestGetLatestFile:
             F.get_latest_file(str(tmp_path), target="something_else")
 
 
+def test_read_ds_export_prefers_local_repo_data_for_raw_github_samples(monkeypatch):
+    import requests
+
+    def _fail_network(*args, **kwargs):
+        raise AssertionError("network should not be used for checkout-local sample data")
+
+    monkeypatch.setattr(requests, "get", _fail_network)
+
+    df = F.read_ds_export(
+        "sample_explainability_extract.parquet",
+        path="https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data",
+    )
+
+    assert isinstance(df, pl.LazyFrame)
+    assert df.collect().height > 0
+
+
 # ---------------------------------------------------------------------------
 # Excel support in read_data
 # ---------------------------------------------------------------------------

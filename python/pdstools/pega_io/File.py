@@ -26,6 +26,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_REPO_DATA_DIR = Path(__file__).parents[3] / "data"
+_RAW_GITHUB_DATA_PREFIX = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data"
+
 
 # Extensions that read_data knows how to handle.
 _SUPPORTED_EXTENSIONS: set[str] = {
@@ -65,6 +68,18 @@ def _read_excel(path, **kwargs) -> pl.DataFrame:
             ["fastexcel"],
             namespace="pega_io.read_data (Excel support)",
         ) from None
+
+
+def _local_repo_data_path(path: str) -> str | None:
+    """Return the checkout-local data path for this repo's raw sample-data URL."""
+    normalized_path = path.rstrip("/")
+    if not normalized_path.startswith(_RAW_GITHUB_DATA_PREFIX):
+        return None
+    if not _REPO_DATA_DIR.is_dir():
+        return None
+    relative_path = normalized_path.removeprefix(_RAW_GITHUB_DATA_PREFIX).strip("/")
+    local_path = _REPO_DATA_DIR / relative_path if relative_path else _REPO_DATA_DIR
+    return str(local_path) if local_path.is_dir() else None
 
 
 def _is_artifact(name: str) -> bool:
@@ -565,7 +580,8 @@ def read_ds_export(
         return read_data(filename)
 
     filename_str = os.fspath(filename)
-    path_str = os.fspath(path)
+    remote_path_str = os.fspath(path)
+    path_str = _local_repo_data_path(remote_path_str) or remote_path_str
 
     # ADM-specific: Smart file finding for model_data/predictor_data patterns.
     _TARGET_NAMES = {"model_data", "predictor_data", "value_finder", "prediction_data"}
@@ -586,7 +602,7 @@ def read_ds_export(
     # locally, try treating ``path/filename`` as a URL.
     if file is None:
         logger.debug("Could not find file in directory, checking if URL")
-        url = f"{path_str}/{filename_str}"
+        url = f"{remote_path_str.rstrip('/')}/{filename_str}"
 
         try:
             import requests
