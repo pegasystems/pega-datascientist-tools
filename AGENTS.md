@@ -578,6 +578,42 @@ test in the same PR.
 - Keep heavy computation out of page scripts; delegate to cached
   functions or the library layer.
 
+### Checking private customer data for ADM Health Check caches
+
+When asked to scan a private customer-data folder for newer or missing
+ADM Health Check cache candidates, keep the work read-only until the
+user explicitly approves conversion or replacement. These folders can
+contain private customer files, so do not write customer names, source
+paths, filenames, row samples, or generated reports into tracked repo
+files. Use temporary scripts under `/tmp` for any helper code and remove
+them when done.
+
+Workflow:
+- Inventory existing top-level `HC` folders and canonical cache files:
+  `PR_DATA_DM_ADMMART_MDL_FACT.parquet`,
+  `PR_DATA_DM_ADMMART_PRED.parquet`, and optional
+  `PR_DATA_DM_SNAPSHOTS.parquet`.
+- Search candidate source files by role using filenames such as model
+  snapshot, predictor binning snapshot, prediction snapshot,
+  `PR_DATA_DM_ADMMART_MDL_FACT`, `PR_DATA_DM_ADMMART_PRED`, and
+  `PR_DATA_DM_SNAPSHOTS`. Exclude existing `HC` output folders from
+  the source scan.
+- Summarize candidates by customer folder and source subfolder before
+  reading data content. Use metadata first: role coverage, file counts,
+  modified dates, and sizes.
+- Validate only shortlisted candidates through the same library path the
+  app uses: `import_health_check_data(...)`. Do not call
+  `save_health_check_parquet(...)` during the recommendation phase.
+- Compare validated row counts against any existing canonical `HC`
+  parquet row counts. Treat newer dumps with much smaller model counts,
+  missing predictor data, parse errors, or selected/filtered naming as
+  "do not replace blindly" candidates.
+- In the chat report, keep it concise: client name, folder name, row
+  counts when validated, and the suggested action. Clearly separate
+  "create HC", "replace existing HC", "needs manual/import-option pass",
+  and "skip". Do not modify or replace private data until the user
+  confirms the recommendation.
+
 ## Design principles for new functionality
 
 These principles apply when adding new features, modules, or classes —
