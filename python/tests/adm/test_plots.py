@@ -261,6 +261,24 @@ def test_score_distribution(sample: ADMDatamart):
     assert len(plot.data) == 2
 
 
+def test_score_distribution_falls_back_to_full_range_when_active_range_is_empty(
+    sample: ADMDatamart,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    model_id = "277a2c48-8888-5b71-911e-443d52c9b50f"
+
+    def out_of_bounds_active_range(model_ids: str):
+        assert model_ids == model_id
+        return pl.LazyFrame({"idx_min": [999], "idx_max": [1000]})
+
+    monkeypatch.setattr(sample, "active_ranges", out_of_bounds_active_range)
+
+    df = sample.plot.score_distribution(model_id=model_id, return_df=True)
+
+    assert not df.collect().is_empty()
+    assert df.filter(pl.col("PredictorName") != "Classifier").collect().is_empty()
+
+
 def test_multiple_score_distributions(sample: ADMDatamart):
     model_ids = (
         sample.aggregates.last(table="combined_data")

@@ -93,7 +93,9 @@ class _ScorePlotsMixin(_PlotsBase):
                 active_range_filter_expr = (pl.col("BinIndex") >= active_range_info["idx_min"]) & (
                     pl.col("BinIndex") <= active_range_info["idx_max"]
                 )
-                df = df.filter(active_range_filter_expr)
+                active_range_df = df.filter(active_range_filter_expr)
+                if active_range_df.select(pl.first().len()).collect().item() > 0:
+                    df = active_range_df
 
         if df.select(pl.first().len()).collect().item() == 0:
             raise ValueError(f"There is no data for the provided modelid '{model_id}'")
