@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __all__ = ["ADMDatamart"]
 
+import colorsys
 import datetime
 import logging
 import os
@@ -40,6 +41,54 @@ _STANDARD_PREDICTOR_CATEGORY_COLORS = {
     "Account": "#661D34",
     "External Model": "#DE4342",
 }
+
+# Colors for non-standard (custom) predictor categories. Deliberately chosen
+# to be perceptually distinct from the standard category colors above — which
+# cluster around navy, teal, grey, orange, wine and red — so a custom category
+# never renders as a shaded-out variant of a standard one (e.g. an "Asset"
+# category looking like a lighter "IH" teal). Assigned in order.
+_FALLBACK_PREDICTOR_CATEGORY_COLORS = [
+    "#2CA02C",  # green
+    "#9467BD",  # purple
+    "#FFC836",  # gold
+    "#E377C2",  # pink
+    "#8C564B",  # brown
+    "#BCBD22",  # olive
+    "#5F67B9",  # periwinkle
+]
+
+
+def _fallback_predictor_category_color(index: int) -> str:
+    """Return a distinct fallback color for the *index*-th custom category.
+
+    The first colors come from the curated
+    :data:`_FALLBACK_PREDICTOR_CATEGORY_COLORS` palette. Once that is
+    exhausted, additional colors are generated on the fly using golden-angle
+    hue rotation. This keeps the common case (a handful of categories) on the
+    hand-picked palette while imposing no hard limit on the number of custom
+    predictor categories — every category still gets its own distinct color.
+
+    Parameters
+    ----------
+    index : int
+        Zero-based position of the custom category among all custom
+        (non-standard) categories.
+
+    Returns
+    -------
+    str
+        A hex color string, e.g. ``"#2CA02C"``.
+    """
+    palette = _FALLBACK_PREDICTOR_CATEGORY_COLORS
+    if index < len(palette):
+        return palette[index]
+
+    # Golden-angle hue rotation spreads generated hues as evenly as possible,
+    # so consecutively-assigned colors stay visually distinct for any count.
+    golden_angle = 0.6180339887498949
+    hue = (0.11 + (index - len(palette) + 1) * golden_angle) % 1.0
+    r, g, b = colorsys.hsv_to_rgb(hue, 0.6, 0.8)
+    return f"#{round(r * 255):02X}{round(g * 255):02X}{round(b * 255):02X}"
 
 
 class ADMDatamart:
@@ -945,19 +994,13 @@ class ADMDatamart:
             Mapping from category name to hex color, e.g.
             ``{"Customer": "#001F5F", "IH": "#10A5AC", ...}``.
         """
-        from ..utils.pega_template import colorway
-
-        fallback_colorway = [
-            color for color in colorway if color not in _STANDARD_PREDICTOR_CATEGORY_COLORS.values()
-        ] or colorway
-
         color_map: dict[str, str] = {}
         fallback_index = 0
         for category in self.unique_predictor_categories:
             if category in _STANDARD_PREDICTOR_CATEGORY_COLORS:
                 color_map[category] = _STANDARD_PREDICTOR_CATEGORY_COLORS[category]
             else:
-                color_map[category] = fallback_colorway[fallback_index % len(fallback_colorway)]
+                color_map[category] = _fallback_predictor_category_color(fallback_index)
                 fallback_index += 1
 
         return color_map

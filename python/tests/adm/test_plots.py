@@ -753,6 +753,55 @@ def test_predictor_category_color_map_pins_primary_distinct_from_ih():
     assert color_map["Primary"] == "#63666F"
 
 
+def test_predictor_category_color_map_no_limit_on_categories():
+    """Many custom categories each get a distinct color (no hard limit)."""
+    n_categories = 40
+    model_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1"],
+            "Configuration": ["Config"],
+            "SnapshotTime": [datetime(2024, 1, 1)],
+            "Positives": [10.0],
+            "Negatives": [90.0],
+            "ResponseCount": [100.0],
+            "Performance": [0.7],
+            "Channel": ["Web"],
+            "Direction": ["Inbound"],
+            "Issue": ["Issue"],
+            "Group": ["Group"],
+            "Name": ["Action"],
+        },
+    )
+    categories = [f"Custom{i:02d}" for i in range(n_categories)]
+    predictor_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1"] * n_categories,
+            "PredictorName": [f"Pred{i}" for i in range(n_categories)],
+            "PredictorCategory": categories,
+            "EntryType": ["Active"] * n_categories,
+            "BinIndex": [1] * n_categories,
+            "BinPositives": [8.0] * n_categories,
+            "BinNegatives": [12.0] * n_categories,
+            "BinResponseCount": [20.0] * n_categories,
+            "ResponseCount": [20.0] * n_categories,
+            "Performance": [0.7] * n_categories,
+            "SnapshotTime": [datetime(2024, 1, 1)] * n_categories,
+            "Type": ["numeric"] * n_categories,
+        },
+    )
+    datamart = ADMDatamart(model_df=model_df, predictor_df=predictor_df)
+
+    color_map = datamart.predictor_category_color_map
+
+    # Every category is present and each color is a valid hex string.
+    assert set(color_map) == set(categories)
+    for color in color_map.values():
+        assert color.startswith("#") and len(color) == 7
+
+    # No hard limit: every one of the 40 custom categories gets a unique color.
+    assert len(set(color_map.values())) == n_categories
+
+
 def test_predictor_performance_consistent_colors(sample: ADMDatamart):
     """Same predictor category gets the same colour in two different filtered plots."""
     fig_all = sample.plot.predictor_performance()
