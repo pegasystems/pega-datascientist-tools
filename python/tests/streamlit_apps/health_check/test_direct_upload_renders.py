@@ -41,3 +41,8 @@ def test_direct_file_upload_renders_uploaders(hc_app_dir: Path):
     assert not any("Import Successful" in m for m in success_messages), (
         f"stale 'Import Successful!' banner should be gone, got: {success_messages}"
     )
+
+    info_messages = [i.value for i in at.info]
+    assert any("Sample data is currently loaded" in m for m in info_messages), (
+        f"expected a status banner naming the sample data source, got: {info_messages}"
+    )

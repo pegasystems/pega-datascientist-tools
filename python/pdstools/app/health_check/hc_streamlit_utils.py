@@ -104,6 +104,7 @@ def _invalidate_manual_import() -> None:
         "prediction",
         "_hc_import_result",
         "_hc_import_warnings",
+        "_hc_import_just_succeeded",
         "_hc_output_dir",
         "_hc_written_paths",
     ):
@@ -510,6 +511,28 @@ def _upload_sources():
     return model, predictor, prediction
 
 
+def _loaded_data_status() -> str:
+    """Describe the data currently held in session state.
+
+    Used to keep the Health Check home page honest about where the loaded
+    data came from, so the sample, a manual import, and a ``--data-path``
+    load are never mistaken for one another.
+
+    Returns
+    -------
+    str
+        A short status sentence including a hint on how to replace the data.
+    """
+    source = st.session_state.get("data_source")
+    if source == "CDH Sample":
+        loaded = "Sample data is currently loaded."
+    elif "_hc_import_result" in st.session_state:
+        loaded = "Your imported data is currently loaded."
+    else:
+        loaded = "Data from your configured path is currently loaded."
+    return f"{loaded} Upload files or enter file paths above to replace it."
+
+
 def render_import_ui() -> None:
     """Render the Health Check import workflow."""
     st.write("### Data import")
@@ -644,6 +667,7 @@ def render_import_ui() -> None:
                 st.session_state["data_source"] = source_mode
                 st.session_state["dm"] = result.datamart
                 st.session_state["_hc_import_result"] = result
+                st.session_state["_hc_import_just_succeeded"] = True
                 if result.prediction is not None:
                     st.session_state["prediction"] = result.prediction
                 else:
@@ -661,14 +685,19 @@ def render_import_ui() -> None:
             _invalidate_manual_import()
             st.error(f"Import failed: {error}")
 
-    if "_hc_import_result" in st.session_state:
+    # "Import Successful!" is a one-shot banner: it is popped so it shows only
+    # on the exact run that performed the import. Keying it off the persistent
+    # ``_hc_import_result`` instead made it re-appear on every rerun and page
+    # navigation, so it looked like an import had just happened even when the
+    # user had only auto-loaded the sample or simply navigated back here.
+    if st.session_state.pop("_hc_import_just_succeeded", False):
         st.success("Import Successful!")
         for warning in st.session_state.get("_hc_import_warnings", ()):
             st.warning(warning)
         for path in st.session_state.get("_hc_written_paths", ()):
             st.caption(f"Wrote {path}")
     elif "dm" in st.session_state:
-        st.info("Sample or configured data is loaded. Upload files or enter file paths to replace it.")
+        st.info(_loaded_data_status())
 
 
 def ensure_dm_loaded(*, show_toast: bool = False) -> bool:
