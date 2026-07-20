@@ -89,6 +89,58 @@ def test_generate_button_shows_download_button(
     assert captured_kwargs["output_dir"] == tmp_path / "HC"
 
 
+def test_generate_button_shows_processed_parquet_path(
+    hc_app_dir,
+    seeded_admdatamart,
+    tmp_path,
+) -> None:
+    mock_output = tmp_path / "mock_healthcheck.html"
+    mock_output.write_text("<html><body>Mock Health Check</body></html>")
+    seeded_admdatamart.generate.health_check = lambda **kwargs: str(mock_output)
+
+    written_path = tmp_path / "HC" / "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
+    page = hc_app_dir / "pages" / "2_Reports.py"
+    at = AppTest.from_file(str(page), default_timeout=30)
+    at.session_state["dm"] = seeded_admdatamart
+    at.session_state["_hc_output_dir"] = str(tmp_path / "HC")
+    at.session_state["_hc_written_paths"] = (str(written_path),)
+    at.run()
+    assert not at.exception
+
+    gen_button = next(button for button in at.button if button.label == "Generate Health Check")
+    gen_button.click().run()
+
+    assert not at.exception
+    info_text = "\n".join(info.value for info in at.info)
+    assert f"Processed parquet destination: {tmp_path / 'HC'}" in info_text
+
+
+def test_create_tables_shows_processed_parquet_path(
+    hc_app_dir,
+    seeded_admdatamart,
+    tmp_path,
+) -> None:
+    table_output = tmp_path / "HealthCheckExport.xlsx"
+    table_output.write_bytes(b"mock xlsx")
+    seeded_admdatamart.generate.excel_report = lambda *args, **kwargs: (table_output, [])
+
+    written_path = tmp_path / "HC" / "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
+    page = hc_app_dir / "pages" / "2_Reports.py"
+    at = AppTest.from_file(str(page), default_timeout=30)
+    at.session_state["dm"] = seeded_admdatamart
+    at.session_state["_hc_output_dir"] = str(tmp_path / "HC")
+    at.session_state["_hc_written_paths"] = (str(written_path),)
+    at.run()
+    assert not at.exception
+
+    create_tables_button = next(button for button in at.button if button.label == "Create Tables")
+    create_tables_button.click().run()
+
+    assert not at.exception
+    info_text = "\n".join(info.value for info in at.info)
+    assert f"Processed parquet destination: {tmp_path / 'HC'}" in info_text
+
+
 def test_report_full_embed_option_is_in_normal_options(
     hc_app_dir,
     seeded_admdatamart,

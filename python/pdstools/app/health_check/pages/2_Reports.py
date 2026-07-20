@@ -36,6 +36,15 @@ def _default_output_dir() -> Path:
     return Path(configured) if configured else Path("healthCheckDir")
 
 
+def _show_processed_parquet_status() -> None:
+    output_dir = st.session_state.get("_hc_output_dir")
+    if not output_dir:
+        return
+    st.info(f"Processed parquet destination: {output_dir}")
+    for path in st.session_state.get("_hc_written_paths", ()):
+        st.caption(f"Wrote {path}")
+
+
 with health_check:
     st.title("Generate Health Check")
     """To begin monitoring your models, you can create a Health Check document that provides a summary of all models and predictors."""
@@ -89,6 +98,7 @@ with health_check:
 
                 if len(st.session_state["run"][st.session_state["runID"]]) == 0:
                     st.stop()
+        _show_processed_parquet_status()
         if "file" in st.session_state["run"][st.session_state["runID"]]:
             btn = st.download_button(
                 label="Download Health Check",
@@ -131,10 +141,11 @@ with health_check:
                 for message in warning_messages:
                     st.warning(message)
 
+            _show_processed_parquet_status()
             btn = st.download_button(
                 label="Download additional tables",
                 data=st.session_state["run"][st.session_state["runID"]]["tablefile"],
-                file_name=st.session_state["run"][st.session_state["runID"]]["tables"],
+                file_name=Path(st.session_state["run"][st.session_state["runID"]]["tables"]).name,
                 key="TablesDownload",
             )
 
