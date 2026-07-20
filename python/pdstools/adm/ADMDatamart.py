@@ -32,6 +32,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_STANDARD_PREDICTOR_CATEGORY_COLORS = {
+    "Customer": "#001F5F",
+    "IH": "#10A5AC",
+    "Param": "#F76923",
+    "Account": "#661D34",
+    "External Model": "#DE4342",
+}
+
 
 class ADMDatamart:
     """Monitor and analyze ADM data from the Pega Datamart.
@@ -786,6 +794,8 @@ class ADMDatamart:
             self.predictor_data = set_categories(self.predictor_data)
         if hasattr(self, "combined_data") and self.combined_data is not None:
             self.combined_data = set_categories(self.combined_data)
+        self.__dict__.pop("unique_predictor_categories", None)
+        self.__dict__.pop("predictor_category_color_map", None)
 
     def save_data(
         self,
@@ -912,10 +922,11 @@ class ADMDatamart:
     def predictor_category_color_map(self) -> dict[str, str]:
         """Stable color mapping for predictor categories across all plots.
 
-        Assigns a consistent color to each ``PredictorCategory`` value found
-        in the full dataset, using the Pega colorway and alphabetical ordering.
-        This prevents the same category from receiving different colors when
-        different subsets of categories appear in different chart partitions.
+        Assigns fixed colors to standard ``PredictorCategory`` values found in
+        the full dataset, and deterministic fallback colors to custom
+        categories. This prevents the same category from receiving different
+        colors when different subsets of categories appear in different chart
+        partitions.
 
         Returns
         -------
@@ -923,15 +934,22 @@ class ADMDatamart:
             Mapping from category name to hex color, e.g.
             ``{"Customer": "#001F5F", "IH": "#10A5AC", ...}``.
         """
-        from ..utils.color_mapping import create_categorical_color_mappings
         from ..utils.pega_template import colorway
 
-        mappings = create_categorical_color_mappings(
-            self._require_predictor_data(),
-            ["PredictorCategory"],
-            colorway,
-        )
-        return mappings.get("PredictorCategory", {})
+        fallback_colorway = [
+            color for color in colorway if color not in _STANDARD_PREDICTOR_CATEGORY_COLORS.values()
+        ] or colorway
+
+        color_map: dict[str, str] = {}
+        fallback_index = 0
+        for category in self.unique_predictor_categories:
+            if category in _STANDARD_PREDICTOR_CATEGORY_COLORS:
+                color_map[category] = _STANDARD_PREDICTOR_CATEGORY_COLORS[category]
+            else:
+                color_map[category] = fallback_colorway[fallback_index % len(fallback_colorway)]
+                fallback_index += 1
+
+        return color_map
 
     @cached_property
     def has_single_snapshot(self) -> bool:

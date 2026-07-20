@@ -662,7 +662,6 @@ def test_predictor_category_color_map_stable(sample: ADMDatamart):
     """predictor_category_color_map returns a non-empty, stable mapping."""
     color_map = sample.predictor_category_color_map
     assert isinstance(color_map, dict)
-    # Fixture has 3 predictor categories (Customer, IH, Param) -> stable hex colours.
     assert color_map == {
         "Customer": "#001F5F",
         "IH": "#10A5AC",
@@ -670,6 +669,32 @@ def test_predictor_category_color_map_stable(sample: ADMDatamart):
     }
     # Calling twice returns the same object (cached_property)
     assert sample.predictor_category_color_map is color_map
+
+
+def test_predictor_category_color_map_pins_standard_categories(sample: ADMDatamart):
+    initial_color_map = sample.predictor_category_color_map
+
+    sample.apply_predictor_categorization(
+        {
+            "External Model": "Score",
+            "Custom Signal": "Age",
+        },
+    )
+
+    color_map = sample.predictor_category_color_map
+
+    assert color_map is not initial_color_map
+    assert color_map["Customer"] == "#001F5F"
+    assert color_map["IH"] == "#10A5AC"
+    assert color_map["Param"] == "#F76923"
+    assert color_map["External Model"] == "#DE4342"
+    assert "Custom Signal" in color_map
+    assert color_map["Custom Signal"] not in {
+        color_map["Customer"],
+        color_map["IH"],
+        color_map["Param"],
+        color_map["External Model"],
+    }
 
 
 def test_predictor_performance_consistent_colors(sample: ADMDatamart):
