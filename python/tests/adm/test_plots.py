@@ -384,22 +384,36 @@ def test_predictor_performance_handles_null_predictor_category_after_custom_cate
     )
     predictor_df = pl.LazyFrame(
         {
-            "ModelID": ["m1", "m1"],
-            "PredictorName": ["Customer.Propensity", "Customer.Age"],
-            "PredictorCategory": [None, None],
-            "EntryType": ["Active", "Active"],
-            "BinIndex": [1, 1],
-            "BinPositives": [8.0, 4.0],
-            "BinNegatives": [12.0, 16.0],
-            "BinResponseCount": [20.0, 20.0],
-            "ResponseCount": [20.0, 20.0],
-            "Performance": [0.72, 0.62],
-            "SnapshotTime": [datetime(2024, 1, 1), datetime(2024, 1, 1)],
-            "Type": ["numeric", "numeric"],
+            "ModelID": ["m1", "m1", "m1"],
+            "PredictorName": ["Customer.Propensity", "Customer.Age", "Classifier"],
+            "PredictorCategory": [None, None, None],
+            "EntryType": ["Active", "Active", "Classifier"],
+            "BinIndex": [1, 1, 1],
+            "BinPositives": [8.0, 4.0, 1.0],
+            "BinNegatives": [12.0, 16.0, 1.0],
+            "BinResponseCount": [20.0, 20.0, 2.0],
+            "ResponseCount": [20.0, 20.0, 2.0],
+            "Performance": [0.72, 0.62, 0.5],
+            "SnapshotTime": [datetime(2024, 1, 1), datetime(2024, 1, 1), datetime(2024, 1, 1)],
+            "Type": ["numeric", "numeric", "symbolic"],
         },
     )
     datamart = ADMDatamart(model_df=model_df, predictor_df=predictor_df)
-    datamart.apply_predictor_categorization({"External Model": "Propensity"})
+    datamart.apply_predictor_categorization(
+        {
+            "External Model": [
+                "Propensity",
+                "Score",
+                "Class",
+                "Classifier",
+                "Classification",
+                "Probability",
+                "Prediction",
+                "Predicted",
+                "ModelScore",
+            ],
+        },
+    )
 
     plot = datamart.plot.predictor_performance()
 

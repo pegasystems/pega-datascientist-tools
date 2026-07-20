@@ -220,6 +220,47 @@ def test_predictor_categorization_custom_expression(sample):
     assert _check_cat(sample, "Customer.RiskScore") == "External Model"
 
 
+def test_predictor_categorization_fills_null_source_categories():
+    model_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1"],
+            "Configuration": ["Config"],
+            "SnapshotTime": [datetime.datetime(2024, 1, 1)],
+            "Positives": [10.0],
+            "Negatives": [90.0],
+            "ResponseCount": [100.0],
+            "Performance": [0.7],
+        },
+    )
+    predictor_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m1"],
+            "PredictorName": ["Customer.Score", "Classifier"],
+            "PredictorCategory": [None, None],
+            "EntryType": ["Active", "Classifier"],
+            "BinIndex": [1, 1],
+            "BinPositives": [8.0, 4.0],
+            "BinNegatives": [12.0, 16.0],
+            "ResponseCount": [20.0, 20.0],
+            "Performance": [0.72, 0.62],
+            "SnapshotTime": [datetime.datetime(2024, 1, 1), datetime.datetime(2024, 1, 1)],
+        },
+    )
+
+    datamart = ADMDatamart(model_df=model_df, predictor_df=predictor_df)
+
+    categories = (
+        datamart.predictor_data.select("PredictorName", "PredictorCategory")
+        .collect()
+        .sort("PredictorName")
+        .to_dict(as_series=False)
+    )
+    assert categories == {
+        "PredictorName": ["Classifier", "Customer.Score"],
+        "PredictorCategory": [None, "Customer"],
+    }
+
+
 def test_predictor_categorization_dictionary(sample):
     categorization = {"XGBoost Model": "Score"}
 

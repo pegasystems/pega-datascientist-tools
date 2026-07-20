@@ -641,6 +641,13 @@ class ADMDatamart:
             )  # actual categorization not passed in?
             if df is None:
                 raise ValueError("Predictor categorization returned no data.")
+        else:
+            df = df.with_columns(
+                PredictorCategory=pl.coalesce(
+                    "PredictorCategory",
+                    cdh_utils.default_predictor_categorization(),
+                ),
+            )
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
 
         return self._normalize_performance_scale(df)
