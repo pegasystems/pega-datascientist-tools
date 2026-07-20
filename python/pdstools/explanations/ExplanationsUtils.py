@@ -5,7 +5,6 @@ __all__ = [
     "_CONTRIBUTION_TYPE",
     "_PREDICTOR_TYPE",
     "_SPECIAL",
-    "_TABLE_NAME",
     "ContextInfo",
     "ContextOperations",
     "ContributionType",
@@ -44,15 +43,6 @@ def validate(top_n: int | None = None, top_k: int | None = None) -> None:
 class _PREDICTOR_TYPE(Enum):
     NUMERIC = "NUMERIC"
     SYMBOLIC = "SYMBOLIC"
-
-
-class _TABLE_NAME(Enum):
-    NUMERIC = "numeric"
-    SYMBOLIC = "symbolic"
-    NUMERIC_OVERALL = "numeric_overall"
-    SYMBOLIC_OVERALL = "symbolic_overall"
-    CREATE = "create"
-    MODEL_CONTEXTS = "model_contexts"
 
 
 # can also be sort order
@@ -101,7 +91,7 @@ class _CONTRIBUTION_TYPE(Enum):
 
 
 class _COL(Enum):
-    PARTITION = "partition"
+    PARTITION = "context_partition"
     PREDICTOR_NAME = "predictor_name"
     PREDICTOR_TYPE = "predictor_type"
     BIN_CONTENTS = "bin_contents"
@@ -184,7 +174,7 @@ class ContextOperations(LazyNamespace):
         if self._df is None:
             self._df = pl.from_dicts(
                 [
-                    {**json.loads(ck)[_COL.PARTITION.value], _COL.PARTITION.value: ck}
+                    {**json.loads(ck)["partition"], _COL.PARTITION.value: ck}
                     for ck in self.aggregate.get_df_contextual()
                     .select(_COL.PARTITION.value)
                     .unique()
@@ -252,7 +242,7 @@ class ContextOperations(LazyNamespace):
             Optional context filters. When provided, rows are filtered to the
             matching contexts.
         with_partition_col : bool, default False
-            Whether to include the raw ``partition`` field in each dictionary.
+            Whether to include the raw ``context_partition`` field in each dictionary.
 
         Returns
         -------

@@ -211,7 +211,7 @@ class Aggregate(LazyNamespace):
             .sort(by=_COL.PREDICTOR_NAME.value)
         )
         self.df_overall = (
-            scan_parquet_path(self.data_folderpath / "OVERALL.parquet")
+            scan_parquet_path(self.data_folderpath / "OVERVIEW.parquet")
             .select(selected_columns)
             .filter(pl.col(_COL.CONTRIBUTION.value) != 0.0)
             .sort(by=_COL.PREDICTOR_NAME.value)
