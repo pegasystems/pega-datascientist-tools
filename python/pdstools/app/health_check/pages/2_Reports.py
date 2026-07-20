@@ -36,13 +36,10 @@ def _default_output_dir() -> Path:
     return Path(configured) if configured else Path("healthCheckDir")
 
 
-def _show_processed_parquet_status() -> None:
-    output_dir = st.session_state.get("_hc_output_dir")
-    if not output_dir:
+def _show_generated_path(label: str, path: str | Path | None) -> None:
+    if path is None:
         return
-    st.info(f"Processed parquet destination: {output_dir}")
-    for path in st.session_state.get("_hc_written_paths", ()):
-        st.caption(f"Wrote {path}")
+    st.info(f"{label}: {path}")
 
 
 with health_check:
@@ -98,7 +95,10 @@ with health_check:
 
                 if len(st.session_state["run"][st.session_state["runID"]]) == 0:
                     st.stop()
-        _show_processed_parquet_status()
+        _show_generated_path(
+            "Generated health check file",
+            st.session_state["run"][st.session_state["runID"]].get("name"),
+        )
         if "file" in st.session_state["run"][st.session_state["runID"]]:
             btn = st.download_button(
                 label="Download Health Check",
@@ -141,7 +141,10 @@ with health_check:
                 for message in warning_messages:
                     st.warning(message)
 
-            _show_processed_parquet_status()
+            _show_generated_path(
+                "Generated Excel tables file",
+                st.session_state["run"][st.session_state["runID"]].get("tables"),
+            )
             btn = st.download_button(
                 label="Download additional tables",
                 data=st.session_state["run"][st.session_state["runID"]]["tablefile"],
@@ -236,6 +239,7 @@ if st.session_state["dm"].predictor_data is not None:
                         st.session_state["model_report_name"] = (
                             outfile.name if len(st.session_state["selected_models"]) == 1 else "ModelReports.zip"
                         )
+                        st.session_state["model_report_path"] = outfile
 
                         btn = st.download_button(
                             label="Download Model Reports",
@@ -246,6 +250,7 @@ if st.session_state["dm"].predictor_data is not None:
                         progress_bar.empty()
                         progress_text.empty()
                         st.balloons()
+                _show_generated_path("Generated model report file", st.session_state.get("model_report_path"))
         except Exception as e:
             logger.exception("An error occurred during Model Report generation")
             if "model_report_error_download" not in st.session_state:

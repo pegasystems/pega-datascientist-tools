@@ -89,7 +89,7 @@ def test_generate_button_shows_download_button(
     assert captured_kwargs["output_dir"] == tmp_path / "HC"
 
 
-def test_generate_button_shows_processed_parquet_path(
+def test_generate_button_shows_generated_health_check_path(
     hc_app_dir,
     seeded_admdatamart,
     tmp_path,
@@ -112,10 +112,12 @@ def test_generate_button_shows_processed_parquet_path(
 
     assert not at.exception
     info_text = "\n".join(info.value for info in at.info)
-    assert f"Processed parquet destination: {tmp_path / 'HC'}" in info_text
+    assert f"Generated health check file: {mock_output}" in info_text
+    assert "Processed parquet destination" not in info_text
+    assert str(written_path) not in info_text
 
 
-def test_create_tables_shows_processed_parquet_path(
+def test_create_tables_shows_generated_excel_path(
     hc_app_dir,
     seeded_admdatamart,
     tmp_path,
@@ -138,7 +140,9 @@ def test_create_tables_shows_processed_parquet_path(
 
     assert not at.exception
     info_text = "\n".join(info.value for info in at.info)
-    assert f"Processed parquet destination: {tmp_path / 'HC'}" in info_text
+    assert f"Generated Excel tables file: {tmp_path / 'HC' / 'HealthCheckExport.xlsx'}" in info_text
+    assert "Processed parquet destination" not in info_text
+    assert str(written_path) not in info_text
 
 
 def test_report_full_embed_option_is_in_normal_options(
