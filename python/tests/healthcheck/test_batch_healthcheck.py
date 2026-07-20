@@ -66,6 +66,7 @@ def test_process_dataset_passes_prediction_and_canonical_paths(tmp_path):
         patch.object(batch.ADMDatamart, "from_ds_export", return_value=datamart),
         patch.object(batch.Prediction, "from_ds_export", return_value=prediction),
         patch.object(batch, "select_interesting_models", return_value=[]),
+        patch.object(batch, "is_esbuild_available", return_value=True),
         patch.object(batch, "_generate_quarto_report", return_value=(1.0, "Success", None)) as generate,
     ):
         result = batch.process_dataset(dataset, tmp_path / "reports")
@@ -77,6 +78,46 @@ def test_process_dataset_passes_prediction_and_canonical_paths(tmp_path):
         assert call.kwargs["model_file_path"] == model
         assert call.kwargs["predictor_file_path"] == predictor
         assert call.kwargs["prediction_file_path"] == prediction_file
+
+
+def test_process_dataset_skips_full_embed_when_esbuild_unavailable(tmp_path):
+    """Full-embed reports need esbuild; without it they are skipped, not failed.
+
+    Regression test for the DJS "no esbuild" environment (issue #620): the
+    batch runner must not attempt (and therefore fail) full-embed generation
+    when esbuild is absent, otherwise the CDN-only run exits non-zero.
+    """
+    model = tmp_path / "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
+    model.write_bytes(b"data")
+    dataset = {
+        "name": "Dataset",
+        "data_dir": tmp_path,
+        "model_file": model,
+        "predictor_file": None,
+        "prediction_file": None,
+    }
+    datamart = MagicMock()
+    datamart.model_data = pl.LazyFrame({"ModelID": ["model-1"]})
+    datamart.generate.excel_report.return_value = (None, [])
+
+    with (
+        patch.object(batch.ADMDatamart, "from_ds_export", return_value=datamart),
+        patch.object(batch, "select_interesting_models", return_value=["model-1"]),
+        patch.object(batch, "is_esbuild_available", return_value=False),
+        patch.object(batch, "_generate_quarto_report", return_value=(1.0, "Success", None)) as generate,
+    ):
+        result = batch.process_dataset(dataset, tmp_path / "reports")
+
+    # Only the CDN variants are generated (HealthCheck + model report).
+    assert generate.call_count == 2
+    for call in generate.call_args_list:
+        assert call.kwargs["full_embed"] is False
+
+    # Full-embed variants are marked Skipped so they don't count as failures.
+    assert result["HC_CDN_Status"] == "Success"
+    assert result["HC_Embed_Status"] == "Skipped"
+    assert result["ModelReport_CDN_Status"] == "Success"
+    assert result["ModelReport_Embed_Status"] == "Skipped"
 
 
 def test_generate_quarto_report_fails_when_rendered_html_contains_errors(tmp_path):

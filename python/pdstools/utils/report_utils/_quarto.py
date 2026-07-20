@@ -328,6 +328,42 @@ def get_pandoc_with_version() -> tuple[Path, str]:
         raise
 
 
+def is_esbuild_available() -> bool:
+    """Return True if the esbuild binary Quarto needs for embedding is present.
+
+    Quarto invokes esbuild to bundle JavaScript when producing self-contained
+    (``embed-resources``) HTML, i.e. the ``full_embed=True`` path. Hardened
+    environments such as DJS Docker images ship Quarto with esbuild removed for
+    CVE reasons; there, only CDN-mode (``full_embed=False``) rendering works.
+    Callers can use this to skip full-embed generation gracefully instead of
+    letting Quarto fail mid-render. See issue #620.
+
+    Returns
+    -------
+    bool
+        True if an esbuild binary can be located (via the ``QUARTO_ESBUILD``
+        override, on ``PATH``, or bundled under the Quarto install tree),
+        False otherwise.
+    """
+    # An explicit override or a system-wide esbuild both satisfy Quarto.
+    override = os.environ.get("QUARTO_ESBUILD")
+    if override and Path(override).is_file():
+        return True
+    if shutil.which("esbuild"):
+        return True
+    try:
+        quarto_path, _ = get_quarto_with_version()
+    except Exception:
+        return False
+    # esbuild is bundled under the Quarto install tree, typically at
+    # <quarto>/bin/tools/<arch>/esbuild.
+    quarto_bin = quarto_path.resolve().parent
+    for name in ("esbuild", "esbuild.exe"):
+        if next(quarto_bin.rglob(name), None) is not None:
+            return True
+    return False
+
+
 def quarto_print(text):
     from IPython.display import Markdown, display
 

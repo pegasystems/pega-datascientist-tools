@@ -91,6 +91,7 @@ from ._quarto import (
     _write_params_files,
     get_pandoc_with_version,
     get_quarto_with_version,
+    is_esbuild_available,
     quarto_callout_important,
     quarto_callout_info,
     quarto_callout_no_prediction_data_warning,
@@ -130,6 +131,7 @@ __all__ = [
     # quarto execution / callouts / credits
     "get_pandoc_with_version",
     "get_quarto_with_version",
+    "is_esbuild_available",
     "logger",
     "max_by_hierarchy",
     "n_unique_values",

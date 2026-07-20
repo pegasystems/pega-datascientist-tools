@@ -50,7 +50,7 @@ from pathlib import Path
 import polars as pl
 
 from pdstools import ADMDatamart, Prediction
-from pdstools.utils.report_utils import check_report_for_errors
+from pdstools.utils.report_utils import check_report_for_errors, is_esbuild_available
 
 
 # Default file name patterns
@@ -369,8 +369,19 @@ def process_dataset(
         safe_name = name.lower().replace(" ", "_").replace(".", "_")
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
 
+        # Full-embed rendering requires esbuild (Quarto bundles JavaScript for
+        # self-contained HTML). Hardened environments (e.g. DJS Docker images)
+        # ship Quarto without esbuild, so skip full-embed there rather than
+        # letting Quarto fail mid-render and marking the run as failed. See #620.
+        esbuild_available = is_esbuild_available()
+        if not esbuild_available:
+            print("  ℹ esbuild unavailable — full-embed reports will be skipped (CDN-only environment)")
+
         # ── HealthCheck reports (CDN + full-embed) ──────────────────
         for full_embed, key_prefix in [(False, "HC_CDN"), (True, "HC_Embed")]:
+            if full_embed and not esbuild_available:
+                result[f"{key_prefix}_Status"] = "Skipped"
+                continue
             suffix = "_full" if full_embed else "_cdn"
             mb, status, errors = _generate_quarto_report(
                 datamart.generate.health_check,
@@ -401,6 +412,9 @@ def process_dataset(
 
         if selected_models:
             for full_embed, key_prefix in [(False, "ModelReport_CDN"), (True, "ModelReport_Embed")]:
+                if full_embed and not esbuild_available:
+                    result[f"{key_prefix}_Status"] = "Skipped"
+                    continue
                 suffix = "_full" if full_embed else "_cdn"
                 mb, status, errors = _generate_quarto_report(
                     datamart.generate.model_reports,
