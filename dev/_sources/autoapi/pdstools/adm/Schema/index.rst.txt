@@ -57,6 +57,9 @@ Module Contents
    .. py:attribute:: pyPerformance
 
 
+   .. py:attribute:: pyModelTechnique
+
+
    .. py:attribute:: pySuccessRate
 
 

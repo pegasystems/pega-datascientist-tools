@@ -340,7 +340,7 @@ Module Contents
       :param categorization: A Polars Expression (or method that returns one) that returns the
                              predictor categories. Should be based on Polars' when.then.otherwise syntax.
                              Alternatively can be a dictionary of categories to (list of) string matches
-                             which can be either exact (the default) or regular expressions.
+                             which can be either literal substring matches (the default) or regular expressions.
                              By default, `pdstools.utils.cdh_utils.default_predictor_categorization` is used.
       :type categorization: Union[pl.Expr, Callable[..., pl.Expr], dict[str, Union[str, list[str]]]]
       :param use_regexp: Treat the mapping patterns in the `categorization` dictionary as regular expressions
@@ -442,10 +442,11 @@ Module Contents
 
       Stable color mapping for predictor categories across all plots.
 
-      Assigns a consistent color to each ``PredictorCategory`` value found
-      in the full dataset, using the Pega colorway and alphabetical ordering.
-      This prevents the same category from receiving different colors when
-      different subsets of categories appear in different chart partitions.
+      Assigns fixed colors to standard ``PredictorCategory`` values found in
+      the full dataset, and deterministic fallback colors to custom
+      categories. This prevents the same category from receiving different
+      colors when different subsets of categories appear in different chart
+      partitions.
 
       :returns: Mapping from category name to hex color, e.g.
                 ``{"Customer": "#001F5F", "IH": "#10A5AC", ...}``.

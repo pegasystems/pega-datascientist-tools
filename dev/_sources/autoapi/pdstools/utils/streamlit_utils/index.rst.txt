@@ -26,13 +26,9 @@ Functions
    pdstools.utils.streamlit_utils.cached_datamart
    pdstools.utils.streamlit_utils.cached_sample_prediction
    pdstools.utils.streamlit_utils.cached_prediction_table
-   pdstools.utils.streamlit_utils.import_datamart
-   pdstools.utils.streamlit_utils.from_uploaded_file
-   pdstools.utils.streamlit_utils.from_file_path
    pdstools.utils.streamlit_utils.model_selection_df
    pdstools.utils.streamlit_utils.filter_dataframe
    pdstools.utils.streamlit_utils.model_and_row_counts
-   pdstools.utils.streamlit_utils.configure_predictor_categorization
    pdstools.utils.streamlit_utils.convert_df
    pdstools.utils.streamlit_utils.st_get_latest_pdstools_version
    pdstools.utils.streamlit_utils.show_about_page
@@ -194,28 +190,6 @@ Module Contents
    :param \*\*kwargs: Arguments passed to Prediction.from_ds_export
 
 
-.. py:function:: import_datamart(extract_pyname_keys: bool, infer_schema_length: int = 10000)
-
-   Import ADMDatamart data from various sources.
-
-   :param extract_pyname_keys: Whether to extract additional keys from pyName column
-   :type extract_pyname_keys: bool
-   :param infer_schema_length: Number of rows to scan for schema inference when reading CSV/JSON files.
-                               For large production datasets, increase this value (e.g., 200000) if columns
-                               are not being detected correctly.
-   :type infer_schema_length: int, default 10000
-
-
-.. py:function:: from_uploaded_file(extract_pyname_keys, codespaces, infer_schema_length=10000)
-
-   From uploaded file.
-
-
-.. py:function:: from_file_path(extract_pyname_keys, codespaces, infer_schema_length=10000)
-
-   From file path.
-
-
 .. py:function:: model_selection_df(df: polars.LazyFrame, context_keys: list)
 
    Model selection df.
@@ -242,11 +216,6 @@ Module Contents
    :returns: unique model count
              row count
    :rtype: Tuple[int, int]
-
-
-.. py:function:: configure_predictor_categorization()
-
-   Configure predictor categorization.
 
 
 .. py:function:: convert_df(df)

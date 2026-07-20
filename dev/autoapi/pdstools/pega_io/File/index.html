@@ -248,6 +248,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../adm/Aggregates/index.html">pdstools.adm.Aggregates</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../adm/Analysis/index.html">pdstools.adm.Analysis</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../adm/BinAggregator/index.html">pdstools.adm.BinAggregator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/HealthCheckImport/index.html">pdstools.adm.HealthCheckImport</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../adm/HealthCheckMarkdown/index.html">pdstools.adm.HealthCheckMarkdown</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../adm/Plots/index.html">pdstools.adm.Plots</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../adm/Reports/index.html">pdstools.adm.Reports</a></li>
@@ -527,32 +528,28 @@ or a list of file paths.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pdstools.pega_io.File.read_data">
-<span class="sig-name descname"><span class="pre">read_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">pathlib.Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/io.html#io.BytesIO" title="(in Python v3.14)"><span class="pre">io.BytesIO</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.pega_io.File.read_data" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">read_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">pathlib.Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/io.html#io.BytesIO" title="(in Python v3.14)"><span class="pre">io.BytesIO</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.pega_io.File.read_data" title="Link to this definition">¶</a></dt>
 <dd><p>Read data from various file formats and sources.</p>
-<p>Supports multiple formats: parquet, csv, arrow, feather, ndjson, json, xlsx, xls, zip, tar, tar.gz, tgz, gz.
+<p>Supports multiple formats: parquet, csv, tsv, txt, arrow, feather, ndjson,
+json, xlsx, xls, zip, tar, tar.gz, tgz, and gz.
 Handles both individual files and directories (including Hive-partitioned structures).
 Archives (zip, tar) are automatically extracted to temporary directories.
 Gzip files (.gz) are automatically decompressed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>, or </em><em>BytesIO</em>) – <p>Path to a data file, archive, directory, or BytesIO object.
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Path</em><em>, or </em><em>BytesIO</em>) – <p>Path to a data file, archive, directory, or BytesIO object.
 When using BytesIO (e.g., from Streamlit file uploads), the object must have
 a ‘name’ attribute indicating the file extension.</p>
-<p>Supported formats:</p>
-<ul class="simple">
-<li><p>Parquet files or directories</p></li>
-<li><p>CSV files</p></li>
-<li><p>Arrow/IPC/Feather files</p></li>
-<li><p>NDJSON/JSONL files</p></li>
-<li><p>Excel files (.xlsx, .xls — requires the optional <code class="docutils literal notranslate"><span class="pre">fastexcel</span></code> package)</p></li>
-<li><p>GZIP compressed files (.gz, .json.gz, .csv.gz, etc.)</p></li>
-<li><p>ZIP archives including Pega Dataset Export format (extracted automatically)</p></li>
-<li><p>TAR archives including .tar.gz and .tgz (extracted automatically)</p></li>
-<li><p>Hive-partitioned directories (scanned recursively)</p></li>
-<li><p>Glob patterns (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;data/**/*.parquet&quot;</span></code>) — dispatched
-directly to the matching polars lazy scanner.</p></li>
+<p>Supported formats include parquet files or directories, CSV/TSV/TXT,
+Arrow/IPC/Feather, NDJSON/JSONL/JSON, Excel files (requires the optional
+<code class="docutils literal notranslate"><span class="pre">fastexcel</span></code> package), GZIP-compressed files, ZIP/TAR archives,
+Hive-partitioned directories, and glob patterns such as
+<code class="docutils literal notranslate"><span class="pre">&quot;data/**/*.parquet&quot;</span></code>.</p>
+</p></li>
+<li><p><strong>read_options</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Keyword arguments forwarded to the matching Polars reader. CSV defaults
+remain Pega-friendly; TSV and TXT inputs default to a tab separator.</p></li>
 </ul>
-</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Lazy DataFrame ready for processing. Use <cite>.collect()</cite> to materialize.</p>

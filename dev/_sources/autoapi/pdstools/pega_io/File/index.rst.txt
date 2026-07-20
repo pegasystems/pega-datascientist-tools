@@ -53,11 +53,12 @@ Module Contents
    :rtype: pl.LazyFrame
 
 
-.. py:function:: read_data(path: str | pathlib.Path | io.BytesIO) -> polars.LazyFrame
+.. py:function:: read_data(path: str | pathlib.Path | io.BytesIO, *, read_options: dict | None = None) -> polars.LazyFrame
 
    Read data from various file formats and sources.
 
-   Supports multiple formats: parquet, csv, arrow, feather, ndjson, json, xlsx, xls, zip, tar, tar.gz, tgz, gz.
+   Supports multiple formats: parquet, csv, tsv, txt, arrow, feather, ndjson,
+   json, xlsx, xls, zip, tar, tar.gz, tgz, and gz.
    Handles both individual files and directories (including Hive-partitioned structures).
    Archives (zip, tar) are automatically extracted to temporary directories.
    Gzip files (.gz) are automatically decompressed.
@@ -66,20 +67,15 @@ Module Contents
                 When using BytesIO (e.g., from Streamlit file uploads), the object must have
                 a 'name' attribute indicating the file extension.
 
-                Supported formats:
-
-                - Parquet files or directories
-                - CSV files
-                - Arrow/IPC/Feather files
-                - NDJSON/JSONL files
-                - Excel files (.xlsx, .xls — requires the optional ``fastexcel`` package)
-                - GZIP compressed files (.gz, .json.gz, .csv.gz, etc.)
-                - ZIP archives including Pega Dataset Export format (extracted automatically)
-                - TAR archives including .tar.gz and .tgz (extracted automatically)
-                - Hive-partitioned directories (scanned recursively)
-                - Glob patterns (e.g. ``"data/**/*.parquet"``) — dispatched
-                  directly to the matching polars lazy scanner.
+                Supported formats include parquet files or directories, CSV/TSV/TXT,
+                Arrow/IPC/Feather, NDJSON/JSONL/JSON, Excel files (requires the optional
+                ``fastexcel`` package), GZIP-compressed files, ZIP/TAR archives,
+                Hive-partitioned directories, and glob patterns such as
+                ``"data/**/*.parquet"``.
    :type path: str, Path, or BytesIO
+   :param read_options: Keyword arguments forwarded to the matching Polars reader. CSV defaults
+                        remain Pega-friendly; TSV and TXT inputs default to a tab separator.
+   :type read_options: dict, optional
 
    :returns: Lazy DataFrame ready for processing. Use `.collect()` to materialize.
    :rtype: pl.LazyFrame

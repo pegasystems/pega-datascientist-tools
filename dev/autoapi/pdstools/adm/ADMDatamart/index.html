@@ -248,6 +248,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../Aggregates/index.html">pdstools.adm.Aggregates</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../Analysis/index.html">pdstools.adm.Analysis</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../BinAggregator/index.html">pdstools.adm.BinAggregator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../HealthCheckImport/index.html">pdstools.adm.HealthCheckImport</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../HealthCheckMarkdown/index.html">pdstools.adm.HealthCheckMarkdown</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../Plots/index.html">pdstools.adm.Plots</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../Reports/index.html">pdstools.adm.Reports</a></li>
@@ -794,7 +795,7 @@ refer to <cite>pdstools.utils.cdh_utils.default_predictor_categorization</cite>.
 <li><p><strong>categorization</strong> (<em>Union</em><em>[</em><em>pl.Expr</em><em>, </em><em>Callable</em><em>[</em><em>...</em><em>, </em><em>pl.Expr</em><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em><em>]</em><em>]</em><em>]</em>) – A Polars Expression (or method that returns one) that returns the
 predictor categories. Should be based on Polars’ when.then.otherwise syntax.
 Alternatively can be a dictionary of categories to (list of) string matches
-which can be either exact (the default) or regular expressions.
+which can be either literal substring matches (the default) or regular expressions.
 By default, <cite>pdstools.utils.cdh_utils.default_predictor_categorization</cite> is used.</p></li>
 <li><p><strong>use_regexp</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Treat the mapping patterns in the <cite>categorization</cite> dictionary as regular expressions
 rather than plain strings. When treated as regular expressions, they will be
@@ -918,10 +919,11 @@ By default, None</p></li>
 <dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart.predictor_category_color_map">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">predictor_category_color_map</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart.predictor_category_color_map" title="Link to this definition">¶</a></dt>
 <dd><p>Stable color mapping for predictor categories across all plots.</p>
-<p>Assigns a consistent color to each <code class="docutils literal notranslate"><span class="pre">PredictorCategory</span></code> value found
-in the full dataset, using the Pega colorway and alphabetical ordering.
-This prevents the same category from receiving different colors when
-different subsets of categories appear in different chart partitions.</p>
+<p>Assigns fixed colors to standard <code class="docutils literal notranslate"><span class="pre">PredictorCategory</span></code> values found in
+the full dataset, and deterministic fallback colors to custom
+categories. This prevents the same category from receiving different
+colors when different subsets of categories appear in different chart
+partitions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Mapping from category name to hex color, e.g.

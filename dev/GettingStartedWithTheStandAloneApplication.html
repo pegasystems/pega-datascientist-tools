@@ -249,6 +249,7 @@
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/Aggregates/index.html">pdstools.adm.Aggregates</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/Analysis/index.html">pdstools.adm.Analysis</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/BinAggregator/index.html">pdstools.adm.BinAggregator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/HealthCheckImport/index.html">pdstools.adm.HealthCheckImport</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/HealthCheckMarkdown/index.html">pdstools.adm.HealthCheckMarkdown</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/Plots/index.html">pdstools.adm.Plots</a></li>
 <li class="toctree-l4"><a class="reference internal" href="autoapi/pdstools/adm/Reports/index.html">pdstools.adm.Reports</a></li>
@@ -571,22 +572,34 @@
 <p><strong>Step 1: Navigate to Health Check</strong></p>
 <p>In the app, navigate to the Health Check tab (in the left pane). This shows instructions.</p>
 <p><strong>Step 2: Import Your Data</strong></p>
-<p>Click the “Data Import” tab in the main screen to load your data. You have several options:</p>
+<p>Use the Data import section on the Health Check home page to load your ADM data.
+The app loads a sample automatically on first launch, and you can replace it by
+uploading your own files directly. If your files are already on disk, expand
+<code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">paths</span> <span class="pre">(optional)</span></code> and provide either the folder containing the ADM export
+files or the individual file paths.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>If you haven’t downloaded the ADM Datamart yet, see <a class="reference external" href="https://docs.pega.com/bundle/platform/page/platform/decision-management/enabling-monitoring-database-export.html">How to export the ADM Datamart</a> for instructions.</p>
 </div>
 <ul class="simple">
-<li><p><strong>Direct file path</strong>: Provide the folder path where the ADM files are located (e.g., <code class="docutils literal notranslate"><span class="pre">/User/Downloads/</span></code>). The tool will automatically find the relevant files in that directory.</p></li>
-<li><p><strong>Direct file upload</strong>: Browse and upload your local files through the web interface.</p></li>
-<li><p><strong>CDH Sample</strong>: For testing, you can skip uploading your own data and select “CDH Sample” from the Data Import dropdown.</p></li>
+<li><p><strong>Direct file upload</strong>: Upload the Model Snapshot, optional Predictor Binning snapshot, and optional Prediction Table through the web interface.</p></li>
+<li><p><strong>File paths</strong>: Provide the folder path where the ADM files are located (e.g., <code class="docutils literal notranslate"><span class="pre">/User/Downloads/</span></code>), or provide individual paths. The tool will automatically find the relevant files in a configured folder.</p></li>
+<li><p><strong>CDH Sample</strong>: For testing, you can use the sample that loads automatically on first launch.</p></li>
 </ul>
+<p>Advanced import settings are available for non-standard exports, including
+custom delimiters, quote characters, encodings, timestamp parsing, and missing
+required field repairs.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>There is no need to extract ZIP files - the application will handle that automatically.</p>
 </div>
-<p><strong>Step 3: Configure Report (Optional)</strong></p>
-<p>The “Report Configuration” section has advanced options but can generally be left with default settings.</p>
+<p><strong>Step 3: Configure Report Options (Optional)</strong></p>
+<p>On the Generate Health Check page, the <code class="docutils literal notranslate"><span class="pre">Health</span> <span class="pre">Check</span> <span class="pre">options</span></code> section lets
+you set the customer name, output type, working directory, temporary-file
+handling, and whether JavaScript/CSS should be embedded into a single document.
+If you kept processed parquet files during import, the working directory
+defaults to the same <code class="docutils literal notranslate"><span class="pre">HC</span></code> folder used for those files. The Excel export and
+individual model reports use the same working directory.</p>
 <p><strong>Step 4: Generate and Download Reports</strong></p>
 <p>Click “Generate” to create the ADM Health Check report. The download button will appear when generation is finished. The downloaded report will appear in your browser’s default download location as an HTML file that you can open in any web browser.</p>
 </section>

@@ -248,6 +248,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../adm/Aggregates/index.html">pdstools.adm.Aggregates</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../adm/Analysis/index.html">pdstools.adm.Analysis</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../adm/BinAggregator/index.html">pdstools.adm.BinAggregator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../adm/HealthCheckImport/index.html">pdstools.adm.HealthCheckImport</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../adm/HealthCheckMarkdown/index.html">pdstools.adm.HealthCheckMarkdown</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../adm/Plots/index.html">pdstools.adm.Plots</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../adm/Reports/index.html">pdstools.adm.Reports</a></li>
@@ -501,26 +502,14 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.cached_prediction_table" title="pdstools.utils.streamlit_utils.cached_prediction_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cached_prediction_table</span></code></a>(**kwargs)</p></td>
 <td><p>Load Prediction with caching.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.import_datamart" title="pdstools.utils.streamlit_utils.import_datamart"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_datamart</span></code></a>(extract_pyname_keys[, infer_schema_length])</p></td>
-<td><p>Import ADMDatamart data from various sources.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.from_uploaded_file" title="pdstools.utils.streamlit_utils.from_uploaded_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_uploaded_file</span></code></a>(extract_pyname_keys, codespaces[, ...])</p></td>
-<td><p>From uploaded file.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.from_file_path" title="pdstools.utils.streamlit_utils.from_file_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_file_path</span></code></a>(extract_pyname_keys, codespaces[, ...])</p></td>
-<td><p>From file path.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.model_selection_df" title="pdstools.utils.streamlit_utils.model_selection_df"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_selection_df</span></code></a>(df, context_keys)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.model_selection_df" title="pdstools.utils.streamlit_utils.model_selection_df"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_selection_df</span></code></a>(df, context_keys)</p></td>
 <td><p>Model selection df.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.filter_dataframe" title="pdstools.utils.streamlit_utils.filter_dataframe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_dataframe</span></code></a>(→ list[polars.Expr])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.filter_dataframe" title="pdstools.utils.streamlit_utils.filter_dataframe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_dataframe</span></code></a>(→ list[polars.Expr])</p></td>
 <td><p>Adds a UI on top of a dataframe to let viewers filter columns</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.model_and_row_counts" title="pdstools.utils.streamlit_utils.model_and_row_counts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_and_row_counts</span></code></a>(df)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.model_and_row_counts" title="pdstools.utils.streamlit_utils.model_and_row_counts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_and_row_counts</span></code></a>(df)</p></td>
 <td><p>Returns unique model id count and row count from a dataframe</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.configure_predictor_categorization" title="pdstools.utils.streamlit_utils.configure_predictor_categorization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">configure_predictor_categorization</span></code></a>()</p></td>
-<td><p>Configure predictor categorization.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.utils.streamlit_utils.convert_df" title="pdstools.utils.streamlit_utils.convert_df"><code class="xref py py-obj docutils literal notranslate"><span class="pre">convert_df</span></code></a>(df)</p></td>
 <td><p>Convert df.</p></td>
@@ -758,34 +747,6 @@ and human-readable notation (<code class="docutils literal notranslate"><span cl
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pdstools.utils.streamlit_utils.import_datamart">
-<span class="sig-name descname"><span class="pre">import_datamart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extract_pyname_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">infer_schema_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.streamlit_utils.import_datamart" title="Link to this definition">¶</a></dt>
-<dd><p>Import ADMDatamart data from various sources.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>extract_pyname_keys</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Whether to extract additional keys from pyName column</p></li>
-<li><p><strong>infer_schema_length</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>default 10000</em>) – Number of rows to scan for schema inference when reading CSV/JSON files.
-For large production datasets, increase this value (e.g., 200000) if columns
-are not being detected correctly.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.utils.streamlit_utils.from_uploaded_file">
-<span class="sig-name descname"><span class="pre">from_uploaded_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extract_pyname_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">codespaces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infer_schema_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.streamlit_utils.from_uploaded_file" title="Link to this definition">¶</a></dt>
-<dd><p>From uploaded file.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.utils.streamlit_utils.from_file_path">
-<span class="sig-name descname"><span class="pre">from_file_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extract_pyname_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">codespaces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infer_schema_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.streamlit_utils.from_file_path" title="Link to this definition">¶</a></dt>
-<dd><p>From file path.</p>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="pdstools.utils.streamlit_utils.model_selection_df">
 <span class="sig-name descname"><span class="pre">model_selection_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">polars.LazyFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.streamlit_utils.model_selection_df" title="Link to this definition">¶</a></dt>
 <dd><p>Model selection df.</p>
@@ -836,12 +797,6 @@ row count</p>
 <dd class="field-odd"><p>Tuple[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a>]</p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pdstools.utils.streamlit_utils.configure_predictor_categorization">
-<span class="sig-name descname"><span class="pre">configure_predictor_categorization</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.utils.streamlit_utils.configure_predictor_categorization" title="Link to this definition">¶</a></dt>
-<dd><p>Configure predictor categorization.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -950,13 +905,9 @@ platform details, and an expandable dependency listing.</p>
 <li><a class="reference internal" href="#pdstools.utils.streamlit_utils.cached_datamart"><code class="docutils literal notranslate"><span class="pre">cached_datamart()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.streamlit_utils.cached_sample_prediction"><code class="docutils literal notranslate"><span class="pre">cached_sample_prediction()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.streamlit_utils.cached_prediction_table"><code class="docutils literal notranslate"><span class="pre">cached_prediction_table()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.utils.streamlit_utils.import_datamart"><code class="docutils literal notranslate"><span class="pre">import_datamart()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.utils.streamlit_utils.from_uploaded_file"><code class="docutils literal notranslate"><span class="pre">from_uploaded_file()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.utils.streamlit_utils.from_file_path"><code class="docutils literal notranslate"><span class="pre">from_file_path()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.streamlit_utils.model_selection_df"><code class="docutils literal notranslate"><span class="pre">model_selection_df()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.streamlit_utils.filter_dataframe"><code class="docutils literal notranslate"><span class="pre">filter_dataframe()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.streamlit_utils.model_and_row_counts"><code class="docutils literal notranslate"><span class="pre">model_and_row_counts()</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.utils.streamlit_utils.configure_predictor_categorization"><code class="docutils literal notranslate"><span class="pre">configure_predictor_categorization()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.streamlit_utils.convert_df"><code class="docutils literal notranslate"><span class="pre">convert_df()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.streamlit_utils.st_get_latest_pdstools_version"><code class="docutils literal notranslate"><span class="pre">st_get_latest_pdstools_version()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.utils.streamlit_utils.show_about_page"><code class="docutils literal notranslate"><span class="pre">show_about_page()</span></code></a></li>

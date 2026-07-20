@@ -187,21 +187,34 @@ In the app, navigate to the Health Check tab (in the left pane). This shows inst
 
 **Step 2: Import Your Data**
 
-Click the "Data Import" tab in the main screen to load your data. You have several options:
+Use the Data import section on the Health Check home page to load your ADM data.
+The app loads a sample automatically on first launch, and you can replace it by
+uploading your own files directly. If your files are already on disk, expand
+``File paths (optional)`` and provide either the folder containing the ADM export
+files or the individual file paths.
 
 .. note::
    If you haven't downloaded the ADM Datamart yet, see `How to export the ADM Datamart <https://docs.pega.com/bundle/platform/page/platform/decision-management/enabling-monitoring-database-export.html>`_ for instructions.
 
-- **Direct file path**: Provide the folder path where the ADM files are located (e.g., ``/User/Downloads/``). The tool will automatically find the relevant files in that directory.
-- **Direct file upload**: Browse and upload your local files through the web interface.
-- **CDH Sample**: For testing, you can skip uploading your own data and select "CDH Sample" from the Data Import dropdown.
+- **Direct file upload**: Upload the Model Snapshot, optional Predictor Binning snapshot, and optional Prediction Table through the web interface.
+- **File paths**: Provide the folder path where the ADM files are located (e.g., ``/User/Downloads/``), or provide individual paths. The tool will automatically find the relevant files in a configured folder.
+- **CDH Sample**: For testing, you can use the sample that loads automatically on first launch.
+
+Advanced import settings are available for non-standard exports, including
+custom delimiters, quote characters, encodings, timestamp parsing, and missing
+required field repairs.
 
 .. note::
    There is no need to extract ZIP files - the application will handle that automatically.
 
-**Step 3: Configure Report (Optional)**
+**Step 3: Configure Report Options (Optional)**
 
-The "Report Configuration" section has advanced options but can generally be left with default settings.
+On the Generate Health Check page, the ``Health Check options`` section lets
+you set the customer name, output type, working directory, temporary-file
+handling, and whether JavaScript/CSS should be embedded into a single document.
+If you kept processed parquet files during import, the working directory
+defaults to the same ``HC`` folder used for those files. The Excel export and
+individual model reports use the same working directory.
 
 **Step 4: Generate and Download Reports**
 
