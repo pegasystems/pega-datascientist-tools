@@ -421,6 +421,52 @@ def test_predictor_performance_handles_null_predictor_category_after_custom_cate
     assert {trace.name for trace in plot.data} == {"Customer", "External Model"}
 
 
+def test_predictor_performance_legend_order_is_alphabetical_without_reordering_traces():
+    model_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1"],
+            "Configuration": ["Config"],
+            "SnapshotTime": [datetime(2024, 1, 1)],
+            "Positives": [10.0],
+            "Negatives": [90.0],
+            "ResponseCount": [100.0],
+            "Performance": [0.7],
+            "Channel": ["Web"],
+            "Direction": ["Inbound"],
+            "Issue": ["Issue"],
+            "Group": ["Group"],
+            "Name": ["Action"],
+        },
+    )
+    predictor_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m1", "m1"],
+            "PredictorName": ["Strong.Zeta", "Weak.Alpha", "Classifier"],
+            "PredictorCategory": ["Zeta", "Alpha", "Alpha"],
+            "EntryType": ["Active", "Active", "Classifier"],
+            "BinIndex": [1, 1, 1],
+            "BinPositives": [9.0, 6.0, 1.0],
+            "BinNegatives": [1.0, 4.0, 1.0],
+            "BinResponseCount": [10.0, 10.0, 2.0],
+            "ResponseCount": [10.0, 10.0, 2.0],
+            "Performance": [0.9, 0.6, 0.5],
+            "SnapshotTime": [datetime(2024, 1, 1), datetime(2024, 1, 1), datetime(2024, 1, 1)],
+            "Type": ["numeric", "numeric", "symbolic"],
+        },
+    )
+    datamart = ADMDatamart(model_df=model_df, predictor_df=predictor_df)
+
+    plot = datamart.plot.predictor_performance()
+
+    assert isinstance(plot, Figure)
+    visible_legend_traces = [trace for trace in plot.data if trace.showlegend]
+    assert [trace.name for trace in visible_legend_traces] == ["Zeta", "Alpha"]
+    assert [trace.name for trace in sorted(visible_legend_traces, key=lambda trace: trace.legendrank)] == [
+        "Alpha",
+        "Zeta",
+    ]
+
+
 def test_predictor_category_performance(sample: ADMDatamart):
     df = sample.plot.predictor_category_performance(return_df=True)
     assert df.shape == (3, 10)

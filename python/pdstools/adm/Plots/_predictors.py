@@ -83,6 +83,7 @@ class _PredictorPlotsMixin(_PlotsBase):
             else:
                 color_map[cat] = colorway[fallback_index % len(colorway)]
                 fallback_index += 1
+        legend_rank = {cat: rank for rank, cat in enumerate(present_categories)}
 
         # Track which categories have been added to legend
         legend_added = set()
@@ -107,6 +108,7 @@ class _PredictorPlotsMixin(_PlotsBase):
                     marker=dict(color=color_map[legend_value]),
                     name=legend_value,
                     legendgroup=legend_value,
+                    legendrank=legend_rank[legend_value],
                     orientation="h",
                     showlegend=show_in_legend,
                 ),
