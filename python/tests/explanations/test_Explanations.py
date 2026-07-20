@@ -105,7 +105,7 @@ class TestPureInit:
         """A relative aggregate folder resolves under the explicit root_dir."""
         data_dir = tmp_path / "custom_aggs"
         data_dir.mkdir()
-        for filename in ("BY_CONTEXT.parquet", "OVERALL.parquet"):
+        for filename in ("BY_CONTEXT.parquet", "OVERVIEW.parquet"):
             (data_dir / filename).write_bytes((DATA_DIR / filename).read_bytes())
 
         exp = Explanations.from_aggregates(root_dir=str(tmp_path), data_folder="custom_aggs")

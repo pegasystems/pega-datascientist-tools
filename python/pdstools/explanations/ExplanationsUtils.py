@@ -327,7 +327,9 @@ class ContextOperations(LazyNamespace):
         return sep.join(f"{value}".strip() for value in context_info.values())
 
     @staticmethod
-    def _create_context_batches(all_contexts: list[str], batch_size: int) -> dict[str, list[str]]:
+    def _create_context_batches(all_contexts: list[str] | None, batch_size: int) -> dict[str, list[str]]:
+        if not all_contexts:
+            return {}
         return {
             str(batch_idx): all_contexts[idx : idx + batch_size]
             for batch_idx, idx in enumerate(range(0, len(all_contexts), batch_size))

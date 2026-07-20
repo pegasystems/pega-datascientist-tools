@@ -59,7 +59,7 @@ class TestAggregateLoadData:
         overall = aggregate.df_overall.collect()
         contextual = aggregate.df_contextual.collect()
         expected_cols = {
-            "partition",
+            "context_partition",
             "contribution",
             "contribution_abs",
             "frequency",
@@ -97,7 +97,7 @@ class TestAggregateLoadData:
         """Test that numeric predictors with only one non-missing bin are filtered out."""
         df = aggregate.get_df_overall().collect()
         numeric_df = df.filter((pl.col("predictor_type") == "NUMERIC") & (pl.col("bin_contents") != "MISSING"))
-        bin_counts = numeric_df.group_by(["partition", "predictor_name"]).agg(
+        bin_counts = numeric_df.group_by(["context_partition", "predictor_name"]).agg(
             pl.col("bin_order").n_unique().alias("bin_count")
         )
         assert (bin_counts["bin_count"] > 1).all()
@@ -234,7 +234,7 @@ class TestContextOperations:
 
         # Copy parquet files to temp directory
         Path(tmp_path, "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
-        Path(tmp_path, "OVERALL.parquet").write_bytes((DATA_DIR / "OVERALL.parquet").read_bytes())
+        Path(tmp_path, "OVERVIEW.parquet").write_bytes((DATA_DIR / "OVERVIEW.parquet").read_bytes())
 
         aggregate.data_folderpath = tmp_path
         aggregate.context_operations.unique_contexts_file = tmp_path / "unique_contexts.json"
@@ -255,7 +255,7 @@ class TestContextOperations:
 
         # Copy parquet files to temp directory
         Path(tmp_path, "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
-        Path(tmp_path, "OVERALL.parquet").write_bytes((DATA_DIR / "OVERALL.parquet").read_bytes())
+        Path(tmp_path, "OVERVIEW.parquet").write_bytes((DATA_DIR / "OVERVIEW.parquet").read_bytes())
 
         aggregate.data_folderpath = tmp_path
         aggregate.context_operations.unique_contexts_file = tmp_path / "unique_contexts.json"
@@ -278,7 +278,7 @@ class TestContextOperations:
         data_dir = tmp_path / "aggregated_data"
         data_dir.mkdir()
         (data_dir / "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
-        (data_dir / "OVERALL.parquet").write_bytes((DATA_DIR / "OVERALL.parquet").read_bytes())
+        (data_dir / "OVERVIEW.parquet").write_bytes((DATA_DIR / "OVERVIEW.parquet").read_bytes())
 
         aggregate = Explanations.from_aggregates(data_folder=data_dir).aggregate
         before = sorted(path.name for path in data_dir.iterdir())
@@ -291,7 +291,7 @@ class TestContextOperations:
         data_dir = tmp_path / "aggregated_data"
         data_dir.mkdir()
         (data_dir / "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
-        (data_dir / "OVERALL.parquet").write_bytes((DATA_DIR / "OVERALL.parquet").read_bytes())
+        (data_dir / "OVERVIEW.parquet").write_bytes((DATA_DIR / "OVERVIEW.parquet").read_bytes())
 
         before = sorted(path.name for path in data_dir.iterdir())
         Explanations.from_aggregates(data_folder=data_dir)
@@ -359,8 +359,8 @@ class TestAggregatePredictorContributions:
         """Default top_n=20 returns one row per predictor (6 in fixture)."""
         df = aggregate.get_predictor_contributions()
         assert df.height == 6
-        assert {"predictor_name", "predictor_type", "contribution", "partition"}.issubset(df.columns)
-        assert df["partition"].n_unique() == 1
+        assert {"predictor_name", "predictor_type", "contribution", "context_partition"}.issubset(df.columns)
+        assert df["context_partition"].n_unique() == 1
         assert sorted(df["predictor_name"].unique().to_list()) == [
             "Age",
             "CustomerName",
@@ -398,7 +398,7 @@ class TestAggregatePredictorContributions:
         """Context-scoped query returns the same 6 predictor rows for that partition."""
         df = aggregate.get_predictor_contributions(context=selected_context)
         assert df.height == 6
-        assert df["partition"].n_unique() == 1
+        assert df["context_partition"].n_unique() == 1
 
     def test_get_predictor_contributions_for_context_custom_params(
         self,
@@ -622,14 +622,14 @@ class TestAggregateFrequencyPct:
     def test_add_frequency_pct_to_df(self, aggregate):
         """Test that frequency_pct column is added correctly."""
         df = aggregate.get_df_overall()
-        result = aggregate.add_frequency_pct_to_df(df, group_by=["partition"]).collect()
+        result = aggregate.add_frequency_pct_to_df(df, group_by=["context_partition"]).collect()
         assert "frequency_pct" in result.columns
         assert result["frequency_pct"].dtype == pl.Float64
 
     def test_frequency_pct_values_in_range(self, aggregate):
         """Test that frequency_pct values are between 0 and 100."""
         df = aggregate.get_df_overall()
-        result = aggregate.add_frequency_pct_to_df(df, group_by=["partition"]).collect()
+        result = aggregate.add_frequency_pct_to_df(df, group_by=["context_partition"]).collect()
         assert (result["frequency_pct"] >= 0.0).all()
         assert (result["frequency_pct"] <= 100.0).all()
 
@@ -730,7 +730,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:30]",
@@ -742,7 +742,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    "partition": "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[30:60]",
@@ -777,7 +777,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:30]",
@@ -789,7 +789,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[30:60]",
@@ -818,7 +818,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Color",
                     "predictor_type": "SYMBOLIC",
                     "bin_contents": "Red",
@@ -830,7 +830,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Color",
                     "predictor_type": "SYMBOLIC",
                     "bin_contents": "Blue",
@@ -870,7 +870,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:30]",
@@ -882,7 +882,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[30:60]",
@@ -894,7 +894,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Score",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:50]",
@@ -906,7 +906,7 @@ class TestWeightedAverageComputation:
                     "frequency": 10,
                 },
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Score",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[50:100]",
@@ -945,7 +945,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "OneRange",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:100]",
@@ -967,7 +967,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:30]",
@@ -979,7 +979,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[30:60]",
@@ -1001,7 +1001,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Color",
                     "predictor_type": "SYMBOLIC",
                     "bin_contents": "Red",
@@ -1024,7 +1024,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Score",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:100]",
@@ -1036,7 +1036,7 @@ class TestWeightedAverageComputation:
                     "frequency": 80,
                 },
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Score",
                     "predictor_type": "NUMERIC",
                     "bin_contents": _SPECIAL.MISSING.name,
@@ -1060,11 +1060,11 @@ def assert_predictor_rows_per_partition(df, top_n):
     appends a single aggregated 'remaining' row per partition.
     """
     expected_per_partition = top_n + 1
-    counts = df.group_by("partition").agg(pl.len().alias("n")).to_dicts()
+    counts = df.group_by("context_partition").agg(pl.len().alias("n")).to_dicts()
     assert counts, "Expected at least one partition in the result."
     for row in counts:
         assert row["n"] == expected_per_partition, (
-            f"Partition {row['partition']!r} has {row['n']} rows, "
+            f"Partition {row['context_partition']!r} has {row['n']} rows, "
             f"expected {expected_per_partition} (top_n + 1 remaining)."
         )
 
@@ -1093,6 +1093,6 @@ def test_create_context_batches_empty_list():
 
 def test_create_context_batches_none():
     """Test that None context list returns empty batches dict."""
-    batches = ContextOperations._create_context_batches([], 100)
+    batches = ContextOperations._create_context_batches(None, 100)
     assert isinstance(batches, dict)
     assert len(batches) == 0

@@ -21,7 +21,7 @@ def explanations():
 def _configure_report_output(explanations: Explanations, tmp_path: Path) -> Path:
     aggregate_dir = tmp_path / "aggregated_data"
     aggregate_dir.mkdir()
-    for filename in ("BY_CONTEXT.parquet", "OVERALL.parquet"):
+    for filename in ("BY_CONTEXT.parquet", "OVERVIEW.parquet"):
         (aggregate_dir / filename).write_bytes((DATA_DIR / filename).read_bytes())
 
     explanations.aggregate.data_folderpath = aggregate_dir
