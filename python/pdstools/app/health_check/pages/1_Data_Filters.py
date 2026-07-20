@@ -19,10 +19,9 @@ ensure_dm()
 
 """# Add custom filters"""
 
-"""You can easily add custom filters to specify the Health Check to your needs.
-In the selectbox below, simply select the columns you wish to filter.
-For each column, a new configuration screen will be added in which you can specify
-what values you want to keep in the Health Check.
+"""Narrow the Health Check down to the data you care about. Select the columns you
+want to filter in the box below. Each column you pick adds a control where you choose
+which values to keep.
 """
 
 expr_list = []

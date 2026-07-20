@@ -20,12 +20,12 @@ def sample_data_v2():
 
 
 @pytest.fixture
-def mock_decision_analyzer(sample_data_v2):
+def mock_decision_analyzer(sample_data_v2, monkeypatch):
     """Create a mock DecisionAnalyzer with sample property."""
     from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 
     analyzer = DecisionAnalyzer.__new__(DecisionAnalyzer)
-    type(analyzer).sample = property(lambda self: sample_data_v2.lazy())
+    monkeypatch.setattr(DecisionAnalyzer, "sample", property(lambda self: sample_data_v2.lazy()))
     return analyzer
 
 

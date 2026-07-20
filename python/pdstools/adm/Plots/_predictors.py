@@ -66,9 +66,14 @@ class _PredictorPlotsMixin(_PlotsBase):
 
         fig = go.Figure()
 
+        def display_category(value: Any) -> str:
+            return "Missing" if value is None else str(value)
+
         # Build a color map from the provided global map, falling back to the
         # pega colorway for any category not covered.
-        present_categories = sorted(pre_aggs.select(pl.col(legend_col).unique())[legend_col].to_list())
+        present_categories = sorted(
+            display_category(category) for category in pre_aggs.select(pl.col(legend_col).unique())[legend_col]
+        )
         base_map: dict[str, str] = color_discrete_map or {}
         fallback_index = 0
         color_map: dict[str, str] = {}
@@ -84,9 +89,10 @@ class _PredictorPlotsMixin(_PlotsBase):
 
         # Create a box plot for each predictor
         for _i, row in enumerate(pre_aggs.iter_rows(named=True)):
-            show_in_legend = row[legend_col] not in legend_added
+            legend_value = display_category(row[legend_col])
+            show_in_legend = legend_value not in legend_added
             if show_in_legend:
-                legend_added.add(row[legend_col])
+                legend_added.add(legend_value)
 
             fig.add_trace(
                 go.Box(
@@ -98,9 +104,9 @@ class _PredictorPlotsMixin(_PlotsBase):
                     mean=[row["mean"]],
                     y=[row[y_col]],
                     boxpoints=False,
-                    marker=dict(color=color_map[row[legend_col]]),
-                    name=row[legend_col],
-                    legendgroup=row[legend_col],
+                    marker=dict(color=color_map[legend_value]),
+                    name=legend_value,
+                    legendgroup=legend_value,
                     orientation="h",
                     showlegend=show_in_legend,
                 ),
@@ -564,13 +570,51 @@ class _PredictorPlotsMixin(_PlotsBase):
 
         import plotly.express as px
 
+        plot_data = collected.with_columns(_Type=pl.concat_str(reversed(by_list), separator=" / "))
+        custom_data = ["EntryType"] if "EntryType" in by_list[1:] else None
         fig = px.box(
-            collected.with_columns(_Type=pl.concat_str(reversed(by_list), separator=" / ")),
+            plot_data,
             x="Count",
             y="_Type",
             color=by_list[0],
+            custom_data=custom_data,
             template="pega",
         )
+
+        if custom_data is not None:
+            import plotly.graph_objects as go
+
+            split_traces = []
+            for trace in fig.data:
+                customdata = trace.customdata
+                if customdata is None:
+                    split_traces.append(trace)
+                    continue
+
+                active_indices = []
+                inactive_indices = []
+                for index, row in enumerate(customdata):
+                    entry_type = row[0]
+                    if entry_type == "Inactive":
+                        inactive_indices.append(index)
+                    else:
+                        active_indices.append(index)
+
+                for indices, is_inactive in ((active_indices, False), (inactive_indices, True)):
+                    if not indices:
+                        continue
+                    trace_data = trace.to_plotly_json()
+                    for key in ("x", "y", "customdata"):
+                        if key in trace_data:
+                            trace_data[key] = [trace_data[key][index] for index in indices]
+                    split_trace = go.Box(**{key: value for key, value in trace_data.items() if key != "type"})
+                    split_trace.legendgroup = trace.name
+                    if is_inactive:
+                        split_trace.opacity = 0.55
+                        split_trace.showlegend = False if active_indices else trace.showlegend
+                    split_traces.append(split_trace)
+
+            fig = go.Figure(data=split_traces, layout=fig.layout)
 
         # Update title and x-axis label if we have a figure (not None and not a DataFrame)
         if fig is not None and not return_df:

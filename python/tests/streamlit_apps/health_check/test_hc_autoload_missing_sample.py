@@ -33,8 +33,8 @@ def test_hc_home_renders_when_sample_missing(
 
     ``ensure_dm_loaded`` catches the exception and returns False; the
     home page should therefore not have ``dm`` in session_state, and
-    must not raise. The data-source dropdown must still render so
-    the user can recover by uploading manually.
+    must not raise. The uploaders and optional path inputs must still
+    render so the user can recover manually.
     """
     monkeypatch.setattr(
         "pdstools.app.health_check.hc_streamlit_utils.cached_sample",
@@ -55,9 +55,9 @@ def test_hc_home_renders_when_sample_missing(
     assert not at.exception, f"HC Home must not crash when sample autoload fails: {at.exception}"
     assert "dm" not in at.session_state, "When the sample fails to load, dm must NOT end up in session_state"
 
-    # The data-source dropdown is the recovery affordance — must still render.
-    selectbox_keys = [sb.key for sb in at.selectbox]
-    assert "_data_source" in selectbox_keys, (
-        f"Expected '_data_source' selectbox to remain available as a recovery "
-        f"affordance, got selectboxes: {selectbox_keys}"
+    # The direct import controls are the recovery affordance — must still render.
+    uploader_labels = [uploader.label for uploader in at.get("file_uploader")]
+    assert any("Model Snapshot" in label for label in uploader_labels), (
+        f"Expected the model uploader to remain available as a recovery affordance, got uploaders: {uploader_labels}"
     )
+    assert any(text_input.label == "Model Snapshot path" for text_input in at.text_input)

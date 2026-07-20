@@ -273,6 +273,7 @@ class Reports(LazyNamespace):
             if not final_path.exists():
                 raise ValueError(f"Failed to generate report: {file_name}")
 
+            logger.info("Data exported to %s", final_path)
             return final_path
 
         except Exception as e:
@@ -422,6 +423,7 @@ class Reports(LazyNamespace):
             final_path = output_dir / output_path.name
             shutil.copy(output_path, final_path)
 
+            logger.info("Data exported to %s", final_path)
             return final_path
 
         finally:

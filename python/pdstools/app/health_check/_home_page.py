@@ -16,8 +16,7 @@ def home_page() -> None:
     """Render the ADM Health Check home page."""
     import shutil
 
-    from pdstools.app.health_check.hc_streamlit_utils import ensure_dm_loaded
-    from pdstools.utils import streamlit_utils
+    from pdstools.app.health_check.hc_streamlit_utils import ensure_dm_loaded, render_import_ui
     from pdstools.utils.cdh_utils import setup_logger
     from pdstools.utils.streamlit_utils import (
         get_data_path,
@@ -88,8 +87,8 @@ interactive visuals and an Excel export for further exploration.
 
     st.markdown(
         """
-Select a data source below to get started. Advanced import options are at the bottom
-of this page.
+Upload ADM Health Check data below, or expand **File paths** to load files from disk.
+Advanced import options are at the bottom of this section.
 """
     )
 
@@ -99,35 +98,7 @@ of this page.
     if "infer_schema_length" not in st.session_state:
         st.session_state["infer_schema_length"] = 10000
 
-    streamlit_utils.import_datamart(
-        extract_pyname_keys=st.session_state["extract_pyname_keys"],
-        infer_schema_length=st.session_state["infer_schema_length"],
-    )
-
-    # Advanced options
-    with st.expander("Advanced import settings"):
-        st.session_state["extract_pyname_keys"] = st.checkbox(
-            "Extract Treatments",
-            value=st.session_state["extract_pyname_keys"],
-            help=(
-                'By default, ADM uses a few "Context Keys" (Issue, Group, Channel, Name) '
-                "to distinguish between models. If you have custom context keys, they are "
-                "embedded in the pyName column. Enable this to extract them into separate columns."
-            ),
-        )
-
-        st.session_state["infer_schema_length"] = st.number_input(
-            "Schema inference length",
-            min_value=1000,
-            value=st.session_state["infer_schema_length"],
-            step=10000,
-            help=(
-                "Number of rows to scan when inferring the schema for CSV/JSON files. "
-                "Increase for large datasets (e.g. 200 000) if columns are not detected correctly."
-            ),
-        )
-
-        st.info("💡 Changes take effect when you re-import the data.")
+    render_import_ui()
 
     # Clean up transient session state
     essential_keys = [

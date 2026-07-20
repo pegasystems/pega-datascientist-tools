@@ -1,13 +1,4 @@
-"""Regression test: switching to "Direct file upload" must show uploaders.
-
-Reproduces the bug where the auto-load on first visit (CDH Sample) left
-the file_uploader branch unrendered when the user later flipped the
-data-source dropdown to "Direct file upload" — because the home page's
-"if dm not in session_state, auto-load" guard re-fired on every
-selection change and silently put dm + data_source back to CDH Sample,
-while the selectbox widget held the user's chosen "Direct file upload"
-value.
-"""
+"""Regression test: Health Check uploaders are available immediately."""
 
 from __future__ import annotations
 
@@ -20,29 +11,13 @@ if TYPE_CHECKING:
 
 
 def test_direct_file_upload_renders_uploaders(hc_app_dir: Path):
-    """Selecting "Direct file upload" renders the model + predictor uploaders.
-
-    First run auto-loads the bundled CDH sample. The second run mimics
-    the user picking "Direct file upload": the on_change callback in
-    ``import_datamart`` deletes ``dm`` and sets ``data_source`` to the
-    new selection. The home page must NOT re-trigger auto-load — it
-    must let the upload branch render its file_uploader widgets.
-    """
+    """First render shows uploaders without requiring a source selector."""
     at = AppTest.from_file(str(hc_app_dir / "Home.py"), default_timeout=60)
     at.run()
     assert not at.exception, f"HC Home raised on first run: {at.exception}"
     assert "dm" in at.session_state, "auto-load should have populated dm on first run"
     assert at.session_state["data_source"] == "CDH Sample"
-
-    # Mimic the dropdown's on_change callback: delete dm, switch source.
-    del at.session_state["dm"]
-    at.session_state["data_source"] = "Direct file upload"
-    at.session_state["_data_source"] = "Direct file upload"
-    at.run()
-    assert not at.exception, f"HC Home raised after switching source: {at.exception}"
-
-    assert "dm" not in at.session_state, "Switching to 'Direct file upload' should not silently re-load CDH Sample"
-    assert at.session_state["data_source"] == "Direct file upload"
+    assert "_data_source" not in [selectbox.key for selectbox in at.selectbox]
 
     uploader_labels = [u.label for u in at.get("file_uploader")]
     assert any("Model Snapshot" in lbl for lbl in uploader_labels), (
@@ -52,7 +27,22 @@ def test_direct_file_upload_renders_uploaders(hc_app_dir: Path):
         f"expected a 'Predictor' uploader, got: {uploader_labels}"
     )
 
+    assert [expander.label for expander in at.expander] == [
+        "File paths (optional)",
+        "Predictor categorization (optional)",
+        "Processed parquet cache (optional)",
+        "Advanced import settings (optional)",
+    ]
+    predictor_tip = " ".join(info.value for info in at.info)
+    assert "literal substring matches" in predictor_tip
+    assert "ADMDatamart.apply_predictor_categorization" in predictor_tip
+
     success_messages = [s.value for s in at.success]
     assert not any("Import Successful" in m for m in success_messages), (
         f"stale 'Import Successful!' banner should be gone, got: {success_messages}"
+    )
+
+    info_messages = [i.value for i in at.info]
+    assert any("Sample data is currently loaded" in m for m in info_messages), (
+        f"expected a status banner naming the sample data source, got: {info_messages}"
     )

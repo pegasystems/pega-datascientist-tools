@@ -1,5 +1,6 @@
 """Testing the functionality of the adm Reports module"""
 
+import logging
 import pathlib
 import zipfile
 
@@ -215,7 +216,7 @@ def test_health_check_markdown_rejects_query_with_preaggregates(tmp_path):
         )
 
 
-def test_health_check_query_consolidates_predictors_to_filter(tmp_path, monkeypatch):
+def test_health_check_query_consolidates_predictors_to_filter(tmp_path, monkeypatch, caplog):
     datamart = datasets.cdh_sample()
     reports = Reports(datamart)
     query = pl.col("Channel") == "Web"
@@ -237,7 +238,8 @@ def test_health_check_query_consolidates_predictors_to_filter(tmp_path, monkeypa
     monkeypatch.setattr("pdstools.adm.Reports.run_quarto", fake_run_quarto)
     monkeypatch.setattr(datamart, "save_data", fake_save_data)
 
-    reports.health_check(output_dir=tmp_path, query=query)
+    with caplog.at_level(logging.INFO, logger="pdstools.adm.Reports"):
+        output_path = reports.health_check(output_dir=tmp_path, query=query)
 
     expected_model_ids = (
         datamart.model_data.filter(query).select("ModelID").unique().collect(engine="streaming")["ModelID"].to_list()
@@ -245,3 +247,33 @@ def test_health_check_query_consolidates_predictors_to_filter(tmp_path, monkeypa
 
     assert captured["selected_model_ids"] is not None
     assert sorted(captured["selected_model_ids"]) == sorted(expected_model_ids)
+    assert f"Data exported to {output_path}" in caplog.text
+
+
+def test_model_reports_logs_export_path(tmp_path, monkeypatch, caplog):
+    datamart = datasets.cdh_sample()
+    reports = Reports(datamart)
+
+    def fake_copy_quarto_file(qmd_filename, temp_dir):
+        (temp_dir / qmd_filename).write_text("", encoding="utf-8")
+
+    def fake_save_data(path, selected_model_ids=None):
+        return pathlib.Path(path) / "model.parquet", pathlib.Path(path) / "predictor.parquet"
+
+    def fake_run_quarto(*, output_filename, temp_dir, **_kwargs):
+        (temp_dir / output_filename).write_text("<html></html>", encoding="utf-8")
+        return None
+
+    monkeypatch.setattr("pdstools.adm.Reports.copy_quarto_file", fake_copy_quarto_file)
+    monkeypatch.setattr("pdstools.adm.Reports.run_quarto", fake_run_quarto)
+    monkeypatch.setattr(datamart, "save_data", fake_save_data)
+
+    with caplog.at_level(logging.INFO, logger="pdstools.adm.Reports"):
+        output_path = reports.model_reports(
+            model_ids=["model-1"],
+            output_dir=tmp_path,
+            name="Logged",
+        )
+
+    assert output_path.exists()
+    assert f"Data exported to {output_path}" in caplog.text

@@ -30,27 +30,35 @@ health_check, model_report = st.tabs(
     ],
 )
 
+
+def _default_output_dir() -> Path:
+    configured = st.session_state.get("_hc_output_dir")
+    return Path(configured) if configured else Path("healthCheckDir")
+
+
+def _show_generated_path(label: str, path: str | Path | None) -> None:
+    if path is None:
+        return
+    st.info(f"{label}: {path}")
+
+
 with health_check:
     st.title("Generate Health Check")
-    """To begin monitoring your models, you can create a Health Check document that provides a summary of all models and predictors."""
+    """Create a Health Check document: a single report that summarizes the health of all your models and predictors."""
+    _FULL_EMBED_HELP = (
+        "Bundle JavaScript and CSS libraries directly into the HTML file so "
+        "the report works offline and in air-gapped environments. "
+        "When unchecked, libraries are loaded from CDN and require an internet "
+        "connection when viewing the report."
+    )
     with st.expander("Health Check options"):
         name_input = st.text_input("Customer name")
         name: str | None = name_input if name_input != "" else None
         output_type = st.selectbox("Select output type", ["html"], index=0)
-        working_dir = Path(st.text_input("Change working directory", "healthCheckDir"))
+        working_dir = Path(st.text_input("Change working directory", str(_default_output_dir())))
         keep_temp_files = st.checkbox("Keep temporary files", False)
-
-    _FULL_EMBED_HELP = (
-        "When checked, all JavaScript and CSS libraries (Plotly, itables, etc.) "
-        "are bundled directly into the HTML file. "
-        "The report works offline and in air-gapped environments, but the file is larger "
-        "and esbuild is required. "
-        "When unchecked, libraries are loaded from CDN — smaller file, "
-        "but requires an internet connection when viewing the report."
-    )
-    with st.expander("Advanced"):
         full_embed = st.checkbox(
-            "Embed JS/CSS for offline viewing (slower, larger file)",
+            "Embed JavaScript/CSS into a single document",
             value=_cli_full_embed if _cli_full_embed is not None else True,
             help=_FULL_EMBED_HELP,
         )
@@ -87,6 +95,11 @@ with health_check:
 
                 if len(st.session_state["run"][st.session_state["runID"]]) == 0:
                     st.stop()
+                st.balloons()
+        _show_generated_path(
+            "Generated health check file",
+            st.session_state["run"][st.session_state["runID"]].get("name"),
+        )
         if "file" in st.session_state["run"][st.session_state["runID"]]:
             btn = st.download_button(
                 label="Download Health Check",
@@ -98,7 +111,7 @@ with health_check:
             )
         st.title("Create Excel Tables")
         st.write(
-            "If you prefer conducting a custom analysis in Excel, you can easily transform your data into Excel format.",
+            "Prefer to explore the data yourself? Export it to Excel for your own analysis.",
         )
         include_binning = st.checkbox(
             "Include Binning",
@@ -114,7 +127,8 @@ with health_check:
                     st.session_state["dm"].predictor_data,
                     query=st.session_state.get("filters", None),
                 )
-                tablename = "HealthCheckExport.xlsx"
+                working_dir.mkdir(parents=True, exist_ok=True)
+                tablename = working_dir / "HealthCheckExport.xlsx"
                 tables, warning_messages = filtered_datamart.generate.excel_report(
                     tablename,
                     predictor_binning=include_binning,
@@ -128,12 +142,17 @@ with health_check:
                 for message in warning_messages:
                     st.warning(message)
 
+            _show_generated_path(
+                "Generated Excel tables file",
+                st.session_state["run"][st.session_state["runID"]].get("tables"),
+            )
             btn = st.download_button(
                 label="Download additional tables",
                 data=st.session_state["run"][st.session_state["runID"]]["tablefile"],
-                file_name=st.session_state["run"][st.session_state["runID"]]["tables"],
+                file_name=Path(st.session_state["run"][st.session_state["runID"]]["tables"]).name,
                 key="TablesDownload",
             )
+            st.balloons()
 
     except Exception as e:
         logger.exception(f"An error occurred during Health Check generation: {e}")
@@ -161,7 +180,7 @@ if st.session_state["dm"].predictor_data is not None:
         log_file_path = None
         try:
             if "working_dir" not in locals():
-                working_dir = Path("healthCheckDir")
+                working_dir = _default_output_dir()
             if "model_selection_df" not in st.session_state:
                 st.session_state["model_selection_df"] = model_selection_df(
                     df=_apply_query(
@@ -170,7 +189,7 @@ if st.session_state["dm"].predictor_data is not None:
                     ),
                     context_keys=st.session_state["dm"].context_keys,
                 )
-            st.write("Please choose the models for which you wish to generate a report")
+            st.write("Select the models you want to generate a report for.")
             edited_df = st.data_editor(
                 st.session_state["model_selection_df"],
                 disabled=[*st.session_state["dm"].context_keys, "Name"],
@@ -184,13 +203,12 @@ if st.session_state["dm"].predictor_data is not None:
                 edited_df.filter(pl.col("Generate Report")).get_column("ModelID").to_list()
             )
             st.write(f"{len(st.session_state['selected_models'])} models are selected")
-            with st.expander("Advanced"):
-                model_report_full_embed = st.checkbox(
-                    "Embed JS/CSS for offline viewing (slower, larger file)",
-                    value=_cli_full_embed if _cli_full_embed is not None else True,
-                    help=_FULL_EMBED_HELP,
-                    key="model_report_full_embed",
-                )
+            model_report_full_embed = st.checkbox(
+                "Embed JavaScript/CSS into a single document",
+                value=_cli_full_embed if _cli_full_embed is not None else True,
+                help=_FULL_EMBED_HELP,
+                key="model_report_full_embed",
+            )
             if len(st.session_state["selected_models"]) > 0:
                 if st.button("Create Model Report(s) for selected model(s)"):
                     with st.spinner("Running Model Reports..."):
@@ -223,6 +241,7 @@ if st.session_state["dm"].predictor_data is not None:
                         st.session_state["model_report_name"] = (
                             outfile.name if len(st.session_state["selected_models"]) == 1 else "ModelReports.zip"
                         )
+                        st.session_state["model_report_path"] = outfile
 
                         btn = st.download_button(
                             label="Download Model Reports",
@@ -233,6 +252,7 @@ if st.session_state["dm"].predictor_data is not None:
                         progress_bar.empty()
                         progress_text.empty()
                         st.balloons()
+                _show_generated_path("Generated model report file", st.session_state.get("model_report_path"))
         except Exception as e:
             logger.exception("An error occurred during Model Report generation")
             if "model_report_error_download" not in st.session_state:
@@ -254,6 +274,6 @@ if st.session_state["dm"].predictor_data is not None:
                 os.remove(log_file_path)
 else:
     st.info(
-        "You can generate individual model reports if you provide Predictor Snapshot in 'Data Import' stage.",
+        "To generate individual model reports, import a Predictor Binning snapshot on the Home page.",
         icon="ℹ️",
     )

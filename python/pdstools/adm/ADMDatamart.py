@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __all__ = ["ADMDatamart"]
 
+import colorsys
 import datetime
 import logging
 import os
@@ -31,6 +32,63 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
+
+_STANDARD_PREDICTOR_CATEGORY_COLORS = {
+    "Customer": "#001F5F",
+    "IH": "#10A5AC",
+    "Primary": "#63666F",
+    "Param": "#F76923",
+    "Account": "#661D34",
+    "External Model": "#DE4342",
+}
+
+# Colors for non-standard (custom) predictor categories. Deliberately chosen
+# to be perceptually distinct from the standard category colors above — which
+# cluster around navy, teal, grey, orange, wine and red — so a custom category
+# never renders as a shaded-out variant of a standard one (e.g. an "Asset"
+# category looking like a lighter "IH" teal). Assigned in order.
+_FALLBACK_PREDICTOR_CATEGORY_COLORS = [
+    "#2CA02C",  # green
+    "#9467BD",  # purple
+    "#FFC836",  # gold
+    "#E377C2",  # pink
+    "#8C564B",  # brown
+    "#BCBD22",  # olive
+    "#5F67B9",  # periwinkle
+]
+
+
+def _fallback_predictor_category_color(index: int) -> str:
+    """Return a distinct fallback color for the *index*-th custom category.
+
+    The first colors come from the curated
+    :data:`_FALLBACK_PREDICTOR_CATEGORY_COLORS` palette. Once that is
+    exhausted, additional colors are generated on the fly using golden-angle
+    hue rotation. This keeps the common case (a handful of categories) on the
+    hand-picked palette while imposing no hard limit on the number of custom
+    predictor categories — every category still gets its own distinct color.
+
+    Parameters
+    ----------
+    index : int
+        Zero-based position of the custom category among all custom
+        (non-standard) categories.
+
+    Returns
+    -------
+    str
+        A hex color string, e.g. ``"#2CA02C"``.
+    """
+    palette = _FALLBACK_PREDICTOR_CATEGORY_COLORS
+    if index < len(palette):
+        return palette[index]
+
+    # Golden-angle hue rotation spreads generated hues as evenly as possible,
+    # so consecutively-assigned colors stay visually distinct for any count.
+    golden_angle = 0.6180339887498949
+    hue = (0.11 + (index - len(palette) + 1) * golden_angle) % 1.0
+    r, g, b = colorsys.hsv_to_rgb(hue, 0.6, 0.8)
+    return f"#{round(r * 255):02X}{round(g * 255):02X}{round(b * 255):02X}"
 
 
 class ADMDatamart:
@@ -131,12 +189,14 @@ class ADMDatamart:
         self.analysis = Analysis(datamart=self)
         self.generate = Reports(datamart=self)
 
+        logger.info("Validating ADM model data.")
         model_data_validated = self._validate_model_data(
             model_df,
             extract_pyname_keys=extract_pyname_keys,
         )
 
         # First occurence of actions (before filtering!) kept here so we can derive the "New Actions"
+        logger.info("Preparing ADM first action dates.")
         self.first_action_dates = self._get_first_action_dates(model_data_validated)
 
         self.model_data = (
@@ -148,8 +208,10 @@ class ADMDatamart:
         # contain rows for ModelIDs no longer in the filtered model_data.
         # Downstream joins handle this; revisit if a stricter intersection
         # is needed.
+        logger.info("Validating ADM predictor data.")
         self.predictor_data = self._validate_predictor_data(predictor_df)
 
+        logger.info("Preparing combined ADM data.")
         self.combined_data = self.aggregates._combine_data(
             self.model_data,
             self.predictor_data,
@@ -560,7 +622,7 @@ class ADMDatamart:
         # Model technique (NaiveBayes or GradientBoost) added in '24 (US-648869 and related)
         if "ModelTechnique" not in schema.names():
             df = df.with_columns(
-                ModelTechnique=pl.lit(None),
+                ModelTechnique=pl.lit(None, dtype=pl.String),
             )
         self.context_keys = [k for k in self.context_keys if k in schema.names()]
 
@@ -633,6 +695,13 @@ class ADMDatamart:
             )  # actual categorization not passed in?
             if df is None:
                 raise ValueError("Predictor categorization returned no data.")
+        else:
+            df = df.with_columns(
+                PredictorCategory=pl.coalesce(
+                    "PredictorCategory",
+                    cdh_utils.default_predictor_categorization(),
+                ),
+            )
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
 
         return self._normalize_performance_scale(df)
@@ -642,12 +711,11 @@ class ADMDatamart:
         """Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale."""
         if "Performance" not in df.collect_schema().names():
             return df
-        perf_max = df.select(pl.col("Performance").max()).collect().item()
-        if perf_max is not None and perf_max > 1.0:
-            df = df.with_columns(
-                Performance=pl.col("Performance") / 100.0,
-            )
-        return df
+        return df.with_columns(
+            Performance=pl.when(pl.col("Performance").is_finite() & (pl.col("Performance") > 1.0))
+            .then(pl.col("Performance") / 100.0)
+            .otherwise(pl.col("Performance")),
+        )
 
     def apply_predictor_categorization(
         self,
@@ -676,7 +744,7 @@ class ADMDatamart:
             A Polars Expression (or method that returns one) that returns the
             predictor categories. Should be based on Polars' when.then.otherwise syntax.
             Alternatively can be a dictionary of categories to (list of) string matches
-            which can be either exact (the default) or regular expressions.
+            which can be either literal substring matches (the default) or regular expressions.
             By default, `pdstools.utils.cdh_utils.default_predictor_categorization` is used.
         use_regexp: bool, optional
             Treat the mapping patterns in the `categorization` dictionary as regular expressions
@@ -752,12 +820,18 @@ class ADMDatamart:
                     .unique()
                     .with_columns(NewPredictorCategory=categorization_expr)
                     .with_columns(
+                        DefaultPredictorCategory=cdh_utils.default_predictor_categorization().alias(
+                            "DefaultPredictorCategory",
+                        ),
+                    )
+                    .with_columns(
                         PredictorCategory=pl.coalesce(
                             "NewPredictorCategory",
                             "PredictorCategory",
+                            "DefaultPredictorCategory",
                         ),
                     )
-                    .drop("NewPredictorCategory")
+                    .drop("NewPredictorCategory", "DefaultPredictorCategory")
                 )
                 df = df.drop("PredictorCategory").join(
                     predictor_mapping,
@@ -780,6 +854,8 @@ class ADMDatamart:
             self.predictor_data = set_categories(self.predictor_data)
         if hasattr(self, "combined_data") and self.combined_data is not None:
             self.combined_data = set_categories(self.combined_data)
+        self.__dict__.pop("unique_predictor_categories", None)
+        self.__dict__.pop("predictor_category_color_map", None)
 
     def save_data(
         self,
@@ -906,10 +982,11 @@ class ADMDatamart:
     def predictor_category_color_map(self) -> dict[str, str]:
         """Stable color mapping for predictor categories across all plots.
 
-        Assigns a consistent color to each ``PredictorCategory`` value found
-        in the full dataset, using the Pega colorway and alphabetical ordering.
-        This prevents the same category from receiving different colors when
-        different subsets of categories appear in different chart partitions.
+        Assigns fixed colors to standard ``PredictorCategory`` values found in
+        the full dataset, and deterministic fallback colors to custom
+        categories. This prevents the same category from receiving different
+        colors when different subsets of categories appear in different chart
+        partitions.
 
         Returns
         -------
@@ -917,15 +994,16 @@ class ADMDatamart:
             Mapping from category name to hex color, e.g.
             ``{"Customer": "#001F5F", "IH": "#10A5AC", ...}``.
         """
-        from ..utils.color_mapping import create_categorical_color_mappings
-        from ..utils.pega_template import colorway
+        color_map: dict[str, str] = {}
+        fallback_index = 0
+        for category in self.unique_predictor_categories:
+            if category in _STANDARD_PREDICTOR_CATEGORY_COLORS:
+                color_map[category] = _STANDARD_PREDICTOR_CATEGORY_COLORS[category]
+            else:
+                color_map[category] = _fallback_predictor_category_color(fallback_index)
+                fallback_index += 1
 
-        mappings = create_categorical_color_mappings(
-            self._require_predictor_data(),
-            ["PredictorCategory"],
-            colorway,
-        )
-        return mappings.get("PredictorCategory", {})
+        return color_map
 
     @cached_property
     def has_single_snapshot(self) -> bool:
