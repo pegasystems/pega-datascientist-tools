@@ -80,6 +80,119 @@ def test_process_dataset_passes_prediction_and_canonical_paths(tmp_path):
         assert call.kwargs["prediction_file_path"] == prediction_file
 
 
+def test_process_dataset_defaults_output_to_dataset_directory_without_cleaning(tmp_path):
+    model = tmp_path / "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
+    model.write_bytes(b"data")
+    unrelated_report = tmp_path / "HealthCheck (1).html"
+    unrelated_report.write_text("stale")
+    dataset = {
+        "name": "Dataset",
+        "data_dir": tmp_path,
+        "model_file": model,
+        "predictor_file": None,
+        "prediction_file": None,
+    }
+    datamart = MagicMock()
+    datamart.model_data = pl.LazyFrame({"ModelID": ["model-1"]})
+    datamart.generate.excel_report.return_value = (None, [])
+
+    with (
+        patch.object(batch.ADMDatamart, "from_ds_export", return_value=datamart),
+        patch.object(batch, "select_interesting_models", return_value=[]),
+        patch.object(batch, "is_esbuild_available", return_value=True),
+        patch.object(batch, "_generate_quarto_report", return_value=(1.0, "Success", None)) as generate,
+    ):
+        batch.process_dataset(dataset, None)
+
+    assert unrelated_report.read_text() == "stale"
+    assert {call.args[2] for call in generate.call_args_list} == {tmp_path}
+    datamart.generate.excel_report.assert_called_once_with(
+        name=tmp_path / "dataset.xlsx",
+        predictor_binning=True,
+    )
+
+
+def test_main_defaults_to_per_dataset_output(tmp_path, monkeypatch):
+    dataset = {
+        "name": "Dataset",
+        "data_dir": tmp_path / "Dataset" / "HC",
+        "model_file": tmp_path / "Dataset" / "HC" / "PR_DATA_DM_ADMMART_MDL_FACT.parquet",
+        "predictor_file": None,
+        "prediction_file": None,
+    }
+    result = {
+        "Dataset": "Dataset",
+        "Model_File_MB": 1.0,
+        "Predictor_File_MB": 0.0,
+        "Prediction_File_MB": 0.0,
+        "HC_CDN_MB": 1.0,
+        "HC_CDN_Status": "Success",
+        "HC_CDN_Errors": None,
+        "HC_Embed_MB": 2.0,
+        "HC_Embed_Status": "Success",
+        "HC_Embed_Errors": None,
+        "ModelReport_Models": 0,
+        "ModelReport_CDN_MB": 0.0,
+        "ModelReport_CDN_Status": "Skipped",
+        "ModelReport_CDN_Errors": None,
+        "ModelReport_Embed_MB": 0.0,
+        "ModelReport_Embed_Status": "Skipped",
+        "ModelReport_Embed_Errors": None,
+        "Excel_MB": 1.0,
+        "Excel_Status": "Success",
+    }
+    monkeypatch.setattr(sys, "argv", ["batch_healthcheck.py", str(tmp_path)])
+
+    with (
+        patch.object(batch, "find_data_directories", return_value=[dataset]),
+        patch.object(batch, "process_dataset", return_value=result) as process_dataset,
+    ):
+        batch.main()
+
+    process_dataset.assert_called_once_with(
+        dataset,
+        None,
+        max_models=3,
+    )
+    assert (tmp_path / "summary.csv").exists()
+
+
+def test_process_dataset_generates_individual_model_reports(tmp_path):
+    model = tmp_path / "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
+    model.write_bytes(b"data")
+    dataset = {
+        "name": "Dataset",
+        "data_dir": tmp_path,
+        "model_file": model,
+        "predictor_file": None,
+        "prediction_file": None,
+    }
+    datamart = MagicMock()
+    datamart.model_data = pl.LazyFrame({"ModelID": ["model-1", "model-2"]})
+    datamart.generate.excel_report.return_value = (None, [])
+
+    with (
+        patch.object(batch.ADMDatamart, "from_ds_export", return_value=datamart),
+        patch.object(batch, "select_interesting_models", return_value=["model-1", "model-2"]),
+        patch.object(batch, "is_esbuild_available", return_value=True),
+        patch.object(batch, "_generate_quarto_report", return_value=(1.0, "Success", None)) as generate,
+    ):
+        result = batch.process_dataset(dataset, tmp_path / "reports")
+
+    model_report_calls = [call for call in generate.call_args_list if call.args[1].startswith("ModelReport")]
+    assert [call.kwargs["model_ids"] for call in model_report_calls] == [
+        "model-1",
+        "model-2",
+        "model-1",
+        "model-2",
+    ]
+    assert all(isinstance(call.kwargs["model_ids"], str) for call in model_report_calls)
+    assert result["ModelReport_CDN_MB"] == 2.0
+    assert result["ModelReport_Embed_MB"] == 2.0
+    assert result["ModelReport_CDN_Status"] == "Success"
+    assert result["ModelReport_Embed_Status"] == "Success"
+
+
 def test_process_dataset_skips_full_embed_when_esbuild_unavailable(tmp_path):
     """Full-embed reports need esbuild; without it they are skipped, not failed.
 
