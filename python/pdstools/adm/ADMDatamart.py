@@ -616,6 +616,11 @@ class ADMDatamart:
         if extract_pyname_keys and "Name" in schema.names():
             df = cdh_utils._extract_keys(df)
 
+        missing_context_columns = [col for col in ("Channel", "Direction") if col not in schema.names()]
+        if missing_context_columns:
+            df = df.with_columns(pl.lit(None, dtype=pl.Categorical).alias(col) for col in missing_context_columns)
+            schema = df.collect_schema()
+
         if "Treatment" in schema.names():
             self.context_keys.append("Treatment")
 
@@ -624,6 +629,7 @@ class ADMDatamart:
             df = df.with_columns(
                 ModelTechnique=pl.lit(None, dtype=pl.String),
             )
+            schema = df.collect_schema()
         self.context_keys = [k for k in self.context_keys if k in schema.names()]
 
         # Issue #667: AGB models emit an additional "totals" row per configuration

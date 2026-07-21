@@ -609,6 +609,18 @@ def test_validate_model_data_adds_success_rate_and_modeltechnique():
     assert out["ModelTechnique"].to_list() == [None, None]
 
 
+def test_validate_model_data_adds_missing_channel_direction():
+    df = _minimal_model_df().drop("Channel", "Direction")
+
+    dm = ADMDatamart(model_df=df)
+    out = dm._require_model_data().collect()
+
+    assert out["Channel"].to_list() == [None, None]
+    assert out["Direction"].to_list() == [None, None]
+    assert "Channel" in dm.context_keys
+    assert "Direction" in dm.context_keys
+
+
 def test_validate_model_data_success_rate_zero_when_no_responses():
     df = _minimal_model_df(ResponseCount=[0, 100], Positives=[0, 5])
     dm = ADMDatamart(model_df=df)
