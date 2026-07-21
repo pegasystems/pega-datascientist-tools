@@ -261,6 +261,24 @@ def test_score_distribution(sample: ADMDatamart):
     assert len(plot.data) == 2
 
 
+def test_score_distribution_falls_back_to_full_range_when_active_range_is_empty(
+    sample: ADMDatamart,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    model_id = "277a2c48-8888-5b71-911e-443d52c9b50f"
+
+    def out_of_bounds_active_range(model_ids: str):
+        assert model_ids == model_id
+        return pl.LazyFrame({"idx_min": [999], "idx_max": [1000]})
+
+    monkeypatch.setattr(sample, "active_ranges", out_of_bounds_active_range)
+
+    df = sample.plot.score_distribution(model_id=model_id, return_df=True)
+
+    assert not df.collect().is_empty()
+    assert df.filter(pl.col("PredictorName") != "Classifier").collect().is_empty()
+
+
 def test_multiple_score_distributions(sample: ADMDatamart):
     model_ids = (
         sample.aggregates.last(table="combined_data")
@@ -419,6 +437,52 @@ def test_predictor_performance_handles_null_predictor_category_after_custom_cate
 
     assert isinstance(plot, Figure)
     assert {trace.name for trace in plot.data} == {"Customer", "External Model"}
+
+
+def test_predictor_performance_legend_order_is_alphabetical_without_reordering_traces():
+    model_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1"],
+            "Configuration": ["Config"],
+            "SnapshotTime": [datetime(2024, 1, 1)],
+            "Positives": [10.0],
+            "Negatives": [90.0],
+            "ResponseCount": [100.0],
+            "Performance": [0.7],
+            "Channel": ["Web"],
+            "Direction": ["Inbound"],
+            "Issue": ["Issue"],
+            "Group": ["Group"],
+            "Name": ["Action"],
+        },
+    )
+    predictor_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m1", "m1"],
+            "PredictorName": ["Strong.Zeta", "Weak.Alpha", "Classifier"],
+            "PredictorCategory": ["Zeta", "Alpha", "Alpha"],
+            "EntryType": ["Active", "Active", "Classifier"],
+            "BinIndex": [1, 1, 1],
+            "BinPositives": [9.0, 6.0, 1.0],
+            "BinNegatives": [1.0, 4.0, 1.0],
+            "BinResponseCount": [10.0, 10.0, 2.0],
+            "ResponseCount": [10.0, 10.0, 2.0],
+            "Performance": [0.9, 0.6, 0.5],
+            "SnapshotTime": [datetime(2024, 1, 1), datetime(2024, 1, 1), datetime(2024, 1, 1)],
+            "Type": ["numeric", "numeric", "symbolic"],
+        },
+    )
+    datamart = ADMDatamart(model_df=model_df, predictor_df=predictor_df)
+
+    plot = datamart.plot.predictor_performance()
+
+    assert isinstance(plot, Figure)
+    visible_legend_traces = [trace for trace in plot.data if trace.showlegend]
+    assert [trace.name for trace in visible_legend_traces] == ["Zeta", "Alpha"]
+    assert [trace.name for trace in sorted(visible_legend_traces, key=lambda trace: trace.legendrank)] == [
+        "Alpha",
+        "Zeta",
+    ]
 
 
 def test_predictor_category_performance(sample: ADMDatamart):

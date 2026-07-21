@@ -285,7 +285,7 @@ def _generate_quarto_report(
 
 def process_dataset(
     dataset: dict,
-    output_dir: Path,
+    output_dir: Path | None,
     *,
     max_models: int = 3,
 ) -> dict:
@@ -299,8 +299,8 @@ def process_dataset(
     dataset : dict
         Dataset information (name, data_dir, model_file, predictor_file,
         prediction_file)
-    output_dir : Path
-        Directory for output reports
+    output_dir : Path, optional
+        Directory for output reports. If None, writes to the dataset data directory.
     max_models : int
         Maximum number of model reports to generate
 
@@ -365,6 +365,7 @@ def process_dataset(
         n_models = len(datamart.model_data.collect())
         print(f"  ✓ Datamart loaded: {n_models} models")
 
+        output_dir = Path(dataset["data_dir"]) if output_dir is None else output_dir
         output_dir.mkdir(parents=True, exist_ok=True)
         safe_name = name.lower().replace(" ", "_").replace(".", "_")
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -416,19 +417,26 @@ def process_dataset(
                     result[f"{key_prefix}_Status"] = "Skipped"
                     continue
                 suffix = "_full" if full_embed else "_cdn"
-                mb, status, errors = _generate_quarto_report(
-                    datamart.generate.model_reports,
-                    f"ModelReport ({len(selected_models)} models)",
-                    output_dir,
-                    full_embed=full_embed,
-                    model_ids=selected_models,
-                    name=f"{safe_name}_models{suffix}",
-                    title=f"Model Reports - {name}",
-                    subtitle=f"Generated on {timestamp}",
-                )
-                result[f"{key_prefix}_MB"] = mb
-                result[f"{key_prefix}_Status"] = status
-                result[f"{key_prefix}_Errors"] = errors
+                total_mb = 0.0
+                mode_errors = []
+                for i, model_id in enumerate(selected_models, start=1):
+                    mb, status, errors = _generate_quarto_report(
+                        datamart.generate.model_reports,
+                        f"ModelReport ({i}/{len(selected_models)})",
+                        output_dir,
+                        full_embed=full_embed,
+                        model_ids=model_id,
+                        name=f"{safe_name}_model{suffix}",
+                        title=f"Model Report - {name}",
+                        subtitle=f"Generated on {timestamp}",
+                    )
+                    total_mb += mb
+                    if status == "Error":
+                        mode_errors.append(f"{model_id}: {errors}")
+
+                result[f"{key_prefix}_MB"] = total_mb
+                result[f"{key_prefix}_Status"] = "Error" if mode_errors else "Success"
+                result[f"{key_prefix}_Errors"] = "; ".join(mode_errors) if mode_errors else None
 
             if result["ModelReport_CDN_MB"] > 0 and result["ModelReport_Embed_MB"] > 0:
                 ratio = result["ModelReport_Embed_MB"] / result["ModelReport_CDN_MB"]
@@ -495,8 +503,8 @@ For more information, see:
         "--output",
         "-o",
         type=Path,
-        default=Path("./healthcheck_reports"),
-        help="Output directory for generated reports (default: ./healthcheck_reports)",
+        default=None,
+        help="Output directory for generated reports (default: each dataset's HC/data directory)",
     )
     parser.add_argument(
         "--datasets",
@@ -569,16 +577,25 @@ For more information, see:
     print(f"\n{'=' * 60}")
     print("Batch ADM Report Generator")
     print(f"{'=' * 60}")
-    print(f"Output directory: {args.output.absolute()}")
+    if args.output is None:
+        print("Output directory: each dataset's HC/data directory")
+    else:
+        print(f"Output directory: {args.output.absolute()}")
     print(f"Datasets to process: {len(datasets_to_process)}")
     print(f"Max model reports per dataset: {args.max_models}")
 
     # Process all datasets
     results = []
-    summary_file = args.output / "summary.csv"
+    summary_dir = args.output if args.output is not None else args.data_path
+    summary_dir.mkdir(parents=True, exist_ok=True)
+    summary_file = summary_dir / "summary.csv"
     for i, dataset in enumerate(datasets_to_process, 1):
         print(f"\n[{i}/{len(datasets_to_process)}]")
-        result = process_dataset(dataset, args.output, max_models=args.max_models)
+        result = process_dataset(
+            dataset,
+            args.output,
+            max_models=args.max_models,
+        )
         results.append(result)
 
         df_incremental = pl.DataFrame(results)
