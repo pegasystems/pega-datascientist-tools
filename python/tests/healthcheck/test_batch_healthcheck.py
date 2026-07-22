@@ -43,6 +43,15 @@ def test_find_data_directories_discovers_canonical_prediction(tmp_path):
     ]
 
 
+def test_print_report_size_comparison_highlights_smaller_embed(capsys):
+    batch._print_report_size_comparison("HC", cdn_mb=2.0, embed_mb=1.0)
+
+    captured = capsys.readouterr()
+
+    assert "HC size: CDN 2.0 MB vs embed 1.0 MB (0.5x)" in captured.out
+    assert "HC full-embed output is smaller than CDN output" in captured.out
+
+
 def test_process_dataset_passes_prediction_and_canonical_paths(tmp_path):
     model = tmp_path / "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
     predictor = tmp_path / "PR_DATA_DM_ADMMART_PRED.parquet"

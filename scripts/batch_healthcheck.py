@@ -137,6 +137,20 @@ def get_file_size_mb(file_path: Path | None) -> float:
     return 0.0
 
 
+def _print_report_size_comparison(label: str, cdn_mb: float, embed_mb: float) -> None:
+    """Print CDN vs full-embed report sizes and flag inverted size ordering."""
+    if cdn_mb <= 0 or embed_mb <= 0:
+        return
+
+    ratio = embed_mb / cdn_mb
+    print(f"  ℹ {label} size: CDN {cdn_mb:.1f} MB vs embed {embed_mb:.1f} MB ({ratio:.1f}x)")
+    if embed_mb < cdn_mb:
+        print(
+            f"  ⚠ {label} full-embed output is smaller than CDN output; "
+            "file sizes depend on Quarto/esbuild rendering and report content."
+        )
+
+
 def select_interesting_models(datamart: ADMDatamart, max_n: int = 3) -> list[str]:
     """Select a diverse set of interesting models for model reports.
 
@@ -401,11 +415,7 @@ def process_dataset(
             result[f"{key_prefix}_Status"] = status
             result[f"{key_prefix}_Errors"] = errors
 
-        if result["HC_CDN_MB"] > 0 and result["HC_Embed_MB"] > 0:
-            ratio = result["HC_Embed_MB"] / result["HC_CDN_MB"]
-            print(
-                f"  ℹ HC size: CDN {result['HC_CDN_MB']:.1f} MB vs embed {result['HC_Embed_MB']:.1f} MB ({ratio:.1f}x)"
-            )
+        _print_report_size_comparison("HC", result["HC_CDN_MB"], result["HC_Embed_MB"])
 
         # ── Model reports for interesting models ────────────────────
         selected_models = select_interesting_models(datamart, max_n=max_models)
@@ -438,12 +448,11 @@ def process_dataset(
                 result[f"{key_prefix}_Status"] = "Error" if mode_errors else "Success"
                 result[f"{key_prefix}_Errors"] = "; ".join(mode_errors) if mode_errors else None
 
-            if result["ModelReport_CDN_MB"] > 0 and result["ModelReport_Embed_MB"] > 0:
-                ratio = result["ModelReport_Embed_MB"] / result["ModelReport_CDN_MB"]
-                print(
-                    f"  ℹ Model report size: CDN {result['ModelReport_CDN_MB']:.1f} MB"
-                    f" vs embed {result['ModelReport_Embed_MB']:.1f} MB ({ratio:.1f}x)"
-                )
+            _print_report_size_comparison(
+                "Model report",
+                result["ModelReport_CDN_MB"],
+                result["ModelReport_Embed_MB"],
+            )
 
         # ── Excel export ────────────────────────────────────────────
         print("  → Generating Excel export...")
