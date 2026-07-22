@@ -35,9 +35,10 @@ def _write_params_files(
         Analysis configuration to write to _quarto.yml, by default None
     full_embed : bool, default=False
         When True, embeds all resources (JavaScript libraries like Plotly,
-        itables, etc.) for a fully standalone HTML (larger output).
+        itables, etc.) for a fully standalone HTML.
         When False, loads JavaScript libraries from CDN and skips esbuild
-        bundling (smaller output, but requires internet).
+        bundling, but requires internet for remote libraries. Output size
+        depends on Quarto/esbuild rendering and report content.
 
     Returns
     -------
@@ -63,8 +64,8 @@ def _write_params_files(
     # This avoids failures in environments where esbuild is unavailable
     # (e.g. DJS Docker images that removed it due to CVE issues).
     # See GitHub issue #620.
-    # plotly-connected: false = load Plotly from CDN (smaller file)
-    # plotly-connected: true = embed Plotly (larger file)
+    # plotly-connected: false = load Plotly from CDN.
+    # plotly-connected: true = let Quarto/esbuild bundle Plotly for offline use.
     embed = full_embed
     html_format: dict = {
         "embed-resources": embed,
@@ -114,7 +115,7 @@ def run_quarto(
         Temporary directory for processing, by default Path(".")
     full_embed : bool, default=False
         When True, fully embeds all JavaScript libraries (Plotly, itables,
-        etc.) into the HTML output (larger file).
+        etc.) into the HTML output.
         When False, loads JavaScript libraries from CDN and skips esbuild
         bundling, avoiding the need for esbuild (see issue #620).
 
