@@ -137,6 +137,11 @@ def get_file_size_mb(file_path: Path | None) -> float:
     return 0.0
 
 
+def _path_or_none(path: Path | None) -> str | None:
+    """Return a string path for CSV output, preserving missing optional files."""
+    return str(path) if path else None
+
+
 def _print_report_size_comparison(label: str, cdn_mb: float, embed_mb: float) -> None:
     """Print CDN vs full-embed report sizes and flag inverted size ordering."""
     if cdn_mb <= 0 or embed_mb <= 0:
@@ -149,6 +154,20 @@ def _print_report_size_comparison(label: str, cdn_mb: float, embed_mb: float) ->
             f"  ⚠ {label} full-embed output is smaller than CDN output; "
             "file sizes depend on Quarto/esbuild rendering and report content."
         )
+
+
+def _print_dataset_paths(row: dict) -> None:
+    """Print input paths for an errored dataset summary row."""
+    path_fields = [
+        ("Data directory", "Data_Dir"),
+        ("Model file", "Model_File"),
+        ("Predictor file", "Predictor_File"),
+        ("Prediction file", "Prediction_File"),
+    ]
+    for label, field in path_fields:
+        path = row.get(field)
+        if path:
+            print(f"  {label}: {path}")
 
 
 def select_interesting_models(datamart: ADMDatamart, max_n: int = 3) -> list[str]:
@@ -329,8 +348,16 @@ def process_dataset(
     print(f"{'=' * 60}")
     print(f"  Data directory: {dataset['data_dir']}")
 
+    model_file = dataset["model_file"]
+    predictor_file = dataset["predictor_file"]
+    prediction_file = dataset.get("prediction_file")
+
     result = {
         "Dataset": name,
+        "Data_Dir": _path_or_none(dataset["data_dir"]),
+        "Model_File": _path_or_none(model_file),
+        "Predictor_File": _path_or_none(predictor_file),
+        "Prediction_File": _path_or_none(prediction_file),
         "Model_File_MB": 0.0,
         "Predictor_File_MB": 0.0,
         "Prediction_File_MB": 0.0,
@@ -350,10 +377,6 @@ def process_dataset(
         "Excel_MB": 0.0,
         "Excel_Status": "Skipped",
     }
-
-    model_file = dataset["model_file"]
-    predictor_file = dataset["predictor_file"]
-    prediction_file = dataset.get("prediction_file")
 
     result["Model_File_MB"] = get_file_size_mb(model_file)
     result["Predictor_File_MB"] = get_file_size_mb(predictor_file)
@@ -649,6 +672,7 @@ For more information, see:
             print(f"{'=' * 60}")
             for row in errors_df.iter_rows(named=True):
                 print(f"\n{row['Dataset']}:")
+                _print_dataset_paths(row)
                 for error in row[col].split("; "):
                     print(f"  - {error}")
 

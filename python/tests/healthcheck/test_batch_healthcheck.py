@@ -52,6 +52,24 @@ def test_print_report_size_comparison_highlights_smaller_embed(capsys):
     assert "HC full-embed output is smaller than CDN output" in captured.out
 
 
+def test_print_dataset_paths_omits_missing_optional_files(capsys):
+    batch._print_dataset_paths(
+        {
+            "Data_Dir": "/tmp/data/HC",
+            "Model_File": "/tmp/data/HC/PR_DATA_DM_ADMMART_MDL_FACT.parquet",
+            "Predictor_File": None,
+            "Prediction_File": "/tmp/data/HC/PR_DATA_DM_SNAPSHOTS.parquet",
+        }
+    )
+
+    captured = capsys.readouterr()
+
+    assert "Data directory: /tmp/data/HC" in captured.out
+    assert "Model file: /tmp/data/HC/PR_DATA_DM_ADMMART_MDL_FACT.parquet" in captured.out
+    assert "Prediction file: /tmp/data/HC/PR_DATA_DM_SNAPSHOTS.parquet" in captured.out
+    assert "Predictor file" not in captured.out
+
+
 def test_process_dataset_passes_prediction_and_canonical_paths(tmp_path):
     model = tmp_path / "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
     predictor = tmp_path / "PR_DATA_DM_ADMMART_PRED.parquet"
@@ -164,6 +182,58 @@ def test_main_defaults_to_per_dataset_output(tmp_path, monkeypatch):
         max_models=3,
     )
     assert (tmp_path / "summary.csv").exists()
+
+
+def test_main_error_summary_includes_data_paths(tmp_path, monkeypatch, capsys):
+    dataset = {
+        "name": "Dataset",
+        "data_dir": tmp_path / "Dataset" / "HC",
+        "model_file": tmp_path / "Dataset" / "HC" / "PR_DATA_DM_ADMMART_MDL_FACT.parquet",
+        "predictor_file": tmp_path / "Dataset" / "HC" / "PR_DATA_DM_ADMMART_PRED.parquet",
+        "prediction_file": None,
+    }
+    result = {
+        "Dataset": "Dataset",
+        "Data_Dir": str(dataset["data_dir"]),
+        "Model_File": str(dataset["model_file"]),
+        "Predictor_File": str(dataset["predictor_file"]),
+        "Prediction_File": None,
+        "Model_File_MB": 1.0,
+        "Predictor_File_MB": 1.0,
+        "Prediction_File_MB": 0.0,
+        "HC_CDN_MB": 0.0,
+        "HC_CDN_Status": "Error",
+        "HC_CDN_Errors": "render failed",
+        "HC_Embed_MB": 0.0,
+        "HC_Embed_Status": "Skipped",
+        "HC_Embed_Errors": None,
+        "ModelReport_Models": 0,
+        "ModelReport_CDN_MB": 0.0,
+        "ModelReport_CDN_Status": "Skipped",
+        "ModelReport_CDN_Errors": None,
+        "ModelReport_Embed_MB": 0.0,
+        "ModelReport_Embed_Status": "Skipped",
+        "ModelReport_Embed_Errors": None,
+        "Excel_MB": 0.0,
+        "Excel_Status": "Skipped",
+    }
+    monkeypatch.setattr(sys, "argv", ["batch_healthcheck.py", str(tmp_path)])
+
+    with (
+        patch.object(batch, "find_data_directories", return_value=[dataset]),
+        patch.object(batch, "process_dataset", return_value=result),
+        pytest.raises(SystemExit) as exit_info,
+    ):
+        batch.main()
+
+    captured = capsys.readouterr()
+
+    assert exit_info.value.code == 1
+    assert "Report Errors Detected (HC CDN)" in captured.out
+    assert f"Data directory: {dataset['data_dir']}" in captured.out
+    assert f"Model file: {dataset['model_file']}" in captured.out
+    assert f"Predictor file: {dataset['predictor_file']}" in captured.out
+    assert "  - render failed" in captured.out
 
 
 def test_process_dataset_generates_individual_model_reports(tmp_path):
