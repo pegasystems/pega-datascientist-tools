@@ -17,7 +17,7 @@ import logging
 import os
 from enum import Enum
 from pathlib import Path
-from typing import ClassVar, Literal, TYPE_CHECKING, TypedDict, cast
+from typing import ClassVar, Literal, TYPE_CHECKING, cast
 
 import polars as pl
 
@@ -132,11 +132,9 @@ DisplayBy = SortBy
 ContributionType = SortBy
 
 
-class ContextInfo(TypedDict):
-    """Context info."""
-
-    context_key: str
-    context_value: str
+# Dynamic mapping of context columns (for example pyChannel/pyDirection)
+# and, optionally, the raw context partition string.
+ContextInfo = dict[str, str]
 
 
 if TYPE_CHECKING:
@@ -213,7 +211,7 @@ class ContextOperations(LazyNamespace):
             Optional context filters. When provided, rows are filtered to the
             matching contexts.
         with_partition_col : bool, default False
-            Whether to include the raw ``partition`` column in the output.
+            Whether to include the raw ``context_partition`` column in the output.
 
         Returns
         -------

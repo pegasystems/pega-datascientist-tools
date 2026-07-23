@@ -10,9 +10,10 @@ Generated .qmd files are written to the project root for Quarto to render.
 
 from __future__ import annotations
 
+import logging
 import json
 import os
-import logging
+from pathlib import Path
 from typing import cast
 import yaml
 
@@ -136,8 +137,12 @@ class ReportGenerator:
                 self.display_by_text = params.get("display_by_text", DISPLAY_BY_TEXT_DEFAULT)
 
         self.root_dir = os.path.abspath(os.path.join(self.report_folder, ".."))
-
-        self.data_folder = os.path.abspath(os.path.join(self.report_folder, "..", self.data_folder))
+        data_folder_path = Path(str(self.data_folder))
+        if data_folder_path.is_absolute():
+            resolved_data_folder = data_folder_path
+        else:
+            resolved_data_folder = Path(self.root_dir) / data_folder_path
+        self.data_folder = str(resolved_data_folder.resolve())
         logger.info("Using data folder: %s", self.data_folder)
 
         self._log_params()
@@ -232,14 +237,11 @@ class ReportGenerator:
 
         unique_contexts_file = f"{self.data_folder}/{UNIQUE_CONTEXTS_FILENAME}"
 
-        # Try to load from JSON file first
-        if os.path.exists(unique_contexts_file):
-            with open(unique_contexts_file, "r", encoding=ENCODING) as f:
-                self.contexts = json.load(f)
-                return self.contexts
-
-        if not self.contexts:
+        if not os.path.exists(unique_contexts_file):
             raise FileNotFoundError(f"Unique contexts file not found in {self.data_folder}")
+
+        with open(unique_contexts_file, "r", encoding=ENCODING) as f:
+            self.contexts = json.load(f)
 
         return self.contexts
 

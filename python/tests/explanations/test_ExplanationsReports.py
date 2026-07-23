@@ -85,7 +85,33 @@ def test_set_params(report_paths):
     assert params["sort_by_text"] == "absolute average contribution"
     assert params["display_by"] == "contribution"
     assert params["display_by_text"] == "average contribution"
-    assert params["data_folder"] == Path(reports.aggregate_folder).name
+    assert params["data_folder"] == Path(reports.explanations.data_folder).as_posix()
+
+
+def test_set_params_preserves_nested_relative_data_folder(tmp_path):
+    nested_aggregate_dir = tmp_path / "nested" / "aggregated_data"
+    nested_aggregate_dir.mkdir(parents=True)
+    for filename in ("BY_CONTEXT.parquet", "OVERVIEW.parquet"):
+        (nested_aggregate_dir / filename).write_bytes((DATA_DIR / filename).read_bytes())
+
+    explanations = Explanations.from_aggregates(
+        root_dir=str(tmp_path),
+        data_folder="nested/aggregated_data",
+        model_name="AdaptiveBoostCT",
+    )
+    reports = explanations.report
+    reports.report_folderpath = tmp_path / "reports"
+    reports.report_output_dir = reports.report_folderpath / "_site"
+    reports.params_file = reports.report_folderpath / "scripts" / "params.yml"
+
+    reports._validate_report_dir()
+    reports._copy_report_resources()
+    reports._set_params()
+
+    with open(reports.params_file, encoding="utf-8") as f:
+        params = yaml.safe_load(f)
+
+    assert params["data_folder"] == "nested/aggregated_data"
 
 
 def test_set_params_custom_contribution_types(report_paths):

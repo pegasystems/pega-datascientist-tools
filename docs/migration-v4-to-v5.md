@@ -182,7 +182,7 @@ exp = Explanations.from_aggregates(
 
 Raw single-file / remote-URL aggregation is no longer part of this API.
 Generate or provide a folder containing the pre-aggregated parquet files
-(`BY_CONTEXT.parquet` and `OVERALL.parquet`) before constructing
+(`BY_CONTEXT.parquet` and `OVERVIEW.parquet`) before constructing
 `Explanations`:
 
 ```python
@@ -191,16 +191,18 @@ exp = Explanations.from_aggregates(data_folder=".tmp/aggregated_data")
 
 Quarto report templates that previously did
 `Explanations(root_dir="...")` followed by manual
-`aggregate.data_folderpath = "..."` should drop the `root_dir` argument
-entirely — the bare constructor is now safe to call without I/O:
+`aggregate.data_folderpath = "..."` should use explicit path configuration
+on `Explanations` itself:
 
 ```python
 # Before:
 explanations = Explanations(root_dir=ROOT_DIR)
 explanations.aggregate.data_folderpath = DATA_FOLDER
 # After:
-explanations = Explanations()
-explanations.aggregate.data_folderpath = DATA_FOLDER
+explanations = Explanations.from_aggregates(
+    root_dir=ROOT_DIR,
+    data_folder=DATA_FOLDER,
+)
 ```
 
 ### Explanations: explicit filter parameters
@@ -209,8 +211,7 @@ The `**filter_kwargs` catch-all on the Explanations `Plots`,
 `Aggregate`, and `Reports` public methods has been replaced with
 explicit, keyword-only parameters: `sort_by`, `display_by`,
 `descending`, `missing`, `remaining`, `include_numeric_single_bin`.
-Affected methods: `Plots.contributions`,
-`Plots.plot_contributions_for_overall`,
+Affected methods: `Plots.plot_contributions_for_overall`,
 `Plots.plot_contributions_by_context`,
 `Aggregate.get_predictor_contributions`,
 `Aggregate.get_predictor_value_contributions`, and `Reports.generate`.
@@ -219,10 +220,10 @@ Unknown kwargs now raise `TypeError`. New `SortBy` / `DisplayBy`
 
 ```python
 # Before (v4.x):
-plots.contributions(**{"sort_by": "value", "typo_arg": True})  # silently dropped
+plots.plot_contributions_for_overall(**{"sort_by": "value", "typo_arg": True})  # silently dropped
 
 # After (v5):
-plots.contributions(sort_by="value")  # unknown kwargs raise TypeError
+plots.plot_contributions_for_overall(sort_by="value")  # unknown kwargs raise TypeError
 ```
 
 ### `DecisionAnalyzer.__init__` and `from_*` classmethods

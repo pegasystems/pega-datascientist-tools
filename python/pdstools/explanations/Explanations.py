@@ -19,9 +19,10 @@ class Explanations:
     The class is a thin orchestrator over three sub-namespaces (``aggregate``,
     ``plot``, ``report``) that operate on pre-aggregated parquet files.
 
-    The constructor is **pure configuration** — it takes no filesystem paths
-    and performs no I/O. Use the ``from_aggregates`` classmethod to point at
-    pre-aggregated data (typically ``.tmp/aggregated_data/``).
+    The constructor is **pure configuration** — it accepts optional filesystem
+    path settings (``root_dir`` / ``data_folder``) but performs no I/O.
+    Use the ``from_aggregates`` classmethod to point at pre-aggregated data
+    (typically ``.tmp/aggregated_data/``) with validation.
     After initialization, ``aggregate``, ``plot`` and ``report`` can be used
     freely.
 

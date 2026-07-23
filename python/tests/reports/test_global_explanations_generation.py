@@ -248,3 +248,23 @@ class TestReadParams:
         assert generator.display_by == "contribution"
         assert generator.display_by_text == "average contribution"
         assert generator.data_folder.endswith("aggregated_data")
+
+    def test_params_preserve_nested_relative_data_folder(self, temp_report_dir, monkeypatch):
+        """Nested data_folder values resolve relative to root without collapsing."""
+        monkeypatch.chdir(temp_report_dir)
+        params_path = Path(temp_report_dir) / "scripts" / "params.yml"
+        nested_data_dir = Path(temp_report_dir).parent / "nested" / "aggregated_data"
+        nested_data_dir.mkdir(parents=True, exist_ok=True)
+        (nested_data_dir / "unique_contexts.json").write_text("{}", encoding="utf-8")
+
+        params = {
+            "top_n": 10,
+            "top_k": 5,
+            "data_folder": "nested/aggregated_data",
+        }
+        with open(params_path, "w", encoding="utf-8") as f:
+            yaml.safe_dump(params, f)
+
+        generator = ReportGenerator()
+
+        assert os.path.realpath(generator.data_folder) == os.path.realpath(str(nested_data_dir))

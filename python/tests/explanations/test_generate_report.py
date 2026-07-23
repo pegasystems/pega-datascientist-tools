@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from pdstools.reports.GlobalExplanations.scripts.generate_report import ReportGenerator
 
 TEMPLATES_DIR = (
@@ -108,3 +110,15 @@ def test_embedded_context_templates_use_display(tmp_path, monkeypatch):
     assert 'data_folder="{DATA_FOLDER}"' in overview_template
     assert "overall_plot.show()" not in overview_template
     assert "display(overall_plot)" in overview_template
+
+
+def test_get_unique_contexts_raises_when_missing(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    data_dir = tmp_path / "aggregated_data"
+    data_dir.mkdir()
+
+    generator = ReportGenerator()
+    generator.data_folder = str(data_dir)
+
+    with pytest.raises(FileNotFoundError, match="Unique contexts file not found"):
+        generator._get_unique_contexts()

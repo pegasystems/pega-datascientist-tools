@@ -42,7 +42,7 @@ class Reports(LazyNamespace):
         self.report_folderpath = Path(self.explanations.root_dir) / self.report_foldername
         self.report_output_dir = self.report_folderpath / "_site"
 
-        self.aggregate_folder = self.explanations.aggregate.data_folderpath
+        self.aggregate_folder = self.explanations.data_folder
         # Safeguard: aggregate_folder is guaranteed to be Path from Aggregate.data_folderpath
         self.params_file = self.report_folderpath / "scripts" / "params.yml"
 
@@ -158,7 +158,7 @@ class Reports(LazyNamespace):
         params["sort_by_text"] = sort_by.text
         params["display_by"] = display_by.value
         params["display_by_text"] = display_by.text
-        params["data_folder"] = self.aggregate_folder.name
+        params["data_folder"] = str(self.aggregate_folder)
 
         logger.debug("Writing report parameters to %s", self.params_file)
         with open(self.params_file, "w", encoding="utf-8") as file:
