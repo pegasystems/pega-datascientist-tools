@@ -246,7 +246,6 @@ def test_health_check_query_consolidates_predictors_to_filter(tmp_path, monkeypa
         datamart.model_data.filter(query).select("ModelID").unique().collect(engine="streaming")["ModelID"].to_list()
     )
 
-    assert captured["selected_model_ids"] is not None
     assert sorted(captured["selected_model_ids"]) == sorted(expected_model_ids)
     assert f"Data exported to {output_path}" in caplog.text
 

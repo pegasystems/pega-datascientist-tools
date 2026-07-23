@@ -47,7 +47,10 @@ def test_channel_filter_selectbox_updates_session_state(
     assert not at.exception, f"Page raised: {at.exception}"
 
     selectbox = _find_selectbox(at, "_channel_direction_widget")
-    assert selectbox is not None, "Expected channel/direction selectbox to be rendered"
+    assert [widget.key for widget in at.selectbox if widget.key == "_channel_direction_widget"] == [
+        "_channel_direction_widget",
+    ]
+    assert selectbox.options == ["Any", "Mobile/Inbound", "Web/Inbound", "Web/Outbound"]
 
     # On initial render the selectbox defaults to "Any" but doesn't
     # write the convenience keys until the user changes it. Treat
@@ -58,10 +61,7 @@ def test_channel_filter_selectbox_updates_session_state(
     assert initial_expr is None
     assert selectbox.value == "Any"
 
-    options = selectbox.options
-    assert "Any" in options, f"Expected 'Any' in selectbox options, got {options}"
-    pickable = next((o for o in options if o != "Any"), None)
-    assert pickable is not None, f"Test fixture must expose at least one channel option, got {options}"
+    pickable = "Mobile/Inbound"
 
     selectbox.set_value(pickable).run()
     assert not at.exception, f"Post-selection run raised: {at.exception}"

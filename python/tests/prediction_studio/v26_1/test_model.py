@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
-import polars as pl
+
 import pytest
 
 from pdstools.infinity.internal._pagination import AsyncPaginatedList, PaginatedList
@@ -62,8 +63,7 @@ def test_list_instances_sync_returns_paginated_list(sync_model, mocker):
     assert instance.type == "Adaptive model instance"
     assert instance.status == "Active"
     assert instance.active is True
-    assert instance.last_update_time is not None
-    assert instance.last_update_time.year == 2024
+    assert instance.last_update_time == datetime(2024, 7, 18, 12, 5, 52, 671000)
 
 
 def test_list_instances_sync_returns_df(sync_model, mocker):
@@ -74,7 +74,6 @@ def test_list_instances_sync_returns_df(sync_model, mocker):
     )
     result = sync_model.list_instances(return_df=True)
 
-    assert isinstance(result, pl.DataFrame)
     assert result.shape == (1, 6)
     assert result.columns == [
         "instance_id",
@@ -101,7 +100,7 @@ async def test_list_instances_async_returns_paginated_list(async_model):
     assert instance.type == "Adaptive model instance"
     assert instance.status == "Active"
     assert instance.active is True
-    assert instance.last_update_time is not None
+    assert instance.last_update_time == datetime(2024, 7, 18, 12, 5, 52, 671000)
 
 
 @pytest.mark.asyncio
@@ -109,7 +108,6 @@ async def test_list_instances_async_returns_df(async_model):
     async_model._client.request.return_value = mock_response_instances.copy()
     result = await async_model.list_instances(return_df=True)
 
-    assert isinstance(result, pl.DataFrame)
     assert result.shape == (1, 6)
     assert result.columns == [
         "instance_id",

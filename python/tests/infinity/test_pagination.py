@@ -5,7 +5,6 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, call
 
-import polars as pl
 import pytest
 from pdstools.infinity.internal._pagination import AsyncPaginatedList, PaginatedList
 from pdstools.infinity.internal._resource import AsyncAPIResource, SyncAPIResource
@@ -290,10 +289,10 @@ class TestPaginatedList:
         pl_ = PaginatedList(_Item, client, "get", "/items", _root="items")
         sliced = pl_[0:3]
         df = sliced.as_df()
-        assert isinstance(df, pl.DataFrame)
-        assert len(df) == 3
-        assert "id" in df.columns
-        assert "name" in df.columns
+        assert df.to_dict(as_series=False) == {
+            "id": ["A", "B", "C"],
+            "name": ["Alice", "Bob", "Charlie"],
+        }
 
     def test_slice_negative_raises(self):
         client = _single_page_client()
@@ -526,9 +525,10 @@ class TestAsyncPaginatedList:
         )
         apl = AsyncPaginatedList(_AsyncItem, client, "get", "/items", _root="items")
         df = await apl.as_df()
-        assert isinstance(df, pl.DataFrame)
-        assert len(df) == 2
-        assert "id" in df.columns
+        assert df.to_dict(as_series=False) == {
+            "id": ["A", "B"],
+            "name": ["Alice", "Bob"],
+        }
 
     @pytest.mark.asyncio
     async def test_async_empty_page(self):

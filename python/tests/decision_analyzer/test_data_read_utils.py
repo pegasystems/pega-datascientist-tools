@@ -50,11 +50,11 @@ class TestReadGzippedData:
     def test_valid_gzipped_ndjson(self):
         gz_bytes = _make_ndjson_gz(SAMPLE_RECORDS)
         result = read_gzipped_data(BytesIO(gz_bytes))
-        assert result is not None
         df = result.collect()
-        assert df.shape == (3, 2)
-        assert df["col_a"].to_list() == [1, 2, 3]
-        assert df["col_b"].to_list() == ["x", "y", "z"]
+        assert df.to_dict(as_series=False) == {
+            "col_a": [1, 2, 3],
+            "col_b": ["x", "y", "z"],
+        }
 
     def test_invalid_data_returns_none(self):
         bad_data = BytesIO(b"this is not gzipped data at all")
@@ -82,10 +82,11 @@ class TestReadData:
         df.write_parquet(path)
 
         result = read_data(str(path))
-        assert isinstance(result, pl.LazyFrame)
         collected = result.collect()
-        assert collected.shape == (3, 2)
-        assert collected["a"].to_list() == [1, 2, 3]
+        assert collected.to_dict(as_series=False) == {
+            "a": [1, 2, 3],
+            "b": ["x", "y", "z"],
+        }
 
     def test_read_csv_file(self, tmp_path):
         df = pl.DataFrame({"x": [10, 20], "y": ["foo", "bar"]})
@@ -93,10 +94,11 @@ class TestReadData:
         df.write_csv(path)
 
         result = read_data(str(path))
-        assert isinstance(result, pl.LazyFrame)
         collected = result.collect()
-        assert collected.shape == (2, 2)
-        assert collected["x"].to_list() == [10, 20]
+        assert collected.to_dict(as_series=False) == {
+            "x": [10, 20],
+            "y": ["foo", "bar"],
+        }
 
     def test_read_partitioned_directory(self, tmp_path):
         """read_data should handle a directory of parquet files."""
@@ -108,9 +110,8 @@ class TestReadData:
             df.write_parquet(part_dir / "data.parquet")
 
         result = read_data(str(tmp_path))
-        assert isinstance(result, pl.LazyFrame)
         collected = result.collect()
-        assert collected.shape[0] == 6  # 3 rows x 2 partitions
+        assert collected.sort("value").to_dict(as_series=False) == {"value": [0, 1, 2, 10, 11, 12]}
 
     def test_unsupported_extension_raises_valueerror(self, tmp_path):
         path = tmp_path / "data.unknownformat"
@@ -139,21 +140,21 @@ class TestReadData:
             zf.write(parquet_path, "inner.parquet")
 
         result = read_data(str(zip_path))
-        assert isinstance(result, pl.LazyFrame)
         collected = result.collect()
-        assert collected.shape == (3, 2)
-        assert collected["a"].to_list() == [1, 2, 3]
+        assert collected.to_dict(as_series=False) == {
+            "a": [1, 2, 3],
+            "b": ["x", "y", "z"],
+        }
 
     def test_read_flat_directory_of_parquets(self, tmp_path):
         """read_data should handle a flat directory with multiple parquet files."""
         for i in range(3):
             df = pl.DataFrame({"num": [i]})
             df.write_parquet(tmp_path / f"file_{i}.parquet")
-
         result = read_data(str(tmp_path))
-        assert isinstance(result, pl.LazyFrame)
+        result = read_data(str(tmp_path))
         collected = result.collect()
-        assert collected.shape[0] == 3
+        assert collected.sort("num").to_dict(as_series=False) == {"num": [0, 1, 2]}
 
 
 # ---------------------------------------------------------------------------
@@ -195,8 +196,8 @@ class TestValidateColumns:
         df = pl.DataFrame({"unrelated_col": [1]}).lazy()
         valid, msg = validate_columns(df, DecisionAnalyzer)
         assert valid is False
-        assert msg is not None
-        assert "missing" in msg.lower()
+        expected_columns = [column for column, config in DecisionAnalyzer.items() if config["default"]]
+        assert msg == f"The following default columns are missing: {', '.join(expected_columns)}"
 
     def test_valid_columns_explainability_extract(self):
         """Validation should pass for ExplainabilityExtract when all defaults present."""
@@ -241,10 +242,7 @@ class TestValidateColumns:
         df = pl.DataFrame(subset_cols).lazy()
         valid, msg = validate_columns(df, DecisionAnalyzer)
         assert valid is False
-        assert msg is not None
-        # The missing columns should be mentioned
-        for raw_col in default_cols[2:]:
-            assert raw_col in msg
+        assert msg == f"The following default columns are missing: {', '.join(default_cols[2:])}"
 
     def test_display_name_columns_accepted(self):
         """validate_columns should accept display names as well as raw names."""
@@ -298,9 +296,10 @@ class TestReadNestedZipFiles:
         result = read_nested_zip_files(outer_buf)
         # Function returns LazyFrame; collect for assertions
         result = result.collect()
-        assert isinstance(result, pl.DataFrame)
-        assert result.shape == (3, 2)
-        assert sorted(result["a"].to_list()) == [1, 2, 3]
+        assert result.sort("a").to_dict(as_series=False) == {
+            "a": [1, 2, 3],
+            "b": ["x", "y", "z"],
+        }
 
     def test_nested_zip_skips_macosx_files(self):
         """Files prefixed with __MACOSX/._ should be skipped."""
@@ -315,9 +314,7 @@ class TestReadNestedZipFiles:
 
         result = read_nested_zip_files(outer_buf)
         result = result.collect()
-        assert isinstance(result, pl.DataFrame)
-        assert result.shape == (1, 2)
-        assert result["a"].to_list() == [1]
+        assert result.to_dict(as_series=False) == {"a": [1], "b": ["x"]}
 
     def test_nested_zip_skips_non_zip_files(self):
         """Non-.zip entries in the outer zip should be ignored."""

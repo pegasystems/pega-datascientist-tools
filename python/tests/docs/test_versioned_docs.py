@@ -8,8 +8,8 @@ from pathlib import Path
 
 MODULE_PATH = Path(__file__).resolve().parents[2] / "docs" / "versioned_docs.py"
 MODULE_SPEC = importlib.util.spec_from_file_location("versioned_docs", MODULE_PATH)
-assert MODULE_SPEC is not None
-assert MODULE_SPEC.loader is not None
+if MODULE_SPEC is None or MODULE_SPEC.loader is None:
+    raise RuntimeError(f"Unable to load docs helper module from {MODULE_PATH}")
 versioned_docs = importlib.util.module_from_spec(MODULE_SPEC)
 MODULE_SPEC.loader.exec_module(versioned_docs)
 

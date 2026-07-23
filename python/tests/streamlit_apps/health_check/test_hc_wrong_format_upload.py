@@ -16,11 +16,13 @@ def test_hc_garbage_zip_upload_handled_gracefully(hc_app_dir: Path) -> None:
     assert not at.exception, f"Initial HC run raised: {at.exception}"
 
     uploaders = {u.label: u for u in at.get("file_uploader")}
-    model_uploader = next((u for lbl, u in uploaders.items() if "Model Snapshot" in lbl), None)
-    predictor_uploader = next((u for lbl, u in uploaders.items() if "Predictor" in lbl), None)
-    assert model_uploader is not None and predictor_uploader is not None, (
-        f"Expected Model + Predictor uploaders, got: {list(uploaders)}"
-    )
+    assert list(uploaders) == [
+        "Upload Model Snapshot",
+        "Upload Predictor Binning snapshot (optional)",
+        "Upload Prediction Table (optional)",
+    ]
+    model_uploader = uploaders["Upload Model Snapshot"]
+    predictor_uploader = uploaders["Upload Predictor Binning snapshot (optional)"]
 
     # ZIPs whose bytes aren't a real archive — the parser catches this
     # and ``cached_datamart`` returns None.

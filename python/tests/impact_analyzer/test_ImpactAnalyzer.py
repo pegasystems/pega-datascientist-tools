@@ -22,12 +22,18 @@ def test_from_pdc():
 
     # Verify the instance was created correctly
     assert isinstance(analyzer, ImpactAnalyzer)
-    assert isinstance(analyzer.ia_data, pl.LazyFrame)
-
-    # Verify the data was loaded correctly
     collected_data = analyzer.ia_data.collect()
-    assert collected_data.height > 0
-    assert "ControlGroup" in collected_data.columns
+    assert collected_data.shape == (24, 8)
+    assert collected_data.columns == [
+        "SnapshotTime",
+        "Channel",
+        "ControlGroup",
+        "Impressions",
+        "Accepts",
+        "ValuePerImpression",
+        "Pega_ValueLift",
+        "Pega_ValueLiftInterval",
+    ]
 
     # EngagementPolicy test is inactive, all others should be there
     assert (
@@ -135,12 +141,18 @@ def test_from_pdc_with_custom_reader():
 
     # Verify the instance was created correctly
     assert isinstance(analyzer, ImpactAnalyzer)
-    assert isinstance(analyzer.ia_data, pl.LazyFrame)
-
-    # Verify basic data integrity (should be same as default reader)
     collected_data = analyzer.ia_data.collect()
-    assert collected_data.height > 0
-    assert "ControlGroup" in collected_data.columns
+    assert collected_data.shape == (24, 8)
+    assert collected_data.columns == [
+        "SnapshotTime",
+        "Channel",
+        "ControlGroup",
+        "Impressions",
+        "Accepts",
+        "ValuePerImpression",
+        "Pega_ValueLift",
+        "Pega_ValueLiftInterval",
+    ]
 
     # Verify specific data point to ensure reader worked correctly
     assert (
@@ -185,14 +197,61 @@ def test_summary_by_channel(simple_ia):
 def test_plots(simple_ia):
     from plotly.graph_objs import Figure
 
-    assert isinstance(simple_ia.plot.trend(return_df=True), pl.LazyFrame)
-    assert isinstance(simple_ia.plot.overview(return_df=True), pl.LazyFrame)
-    assert isinstance(simple_ia.plot.control_groups_trend(return_df=True), pl.LazyFrame)
+    trend_df = simple_ia.plot.trend(return_df=True).collect()
+    overview_df = simple_ia.plot.overview(return_df=True).collect()
+    control_groups_df = simple_ia.plot.control_groups_trend(return_df=True).collect()
+    heatmap_df = simple_ia.plot.control_fraction_heatmap(return_df=True).collect()
+
+    assert trend_df.shape == (4, 15)
+    assert trend_df.columns == [
+        "Experiment",
+        "Test",
+        "Control",
+        "SnapshotTime",
+        "Impressions_Test",
+        "Accepts_Test",
+        "CTR_Test",
+        "ValuePerImpression_Test",
+        "Impressions_Control",
+        "Accepts_Control",
+        "CTR_Control",
+        "ValuePerImpression_Control",
+        "Control_Fraction",
+        "CTR_Lift",
+        "Value_Lift",
+    ]
+    assert overview_df.shape == (4, 14)
+    assert overview_df.columns == [
+        "Experiment",
+        "Test",
+        "Control",
+        "Impressions_Test",
+        "Accepts_Test",
+        "CTR_Test",
+        "ValuePerImpression_Test",
+        "Impressions_Control",
+        "Accepts_Control",
+        "CTR_Control",
+        "ValuePerImpression_Control",
+        "Control_Fraction",
+        "CTR_Lift",
+        "Value_Lift",
+    ]
+    assert control_groups_df.shape == (6, 6)
+    assert control_groups_df.columns == [
+        "SnapshotTime",
+        "ControlGroup",
+        "Impressions",
+        "Accepts",
+        "CTR",
+        "ValuePerImpression",
+    ]
+    assert heatmap_df.shape == (16, 3)
+    assert heatmap_df.columns == ["Channel", "Experiment", "Control_Fraction"]
 
     assert isinstance(simple_ia.plot.trend(), Figure)
     assert isinstance(simple_ia.plot.overview(), Figure)
     assert isinstance(simple_ia.plot.control_groups_trend(), Figure)
-    assert isinstance(simple_ia.plot.control_fraction_heatmap(return_df=True), pl.LazyFrame)
     assert isinstance(simple_ia.plot.control_fraction_heatmap(), Figure)
 
 
@@ -238,8 +297,8 @@ def test_plot_with_query(simple_ia):
         query=pl.col("Channel") == "Email",
     )
 
-    assert overview_fig is not None
-    assert trend_fig is not None
+    assert len(overview_fig.data) == 1
+    assert len(trend_fig.data) == 4
 
 
 def test_plot_experiment_color_map():
@@ -547,7 +606,7 @@ def test_from_vbd():
         assert isinstance(ia, ImpactAnalyzer)
 
         collected = ia.ia_data.collect()
-        assert collected.height > 0
+        assert collected.shape == (5, 15)
         assert "NBA" in collected["ControlGroup"].to_list()
 
         control_groups = ia.summarize_control_groups().collect()
@@ -569,8 +628,25 @@ def test_from_vbd():
         assert isinstance(ia.plot.overview(), Figure)
         assert isinstance(ia.plot.trend(facet="Channel", every="1d"), Figure)
 
-        df = ImpactAnalyzer.from_vbd(f.name, return_df=True)
-        assert isinstance(df, pl.LazyFrame)
+        df = ImpactAnalyzer.from_vbd(f.name, return_df=True).collect()
+        assert df.shape == (5, 15)
+        assert df.columns == [
+            "SnapshotTime",
+            "ControlGroup",
+            "Application",
+            "ApplicationVersion",
+            "Channel",
+            "Issue",
+            "Group",
+            "Name",
+            "Treatment",
+            "Impressions",
+            "Accepts",
+            "ValuePerImpression",
+            "AggregateCount",
+            "Value",
+            "Outcome",
+        ]
 
 
 @pytest.fixture
@@ -623,9 +699,10 @@ def test_from_vbd_sets_outcome_labels_used(minimal_vbd_parquet):
     """from_vbd always sets outcome_labels_used — no implicit defaults."""
     ia = ImpactAnalyzer.from_vbd(minimal_vbd_parquet)
 
-    assert hasattr(ia, "outcome_labels_used")
-    assert ia.outcome_labels_used is not None
-    assert isinstance(ia.outcome_labels_used, dict)
+    assert ia.outcome_labels_used == {
+        "Call Center/Inbound": {"Accepts": ["Accepted"], "Impressions": ["Impression"]},
+        "Web/Inbound": {"Accepts": ["Clicked"], "Impressions": ["Impression"]},
+    }
 
 
 def test_from_vbd_resolves_channel_aware_defaults(minimal_vbd_parquet):
@@ -671,7 +748,7 @@ def excel_ia():
 def test_from_excel_returns_instance(excel_ia):
     """from_excel returns an ImpactAnalyzer with a LazyFrame."""
     assert isinstance(excel_ia, ImpactAnalyzer)
-    assert isinstance(excel_ia.ia_data, pl.LazyFrame)
+    assert excel_ia.ia_data.collect().shape == (56, 10)
 
 
 def test_from_excel_control_groups(excel_ia):
@@ -809,11 +886,20 @@ def test_from_excel_warns_on_unknown_experiment(caplog):
 
 def test_from_excel_return_df():
     """return_df=True yields a LazyFrame instead of an ImpactAnalyzer."""
-    df = ImpactAnalyzer.from_excel(EXCEL_FIXTURE, return_df=True)
-    assert isinstance(df, pl.LazyFrame)
-    collected = df.collect()
-    for col in ("SnapshotTime", "ControlGroup", "Impressions", "Accepts", "Channel", "ValuePerImpression"):
-        assert col in collected.columns
+    collected = ImpactAnalyzer.from_excel(EXCEL_FIXTURE, return_df=True).collect()
+    assert collected.shape == (56, 10)
+    assert collected.columns == [
+        "SnapshotTime",
+        "Channel",
+        "Issue",
+        "Group",
+        "Name",
+        "Treatment",
+        "ControlGroup",
+        "Impressions",
+        "Accepts",
+        "ValuePerImpression",
+    ]
 
 
 def test_from_excel_missing_required_column_raises(tmp_path):
@@ -870,8 +956,6 @@ def test_validate_ia_data_accepts_valid_frame():
     """_validate_ia_data returns a frame with the schema dtypes applied when all required cols are present."""
     lf = _make_minimal_ia_lf()
     result = ImpactAnalyzer._validate_ia_data(lf)
-    assert isinstance(result, pl.LazyFrame)
-    # Round-trip preserves the row count and column set exactly.
     df = result.collect()
     assert df.height == 1
     assert set(df.columns) == {

@@ -366,9 +366,7 @@ def test_get_last_data_for_report(sample: ADMDatamart):
     """Test get_last_data_for_report formatting."""
     report_data = sample.get_last_data_for_report()
 
-    # Should return a collected DataFrame
-    assert isinstance(report_data, pl.DataFrame)
-    assert report_data.height > 0
+    assert report_data.shape == (68, 31)
 
     # Check that nulls are filled with "NA" for string columns
     string_cols = [col for col in report_data.columns if report_data[col].dtype == pl.Utf8]
@@ -379,12 +377,10 @@ def test_get_last_data_for_report(sample: ADMDatamart):
 
     # Check SuccessRate and Performance are filled with 0 for null/nan
     if "SuccessRate" in report_data.columns:
-        success_rates = report_data["SuccessRate"].to_list()
-        assert all(v is not None or v == 0 for v in success_rates)
+        assert report_data["SuccessRate"].null_count() == 0
 
     if "Performance" in report_data.columns:
-        performances = report_data["Performance"].to_list()
-        assert all(v is not None or v == 0 for v in performances)
+        assert report_data["Performance"].null_count() == 0
 
     # Check Channel/Direction concatenated column exists
     assert "Channel/Direction" in report_data.columns
@@ -477,9 +473,8 @@ def test_from_s3_downloads_and_delegates(monkeypatch, tmp_path):
             boto3_client=client,
         )
 
-    assert dm.model_data is not None
-    assert dm.predictor_data is not None
-    assert dm.model_data.collect().height > 0
+    assert dm.model_data.collect().height == 1047
+    assert dm.predictor_data.collect().height == 70735
 
 
 def test_from_s3_model_only(monkeypatch):
@@ -501,7 +496,7 @@ def test_from_s3_model_only(monkeypatch):
             boto3_client=client,
         )
 
-    assert dm.model_data is not None
+    assert dm.model_data.collect().height == 1047
     assert dm.predictor_data is None
 
 
@@ -584,7 +579,7 @@ def test_normalize_performance_scale_is_lazy():
     with patch.object(pl.LazyFrame, "collect", side_effect=RuntimeError("should stay lazy")):
         out = ADMDatamart._normalize_performance_scale(df)
 
-    assert isinstance(out, pl.LazyFrame)
+    assert out.collect()["Performance"].to_list() == pytest.approx([0.55, 0.7, 1.0])
 
 
 # ---- _validate_model_data -------------------------------------------------
@@ -836,8 +831,11 @@ def test_require_first_action_dates_raises_when_missing():
 
 def test_require_model_data_returns_lazyframe_when_present():
     dm = ADMDatamart(model_df=_minimal_model_df())
-    assert isinstance(dm._require_model_data(), pl.LazyFrame)
-    assert isinstance(dm._require_first_action_dates(), pl.LazyFrame)
+    assert dm._require_model_data().collect().shape == (2, 16)
+    assert dm._require_first_action_dates().collect().to_dict(as_series=False) == {
+        "Name": ["Action A"],
+        "ActionFirstSnapshotTime": [datetime.datetime(2024, 1, 1, 0, 0)],
+    }
 
 
 def _agb_mixed_modeldata():

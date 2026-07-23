@@ -672,8 +672,8 @@ class TestPrepareAndSave:
         result, path = prepare_and_save(lf, fraction=0.5, output_dir=str(tmp_path))
         # 10 unique × fraction=0.5 deterministic-hash-keep => 5 unique remain;
         # filename embeds that exact count.
-        assert path is not None and path.exists()
-        assert path.name == "decision_analyzer_sample_5.parquet"
+        assert path == tmp_path / "decision_analyzer_sample_5.parquet"
+        assert path.exists()
         # 5 unique IDs × 2 rows each => 10 rows in the written file.
         collected = result.collect()
         assert collected.height == 10
@@ -698,7 +698,7 @@ class TestPrepareAndSave:
         result, path = prepare_and_save(lf, fraction=0.5, output_dir=str(tmp_path), source_path=str(source_file))
 
         # 10 unique × fraction=0.5 => 5 unique remain
-        assert path is not None and path.name == "decision_analyzer_sample_5.parquet"
+        assert path == tmp_path / "decision_analyzer_sample_5.parquet"
 
         # Check metadata was written
         metadata = pl.read_parquet_metadata(str(path))
@@ -731,7 +731,7 @@ class TestPrepareAndSave:
         )
 
         # 10 unique × fraction=0.2 deterministic-hash-keep => 2 unique remain
-        assert path is not None and path.name == "decision_analyzer_sample_2.parquet"
+        assert path == tmp_path / "decision_analyzer_sample_2.parquet"
         metadata = pl.read_parquet_metadata(str(path))
         # Should inherit original source, not intermediate file
         assert metadata["pdstools:source_file"] == original_source
@@ -760,7 +760,7 @@ class TestPrepareAndSave:
         # Call without source_path (backward compatibility)
         result, path = prepare_and_save(lf, fraction=0.5, output_dir=str(tmp_path))
 
-        assert path is not None and path.name == "decision_analyzer_sample_5.parquet"
+        assert path == tmp_path / "decision_analyzer_sample_5.parquet"
         # Should still write metadata, but with "unknown" source
         metadata = pl.read_parquet_metadata(str(path))
         assert metadata["pdstools:source_file"] == "unknown"
@@ -777,7 +777,7 @@ class TestPrepareAndSave:
             lf, fraction=0.5, output_dir=str(tmp_path), source_path="/nonexistent/file.parquet"
         )
 
-        assert path is not None and path.name == "decision_analyzer_sample_5.parquet"
+        assert path == tmp_path / "decision_analyzer_sample_5.parquet"
         # Should write metadata with the provided path (even if it doesn't exist)
         metadata = pl.read_parquet_metadata(str(path))
         assert metadata["pdstools:source_file"] == "/nonexistent/file.parquet"
@@ -796,7 +796,7 @@ class TestPrepareAndSave:
 
         # 1000 unique × n=100 with 1% estimator (~10 unique observed) gives a
         # threshold that lands on roughly 116 IDs in the deterministic hash space.
-        assert path is not None and path.name == "decision_analyzer_sample_116.parquet"
+        assert path == tmp_path / "decision_analyzer_sample_116.parquet"
 
         # Check metadata
         metadata = pl.read_parquet_metadata(str(path))
@@ -841,8 +841,8 @@ class TestPrepareAndSaveCachingMode:
         )
 
         # Mock data has 10 unique interactions; cache mode embeds that count.
-        assert path is not None and path.exists()
-        assert path.name == "decision_analyzer_cache_10.parquet"
+        assert path == tmp_path / "decision_analyzer_cache_10.parquet"
+        assert path.exists()
 
     def test_cache_metadata_has_100_percent(self, mock_decision_data, tmp_path):
         from pdstools.decision_analyzer.utils import prepare_and_save
@@ -854,7 +854,7 @@ class TestPrepareAndSaveCachingMode:
             output_dir=str(tmp_path),
         )
 
-        assert path is not None and path.name == "decision_analyzer_cache_10.parquet"
+        assert path == tmp_path / "decision_analyzer_cache_10.parquet"
         metadata = pl.read_parquet_metadata(str(path))
         assert metadata["pdstools:source_file"] == str(source_file)
         assert float(metadata["pdstools:sample_percentage"]) == 100.0
@@ -882,7 +882,7 @@ class TestPrepareAndSaveCachingMode:
         )
 
         # Sampling mode uses "sample" prefix and embeds the post-sample count.
-        assert path is not None and path.name == "decision_analyzer_sample_5.parquet"
+        assert path == tmp_path / "decision_analyzer_sample_5.parquet"
 
     def test_cache_includes_interaction_count_in_filename(self, mock_decision_data, tmp_path):
         from pdstools.decision_analyzer.utils import prepare_and_save
@@ -894,7 +894,7 @@ class TestPrepareAndSaveCachingMode:
         )
 
         # Mock data has exactly 10 unique interactions.
-        assert path is not None and path.name == "decision_analyzer_cache_10.parquet"
+        assert path == tmp_path / "decision_analyzer_cache_10.parquet"
 
 
 # ---------------------------------------------------------------------------

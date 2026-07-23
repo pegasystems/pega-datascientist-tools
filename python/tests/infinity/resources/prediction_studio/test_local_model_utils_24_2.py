@@ -62,12 +62,13 @@ def get_classification_onnx_model():
 
 def test_onnx_create_from_model_proto():
     onnx_model = get_classification_onnx_model()
-    assert ONNXModel.from_onnx_proto(model=onnx_model[0]._model) is not None
+    recreated = ONNXModel.from_onnx_proto(model=onnx_model[0]._model)
+    assert recreated._model.SerializeToString() == onnx_model[0]._model.SerializeToString()
 
 
 def test_validate_and_run_classification_onnx_model():
     onnx_model, X_df = get_classification_onnx_model()
-    assert onnx_model.validate() is not None
+    assert onnx_model.validate() is True
 
     df = X_df.with_columns([pl.col(col).cast(pl.Float32) for col in X_df.columns])
     test_data = {col: df[col].to_numpy().reshape(-1, 1) for col in df.columns}

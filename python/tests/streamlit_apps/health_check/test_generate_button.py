@@ -67,11 +67,10 @@ def test_generate_button_shows_download_button(
     )
 
     # Locate the generate button.
-    gen_button = next(
-        (b for b in at.button if b.label == "Generate Health Check"),
-        None,
-    )
-    assert gen_button is not None, "Expected a 'Generate Health Check' button on the page."
+    assert [button.label for button in at.button if button.label == "Generate Health Check"] == [
+        "Generate Health Check",
+    ]
+    gen_button = next(button for button in at.button if button.label == "Generate Health Check")
 
     gen_button.click().run()
     assert not at.exception, f"Page raised after button click: {at.exception}"
@@ -206,14 +205,18 @@ def test_generate_button_increments_run_id_on_successive_clicks(
     at.run()
     assert not at.exception
 
-    first_click_button = next((b for b in at.button if b.label == "Generate Health Check"), None)
-    assert first_click_button is not None
+    assert [button.label for button in at.button if button.label == "Generate Health Check"] == [
+        "Generate Health Check",
+    ]
+    first_click_button = next(button for button in at.button if button.label == "Generate Health Check")
     first_click_button.click().run()
     assert not at.exception
     assert at.session_state["runID"] == 1
 
-    second_click_button = next((b for b in at.button if b.label == "Generate Health Check"), None)
-    assert second_click_button is not None
+    assert [button.label for button in at.button if button.label == "Generate Health Check"] == [
+        "Generate Health Check",
+    ]
+    second_click_button = next(button for button in at.button if button.label == "Generate Health Check")
     second_click_button.click().run()
     assert not at.exception
     assert at.session_state["runID"] == 2, f"Second click should set runID to 2, got {at.session_state['runID']}"

@@ -606,7 +606,6 @@ def test_import_health_check_data_applies_predictor_categorization():
         predictor_categorization={"External Model": ["Score"]},
     )
 
-    assert result.predictor_data is not None
     assert result.predictor_data.select("PredictorName", "PredictorCategory").collect().sort("PredictorName").to_dict(
         as_series=False
     ) == {
@@ -633,7 +632,6 @@ def test_import_health_check_data_applies_regex_predictor_categorization():
         predictor_categorization_uses_regex=True,
     )
 
-    assert result.predictor_data is not None
     assert result.predictor_data.select("PredictorName", "PredictorCategory").collect().sort("PredictorName").to_dict(
         as_series=False
     ) == {
@@ -685,7 +683,6 @@ def test_import_health_check_data_infers_sparse_prediction_export_schema():
         extract_pyname_keys=False,
     )
 
-    assert result.prediction is not None
     assert result.warnings == ()
     prediction_data = result.prediction.predictions.collect().sort("Positives")
     assert prediction_data["Performance"].to_list() == pytest.approx([0.71] * 3)

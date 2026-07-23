@@ -619,10 +619,6 @@ def test_from_processed_data():
     predictions_cache = pred.save_data(temp_path)
 
     cached_data = read_ds_export(predictions_cache)
-    # read_ds_export can legitimately return None when the file is missing;
-    # narrow the type here so the equality check below is well-defined.
-    assert isinstance(cached_data, pl.LazyFrame)
-
     loaded_pred = Prediction.from_processed_data(cached_data)
     assert loaded_pred.is_available
     assert loaded_pred.is_valid

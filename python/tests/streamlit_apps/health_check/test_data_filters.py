@@ -17,7 +17,6 @@ narrow values, verify the filter expression is stored.
 
 from __future__ import annotations
 
-import pytest
 from streamlit.testing.v1 import AppTest
 
 from typing import TYPE_CHECKING
@@ -47,9 +46,7 @@ def test_initial_filters_list_is_empty(hc_app_dir, seeded_admdatamart) -> None:
     )
 
     column_picker = _find_multiselect(at, "multiselect")
-    assert column_picker is not None, (
-        "Expected 'Filter dataframe on' multiselect with key='multiselect' to be rendered."
-    )
+    assert column_picker.options == seeded_admdatamart.model_data.collect_schema().names()
     assert column_picker.value == [], "Column picker should be empty on first visit."
 
 
@@ -62,23 +59,11 @@ def test_selecting_column_renders_sub_widget(hc_app_dir, seeded_admdatamart) -> 
     assert not at.exception, f"Page raised: {at.exception}"
 
     column_picker = _find_multiselect(at, "multiselect")
-    assert column_picker is not None
-
-    # Pick the first available column that is likely categorical (Utf8 columns
-    # appear in ADM model data: Channel, Direction, Configuration, etc.).
-    available_columns = column_picker.options
-    assert available_columns, "Column picker should list at least one column from the ADM data."
-
-    chosen = available_columns[0]
-    column_picker.set_value([chosen]).run()
+    assert "Channel" in column_picker.options
+    column_picker.set_value(["Channel"]).run()
     assert not at.exception, f"Post-selection run raised: {at.exception}"
 
-    # After selecting a column, either a per-column multiselect or a text/slider
-    # widget should be rendered for that column — the exact type depends on dtype.
-    sub_widget_count = len(at.multiselect) + len(at.slider) + len(at.text_input)
-    assert sub_widget_count >= 1, (
-        f"After selecting column {chosen!r}, expected at least one sub-filter widget but found none."
-    )
+    assert [widget.key for widget in at.multiselect if widget.key == "selected_Channel"] == ["selected_Channel"]
 
 
 def test_narrowing_categorical_column_adds_filter_expression(
@@ -86,8 +71,6 @@ def test_narrowing_categorical_column_adds_filter_expression(
     seeded_admdatamart,
 ) -> None:
     """Deselecting a value from a categorical column adds a polars Expr to filters."""
-    import polars as pl
-
     page = hc_app_dir / "pages" / "1_Data_Filters.py"
     at = AppTest.from_file(str(page), default_timeout=30)
     at.session_state["dm"] = seeded_admdatamart
@@ -95,45 +78,19 @@ def test_narrowing_categorical_column_adds_filter_expression(
     assert not at.exception
 
     column_picker = _find_multiselect(at, "multiselect")
-    assert column_picker is not None
-
-    # Find a categorical column that has at least 2 distinct values so we
-    # can deselect one and create a real filter expression.
-    schema = seeded_admdatamart.model_data.collect_schema()
-    categorical_col = next(
-        (
-            col
-            for col, dtype in schema.items()
-            if dtype in (pl.Utf8, pl.String, pl.Categorical)
-            and seeded_admdatamart.model_data.select(pl.col(col).n_unique()).collect().item() >= 2
-        ),
-        None,
-    )
-    if categorical_col is None:
-        pytest.skip("Test fixture has no categorical column with ≥2 distinct values.")
-
-    column_picker.set_value([categorical_col]).run()
+    assert "Channel" in column_picker.options
+    column_picker.set_value(["Channel"]).run()
     assert not at.exception
 
-    sub_ms = _find_multiselect(at, f"selected_{categorical_col}")
-    if sub_ms is None:
-        pytest.skip(
-            f"Column {categorical_col!r} did not render a multiselect sub-widget "
-            "(may have too many unique values or an unexpected dtype)."
-        )
+    sub_ms = _find_multiselect(at, "selected_Channel")
+    assert set(sub_ms.options) == {"Email", "SMS", "Web"}
 
-    all_values = sub_ms.options
-    if len(all_values) < 2:
-        pytest.skip(f"Column {categorical_col!r} multiselect has only one option; cannot test narrowing.")
-
-    # Deselect all but the first value — this should append a filter expression.
-    reduced = [all_values[0]]
+    reduced = ["Email"]
     sub_ms.set_value(reduced).run()
     assert not at.exception, f"Post-narrowing run raised: {at.exception}"
 
     filters = at.session_state["filters"]
-    assert len(filters) > 0, (
-        f"After deselecting values from {categorical_col!r}, "
-        f"session_state['filters'] should be non-empty, got {filters!r}."
+    filtered_channels = (
+        seeded_admdatamart.model_data.filter(*filters).select("Channel").unique().collect().to_series().to_list()
     )
-    assert isinstance(filters[0], pl.Expr), f"Expected a polars Expr in filters, got {type(filters[0]).__name__}"
+    assert filtered_channels == reduced

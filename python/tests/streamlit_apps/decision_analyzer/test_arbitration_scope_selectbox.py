@@ -15,7 +15,6 @@ confirm ``session_state["scope"]`` reflects the selection.
 
 from __future__ import annotations
 
-import pytest
 from streamlit.testing.v1 import AppTest
 
 from typing import TYPE_CHECKING
@@ -43,17 +42,15 @@ def test_scope_selectbox_updates_session_state(
     assert not at.exception, f"Page raised: {at.exception}"
 
     scope_sb = _find_selectbox(at, "scope")
-    assert scope_sb is not None, "Expected 'Granularity' selectbox with key='scope' to be rendered"
+    assert [widget.key for widget in at.selectbox if widget.key == "scope"] == ["scope"]
+    assert scope_sb.options == ["Issue", "Group", "Action"]
 
     initial_scope = at.session_state["scope"]
     assert initial_scope == scope_sb.value, (
         f"session_state['scope'] ({initial_scope!r}) should match the rendered selectbox value ({scope_sb.value!r})"
     )
 
-    options = scope_sb.options
-    pickable = next((o for o in options if o != initial_scope), None)
-    if pickable is None:
-        pytest.skip(f"Test fixture only exposes one scope option {options!r}; cannot exercise a value change.")
+    pickable = "Group"
 
     scope_sb.set_value(pickable).run()
     assert not at.exception, f"Post-selection run raised: {at.exception}"
@@ -75,12 +72,8 @@ def test_scope_selectbox_round_trip(
     assert not at.exception, f"Page raised: {at.exception}"
 
     scope_sb = _find_selectbox(at, "scope")
-    if scope_sb is None:
-        pytest.skip("Scope selectbox not rendered.")
-
     options = scope_sb.options
-    if len(options) < 2:
-        pytest.skip(f"Round-trip test requires at least two scope options, got {options!r}.")
+    assert options == ["Issue", "Group", "Action"]
 
     original = scope_sb.value
     other = next(o for o in options if o != original)

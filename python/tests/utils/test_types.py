@@ -17,9 +17,8 @@ def test_any_frame_type_alias():
     assert pl.DataFrame in ANY_FRAME.__args__
     assert pl.LazyFrame in ANY_FRAME.__args__
 
-    # Check that both instances are of the expected types
-    assert isinstance(df, pl.DataFrame)
-    assert isinstance(ldf, pl.LazyFrame)
+    assert df.to_dict(as_series=False) == {"A": [1, 2, 3]}
+    assert ldf.collect().to_dict(as_series=False) == {"A": [1, 2, 3]}
 
 
 def test_query_type_alias():

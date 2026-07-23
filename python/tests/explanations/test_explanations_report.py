@@ -62,7 +62,6 @@ def test_GenerateExplanationsReport(explanations: Explanations):
     assert output_dir.exists(), f"Report output directory not found: {output_dir}"
 
     html_files = list(output_dir.rglob("*.html"))
-    assert len(html_files) > 0, "No HTML files generated in report output"
 
     # The website should produce at least the getting-started and overview pages
     html_names = {f.stem for f in html_files}

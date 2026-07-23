@@ -72,8 +72,6 @@ class TestAggregateLoadData:
         aggregate._load_data()
 
         assert aggregate.initialized is True
-        assert aggregate.df_contextual is not None
-        assert aggregate.df_overall is not None
 
         overall = aggregate.df_overall.collect()
         contextual = aggregate.df_contextual.collect()

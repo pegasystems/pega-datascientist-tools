@@ -230,7 +230,7 @@ def test_create_metric_itable_column_descriptions(monkeypatch):
         strict_metric_validation=False,
     )
 
-    assert captured_df is not None
+    assert captured_df.shape == (3, 4)
     # Check that Model column was renamed to include tooltip
     model_col = next(c for c in captured_df.columns if "Model" in c)
     assert 'title="The predictive model name"' in model_col
@@ -272,11 +272,11 @@ def _assert_numeric_sort_wired(captured, col: str, raw_values: list):
     sort_idx = final_cols.index(sort_col)
 
     order_def = next((d for d in col_defs if d.get("targets") == display_idx), None)
-    assert order_def is not None, f"No columnDef found for display column {col!r}"
+    assert order_def, f"No columnDef found for display column {col!r}"
     assert order_def["orderData"] == [sort_idx]
 
     hidden_def = next((d for d in col_defs if d.get("targets") == sort_idx), None)
-    assert hidden_def is not None, f"No columnDef found for sort column {sort_col!r}"
+    assert hidden_def, f"No columnDef found for sort column {sort_col!r}"
     assert hidden_def["visible"] is False
     assert hidden_def["searchable"] is False
 
@@ -725,7 +725,6 @@ class TestGainsTable:
 
         result = report_utils.gains_table(df, value="ResponseCount")
 
-        assert isinstance(result, pl.DataFrame)
         assert "cum_x" in result.columns
         assert "cum_y" in result.columns
 
@@ -747,7 +746,6 @@ class TestGainsTable:
 
         result = report_utils.gains_table(df, value="Positives", index="ResponseCount")
 
-        assert isinstance(result, pl.DataFrame)
         assert result.height == 4  # 3 data points + (0,0)
         # Should sort by Positives/ResponseCount ratio
         assert "cum_x" in result.columns
@@ -766,7 +764,6 @@ class TestGainsTable:
 
         result = report_utils.gains_table(df, value="ResponseCount", by="Channel")
 
-        assert isinstance(result, pl.DataFrame)
         # Should have data for both channels
         assert "Channel" in result.columns
         channels = result["Channel"].unique().to_list()
@@ -784,7 +781,6 @@ class TestGainsTable:
 
         result = report_utils.gains_table(df, value="Value")
 
-        assert isinstance(result, pl.DataFrame)
         assert result.height == 2  # (0,0) + 1 data point
         assert result["cum_y"][1] == pytest.approx(1.0, abs=0.01)
 
@@ -799,7 +795,6 @@ class TestGainsTable:
 
         result = report_utils.gains_table(df, value="Value")
 
-        assert isinstance(result, pl.DataFrame)
         assert result.height == 4  # (0,0) + 3 data points
         # Should handle zeros gracefully
         assert "cum_x" in result.columns
@@ -939,7 +934,7 @@ class TestCheckReportForErrors:
         )
 
         errors = report_utils.check_report_for_errors(html_file)
-        assert len(errors) > 0
+        assert errors != []
         assert any("Plot rendering error" in e for e in errors)
 
     def test_report_with_traceback(self, tmp_path):
@@ -1005,7 +1000,7 @@ class TestCheckReportForErrors:
         )
 
         errors = report_utils.check_report_for_errors(html_file)
-        assert len(errors) > 0
+        assert errors != []
         assert any("Empty dataframe error" in e for e in errors)
 
     def test_zip_input_scans_inner_html(self, tmp_path):

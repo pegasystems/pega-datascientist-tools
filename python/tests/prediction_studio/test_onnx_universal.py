@@ -26,7 +26,6 @@ if TYPE_CHECKING:
 
 @pytest.fixture()
 def simple_pytorch_model():
-
     class TinyModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -353,7 +352,7 @@ class TestONNXModelFromPyTorch:
 
         onnx_model.save(str(tmp_onnx_path))
         reloaded = onnx.load(str(tmp_onnx_path))
-        assert len(reloaded.graph.node) > 0
+        assert [node.op_type for node in reloaded.graph.node] == ["Gemm", "Sigmoid"]
 
     def test_from_pytorch_with_metadata(self, simple_pytorch_model, dummy_input):
         from pdstools.infinity.resources.prediction_studio.local_model_utils import (
@@ -379,9 +378,7 @@ class TestONNXModelFromPyTorch:
 
         # Verify round-trip via get_metadata
         retrieved = onnx_model.get_metadata()
-        assert retrieved is not None
-        assert retrieved.type == OutcomeType.BINARY
-        assert len(retrieved.predictor_list) == 4
+        assert retrieved == meta
 
 
 # ============================================================================

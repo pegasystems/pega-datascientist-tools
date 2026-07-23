@@ -19,10 +19,17 @@ class TestMetricLimits:
 
     def test_get_limits_returns_valid_dataframe(self):
         df = MetricLimits.get_limits()
-        assert isinstance(df, pl.DataFrame)
-        assert len(df) > 0
-        for col in ["Category", "MetricID", "Minimum", "Best Practice Min"]:
-            assert col in df.columns
+        assert df.shape == (47, 8)
+        assert df.columns == [
+            "Category",
+            "MetricID",
+            "Minimum",
+            "Best Practice Min",
+            "Best Practice Max",
+            "Maximum",
+            "Notes (won't be used)",
+            "is_boolean",
+        ]
 
     def test_get_limit_for_known_metric(self):
         limits = MetricLimits.get_limit_for_metric("ModelPerformance")
@@ -55,11 +62,10 @@ class TestMetricLimits:
             MetricLimits.best_practice_max("UnknownMetricXYZ123")
 
     def test_convenience_methods_return_values(self):
-        # These should not raise for known metrics
-        assert MetricLimits.minimum("ModelPerformance") is not None or True
-        assert MetricLimits.maximum("ModelPerformance") is not None or True
-        assert MetricLimits.best_practice_min("ModelPerformance") is not None or True
-        assert MetricLimits.best_practice_max("ModelPerformance") is not None or True
+        assert MetricLimits.minimum("ModelPerformance") == 0.52
+        assert MetricLimits.maximum("ModelPerformance") == 0.9
+        assert MetricLimits.best_practice_min("ModelPerformance") == 0.55
+        assert MetricLimits.best_practice_max("ModelPerformance") == 0.8
 
 
 class TestNBADConfigurationsRAG:
@@ -272,7 +278,9 @@ class TestCreateMetricGttable:
             column_to_metric={"Performance": "ModelPerformance"},
             strict_metric_validation=True,
         )
-        assert gt is not None
+        html = gt.as_raw_html()
+        assert "<table" in html
+        assert "Performance" in html
 
     def test_accepts_callable_metric(self):
         df = pl.DataFrame({"Channel": ["Web", "Other"]})
@@ -281,7 +289,9 @@ class TestCreateMetricGttable:
             column_to_metric={"Channel": standard_NBAD_channels_rag},
             strict_metric_validation=False,
         )
-        assert gt is not None
+        html = gt.as_raw_html()
+        assert "<table" in html
+        assert "Channel" in html
 
 
 class TestCreateMetricItable:
