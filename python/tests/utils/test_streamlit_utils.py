@@ -58,12 +58,13 @@ class TestDataProcessingUtilities:
 
         result = streamlit_utils.model_selection_df(df, context_keys)
 
-        # Should be a DataFrame (collected)
-        assert isinstance(result, pl.DataFrame)
-        # Should have Generate Report column
-        assert "Generate Report" in result.columns
-        # Should have all original columns
-        assert all(col in result.columns for col in ["ModelID", "Configuration", "Name", "Channel"])
+        assert result.columns == [
+            "Generate Report",
+            "ModelID",
+            "Configuration",
+            "Name",
+            "Channel",
+        ]
         # Generate Report should be False by default
         assert result["Generate Report"].to_list() == [False, False, False]
         # Should be sorted by Name
@@ -78,17 +79,29 @@ class TestCachingFunctions:
         """Test loading sample data."""
         result = streamlit_utils.cached_sample()
 
-        assert result is not None
-        assert hasattr(result, "model_data")
-        assert hasattr(result, "predictor_data")
+        assert result.model_data.collect().height == 1047
+        assert result.predictor_data.collect().height == 70735
+        assert result.model_data.collect().columns[:5] == [
+            "ModelID",
+            "Issue",
+            "Group",
+            "Name",
+            "Channel",
+        ]
 
     @patch("streamlit.cache_resource", lambda f: f)
     def test_cached_sample_prediction(self):
         """Test loading sample prediction data."""
         result = streamlit_utils.cached_sample_prediction()
 
-        assert result is not None
-        assert hasattr(result, "predictions")
+        assert result.predictions.collect().height == 540
+        assert result.predictions.collect().columns[:5] == [
+            "pyModelId",
+            "SnapshotTime",
+            "Positives",
+            "Negatives",
+            "ResponseCount",
+        ]
         assert result.is_available
 
     @patch("streamlit.cache_resource", lambda f: f)
@@ -109,7 +122,6 @@ class TestCachingFunctions:
             predictor_filename="test.zip",
         )
 
-        assert result is not None
         assert result == mock_dm
         mock_load.assert_called_once()
 
@@ -166,7 +178,6 @@ class TestCachingFunctions:
             predictions_filename="test.zip",
         )
 
-        assert result is not None
         assert result == mock_pred
         mock_load.assert_called_once()
 
@@ -201,11 +212,7 @@ class TestCachingFunctions:
 
         result = streamlit_utils.convert_df(df)
 
-        assert isinstance(result, bytes)
-        assert len(result) > 0
-        # Verify it's actually CSV data
-        assert b"A" in result  # Column header
-        assert b"1" in result  # Data
+        assert result == b"A,B\n1,x\n2,y\n3,z\n"
 
     @patch("streamlit.cache_data", lambda f: f)
     @patch("pdstools.utils.cdh_utils.get_latest_pdstools_version")
@@ -251,8 +258,7 @@ class TestFilterDataframe:
         with patch("streamlit.session_state", session_state):
             queries = streamlit_utils.filter_dataframe(df, queries=[])
 
-            # Should create a filter query
-            assert len(queries) > 0
+            assert len(queries) == 1
             # Verify the filter actually works
             filtered_df = df.filter(queries[0]).collect()
             assert filtered_df["Channel"].to_list() == ["Web"]
@@ -331,7 +337,7 @@ class TestFilterDataframe:
         with patch("streamlit.session_state", {}):
             queries = streamlit_utils.filter_dataframe(df, queries=[])
 
-            assert len(queries) > 0
+            assert len(queries) == 1
             filtered_df = df.filter(queries[0]).collect()
             # Only June 1 should be in range
             assert filtered_df["Event"].to_list() == ["B"]

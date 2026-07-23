@@ -11,8 +11,8 @@ MODULE_SPEC = importlib.util.spec_from_file_location(
     "prepare_versioned_docs_source",
     MODULE_PATH,
 )
-assert MODULE_SPEC is not None
-assert MODULE_SPEC.loader is not None
+if MODULE_SPEC is None or MODULE_SPEC.loader is None:
+    raise RuntimeError(f"Unable to load docs helper module from {MODULE_PATH}")
 prepare_docs_source = importlib.util.module_from_spec(MODULE_SPEC)
 MODULE_SPEC.loader.exec_module(prepare_docs_source)
 

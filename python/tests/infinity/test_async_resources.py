@@ -10,7 +10,6 @@ from __future__ import annotations
 import datetime
 from unittest.mock import AsyncMock, MagicMock
 
-import polars as pl
 import pytest
 from pdstools.infinity.internal._pagination import AsyncPaginatedList
 from pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio import (
@@ -296,7 +295,6 @@ class TestAsyncPredictionStudio:
         async_client.get.return_value = mock_response_model
         async_client.request.return_value = mock_response_model
         result = await async_ps.list_models(return_df=True)
-        assert isinstance(result, pl.DataFrame)
         assert result.shape == (2, 9)
         assert result.columns == [
             "model_id",
@@ -325,7 +323,6 @@ class TestAsyncPredictionStudio:
         async_client.get.return_value = mock_response_predictions
         async_client.request.return_value = mock_response_predictions
         result = await async_ps.list_predictions(return_df=True)
-        assert isinstance(result, pl.DataFrame)
         assert result.shape == (2, 6)
         assert result.columns == [
             "prediction_id",
@@ -363,7 +360,6 @@ class TestAsyncPredictionStudio:
         async_client.get.return_value = mock_response_notifications
         async_client.request.return_value = mock_response_notifications
         result = await async_ps.get_notifications(return_df=True)
-        assert isinstance(result, pl.DataFrame)
         assert result.shape == (2, 10)
 
 
@@ -387,7 +383,6 @@ async def test_versioned_async_list_predictions_supports_dataframe_return(ps_cls
     assert isinstance(pages, AsyncPaginatedList)
 
     result = await ps.list_predictions(return_df=True)
-    assert isinstance(result, pl.DataFrame)
     assert result.shape == (2, 6)
     assert result.columns == [
         "prediction_id",
@@ -653,7 +648,6 @@ class TestAsyncPrediction:
         async_client.get.return_value = mock_response_notifications
         async_client.request.return_value = mock_response_notifications
         result = await async_prediction.get_notifications(return_df=True)
-        assert isinstance(result, pl.DataFrame)
         assert result.shape == (2, 10)
 
     @pytest.mark.asyncio
@@ -682,7 +676,11 @@ class TestAsyncPrediction:
         for cc in result:
             assert cc.prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
             assert cc.challenger_model is None
-            assert cc.active_model is not None
+        assert [cc.active_model.model_id for cc in result] == [
+            "CDHSample-Data-Customer!Adm_16330376371",
+            "@baseclass!testModel_falcons",
+            "CDHSample-Data-Customer!RiskModel",
+        ]
 
         # Category model entry carries its category; default/supporting do not
         categories = [cc.category for cc in result]
@@ -771,7 +769,6 @@ class TestAsyncPrediction:
             "category/Retention/models/%40baseclass%21testModel_falcons",
             data={"contextName": "NoContext"},
         )
-        assert result is not None
         assert result.active_model.model_id.lower() == "@baseclass!testmodel_falcons"
         assert result.category == "Retention"
 
@@ -799,7 +796,6 @@ class TestAsyncPrediction:
             category="Retention",
             context="NoContext",
         )
-        assert result is not None
         assert result.active_model.model_id.lower() == "@baseclass!testmodel_falcons"
 
     @pytest.mark.asyncio

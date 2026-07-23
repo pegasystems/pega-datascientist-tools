@@ -80,9 +80,8 @@ class TestThresholdDeciles:
     def test_return_df(self, plot_v2):
         """Test return_df parameter."""
         df = plot_v2.threshold_deciles("Propensity", "Propensity Threshold", return_df=True)
-        assert isinstance(df, pl.DataFrame)
-        assert "Decile" in df.columns
-        assert "Count" in df.columns
+        assert df.shape == (9, 4)
+        assert df.columns == ["Stage Group", "Decile", "Count", "Threshold"]
 
 
 class TestDistributionAsTreemap:
@@ -124,10 +123,9 @@ class TestSensitivity:
     def test_sensitivity_return_df(self, plot_v2):
         """Test sensitivity with return_df."""
         df = plot_v2.sensitivity(win_rank=1, return_df=True)
-        assert isinstance(df, pl.LazyFrame)
         collected = df.collect()
-        assert "Factor" in collected.columns
-        assert "Influence" in collected.columns
+        assert collected.shape == (5, 2)
+        assert collected.columns == ["Factor", "Influence"]
 
     def test_local_sensitivity(self, plot_v2):
         """Test local sensitivity with reference group."""
@@ -178,10 +176,10 @@ class TestGlobalWinlossDistribution:
     def test_winloss_return_df(self, plot_v2):
         """Test win/loss with return_df."""
         df = plot_v2.global_winloss_distribution(level="Action", win_rank=1, return_df=True)
-        assert isinstance(df, pl.LazyFrame)
         collected = df.collect()
-        assert "Status" in collected.columns
-        assert set(collected["Status"]) <= {"Wins", "Losses"}
+        assert collected.shape == (54, 3)
+        assert collected.columns == ["Action", "Status", "Percentage"]
+        assert sorted(collected["Status"].unique().to_list()) == ["Losses", "Wins"]
 
 
 class TestPropensityVsOptionality:
@@ -200,7 +198,7 @@ class TestPropensityVsOptionality:
     def test_return_df(self, plot_v2):
         """Test with return_df."""
         df = plot_v2.propensity_vs_optionality(return_df=True)
-        assert isinstance(df, pl.LazyFrame)
+        assert df.collect().shape == (27, 4)
 
 
 class TestOptionalityFunnel:
@@ -224,7 +222,16 @@ class TestActionVariation:
     def test_return_df(self, plot_v2):
         """Test with return_df."""
         df = plot_v2.action_variation(stage="Output", return_df=True)
-        assert isinstance(df, pl.LazyFrame)
+        collected = df.collect()
+        assert collected.shape == (9, 6)
+        assert collected.columns == [
+            "ActionIndex",
+            "Action",
+            "Decisions",
+            "cumDecisions",
+            "DecisionsFraction",
+            "ActionsFraction",
+        ]
 
     def test_action_variation_with_color_by(self, plot_v2):
         """Test action variation plot with color_by parameter."""
@@ -252,8 +259,9 @@ class TestTrendChart:
     def test_return_df(self, plot_v2):
         """Test with return_df."""
         result = plot_v2.trend_chart(stage="Output", scope="Action", return_df=True)
-        # When return_df=True, it just returns a LazyFrame, not a tuple
-        assert isinstance(result, pl.LazyFrame)
+        collected = result.collect()
+        assert collected.shape == (45, 3)
+        assert collected.columns == ["day", "Action", "Decisions"]
 
 
 class TestDecisionFunnel:
@@ -292,9 +300,9 @@ class TestDecisionFunnel:
     def test_return_df(self, plot_v2):
         """With return_df returns all three dataframes."""
         available_df, passing_df, filtered_df = plot_v2.decision_funnel(scope="Action", return_df=True)
-        assert isinstance(available_df, pl.LazyFrame)
-        assert isinstance(passing_df, pl.DataFrame)
-        assert isinstance(filtered_df, pl.DataFrame)
+        assert available_df.collect().shape == (119, 8)
+        assert passing_df.shape == (90, 7)
+        assert filtered_df.shape == (110, 7)
 
     def test_decisions_without_actions_plot(self, plot_v2):
         """decisions_without_actions_plot returns a Figure."""
@@ -305,8 +313,8 @@ class TestDecisionFunnel:
 
     def test_decisions_without_actions_return_df(self, plot_v2):
         df = plot_v2.decisions_without_actions_plot(return_df=True)
-        assert isinstance(df, pl.DataFrame)
-        assert "decisions_without_actions" in df.columns
+        assert df.shape == (4, 2)
+        assert df.columns == ["Stage Group", "decisions_without_actions"]
         assert (df["decisions_without_actions"] >= 0).all()
         assert "Output" not in df[plot_v2._decision_data.level].to_list()
 
@@ -333,7 +341,8 @@ class TestFilteringComponents:
             AvailableNBADStages=stages,
             return_df=True,
         )
-        assert isinstance(df, pl.DataFrame)
+        assert df.shape == (13, 3)
+        assert df.columns == ["Stage Group", "Component Name", "Filtered Decisions"]
 
 
 class TestDistribution:
@@ -407,7 +416,15 @@ class TestComponentActionImpact:
     def test_return_df(self, plot_v2):
         """Test with return_df."""
         df = plot_v2.component_action_impact(top_n=5, scope="Action", return_df=True)
-        assert isinstance(df, pl.DataFrame)
+        assert df.shape == (289, 6)
+        assert df.columns == [
+            "Component Name",
+            "Stage Group",
+            "Issue",
+            "Group",
+            "Action",
+            "Filtered Decisions",
+        ]
 
 
 class TestComponentDrilldown:
@@ -437,7 +454,17 @@ class TestComponentDrilldown:
         if component_data.height > 0:
             component_name = component_data.get_column("Component Name")[0]
             df = plot_v2.component_drilldown(component_name=component_name, return_df=True)
-            assert isinstance(df, pl.DataFrame)
+            assert df.shape == (5, 8)
+            assert df.columns == [
+                "Issue",
+                "Group",
+                "Action",
+                "Component Type",
+                "Filtered Decisions",
+                "avg_Priority",
+                "avg_Value",
+                "avg_Propensity",
+            ]
         else:
             pytest.skip("No component data in sample")
 
@@ -453,7 +480,9 @@ class TestOptionalityPerStage:
     def test_return_df(self, plot_v2):
         """Test with return_df."""
         df = plot_v2.optionality_per_stage(return_df=True)
-        assert isinstance(df, pl.LazyFrame)
+        collected = df.collect()
+        assert collected.shape == (123, 4)
+        assert collected.columns == ["nOffers", "Stage Group", "Interactions", "AverageBestPropensity"]
 
 
 class TestOptionalityTrend:
@@ -478,7 +507,9 @@ class TestOptionalityTrend:
         """Test with return_df."""
         trend_df = self._build_trend_df(da_v2)
         result = plot_v2.optionality_trend(trend_df, return_df=True)
-        assert isinstance(result, pl.LazyFrame)
+        collected = result.collect()
+        assert collected.shape == (35, 3)
+        assert collected.columns == ["day", "Stage Group", "avg_actions"]
 
 
 # ---------------------------------------------------------------------------
@@ -671,7 +702,13 @@ class TestGetTrendChart:
         # Step 3: Get dataframe instead of figure
         df = getTrendChart(quality_data, stage="Output", level=da_v2.level, return_df=True)
 
-        assert isinstance(df, pl.LazyFrame)
+        assert df.collect().columns == [
+            "day",
+            "atleast_one_relevant_action",
+            "atleast_one_action",
+            "only_irrelevant_actions",
+            "has_no_offers",
+        ]
 
 
 class TestPlotPriorityComponentDistribution:
@@ -695,7 +732,20 @@ class TestPlotPriorityComponentDistribution:
 
         assert isinstance(violin_fig, Figure)
         assert isinstance(ecdf_fig, Figure)
-        assert isinstance(stats_df, pl.DataFrame)
+        assert stats_df.shape == (8, 11)
+        assert stats_df.columns == [
+            "Action",
+            "Count",
+            "Mean",
+            "Median",
+            "Std",
+            "Min",
+            "P5",
+            "P25",
+            "P75",
+            "P95",
+            "Max",
+        ]
 
 
 class TestPlotComponentOverview:

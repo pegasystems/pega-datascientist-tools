@@ -118,12 +118,44 @@ class TestConstruction:
         assert da_v2.validation_error is None
 
     def test_v1_has_decision_data(self, da_v1):
-        assert isinstance(da_v1.decision_data, pl.LazyFrame)
         assert da_v1.decision_data.collect().height == 7297
+        assert da_v1.decision_data.collect_schema().names()[:15] == [
+            "Subject ID",
+            "Interaction ID",
+            "Decision Time",
+            "Issue",
+            "Group",
+            "Action",
+            "Channel",
+            "Direction",
+            "Value",
+            "Context Weight",
+            "Levers",
+            "Model Propensity",
+            "Propensity",
+            "Priority",
+            "Model Control Group",
+        ]
 
     def test_v2_has_decision_data(self, da_v2):
-        assert isinstance(da_v2.decision_data, pl.LazyFrame)
         assert da_v2.decision_data.collect().height == 1342623
+        assert da_v2.decision_data.collect_schema().names()[:15] == [
+            "Record Type",
+            "Subject ID",
+            "Subject Type",
+            "Interaction ID",
+            "Decision Time",
+            "Issue",
+            "Group",
+            "Action",
+            "Treatment",
+            "Placement Type",
+            "Strategy Name",
+            "Channel",
+            "Direction",
+            "Stage",
+            "Stage Group",
+        ]
 
     def test_construction_with_additional_columns(self):
         raw = pl.scan_parquet(f"{basePath}/data/sample_explainability_extract.parquet")
@@ -328,11 +360,9 @@ class TestSampling:
     """Verify the sampling mechanism."""
 
     def test_v1_sample_returns_lazyframe(self, da_v1):
-        assert isinstance(da_v1.sample, pl.LazyFrame)
         assert da_v1.sample.collect().height == 7297
 
     def test_v2_sample_returns_lazyframe(self, da_v2):
-        assert isinstance(da_v2.sample, pl.LazyFrame)
         assert da_v2.sample.collect().height == 956675
 
     def test_v1_sample_not_empty(self, da_v1):
@@ -442,21 +472,53 @@ class TestDistributionData:
 class TestFunnelData:
     def test_v2_funnel_returns_three_frames(self, da_v2):
         available, passing, filtered = da_v2.aggregates.get_funnel_data(scope="Issue")
-        assert isinstance(available, pl.LazyFrame)
-        assert isinstance(passing, pl.DataFrame)
-        assert isinstance(filtered, pl.DataFrame)
         assert available.collect().height == 12
         assert passing.height == 9
         assert filtered.height == 10
+        assert available.collect().columns == [
+            "Issue",
+            "action_occurrences",
+            "interaction_count_for_scope",
+            "Stage Group",
+            "Stage Order",
+            "interaction_count",
+            "actions_per_interaction",
+            "penetration_pct",
+        ]
+        assert passing.columns == [
+            "Issue",
+            "action_occurrences",
+            "interaction_count_for_scope",
+            "Stage Group",
+            "interaction_count",
+            "actions_per_interaction",
+            "penetration_pct",
+        ]
+        assert filtered.columns == [
+            "Stage Group",
+            "Issue",
+            "action_occurrences",
+            "interaction_count_for_scope",
+            "interaction_count",
+            "actions_per_interaction",
+            "penetration_pct",
+        ]
 
     def test_v1_funnel_returns_three_frames(self, da_v1):
         available, passing, filtered = da_v1.aggregates.get_funnel_data(scope="Issue")
-        assert isinstance(available, pl.LazyFrame)
-        assert isinstance(passing, pl.DataFrame)
-        assert isinstance(filtered, pl.DataFrame)
         assert available.collect().height == 7
         assert passing.height == 2
         assert filtered.height == 5
+        assert available.collect().columns == [
+            "Issue",
+            "action_occurrences",
+            "interaction_count_for_scope",
+            "Stage Group",
+            "Stage Order",
+            "interaction_count",
+            "actions_per_interaction",
+            "penetration_pct",
+        ]
 
     def test_passing_lte_available(self, da_v2):
         """Passing actions at each stage must be <= available actions."""
@@ -491,13 +553,15 @@ class TestFunnelData:
 
     def test_decisions_without_actions_shape(self, da_v2):
         result = da_v2.aggregates.get_decisions_without_actions_data()
-        assert isinstance(result, pl.DataFrame)
-        assert da_v2.level in result.columns
-        assert "decisions_without_actions" in result.columns
-        expected_stages = [s for s in da_v2.AvailableNBADStages if s != "Output"]
-        assert len(result) == len(expected_stages)
-        assert result.height == 4
-        assert "Output" not in result[da_v2.level].to_list()
+        assert result.to_dict(as_series=False) == {
+            "Stage Group": [
+                "Engagement Policies",
+                "Journeys and Contact Policies",
+                "Arbitration",
+                "Bundling",
+            ],
+            "decisions_without_actions": [0.0, 3713.0, 2281.0, 699.0],
+        }
 
     def test_decisions_without_actions_non_negative(self, da_v2):
         result = da_v2.aggregates.get_decisions_without_actions_data()
@@ -1007,7 +1071,6 @@ class TestBoxplotPointCapAndSampling:
             reference=pl.col("Action") == first_action,
             return_df=True,
         )
-        assert isinstance(df, pl.DataFrame)
         assert "segment" in df.columns
         # The sample data has more arbitration-stage rows than sample_size (5000),
         # so the result is capped to exactly sample_size by the point cap logic.
@@ -1037,7 +1100,7 @@ class TestBoxplotPointCapAndSampling:
             )
             fig, warning = result
             if fig is not None:
-                assert warning is not None
+                assert isinstance(warning, str)
                 assert "sample" in warning.lower()
         finally:
             da_v1.sample_size = original
@@ -1557,9 +1620,9 @@ class TestStageMethods:
 
     def test_arbitration_stage_returns_lazyframe(self, da_v1):
         result = da_v1.arbitration_stage
-        assert isinstance(result, pl.LazyFrame)
         df = result.collect()
         assert df.height == 7297
+        assert da_v1.level in df.columns
 
     def test_arbitration_stage_only_contains_arbitration_stages(self, da_v1):
         df = da_v1.arbitration_stage.collect()
@@ -1569,9 +1632,9 @@ class TestStageMethods:
 
     def test_v2_arbitration_stage(self, da_v2):
         result = da_v2.arbitration_stage
-        assert isinstance(result, pl.LazyFrame)
         df = result.collect()
         assert df.height == 21133
+        assert da_v2.level in df.columns
 
 
 # ---------------------------------------------------------------------------
@@ -1645,8 +1708,7 @@ class TestAnalysisMethods:
                 da_v2.aggregates.get_ab_test_results()
         else:
             result = da_v2.aggregates.get_ab_test_results()
-            assert isinstance(result, pl.DataFrame)
-            assert result.height > 0
+            assert result.shape[0] != 0
             # Stages must follow the canonical AvailableNBADStages order
             # (subset, since not every stage has AB rows).
             stages_in_result = result.get_column(da_v2.level).to_list()
@@ -1655,22 +1717,18 @@ class TestAnalysisMethods:
 
     def test_get_thresholding_data_propensity(self, da_v1):
         result = da_v1.scoring.get_thresholding_data(fld="Propensity")
-        assert isinstance(result, pl.DataFrame)
-        assert result.height == 9
-        assert "Decile" in result.columns
-        assert "Threshold" in result.columns
-        assert "Count" in result.columns
-        assert da_v1.level in result.columns
+        assert result.shape == (9, 4)
+        assert result.columns == ["Stage Group", "Decile", "Count", "Threshold"]
 
     def test_get_thresholding_data_priority(self, da_v2):
         result = da_v2.scoring.get_thresholding_data(fld="Priority")
-        assert isinstance(result, pl.DataFrame)
-        assert result.height == 9
+        assert result.shape == (9, 4)
+        assert result.columns == ["Stage Group", "Decile", "Count", "Threshold"]
 
     def test_get_thresholding_data_custom_quantile_range(self, da_v1):
         result = da_v1.scoring.get_thresholding_data(fld="Propensity", quantile_range=range(20, 100, 20))
-        assert isinstance(result, pl.DataFrame)
-        assert result.height == 4
+        assert result.shape == (4, 4)
+        assert result.columns == ["Stage Group", "Decile", "Count", "Threshold"]
 
     def test_get_thresholding_data_caches_result(self, da_v1):
         """Calling with same args should return cached result."""
@@ -1699,7 +1757,6 @@ class TestFilteringAndScoping:
         result = da_v2.scoring.priority_component_distribution(
             component=component, granularity="Issue", stage="Arbitration"
         )
-        assert isinstance(result, pl.LazyFrame)
         df = result.collect()
         assert df.height == 21133
         assert "Issue" in df.columns
@@ -1716,7 +1773,6 @@ class TestFilteringAndScoping:
 
     def test_all_components_distribution_v2(self, da_v2):
         result = da_v2.scoring.all_components_distribution(granularity="Issue", stage="Arbitration")
-        assert isinstance(result, pl.LazyFrame)
         df = result.collect()
         assert df.height == 21133
         assert "Issue" in df.columns
@@ -1730,7 +1786,6 @@ class TestFilteringAndScoping:
     def test_remaining_at_stage_none(self, da_v2):
         """stage=None falls back to non-null Priority rows."""
         result = da_v2.aggregates.remaining_at_stage(stage=None)
-        assert isinstance(result, pl.LazyFrame)
         df = result.collect()
         assert df.height == 1143136
         # All rows should have non-null Priority
@@ -1746,7 +1801,6 @@ class TestFilteringAndScoping:
 
     def test_filtered_action_counts_no_thresholds(self, da_v2):
         result = da_v2.aggregates.filtered_action_counts(groupby_cols=[da_v2.level])
-        assert isinstance(result, pl.LazyFrame)
         df = result.collect()
         assert df.height == 5
         assert "no_of_offers" in df.columns
@@ -1787,8 +1841,7 @@ class TestWinDistributionExtended:
         first_issue = da_v2.decision_data.select(pl.col("Issue").first()).collect().item()
         lever_cond = pl.col("Issue") == first_issue
         result = da_v2.scoring.get_win_distribution_data(lever_condition=lever_cond)
-        assert isinstance(result, pl.DataFrame)
-        assert result.height == 71
+        assert result.shape == (71, 6)
         assert "original_win_count" in result.columns
         assert "selected_action" in result.columns
         # Should have both Selected and Rest
@@ -1966,7 +2019,7 @@ class TestPropensityValidation:
         modified_data = raw.with_columns(pl.lit(0.15).alias("FinalPropensity"))  # Set all to 15%
         da = DecisionAnalyzer(modified_data, sample_size=1000)
         warning = da.propensity_validation_warning
-        assert warning is not None
+        assert isinstance(warning, str)
         assert "Unusually high propensities detected" in warning or "Invalid propensity" in warning
 
     def test_invalid_propensities_triggers_warning(self, da_v2):
@@ -1976,7 +2029,7 @@ class TestPropensityValidation:
         modified_data = raw.with_columns(pl.lit(1.5).alias("FinalPropensity"))  # Set all to 1.5
         da = DecisionAnalyzer(modified_data, sample_size=1000)
         warning = da.propensity_validation_warning
-        assert warning is not None
+        assert isinstance(warning, str)
         assert "Invalid propensity values detected" in warning
         assert "> 1.0" in warning
 
@@ -2823,7 +2876,7 @@ class TestNumSamples:
     def test_thresholding_returns_dataframe(self, fixture_name, request):
         da = request.getfixturevalue(fixture_name)
         result = da.scoring.get_thresholding_data(fld="Propensity")
-        assert isinstance(result, pl.DataFrame)
+        assert result.columns == ["Stage Group", "Decile", "Count", "Threshold"]
 
     @pytest.mark.parametrize("fixture_name", ["da_minimal_n1", "da_minimal_n5"])
     def test_thresholding_correct_height(self, fixture_name, request):

@@ -88,7 +88,8 @@ def test_single_quoted_data_path_loads(monkeypatch, sample_dir: Path):
 
     monkeypatch.setenv("PDSTOOLS_DATA_PATH", f"'{sample_dir}'")
     dm = hc_utils.handle_data_path_hc()
-    assert dm is not None
+    assert dm.model_data.collect().height == 1047
+    assert dm.predictor_data.collect().height == 70735
     assert st.session_state["dm"] is dm
     assert st.session_state["data_source"] == "Direct file path"
 
@@ -98,11 +99,10 @@ def test_directory_with_all_files_loads_dm(monkeypatch, sample_dir: Path):
 
     monkeypatch.setenv("PDSTOOLS_DATA_PATH", str(sample_dir))
     dm = hc_utils.handle_data_path_hc()
-    assert dm is not None
+    assert dm.model_data.collect().height == 1047
     assert st.session_state["dm"] is dm
     assert st.session_state["data_source"] == "Direct file path"
-    # Predictor was found, so the dm has a non-empty predictor frame.
-    assert dm.predictor_data is not None
+    assert dm.predictor_data.collect().height == 70735
 
 
 def test_directory_model_only_loads_dm_without_predictor(monkeypatch, model_only_dir: Path):
@@ -110,7 +110,8 @@ def test_directory_model_only_loads_dm_without_predictor(monkeypatch, model_only
 
     monkeypatch.setenv("PDSTOOLS_DATA_PATH", str(model_only_dir))
     dm = hc_utils.handle_data_path_hc()
-    assert dm is not None
+    assert dm.model_data.collect().height == 1047
+    assert dm.predictor_data is None
     assert st.session_state["dm"] is dm
     assert st.session_state["data_source"] == "Direct file path"
 
@@ -134,7 +135,8 @@ def test_zip_file_extracts_and_loads(monkeypatch, sample_dir: Path, tmp_path: Pa
 
     monkeypatch.setenv("PDSTOOLS_DATA_PATH", str(zip_path))
     dm = hc_utils.handle_data_path_hc()
-    assert dm is not None
+    assert dm.model_data.collect().height == 1047
+    assert dm.predictor_data.collect().height == 70735
     assert st.session_state["dm"] is dm
     assert st.session_state["data_source"] == "Direct file path"
 

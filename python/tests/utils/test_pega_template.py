@@ -7,10 +7,22 @@ from pdstools.utils import pega_template
 
 def test_colorway_defined():
     """Test that the colorway is defined with the expected colors"""
-    assert isinstance(pega_template.colorway, list)
-    assert len(pega_template.colorway) > 0
-    assert pega_template.colorway[0] == "#001F5F"  # dark blue
-    assert pega_template.colorway[2] == "#F76923"  # orange
+    assert pega_template.colorway == [
+        "#001F5F",
+        "#10A5AC",
+        "#F76923",
+        "#661D34",
+        "#86CAC6",
+        "#005154",
+        "#86CAC6",
+        "#5F67B9",
+        "#FFC836",
+        "#E63690",
+        "#AC1361",
+        "#63666F",
+        "#A7A9B4",
+        "#D0D1DB",
+    ]
 
 
 def test_color_scales_defined():

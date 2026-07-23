@@ -41,7 +41,7 @@ def test_GenerateExplanationsReport(explanations: Explanations, tmp_path):
         explanations.report.generate(top_n=5, top_k=3, zip_output=False)
 
     assert (aggregate_dir / "unique_contexts.json").exists()
-    assert list((aggregate_dir / "batches").glob("BATCH_*.parquet"))
+    assert {path.name for path in (aggregate_dir / "batches").glob("BATCH_*.parquet")} == {"BATCH_0.parquet"}
     mock_run_quarto.assert_called_once()
 
 

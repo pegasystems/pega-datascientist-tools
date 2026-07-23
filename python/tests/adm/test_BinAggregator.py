@@ -78,7 +78,6 @@ def test_overall_sym_rollup(cdhsample_binaggregator):
         symbols="Not Known",
         return_df=True,
     )
-    assert isinstance(rolled_up_binning, pl.DataFrame)
     assert rolled_up_binning.columns == [
         "PredictorName",
         "BinIndex",
@@ -154,7 +153,6 @@ def test_get_source_numbinning(cdhsample_binaggregator):
         "Customer.Age",
         "08ca1302-9fc0-57bf-9031-d4179d400493",
     )
-    assert isinstance(binning, pl.DataFrame)
     assert binning.shape[0] == 11
     assert binning["BinResponses"].sum() == 4605
 

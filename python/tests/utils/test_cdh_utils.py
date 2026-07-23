@@ -982,7 +982,7 @@ def test_parse_pega_date_time_formats():
     assert df.schema["SnapshotDate"] == pl.Date
     assert df["SnapshotTime"].to_list()[4] is None
     assert df.select(pl.col("SnapshotTime").is_not_null().sum()).item() == 9
-    assert df["SnapshotTime2"].to_list()[4] is not None
+    assert df["SnapshotTime2"].to_list()[4] == datetime.datetime(2023, 3, 31, 15, 5, 3)
     assert df.select(pl.col("SnapshotTime2").is_not_null().sum()).item() == 10
 
 
@@ -1058,7 +1058,6 @@ def test_safe_flatten_list_unhashable_items():
     expr_a = pl.col("a")
     expr_b = pl.col("b")
     result = cdh_utils.safe_flatten_list([expr_a, expr_b, expr_a])
-    assert result is not None
     assert len(result) == 2
     assert result[0] is expr_a
     assert result[1] is expr_b
@@ -1068,7 +1067,6 @@ def test_safe_flatten_list_unhashable_extras_dedup():
     """Same unhashable item in extras and alist should not be duplicated."""
     expr = pl.col("x")
     result = cdh_utils.safe_flatten_list([expr], extras=[expr])
-    assert result is not None
     assert len(result) == 1
 
 
@@ -1168,7 +1166,6 @@ def test_create_working_and_temp_dir_custom_working_dir(tmp_path):
 def test_lazy_sample_with_replacement():
     df = pl.DataFrame({"x": list(range(100)), "y": list(range(100))})
     sampled = cdh_utils.lazy_sample(df, n_rows=10, with_replacement=True)
-    assert isinstance(sampled, pl.DataFrame)
     assert sampled.shape[0] == 10
     assert sampled.columns == ["x", "y"]
 
@@ -1176,7 +1173,6 @@ def test_lazy_sample_with_replacement():
 def test_lazy_sample_without_replacement():
     df = pl.DataFrame({"x": list(range(100)), "y": list(range(100))})
     sampled = cdh_utils.lazy_sample(df, n_rows=10, with_replacement=False)
-    assert isinstance(sampled, pl.DataFrame)
     # binomial sampling has no seed: exact count is non-deterministic; bounds are the best we can assert
     assert sampled.shape[0] > 0
     assert sampled.shape[0] <= 100
@@ -1186,7 +1182,6 @@ def test_lazy_sample_without_replacement():
 def test_lazy_sample_n_larger_than_data_without_replacement():
     df = pl.DataFrame({"x": [1, 2, 3]})
     sampled = cdh_utils.lazy_sample(df, n_rows=100, with_replacement=False)
-    assert isinstance(sampled, pl.DataFrame)
     # When n_rows > len, all rows should be returned
     assert sampled.shape[0] == 3
 
@@ -1427,7 +1422,6 @@ class TestValidateDatabricksSchema:
     def test_predictions_exact_schema_returns_frame(self):
         df = _make_lazy(list(_DATABRICKS_PREDICTION_COLUMNS))
         result = cdh_utils._validate_databricks_predictions(df)
-        assert isinstance(result, pl.LazyFrame)
         assert set(result.collect_schema().names()) == _DATABRICKS_PREDICTION_COLUMNS
 
     def test_predictions_missing_columns_raises(self):
@@ -1442,7 +1436,7 @@ class TestValidateDatabricksSchema:
         df = _make_lazy(extra_cols)
         with caplog.at_level(logging.WARNING):
             result = cdh_utils._validate_databricks_predictions(df)
-        assert isinstance(result, pl.LazyFrame)
+        assert set(result.collect_schema().names()) == set(extra_cols)
         assert "Unexpected columns" in caplog.text
         assert "_DATABRICKS_PREDICTION_COLUMNS" in caplog.text
 
@@ -1453,7 +1447,6 @@ class TestValidateDatabricksSchema:
     def test_model_snapshots_exact_schema_returns_frame(self):
         df = _make_lazy(list(_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS))
         result = cdh_utils._validate_databricks_model_snapshots(df)
-        assert isinstance(result, pl.LazyFrame)
         assert set(result.collect_schema().names()) == _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS
 
     def test_model_snapshots_missing_columns_raises(self):
@@ -1468,7 +1461,7 @@ class TestValidateDatabricksSchema:
         df = _make_lazy(extra_cols)
         with caplog.at_level(logging.WARNING):
             result = cdh_utils._validate_databricks_model_snapshots(df)
-        assert isinstance(result, pl.LazyFrame)
+        assert set(result.collect_schema().names()) == set(extra_cols)
         assert "Unexpected columns" in caplog.text
         assert "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS" in caplog.text
 
