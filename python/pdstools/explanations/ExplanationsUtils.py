@@ -5,7 +5,6 @@ __all__ = [
     "_CONTRIBUTION_TYPE",
     "_PREDICTOR_TYPE",
     "_SPECIAL",
-    "_TABLE_NAME",
     "ContextInfo",
     "ContextOperations",
     "ContributionType",
@@ -14,12 +13,17 @@ __all__ = [
 ]
 
 import json
+import logging
+import os
 from enum import Enum
-from typing import ClassVar, Literal, TYPE_CHECKING, TypedDict, cast
+from pathlib import Path
+from typing import ClassVar, Literal, TYPE_CHECKING, cast
 
 import polars as pl
 
 from ..utils.namespaces import LazyNamespace
+
+logger = logging.getLogger(__name__)
 
 
 def validate(top_n: int | None = None, top_k: int | None = None) -> None:
@@ -27,12 +31,12 @@ def validate(top_n: int | None = None, top_k: int | None = None) -> None:
     if top_n:
         if not isinstance(top_n, int) or top_n <= 1:
             raise ValueError(
-                f"Invalid top_n value: {top_n}. Must be a positive integer greater than zero.",
+                f"Invalid top_n value: {top_n}. Must be a positive integer greater than 1.",
             )
     if top_k:
         if not isinstance(top_k, int) or top_k <= 1:
             raise ValueError(
-                f"Invalid top_k value: {top_k}. Must be a positive integer greater than zero.",
+                f"Invalid top_k value: {top_k}. Must be a positive integer greater than 1.",
             )
 
 
@@ -41,26 +45,19 @@ class _PREDICTOR_TYPE(Enum):
     SYMBOLIC = "SYMBOLIC"
 
 
-class _TABLE_NAME(Enum):
-    NUMERIC = "numeric"
-    SYMBOLIC = "symbolic"
-    NUMERIC_OVERALL = "numeric_overall"
-    SYMBOLIC_OVERALL = "symbolic_overall"
-    CREATE = "create"
-    MODEL_CONTEXTS = "model_contexts"
-
-
 # can also be sort order
 class _CONTRIBUTION_TYPE(Enum):
-    def __new__(cls, default, alt, text):
+    alt: str
+    text: str
+
+    def __new__(cls, default: str, alt: str, text: str):
         obj = object.__new__(cls)
         obj._value_ = default
         obj.alt = alt
         obj.text = text
         return obj
 
-    def __init__(self, default, alt, text):
-        self.alt = alt
+    def __init__(self, default: str, alt: str, text: str):
         self.text = text
 
     @classmethod
@@ -94,7 +91,7 @@ class _CONTRIBUTION_TYPE(Enum):
 
 
 class _COL(Enum):
-    PARTITON = "partition"
+    PARTITION = "context_partition"
     PREDICTOR_NAME = "predictor_name"
     PREDICTOR_TYPE = "predictor_type"
     BIN_CONTENTS = "bin_contents"
@@ -135,11 +132,9 @@ DisplayBy = SortBy
 ContributionType = SortBy
 
 
-class ContextInfo(TypedDict):
-    """Context info."""
-
-    context_key: str
-    context_value: str
+# Dynamic mapping of context columns (for example pyChannel/pyDirection)
+# and, optionally, the raw context partition string.
+ContextInfo = dict[str, str]
 
 
 if TYPE_CHECKING:
@@ -147,22 +142,16 @@ if TYPE_CHECKING:
 
 
 class ContextOperations(LazyNamespace):
-    """Context related operations such as to filter unique contexts.
+    """Context-related operations for querying unique contexts.
 
     Parameters
     ----------
     aggregate : Aggregate
-        The aggregate object to operate on.
-
+        Aggregate namespace instance that provides contextual explanation data.
     """
 
     dependencies: ClassVar[list[str]] = ["polars"]
     dependency_group = "explanations"
-    aggregate: "Aggregate"
-    """Parent aggregate object used to load contextual data."""
-
-    initialized: bool
-    """Whether the contextual data cache has been loaded."""
 
     def __init__(self, aggregate: "Aggregate"):
         self.aggregate = aggregate
@@ -170,6 +159,9 @@ class ContextOperations(LazyNamespace):
         self._df: pl.DataFrame | None = None
         self._context_keys: list[str] | None = None
         self.initialized = False
+
+        self.file_batch_limit = int(os.getenv("FILE_BATCH_LIMIT", "100"))
+        self.unique_contexts_file = self.aggregate.data_folderpath / "unique_contexts.json"
 
         super().__init__()
 
@@ -180,9 +172,9 @@ class ContextOperations(LazyNamespace):
         if self._df is None:
             self._df = pl.from_dicts(
                 [
-                    {**json.loads(ck)[_COL.PARTITON.value], _COL.PARTITON.value: ck}
+                    {**json.loads(ck)["partition"], _COL.PARTITION.value: ck}
                     for ck in self.aggregate.get_df_contextual()
-                    .select(_COL.PARTITON.value)
+                    .select(_COL.PARTITION.value)
                     .unique()
                     .collect()
                     .to_series()
@@ -195,12 +187,12 @@ class ContextOperations(LazyNamespace):
         self.initialized = True
 
     def get_context_keys(self) -> list[str]:
-        """Return the contextual key columns available in the loaded data.
+        """Get available context keys.
 
         Returns
         -------
         list[str]
-            Context key names such as ``["pyChannel", "pyDirection", ...]``.
+            Context key column names, for example ``["pyChannel", "pyDirection"]``.
         """
         self._load()
         assert self._context_keys is not None
@@ -211,21 +203,20 @@ class ContextOperations(LazyNamespace):
         context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
     ) -> pl.DataFrame:
-        """Return unique contexts as a DataFrame.
+        """Return unique contexts as a DataFrame, optionally filtered.
 
         Parameters
         ----------
         context_infos : list[ContextInfo] | None, default None
-            Optional context filters. When omitted, returns all unique contexts.
+            Optional context filters. When provided, rows are filtered to the
+            matching contexts.
         with_partition_col : bool, default False
-            Whether to include the raw partition column alongside the expanded
-            context keys.
+            Whether to include the raw ``context_partition`` column in the output.
 
         Returns
         -------
         pl.DataFrame
-            A DataFrame of unique contexts. When ``with_partition_col`` is
-            ``True``, the partition column is retained in the result.
+            Unique contexts with one row per context.
         """
         self._load()
         assert self._df is not None
@@ -241,20 +232,20 @@ class ContextOperations(LazyNamespace):
         context_infos: list[ContextInfo] | None = None,
         with_partition_col: bool = False,
     ) -> list[ContextInfo]:
-        """Return unique contexts as dictionaries.
+        """Return unique contexts as dictionaries, optionally filtered.
 
         Parameters
         ----------
         context_infos : list[ContextInfo] | None, default None
-            Optional context filters. When omitted, returns all unique contexts.
+            Optional context filters. When provided, rows are filtered to the
+            matching contexts.
         with_partition_col : bool, default False
-            Whether to include the raw partition column in each returned item.
+            Whether to include the raw ``context_partition`` field in each dictionary.
 
         Returns
         -------
         list[ContextInfo]
-            Unique context dictionaries, optionally filtered by the provided
-            context information.
+            Unique contexts represented as dictionaries.
         """
         self._load()
         df = self.get_df(context_infos, with_partition_col)
@@ -263,17 +254,41 @@ class ContextOperations(LazyNamespace):
             df.unique().to_dicts(),
         )
 
+    def create_unique_contexts_file(self) -> dict[str, list[str]]:
+        """Create and persist the flat unique-context batch mapping if absent."""
+        if self.unique_contexts_file.exists():
+            return cast("dict[str, list[str]]", json.loads(self.unique_contexts_file.read_text()))
+
+        list_of_contexts = (
+            self.aggregate.get_df_contextual().select(_COL.PARTITION.value).unique().collect().to_series().to_list()
+        )
+        dict_of_contexts = self._create_context_batches(list_of_contexts, self.file_batch_limit)
+
+        with self.unique_contexts_file.open("w", encoding="utf-8") as file:
+            json.dump(dict_of_contexts, file)
+
+        return dict_of_contexts
+
+    def create_batch_parquet_files(self, contexts_by_batch: dict[str, list[str]]) -> None:
+        """Create one batch parquet file per context batch in a separate batches/ subdirectory."""
+        batch_dir = Path(self.aggregate.data_folderpath) / "batches"
+        batch_dir.mkdir(exist_ok=True)
+
+        for batch_key, contexts in contexts_by_batch.items():
+            batch_df = self.aggregate.get_df_contextual().filter(pl.col(_COL.PARTITION.value).is_in(contexts)).collect()
+            batch_file_path = batch_dir / f"BATCH_{batch_key}.parquet"
+            batch_df.write_parquet(batch_file_path)
+            logger.info("Created batch file: %s with %d rows", batch_file_path, len(batch_df))
+
     def _filter_df_by_context_infos(
         self,
         df: pl.DataFrame,
         context_infos: list[ContextInfo],
     ) -> pl.DataFrame:
-        ret_df = pl.DataFrame()
-
         filter_expressions = self._get_filter_expression(context_infos)
-        for expression in filter_expressions:
-            ret_df = pl.concat([ret_df, df.filter(expression)])
-        return ret_df
+        # Combine all filter expressions with OR logic using Polars idioms
+        masks = [pl.all_horizontal(*expr) for expr in filter_expressions]
+        return df.filter(pl.any_horizontal(*masks))
 
     @staticmethod
     def _get_filter_expression(
@@ -289,22 +304,31 @@ class ContextOperations(LazyNamespace):
 
     @staticmethod
     def _get_clean_df(df: pl.DataFrame) -> pl.DataFrame:
-        return df.select(pl.exclude(_COL.PARTITON.value))
+        return df.select(pl.exclude(_COL.PARTITION.value))
 
     @staticmethod
     def get_context_info_str(context_info: ContextInfo, sep: str = "-") -> str:
-        """Format a context dictionary as a single string.
+        """Format a context dictionary into a compact string.
 
         Parameters
         ----------
         context_info : ContextInfo
-            Context values to format.
+            Context dictionary to format.
         sep : str, default "-"
-            Separator inserted between context values.
+            Separator inserted between values.
 
         Returns
         -------
         str
-            A compact context string such as ``channel1-direction1-...``.
+            String containing context values joined by ``sep``.
         """
         return sep.join(f"{value}".strip() for value in context_info.values())
+
+    @staticmethod
+    def _create_context_batches(all_contexts: list[str] | None, batch_size: int) -> dict[str, list[str]]:
+        if not all_contexts:
+            return {}
+        return {
+            str(batch_idx): all_contexts[idx : idx + batch_size]
+            for batch_idx, idx in enumerate(range(0, len(all_contexts), batch_size))
+        }

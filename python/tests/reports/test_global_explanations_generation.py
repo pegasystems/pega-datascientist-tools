@@ -35,18 +35,16 @@ def temp_report_dir(mock_templates):
 
         # Create unique_contexts.json with sample data
         contexts = {
-            "1": {
-                "0": [
-                    json.dumps(
-                        {
-                            "partition": {
-                                "Channel": "Web",
-                                "Direction": "Inbound",
-                            }
+            "100": [
+                json.dumps(
+                    {
+                        "partition": {
+                            "Channel": "Web",
+                            "Direction": "Inbound",
                         }
-                    )
-                ]
-            }
+                    }
+                )
+            ]
         }
         with open(data_dir / "unique_contexts.json", "w") as f:
             json.dump(contexts, f)
@@ -198,7 +196,7 @@ class TestReportGeneration:
         generator._generate_by_context_qmds()
 
         # Check that plots_for_batch file was created
-        plots_file = Path(temp_report_dir) / "by-model-context" / "plots_for_batch_1.qmd"
+        plots_file = Path(temp_report_dir) / "by-model-context" / "plots_for_batch_100.qmd"
         assert plots_file.exists()
 
         content = plots_file.read_text()
@@ -250,3 +248,23 @@ class TestReadParams:
         assert generator.display_by == "contribution"
         assert generator.display_by_text == "average contribution"
         assert generator.data_folder.endswith("aggregated_data")
+
+    def test_params_preserve_nested_relative_data_folder(self, temp_report_dir, monkeypatch):
+        """Nested data_folder values resolve relative to root without collapsing."""
+        monkeypatch.chdir(temp_report_dir)
+        params_path = Path(temp_report_dir) / "scripts" / "params.yml"
+        nested_data_dir = Path(temp_report_dir).parent / "nested" / "aggregated_data"
+        nested_data_dir.mkdir(parents=True, exist_ok=True)
+        (nested_data_dir / "unique_contexts.json").write_text("{}", encoding="utf-8")
+
+        params = {
+            "top_n": 10,
+            "top_k": 5,
+            "data_folder": "nested/aggregated_data",
+        }
+        with open(params_path, "w", encoding="utf-8") as f:
+            yaml.safe_dump(params, f)
+
+        generator = ReportGenerator()
+
+        assert os.path.realpath(generator.data_folder) == os.path.realpath(str(nested_data_dir))

@@ -39,125 +39,6 @@ class Plots(LazyNamespace):
         self.aggregate = self.explanations.aggregate
         super().__init__()
 
-    def contributions(
-        self,
-        top_n: int = 20,
-        top_k: int = 20,
-        *,
-        return_df: bool = False,
-        sort_by: SortBy = "contribution_abs",
-        display_by: DisplayBy = "contribution",
-        descending: bool = True,
-        missing: bool = True,
-        remaining: bool = True,
-        include_numeric_single_bin: bool = False,
-    ):
-        """Plots contributions for the overall model or a selected context.
-
-        Parameters
-        ----------
-        top_n : int
-            Number of top predictors to display.
-        top_k : int
-            Number of top unique values for each categorical predictor to display.
-        return_df : bool
-            If True, skip plotting and return the underlying dataframes instead.
-            When a context is selected, returns
-            ``(predictor_df, predictor_value_df)``; otherwise returns the same
-            pair computed against the overall model.
-        sort_by : str
-            Column to rank/select top predictors. One of
-            ``contribution``, ``contribution_abs``,
-            ``contribution_weighted``, ``contribution_weighted_abs``.
-            Default: ``"contribution_abs"``.
-        display_by : str
-            Column to use for the chart axis values.
-            Default: ``"contribution"``.
-        descending : bool
-            Sort most- or least-impactful first. Default: ``True``.
-        missing : bool
-            Include missing-value bins. Default: ``True``.
-        remaining : bool
-            Include an aggregated "remaining" row. Default: ``True``.
-        include_numeric_single_bin : bool
-            Include numeric predictors that have only a single bin.
-            Default: ``False``.
-
-        Returns
-        -------
-        tuple[go.Figure, list[go.Figure]]
-            - left: context header if context is selected, otherwise None
-            - right: overall contributions plot and a list of predictor contribution plots.
-
-        """
-        selected_context = cast("dict[str, str]", self.explanations.filter.get_selected_context())
-        if self.explanations.filter.is_context_selected():
-            if return_df:
-                return self.plot_contributions_by_context(
-                    context=selected_context,
-                    top_n=top_n,
-                    top_k=top_k,
-                    return_df=True,
-                    sort_by=sort_by,
-                    display_by=display_by,
-                    descending=descending,
-                    missing=missing,
-                    remaining=remaining,
-                    include_numeric_single_bin=include_numeric_single_bin,
-                )
-            context_plot, overall_plot, predictor_plots = self.plot_contributions_by_context(
-                context=selected_context,
-                top_n=top_n,
-                top_k=top_k,
-                sort_by=sort_by,
-                display_by=display_by,
-                descending=descending,
-                missing=missing,
-                remaining=remaining,
-                include_numeric_single_bin=include_numeric_single_bin,
-            )
-
-            plots = [overall_plot, *predictor_plots]
-            for plot in [context_plot, *plots]:
-                plot.show()
-
-            return context_plot, plots
-
-        if return_df:
-            return self.plot_contributions_for_overall(
-                top_n=top_n,
-                top_k=top_k,
-                return_df=True,
-                sort_by=sort_by,
-                display_by=display_by,
-                descending=descending,
-                missing=missing,
-                remaining=remaining,
-                include_numeric_single_bin=include_numeric_single_bin,
-            )
-
-        logger.info(
-            "No context selected, plotting overall contributions. "
-            "Use explanations.filter.interactive() to select a context.",
-        )
-
-        overall_plot, predictor_plots = self.plot_contributions_for_overall(
-            top_n=top_n,
-            top_k=top_k,
-            sort_by=sort_by,
-            display_by=display_by,
-            descending=descending,
-            missing=missing,
-            remaining=remaining,
-            include_numeric_single_bin=include_numeric_single_bin,
-        )
-
-        plots = [overall_plot, *predictor_plots]
-        for plot in plots:
-            plot.show()
-
-        return None, plots
-
     @overload
     def plot_contributions_for_overall(
         self,
@@ -363,14 +244,21 @@ class Plots(LazyNamespace):
     ):
         """Build customdata array and hovertemplate for contribution plots.
 
-        Args:
-            df: DataFrame. Must contain a ``frequency_pct`` column when
-                ``include_frequency=True``.
-            x_col: Column used as the contribution value.
-            include_frequency: When False, omits the frequency row from the
-                hover tooltip (e.g. for the whole-model view where it is always 100%).
+        Parameters
+        ----------
+        df : pl.DataFrame
+            DataFrame. Must contain a ``frequency_pct`` column when
+            ``include_frequency=True``.
+        x_col : str
+            Column used as the contribution value.
+        include_frequency : bool, default True
+            When False, omits the frequency row from the hover tooltip
+            (e.g. for the whole-model view where it is always 100%).
 
-        Returns (customdata, hovertemplate).
+        Returns
+        -------
+        tuple[numpy.ndarray, str]
+            Tuple of (customdata, hovertemplate).
         """
         select_cols = [
             _COL.PREDICTOR_NAME.value,
@@ -452,17 +340,14 @@ class Plots(LazyNamespace):
         import plotly.graph_objects as go
 
         df_with_frequency_pct = self.aggregate.add_frequency_pct_to_df(
-            df, group_by=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
+            df, group_by=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
         )
 
         predictor_info = df.select([_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]).unique()
 
         plots = []
         for predictor, predictor_type in predictor_info.iter_rows():
-            predictor_subset = df_with_frequency_pct.filter(pl.col(_COL.PREDICTOR_NAME.value) == predictor)
-            predictor_df = (
-                predictor_subset.collect() if isinstance(predictor_subset, pl.LazyFrame) else predictor_subset
-            )
+            predictor_df = df_with_frequency_pct.filter(pl.col(_COL.PREDICTOR_NAME.value) == predictor)
 
             customdata, hovertemplate = self._build_hover_customdata(predictor_df, x_col)
 

@@ -7,6 +7,7 @@ published-title: "Report generated on"
 ```{{python}}
 # | echo: false
 # | output: false
+from pathlib import Path
 from pdstools.explanations import Explanations
 from pdstools.utils import report_utils, show_versions
 ```
@@ -16,7 +17,9 @@ from pdstools.utils import report_utils, show_versions
 The top-{TOP_N} predictors over the entire model, selected by their {SORT_BY_TEXT} to predictions
 
 ```{{python}}
-explanations = Explanations.from_aggregates("{DATA_FOLDER}")
+explanations = Explanations.from_aggregates(
+    data_folder="{DATA_FOLDER}",
+)
 
 try:
     overall_plot, predictor_plots = explanations.plot.plot_contributions_for_overall(
@@ -25,7 +28,7 @@ try:
         sort_by="{SORT_BY}",
         display_by="{DISPLAY_BY}"
     )
-    overall_plot.show()
+    display(overall_plot)
 except Exception as e:
     report_utils.quarto_plot_exception("Overall Predictor Contributions", e)
 ```
