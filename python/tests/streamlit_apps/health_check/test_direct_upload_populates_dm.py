@@ -1,10 +1,10 @@
-"""Regression test: HC "Direct file upload" must populate ``dm`` end-to-end.
+"""Regression test: HC upload must populate ``dm`` end-to-end.
 
 The sibling ``test_direct_upload_renders.py`` only asserts that the
-uploader widgets *appear* when the data-source dropdown is flipped.
-This test goes one step further: simulate uploading bundled model +
-predictor zips and assert that ``st.session_state["dm"]`` becomes a
-real :class:`ADMDatamart` with non-zero model count.
+uploader widgets appear immediately. This test goes one step further:
+simulate uploading bundled model + predictor zips and assert that
+``st.session_state["dm"]`` becomes a real :class:`ADMDatamart` with
+non-zero model count.
 
 Together with the renders-test, this closes the gap between "uploader
 exists" and "uploader works".
@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import polars as pl
 import pytest
 from streamlit.testing.v1 import AppTest
 
@@ -31,19 +32,10 @@ def test_direct_upload_populates_dm(hc_app_dir: Path) -> None:
 
     Steps:
     1. Run Home — auto-load lands a CDH-Sample ``dm``.
-    2. Switch to "Direct file upload" (delete dm, set data_source).
-    3. Re-run, then drop the bundled model + predictor zips into the
+        2. Drop the bundled model + predictor zips into the
        two file_uploader widgets.
-    4. Re-run again — assert ``dm`` is a real ``ADMDatamart`` with
-       non-zero models.
-
-    .. note::
-
-       Currently ``xfail``ed because ``ADMDatamart.from_ds_export``
-       fails schema inference on in-memory ZIP readers (the path the
-       Streamlit uploader takes). See
-       ``docs/plans/health-check/in-memory-zip-upload-schema-error.md``
-       — once that lands, drop the xfail marker.
+        3. Verify upload alone does not import, then click ``Import``.
+        4. Assert ``dm`` is a real ``ADMDatamart`` with non-zero models.
     """
     if not MODEL_ZIP.exists() or not PREDICTOR_ZIP.exists():
         pytest.skip(f"Required HC sample zips missing in {DATA_DIR}")
@@ -54,15 +46,6 @@ def test_direct_upload_populates_dm(hc_app_dir: Path) -> None:
     assert "dm" in at.session_state
 
     autoloaded_dm = at.session_state["dm"]
-
-    # Switch the dropdown via its on_change semantics (mirrors
-    # test_direct_upload_renders.py).
-    del at.session_state["dm"]
-    at.session_state["data_source"] = "Direct file upload"
-    at.session_state["_data_source"] = "Direct file upload"
-    at.run()
-    assert not at.exception, f"HC Home raised after switching source: {at.exception}"
-    assert "dm" not in at.session_state, "Switching to 'Direct file upload' must not silently re-load CDH Sample"
 
     # Find the model + predictor uploaders by label and drop the bundled zips in.
     uploaders = {u.label: u for u in at.get("file_uploader")}
@@ -77,7 +60,24 @@ def test_direct_upload_populates_dm(hc_app_dir: Path) -> None:
     at.run()
 
     assert not at.exception, f"HC Home raised after upload: {at.exception}"
-    assert "dm" in at.session_state, "After uploading model + predictor zips, st.session_state['dm'] must be populated"
+    assert "dm" not in at.session_state, "Uploading files must wait for the explicit Import action"
+
+    category_mapping = next(text_area for text_area in at.text_area if text_area.label == "Predictor category mappings")
+    category_mapping.set_value("Uploaded=.*")
+    regex_checkbox = next(
+        checkbox for checkbox in at.checkbox if checkbox.label == "Use regular expressions for predictor mappings"
+    )
+    regex_checkbox.set_value(True)
+    at.run()
+
+    import_button = next(button for button in at.button if button.label == "Import")
+    import_button.click().run()
+
+    assert not at.exception, f"HC Home raised after import: {at.exception}"
+    assert "dm" in at.session_state, (
+        "After uploading model + predictor zips, st.session_state['dm'] must be populated; "
+        f"errors: {[error.value for error in at.error]}"
+    )
     dm = at.session_state["dm"]
     assert isinstance(dm, ADMDatamart), f"Expected ADMDatamart, got {type(dm).__name__}"
     assert dm is not autoloaded_dm, (
@@ -86,18 +86,7 @@ def test_direct_upload_populates_dm(hc_app_dir: Path) -> None:
 
     model_count = dm.aggregates.last().select("ModelID").unique().collect().height
     assert model_count > 0, f"Uploaded datamart must have at least one model, got {model_count}"
-
-
-# The "uploader populates dm end-to-end" assertion fails today because
-# in-memory ZIP ingest hits a polars schema-inference bug (see plan
-# file). Mark it xfail so the test runs in CI and starts passing
-# automatically once the parser is fixed — at which point the marker
-# (and the plan file) should be removed.
-test_direct_upload_populates_dm = pytest.mark.xfail(
-    reason=(
-        "ADMDatamart.from_ds_export fails schema inference on in-memory "
-        "ZIP readers — see docs/plans/health-check/"
-        "in-memory-zip-upload-schema-error.md"
-    ),
-    strict=False,
-)(test_direct_upload_populates_dm)
+    categories = (
+        dm.predictor_data.select("PredictorCategory").filter(pl.col("PredictorCategory") == "Uploaded").collect()
+    )
+    assert categories.height > 0

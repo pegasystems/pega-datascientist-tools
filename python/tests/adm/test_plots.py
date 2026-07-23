@@ -223,6 +223,29 @@ def test_over_time_multi_by(sample2: ADMDatamart):
     ]
 
 
+def test_over_time_response_count_change_normalizes_missing_periods():
+    data = pl.DataFrame(
+        {
+            "SnapshotTime": [datetime(2024, 1, 1), datetime(2024, 1, 15)],
+            "ModelID": ["model-1", "model-1"],
+            "Performance": [0.75, 0.78],
+            "ResponseCount": [100, 300],
+            "Positives": [10, 30],
+        },
+    ).lazy()
+    datamart = ADMDatamart(model_df=data)
+
+    weekly = datamart.plot.over_time(
+        metric="ResponseCount",
+        by="ModelID",
+        every="1w",
+        cumulative=False,
+        return_df=True,
+    ).collect()
+
+    assert weekly.get_column("ResponseCount_change").to_list() == [None, 100.0]
+
+
 def test_proposition_success_rates(sample: ADMDatamart):
     df = sample.plot.proposition_success_rates(return_df=True)
 
@@ -259,6 +282,24 @@ def test_score_distribution(sample: ADMDatamart):
     assert isinstance(plot, Figure)
     # Score distribution overlays a propensity line on a binning bar chart.
     assert len(plot.data) == 2
+
+
+def test_score_distribution_falls_back_to_full_range_when_active_range_is_empty(
+    sample: ADMDatamart,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    model_id = "277a2c48-8888-5b71-911e-443d52c9b50f"
+
+    def out_of_bounds_active_range(model_ids: str):
+        assert model_ids == model_id
+        return pl.LazyFrame({"idx_min": [999], "idx_max": [1000]})
+
+    monkeypatch.setattr(sample, "active_ranges", out_of_bounds_active_range)
+
+    df = sample.plot.score_distribution(model_id=model_id, return_df=True)
+
+    assert not df.collect().is_empty()
+    assert df.filter(pl.col("PredictorName") != "Classifier").collect().is_empty()
 
 
 def test_multiple_score_distributions(sample: ADMDatamart):
@@ -363,6 +404,108 @@ def test_predictor_performance(sample: ADMDatamart):
 
     plot = sample.plot.predictor_performance()
     assert isinstance(plot, Figure)
+
+
+def test_predictor_performance_handles_null_predictor_category_after_custom_categorization():
+    model_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1"],
+            "Configuration": ["Config"],
+            "SnapshotTime": [datetime(2024, 1, 1)],
+            "Positives": [10.0],
+            "Negatives": [90.0],
+            "ResponseCount": [100.0],
+            "Performance": [0.7],
+            "Channel": ["Web"],
+            "Direction": ["Inbound"],
+            "Issue": ["Issue"],
+            "Group": ["Group"],
+            "Name": ["Action"],
+        },
+    )
+    predictor_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m1", "m1"],
+            "PredictorName": ["Customer.Propensity", "Customer.Age", "Classifier"],
+            "PredictorCategory": [None, None, None],
+            "EntryType": ["Active", "Active", "Classifier"],
+            "BinIndex": [1, 1, 1],
+            "BinPositives": [8.0, 4.0, 1.0],
+            "BinNegatives": [12.0, 16.0, 1.0],
+            "BinResponseCount": [20.0, 20.0, 2.0],
+            "ResponseCount": [20.0, 20.0, 2.0],
+            "Performance": [0.72, 0.62, 0.5],
+            "SnapshotTime": [datetime(2024, 1, 1), datetime(2024, 1, 1), datetime(2024, 1, 1)],
+            "Type": ["numeric", "numeric", "symbolic"],
+        },
+    )
+    datamart = ADMDatamart(model_df=model_df, predictor_df=predictor_df)
+    datamart.apply_predictor_categorization(
+        {
+            "External Model": [
+                "Propensity",
+                "Score",
+                "Class",
+                "Classifier",
+                "Classification",
+                "Probability",
+                "Prediction",
+                "Predicted",
+                "ModelScore",
+            ],
+        },
+    )
+
+    plot = datamart.plot.predictor_performance()
+
+    assert isinstance(plot, Figure)
+    assert {trace.name for trace in plot.data} == {"Customer", "External Model"}
+
+
+def test_predictor_performance_legend_order_is_alphabetical_without_reordering_traces():
+    model_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1"],
+            "Configuration": ["Config"],
+            "SnapshotTime": [datetime(2024, 1, 1)],
+            "Positives": [10.0],
+            "Negatives": [90.0],
+            "ResponseCount": [100.0],
+            "Performance": [0.7],
+            "Channel": ["Web"],
+            "Direction": ["Inbound"],
+            "Issue": ["Issue"],
+            "Group": ["Group"],
+            "Name": ["Action"],
+        },
+    )
+    predictor_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m1", "m1"],
+            "PredictorName": ["Strong.Zeta", "Weak.Alpha", "Classifier"],
+            "PredictorCategory": ["Zeta", "Alpha", "Alpha"],
+            "EntryType": ["Active", "Active", "Classifier"],
+            "BinIndex": [1, 1, 1],
+            "BinPositives": [9.0, 6.0, 1.0],
+            "BinNegatives": [1.0, 4.0, 1.0],
+            "BinResponseCount": [10.0, 10.0, 2.0],
+            "ResponseCount": [10.0, 10.0, 2.0],
+            "Performance": [0.9, 0.6, 0.5],
+            "SnapshotTime": [datetime(2024, 1, 1), datetime(2024, 1, 1), datetime(2024, 1, 1)],
+            "Type": ["numeric", "numeric", "symbolic"],
+        },
+    )
+    datamart = ADMDatamart(model_df=model_df, predictor_df=predictor_df)
+
+    plot = datamart.plot.predictor_performance()
+
+    assert isinstance(plot, Figure)
+    visible_legend_traces = [trace for trace in plot.data if trace.showlegend]
+    assert [trace.name for trace in visible_legend_traces] == ["Zeta", "Alpha"]
+    assert [trace.name for trace in sorted(visible_legend_traces, key=lambda trace: trace.legendrank)] == [
+        "Alpha",
+        "Zeta",
+    ]
 
 
 def test_predictor_category_performance(sample: ADMDatamart):
@@ -620,7 +763,6 @@ def test_predictor_category_color_map_stable(sample: ADMDatamart):
     """predictor_category_color_map returns a non-empty, stable mapping."""
     color_map = sample.predictor_category_color_map
     assert isinstance(color_map, dict)
-    # Fixture has 3 predictor categories (Customer, IH, Param) -> stable hex colours.
     assert color_map == {
         "Customer": "#001F5F",
         "IH": "#10A5AC",
@@ -628,6 +770,123 @@ def test_predictor_category_color_map_stable(sample: ADMDatamart):
     }
     # Calling twice returns the same object (cached_property)
     assert sample.predictor_category_color_map is color_map
+
+
+def test_predictor_category_color_map_pins_standard_categories(sample: ADMDatamart):
+    initial_color_map = sample.predictor_category_color_map
+
+    sample.apply_predictor_categorization(
+        {
+            "External Model": "Score",
+            "Custom Signal": "Age",
+        },
+    )
+
+    color_map = sample.predictor_category_color_map
+
+    assert color_map is not initial_color_map
+    assert color_map["Customer"] == "#001F5F"
+    assert color_map["IH"] == "#10A5AC"
+    assert color_map["Param"] == "#F76923"
+    assert color_map["External Model"] == "#DE4342"
+    assert "Custom Signal" in color_map
+    assert color_map["Custom Signal"] not in {
+        color_map["Customer"],
+        color_map["IH"],
+        color_map["Param"],
+        color_map["External Model"],
+    }
+
+
+def test_predictor_category_color_map_pins_primary_distinct_from_ih():
+    datamart = ADMDatamart(
+        model_df=pl.LazyFrame(
+            {
+                "ModelID": ["m1"],
+                "Configuration": ["Config"],
+                "SnapshotTime": [datetime(2024, 1, 1)],
+                "Positives": [10.0],
+                "Negatives": [90.0],
+                "ResponseCount": [100.0],
+                "Performance": [0.7],
+                "Channel": ["Web"],
+                "Direction": ["Inbound"],
+                "Issue": ["Issue"],
+                "Group": ["Group"],
+                "Name": ["Action"],
+            },
+        ),
+        predictor_df=pl.LazyFrame(
+            {
+                "ModelID": ["m1", "m1"],
+                "PredictorName": ["PrimarySignal", "IH.Foo"],
+                "PredictorCategory": [None, None],
+                "EntryType": ["Active", "Active"],
+                "BinIndex": [1, 1],
+                "BinPositives": [8.0, 4.0],
+                "BinNegatives": [12.0, 16.0],
+                "BinResponseCount": [20.0, 20.0],
+                "ResponseCount": [20.0, 20.0],
+                "Performance": [0.72, 0.62],
+                "SnapshotTime": [datetime(2024, 1, 1), datetime(2024, 1, 1)],
+                "Type": ["numeric", "numeric"],
+            },
+        ),
+    )
+
+    color_map = datamart.predictor_category_color_map
+
+    assert color_map["IH"] == "#10A5AC"
+    assert color_map["Primary"] == "#63666F"
+
+
+def test_predictor_category_color_map_no_limit_on_categories():
+    """Many custom categories each get a distinct color (no hard limit)."""
+    n_categories = 40
+    model_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1"],
+            "Configuration": ["Config"],
+            "SnapshotTime": [datetime(2024, 1, 1)],
+            "Positives": [10.0],
+            "Negatives": [90.0],
+            "ResponseCount": [100.0],
+            "Performance": [0.7],
+            "Channel": ["Web"],
+            "Direction": ["Inbound"],
+            "Issue": ["Issue"],
+            "Group": ["Group"],
+            "Name": ["Action"],
+        },
+    )
+    categories = [f"Custom{i:02d}" for i in range(n_categories)]
+    predictor_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1"] * n_categories,
+            "PredictorName": [f"Pred{i}" for i in range(n_categories)],
+            "PredictorCategory": categories,
+            "EntryType": ["Active"] * n_categories,
+            "BinIndex": [1] * n_categories,
+            "BinPositives": [8.0] * n_categories,
+            "BinNegatives": [12.0] * n_categories,
+            "BinResponseCount": [20.0] * n_categories,
+            "ResponseCount": [20.0] * n_categories,
+            "Performance": [0.7] * n_categories,
+            "SnapshotTime": [datetime(2024, 1, 1)] * n_categories,
+            "Type": ["numeric"] * n_categories,
+        },
+    )
+    datamart = ADMDatamart(model_df=model_df, predictor_df=predictor_df)
+
+    color_map = datamart.predictor_category_color_map
+
+    # Every category is present and each color is a valid hex string.
+    assert set(color_map) == set(categories)
+    for color in color_map.values():
+        assert color.startswith("#") and len(color) == 7
+
+    # No hard limit: every one of the 40 custom categories gets a unique color.
+    assert len(set(color_map.values())) == n_categories
 
 
 def test_predictor_performance_consistent_colors(sample: ADMDatamart):
@@ -666,3 +925,21 @@ def test_predictor_category_performance_consistent_colors(sample: ADMDatamart):
         assert trace.marker.color == color_map[trace.name], (
             f"Category {trace.name!r}: expected {color_map[trace.name]!r}, got {trace.marker.color!r}"
         )
+
+
+def test_predictor_count_colors_by_type_and_mutes_inactive(sample: ADMDatamart):
+    """Predictor counts color by Type while inactive boxes are subdued."""
+    fig = sample.plot.predictor_count(by=["Type", "EntryType", "Configuration"])
+    assert isinstance(fig, Figure)
+
+    traces = {}
+    for trace in fig.data:
+        entry_type = "Inactive" if any(" / Inactive / " in value for value in trace.y) else "Active"
+        traces[(trace.name, entry_type)] = trace
+
+    for predictor_type in {"Overall", "numeric", "symbolic"}:
+        active_trace = traces[(predictor_type, "Active")]
+        inactive_trace = traces[(predictor_type, "Inactive")]
+        assert inactive_trace.marker.color == active_trace.marker.color
+        assert inactive_trace.opacity == 0.55
+        assert inactive_trace.showlegend is False

@@ -52,6 +52,10 @@ test_consolidation.py
 # Local healthcheck batch outputs (may contain customer names)
 /healthcheck_reports/
 
+# Generated Quarto report artifacts
+/python/pdstools/reports/.quarto/
+/python/pdstools/reports/HealthCheck_files/
+
 # Local data exports (may contain customer names or customer data)
 /export_*.json
 

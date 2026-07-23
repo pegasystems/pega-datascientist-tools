@@ -50,7 +50,15 @@ class _PerformancePlotsMixin(_PlotsBase):
             By what time period to group, by default "1d", see https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html
             for periods.
         cumulative : bool, optional
-            Whether to show cumulative values or period-over-period changes, by default True
+            Whether to show the cumulative metric value at each observed time
+            bucket or the period-over-period change, by default True. When
+            False, the method first keeps the last observed value per Polars
+            dynamic time bucket, then differences consecutive observed buckets
+            within each series. If one or more buckets are missing, count-like
+            deltas are divided by the number of elapsed buckets so a multi-week
+            gap in a weekly chart is shown as an average change per week, not as
+            a single-week spike. Missing buckets are only used to count elapsed
+            time; they are not plotted or value-interpolated.
         query : Optional[QUERY], optional
             The query to apply to the data, by default None
         facet : Optional[str], optional
@@ -176,9 +184,25 @@ class _PerformancePlotsMixin(_PlotsBase):
                     group_by=grouping_columns,
                 )
                 .agg(pl.last(metric))
+                .sort(*grouping_columns, "SnapshotTime")
+            )
+            period_index = (
+                df.collect()
+                .upsample("SnapshotTime", every=every, group_by=grouping_columns)
+                .sort(*grouping_columns, "SnapshotTime")
                 .with_columns(
-                    pl.col(metric).diff().over(grouping_columns).alias(plot_metric),
+                    pl.int_range(pl.len()).over(grouping_columns).alias("__period_index"),
                 )
+                .select([*grouping_columns, "SnapshotTime", "__period_index"])
+            )
+            periods_elapsed = pl.col("__period_index").diff().over(grouping_columns).clip(lower_bound=1)
+            df = (
+                df.join(period_index.lazy(), on=[*grouping_columns, "SnapshotTime"])
+                .sort(*grouping_columns, "SnapshotTime")
+                .with_columns(
+                    (pl.col(metric).diff().over(grouping_columns) / periods_elapsed).alias(plot_metric),
+                )
+                .drop("__period_index")
             )
 
         if return_df:

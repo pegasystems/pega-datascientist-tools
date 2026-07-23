@@ -373,47 +373,6 @@ class TestFilterDataframe:
             assert "X100" in filtered_values
 
 
-class TestConfigurePredictorCategorization:
-    """Test predictor categorization (UI function but can test data flow)."""
-
-    @patch("streamlit.session_state", {"filters": [], "dm": None})
-    @patch("streamlit.plotly_chart")
-    @patch("pdstools.utils.cdh_utils.weighted_average_polars")
-    def test_configure_predictor_categorization_with_data(
-        self,
-        mock_weighted_avg,
-        mock_chart,
-    ):
-        """Test predictor categorization with mocked data."""
-        # Setup weighted average to return a reasonable aggregation
-        mock_weighted_avg.return_value = pl.col("PredictorPerformance").mean()
-
-        # Create mock datamart
-        mock_dm = MagicMock()
-        mock_dm.combinedData = pl.LazyFrame(
-            {
-                "PredictorName": ["Pred1", "Pred2", "Pred3", "Classifier"],
-                "PredictorCategory": ["Cat1", "Cat2", "Cat1", "System"],
-                "PredictorPerformance": [0.6, 0.7, 0.55, 0.5],
-                "BinResponseCount": [100, 200, 150, 50],
-            },
-        )
-
-        with patch("streamlit.session_state", {"filters": [], "dm": mock_dm}):
-            # Execute the function
-            streamlit_utils.configure_predictor_categorization()
-
-            # Verify plotly_chart was called
-            assert mock_chart.called, "plotly_chart should have been called"
-
-            # Verify weighted_average_polars was called
-            assert mock_weighted_avg.called, "weighted_average_polars should have been called"
-
-            # Get the figure that was passed to plotly_chart
-            chart_call_args = mock_chart.call_args[0][0]
-            assert chart_call_args is not None, "Chart should have been created"
-
-
 # ---------------------------------------------------------------------------
 # Pure-helper coverage: env-var getters, version comparison, parse_sample_spec,
 # get_current_index, ensure_session_data

@@ -14,6 +14,62 @@ def test_get_version_only():
     assert report_utils._get_version_only("1.0.0-alpha+001") == "1.0.0"
 
 
+def test_is_esbuild_available_via_override(tmp_path, monkeypatch):
+    """QUARTO_ESBUILD pointing at an existing file is enough."""
+    esbuild = tmp_path / "esbuild"
+    esbuild.write_text("#!/bin/sh\n")
+    monkeypatch.setenv("QUARTO_ESBUILD", str(esbuild))
+    assert report_utils.is_esbuild_available() is True
+
+
+def test_is_esbuild_available_on_path(monkeypatch):
+    """A system-wide esbuild on PATH satisfies the check."""
+    monkeypatch.delenv("QUARTO_ESBUILD", raising=False)
+    monkeypatch.setattr(report_utils._quarto.shutil, "which", lambda name: "/usr/bin/esbuild")
+    assert report_utils.is_esbuild_available() is True
+
+
+def test_is_esbuild_available_bundled_with_quarto(tmp_path, monkeypatch):
+    """esbuild bundled under the Quarto install tree is discovered."""
+    monkeypatch.delenv("QUARTO_ESBUILD", raising=False)
+    monkeypatch.setattr(report_utils._quarto.shutil, "which", lambda name: None)
+    quarto_bin = tmp_path / "quarto" / "bin"
+    (quarto_bin / "tools" / "x86_64").mkdir(parents=True)
+    (quarto_bin / "tools" / "x86_64" / "esbuild").write_text("#!/bin/sh\n")
+    monkeypatch.setattr(
+        report_utils._quarto,
+        "get_quarto_with_version",
+        lambda: (quarto_bin / "quarto", "1.4.0"),
+    )
+    assert report_utils.is_esbuild_available() is True
+
+
+def test_is_esbuild_available_missing(tmp_path, monkeypatch):
+    """No override, nothing on PATH, and no bundled binary -> False."""
+    monkeypatch.delenv("QUARTO_ESBUILD", raising=False)
+    monkeypatch.setattr(report_utils._quarto.shutil, "which", lambda name: None)
+    quarto_bin = tmp_path / "quarto" / "bin"
+    quarto_bin.mkdir(parents=True)
+    monkeypatch.setattr(
+        report_utils._quarto,
+        "get_quarto_with_version",
+        lambda: (quarto_bin / "quarto", "1.4.0"),
+    )
+    assert report_utils.is_esbuild_available() is False
+
+
+def test_is_esbuild_available_no_quarto(monkeypatch):
+    """When Quarto itself can't be found, esbuild is reported unavailable."""
+    monkeypatch.delenv("QUARTO_ESBUILD", raising=False)
+    monkeypatch.setattr(report_utils._quarto.shutil, "which", lambda name: None)
+
+    def _raise():
+        raise FileNotFoundError("no quarto")
+
+    monkeypatch.setattr(report_utils._quarto, "get_quarto_with_version", _raise)
+    assert report_utils.is_esbuild_available() is False
+
+
 def test_polars_col_exists():
     """Test checking if column exists in dataframe."""
     df = pl.DataFrame({"A": [1, 2, 3], "B": ["a", "b", "c"]}).lazy()

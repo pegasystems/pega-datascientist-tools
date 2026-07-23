@@ -1550,7 +1550,7 @@ Showing the number of active and inactive predictors per model.
 if datamart.predictor_data is not None:
     facet_cols = 2
     try:
-        fig = datamart.plot.predictor_count(by=["Type","EntryType","Configuration",], query=active_models_filter_expr)
+        fig = datamart.plot.predictor_count(by=["Type", "EntryType", "Configuration"], query=active_models_filter_expr)
         fig.update_layout(title=f"Predictor Counts<br><sup>models updated since {active_models_threshold_date_string}</sup>")
         fig.show()
     except Exception as e:

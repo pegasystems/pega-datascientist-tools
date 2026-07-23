@@ -6,6 +6,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Added a programmatic Health Check import API for model, predictor, and
+  prediction sources, including configurable delimited-text, Excel, timestamp,
+  and missing-field repair options.
+- `pega_io.read_data` now supports TSV/TXT inputs, reader option forwarding,
+  and in-memory Excel uploads.
+
+### Changed
+
+- ADM Health Check app data import now shows upload controls immediately,
+  keeps file paths as an optional fallback, and uses the new import API for
+  advanced parsing and processed parquet cache output.
+- ADM Health Check prediction imports now infer the full schema for Prediction
+  Table exports so late-arriving prediction fields are recognized, and report,
+  Excel, and individual model-report generation default to the import ``HC``
+  folder when processed parquet output was kept.
+
 ## [5.0.0] — 2026-06-25
 
 Major release. **Breaking changes** — see

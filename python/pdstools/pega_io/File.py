@@ -26,11 +26,16 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_REPO_DATA_DIR = Path(__file__).parents[3] / "data"
+_RAW_GITHUB_DATA_PREFIX = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data"
+
 
 # Extensions that read_data knows how to handle.
 _SUPPORTED_EXTENSIONS: set[str] = {
     ".parquet",
     ".csv",
+    ".tsv",
+    ".txt",
     ".arrow",
     ".feather",  # Alias for .arrow/.ipc
     ".ipc",  # Arrow IPC format
@@ -63,6 +68,18 @@ def _read_excel(path, **kwargs) -> pl.DataFrame:
             ["fastexcel"],
             namespace="pega_io.read_data (Excel support)",
         ) from None
+
+
+def _local_repo_data_path(path: str) -> str | None:
+    """Return the checkout-local data path for this repo's raw sample-data URL."""
+    normalized_path = path.rstrip("/")
+    if not normalized_path.startswith(_RAW_GITHUB_DATA_PREFIX):
+        return None
+    if not _REPO_DATA_DIR.is_dir():
+        return None
+    relative_path = normalized_path.removeprefix(_RAW_GITHUB_DATA_PREFIX).strip("/")
+    local_path = _REPO_DATA_DIR / relative_path if relative_path else _REPO_DATA_DIR
+    return str(local_path) if local_path.is_dir() else None
 
 
 def _is_artifact(name: str) -> bool:
@@ -107,8 +124,14 @@ def _extract_zip(archive_path: Path) -> str:
     tmp_dir = tempfile.mkdtemp(prefix="pdstools_zip_")
     # lgtm [py/path-injection]
     # CodeQL suppression: archive_path is user-specified - expected for data reading library
-    with zipfile.ZipFile(archive_path, "r") as zf:
-        zf.extractall(tmp_dir)
+    try:
+        with zipfile.ZipFile(archive_path, "r") as zf:
+            zf.extractall(tmp_dir)
+    except zipfile.BadZipFile as exc:
+        raise ValueError(
+            "Could not open ZIP archive. The file has a .zip extension or ZIP header, "
+            "but it is not a complete ZIP archive that Python can extract.",
+        ) from exc
     return tmp_dir
 
 
@@ -116,17 +139,14 @@ def _scan_by_extension(
     file: str | Path | BytesIO,
     extension: str,
     *,
-    csv_opts: dict | None = None,
-    ndjson_opts: dict | None = None,
-    parquet_opts: dict | None = None,
-    ipc_opts: dict | None = None,
+    read_options: dict | None = None,
 ) -> pl.LazyFrame:
     """Single source of truth for extension → polars-scanner dispatch.
 
     Routes a path or :class:`BytesIO` to the appropriate ``pl.scan_*`` /
     ``pl.read_*`` based on the file extension. Generic Pega-friendly
     defaults (``null_values``, ``try_parse_dates``) are applied to CSV
-    inputs; callers can override or extend them via ``csv_opts``.
+    inputs; callers can override or extend them via ``read_options``.
 
     Container formats (``.zip``, ``.gz``, ``.tar``) are *not* handled
     here — the caller (``read_data`` / ``_read_from_bytesio``) is
@@ -139,9 +159,9 @@ def _scan_by_extension(
     extension : str
         Lowercase or mixed-case file extension including the leading
         dot (e.g. ``".csv"``).
-    csv_opts, ndjson_opts, parquet_opts, ipc_opts : dict | None
-        Per-format keyword overrides forwarded to the matching polars
-        reader. Provided opts override the built-in defaults.
+    read_options : dict, optional
+        Keyword arguments forwarded to the matching Polars reader. Provided
+        options override the built-in CSV defaults.
 
     Returns
     -------
@@ -150,35 +170,35 @@ def _scan_by_extension(
     Raises
     ------
     ValueError
-        If the extension is not supported, or if ``.xlsx``/``.xls`` is
-        passed via :class:`BytesIO` (Excel reads only support paths).
+        If the extension is not supported.
     """
     is_bytesio = isinstance(file, BytesIO)
     ext = (extension or "").lower()
+    polars_options = dict(read_options or {})
 
-    if ext == ".csv":
+    if ext in {".csv", ".tsv", ".txt"}:
         opts: dict = {
             "null_values": ["", "NA", "N/A", "NULL"],
             "try_parse_dates": True,
         }
-        if csv_opts:
-            opts.update(csv_opts)
+        if ext in {".tsv", ".txt"}:
+            opts["separator"] = "\t"
+        opts.update(polars_options)
         if is_bytesio:
             cast(BytesIO, file).seek(0)
             return pl.read_csv(file, **opts).lazy()
         return pl.scan_csv(file, **opts)
 
     if ext in {".json", ".ndjson", ".jsonl"}:
-        opts = dict(ndjson_opts or {})
         if is_bytesio:
             cast(BytesIO, file).seek(0)
             try:
-                return pl.read_ndjson(file, **opts).lazy()
+                return pl.read_ndjson(file, **polars_options).lazy()
             except (pl.exceptions.ComputeError, pl.exceptions.SchemaError, ValueError) as exc:
                 logger.debug("read_ndjson failed for BytesIO: %s", exc)
                 return _json_pxresults_fallback(file)
         try:
-            return pl.scan_ndjson(file, **opts)
+            return pl.scan_ndjson(file, **polars_options)
         except (pl.exceptions.ComputeError, pl.exceptions.SchemaError, OSError) as exc:  # pragma: no cover
             logger.debug("scan_ndjson failed for %s: %s", file, exc)
             try:
@@ -188,23 +208,21 @@ def _scan_by_extension(
                 return _json_pxresults_fallback(file)
 
     if ext == ".parquet":
-        opts = dict(parquet_opts or {})
         if is_bytesio:
             cast(BytesIO, file).seek(0)
-            return pl.read_parquet(file, **opts).lazy()
-        return pl.scan_parquet(file, **opts)
+            return pl.read_parquet(file, **polars_options).lazy()
+        return pl.scan_parquet(file, **polars_options)
 
     if ext in {".arrow", ".feather", ".ipc"}:
-        opts = dict(ipc_opts or {})
         if is_bytesio:
             cast(BytesIO, file).seek(0)
-            return pl.read_ipc(file, **opts).lazy()
-        return pl.scan_ipc(file, **opts)
+            return pl.read_ipc(file, **polars_options).lazy()
+        return pl.scan_ipc(file, **polars_options)
 
     if ext in {".xlsx", ".xls"}:
         if is_bytesio:
-            raise ValueError(f"Unsupported file type for BytesIO: {extension}")
-        return _read_excel(file).lazy()
+            cast(BytesIO, file).seek(0)
+        return _read_excel(file, **polars_options).lazy()
 
     raise ValueError(f"Unsupported file type: {extension}")
 
@@ -226,7 +244,12 @@ def _json_pxresults_fallback(file: str | Path | BytesIO) -> pl.LazyFrame:
     return pl.from_dicts(json.loads(raw)["pxResults"]).lazy()
 
 
-def _read_from_bytesio(file: BytesIO, extension: str) -> pl.LazyFrame:
+def _read_from_bytesio(
+    file: BytesIO,
+    extension: str,
+    *,
+    read_options: dict | None = None,
+) -> pl.LazyFrame:
     """Read data from a BytesIO object (e.g., from Streamlit file upload).
 
     Container formats (``.gz``, ``.zip`` containing ``data.json``) are
@@ -263,18 +286,27 @@ def _read_from_bytesio(file: BytesIO, extension: str) -> pl.LazyFrame:
 
     # Handle .zip archives (extract data.json)
     if extension == ".zip":
-        with zipfile.ZipFile(file, "r") as zf:
-            if "data.json" in zf.namelist():
-                with zf.open("data.json") as data_file:
-                    return pl.read_ndjson(BytesIO(data_file.read())).lazy()
-            # Try to find data.json in subdirectories
-            for name in zf.namelist():
-                if name.endswith("data.json"):
-                    with zf.open(name) as data_file:
-                        return pl.read_ndjson(BytesIO(data_file.read())).lazy()
-        raise FileNotFoundError("Cannot find 'data.json' in zip archive")
+        tmp_dir = tempfile.mkdtemp(prefix="pdstools_zip_")
+        try:
+            with zipfile.ZipFile(file, "r") as zf:
+                if "data.json" in zf.namelist():
+                    with zf.open("data.json") as data_file:
+                        return pl.read_ndjson(BytesIO(data_file.read()), **(read_options or {})).lazy()
+                # Try to find data.json in subdirectories
+                for name in zf.namelist():
+                    if name.endswith("data.json"):
+                        with zf.open(name) as data_file:
+                            return pl.read_ndjson(BytesIO(data_file.read()), **(read_options or {})).lazy()
+                zf.extractall(tmp_dir)
+        except zipfile.BadZipFile as exc:
+            raise ValueError(
+                "Could not open ZIP archive. The uploaded file has a .zip extension or ZIP header, "
+                "but it is not a complete ZIP archive that Python can extract.",
+            ) from exc
+        _clean_artifacts(tmp_dir)
+        return read_data(tmp_dir, read_options=read_options)
 
-    return _scan_by_extension(file, extension)
+    return _scan_by_extension(file, extension, read_options=read_options)
 
 
 def scan_parquet_path(source: str | Path | list[str] | list[Path]) -> pl.LazyFrame:
@@ -309,10 +341,15 @@ def scan_parquet_path(source: str | Path | list[str] | list[Path]) -> pl.LazyFra
     return _scan_by_extension(source, ".parquet")
 
 
-def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
+def read_data(
+    path: str | Path | BytesIO,
+    *,
+    read_options: dict | None = None,
+) -> pl.LazyFrame:
     """Read data from various file formats and sources.
 
-    Supports multiple formats: parquet, csv, arrow, feather, ndjson, json, xlsx, xls, zip, tar, tar.gz, tgz, gz.
+    Supports multiple formats: parquet, csv, tsv, txt, arrow, feather, ndjson,
+    json, xlsx, xls, zip, tar, tar.gz, tgz, and gz.
     Handles both individual files and directories (including Hive-partitioned structures).
     Archives (zip, tar) are automatically extracted to temporary directories.
     Gzip files (.gz) are automatically decompressed.
@@ -324,19 +361,14 @@ def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
         When using BytesIO (e.g., from Streamlit file uploads), the object must have
         a 'name' attribute indicating the file extension.
 
-        Supported formats:
-
-        - Parquet files or directories
-        - CSV files
-        - Arrow/IPC/Feather files
-        - NDJSON/JSONL files
-        - Excel files (.xlsx, .xls — requires the optional ``fastexcel`` package)
-        - GZIP compressed files (.gz, .json.gz, .csv.gz, etc.)
-        - ZIP archives including Pega Dataset Export format (extracted automatically)
-        - TAR archives including .tar.gz and .tgz (extracted automatically)
-        - Hive-partitioned directories (scanned recursively)
-        - Glob patterns (e.g. ``"data/**/*.parquet"``) — dispatched
-          directly to the matching polars lazy scanner.
+        Supported formats include parquet files or directories, CSV/TSV/TXT,
+        Arrow/IPC/Feather, NDJSON/JSONL/JSON, Excel files (requires the optional
+        ``fastexcel`` package), GZIP-compressed files, ZIP/TAR archives,
+        Hive-partitioned directories, and glob patterns such as
+        ``"data/**/*.parquet"``.
+    read_options : dict, optional
+        Keyword arguments forwarded to the matching Polars reader. CSV defaults
+        remain Pega-friendly; TSV and TXT inputs default to a tab separator.
 
     Returns
     -------
@@ -404,7 +436,7 @@ def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
         if not hasattr(path, "name"):
             raise ValueError("BytesIO object must have a 'name' attribute indicating file extension")
         _, extension = os.path.splitext(path.name)
-        return _read_from_bytesio(path, extension)
+        return _read_from_bytesio(path, extension, read_options=read_options)
 
     # Glob patterns: dispatch directly to polars' lazy scanners, which
     # handle ``*``/``**`` natively. Detect a glob by the presence of any
@@ -419,6 +451,8 @@ def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
         for ext in (
             ".parquet",
             ".csv",
+            ".tsv",
+            ".txt",
             ".arrow",
             ".feather",
             ".ipc",
@@ -429,14 +463,7 @@ def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
             if ext in lower:
                 glob_ext = ext
                 break
-        if glob_ext == ".parquet" or glob_ext is None:
-            return pl.scan_parquet(path_str)
-        if glob_ext == ".csv":
-            return pl.scan_csv(path_str)
-        if glob_ext in {".arrow", ".feather", ".ipc"}:
-            return pl.scan_ipc(path_str)
-        if glob_ext in {".ndjson", ".jsonl", ".json"}:
-            return pl.scan_ndjson(path_str)
+        return _scan_by_extension(path_str, glob_ext or ".parquet", read_options=read_options)
 
     # lgtm [py/path-injection]
     # CodeQL suppression: User-controlled paths are expected in a data reading library.
@@ -495,19 +522,19 @@ def read_data(path: str | Path | BytesIO) -> pl.LazyFrame:
                 else:
                     # Create a fake name attribute for extension detection
                     object.__setattr__(decompressed, "name", base_name)
-                return _read_from_bytesio(decompressed, inner_ext)
+                return _read_from_bytesio(decompressed, inner_ext, read_options=read_options)
         elif extension == ".tar":
             tmp_dir = _extract_tar(original_path)
             _clean_artifacts(tmp_dir)
-            return read_data(tmp_dir)
+            return read_data(tmp_dir, read_options=read_options)
         elif extension == ".zip":
             tmp_dir = _extract_zip(original_path)
             _clean_artifacts(tmp_dir)
-            return read_data(tmp_dir)
+            return read_data(tmp_dir, read_options=read_options)
 
     if extension is None:
         raise ValueError("No data files found in directory")
-    return _scan_by_extension(path, extension)
+    return _scan_by_extension(path, extension, read_options=read_options)
 
 
 def read_ds_export(
@@ -568,7 +595,8 @@ def read_ds_export(
         return read_data(filename)
 
     filename_str = os.fspath(filename)
-    path_str = os.fspath(path)
+    remote_path_str = os.fspath(path)
+    path_str = _local_repo_data_path(remote_path_str) or remote_path_str
 
     # ADM-specific: Smart file finding for model_data/predictor_data patterns.
     _TARGET_NAMES = {"model_data", "predictor_data", "value_finder", "prediction_data"}
@@ -589,7 +617,7 @@ def read_ds_export(
     # locally, try treating ``path/filename`` as a URL.
     if file is None:
         logger.debug("Could not find file in directory, checking if URL")
-        url = f"{path_str}/{filename_str}"
+        url = f"{remote_path_str.rstrip('/')}/{filename_str}"
 
         try:
             import requests
@@ -723,13 +751,17 @@ def _read_pega_export(
             file.seek(0)
             file = BytesIO(gzip.decompress(file.read()))
 
-    csv_opts: dict = {
-        "separator": separator,
-        "infer_schema_length": infer_schema_length,
-        "schema_overrides": {"PYMODELID": pl.Utf8},
-        "ignore_errors": ignore_errors,
-    }
-    ndjson_opts: dict = {"infer_schema_length": infer_schema_length}
+    if extension.lower() in {".csv", ".tsv", ".txt"}:
+        read_options: dict = {
+            "separator": separator,
+            "infer_schema_length": infer_schema_length,
+            "schema_overrides": {"PYMODELID": pl.Utf8},
+            "ignore_errors": ignore_errors,
+        }
+    elif extension.lower() in {".json", ".jsonl", ".ndjson"}:
+        read_options = {"infer_schema_length": infer_schema_length}
+    else:
+        read_options = {}
 
     # Pega dataset exports never ship Excel; reject explicitly so we
     # surface the same historical error rather than letting
@@ -741,12 +773,7 @@ def _read_pega_export(
         )
 
     try:
-        df = _scan_by_extension(
-            file,
-            extension,
-            csv_opts=csv_opts,
-            ndjson_opts=ndjson_opts,
-        )
+        df = _scan_by_extension(file, extension, read_options=read_options)
     except ValueError as exc:
         # Re-raise with the historical message so existing callers /
         # tests that match on this string keep working.
