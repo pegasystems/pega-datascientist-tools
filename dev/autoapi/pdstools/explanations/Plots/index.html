@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../../../genindex.html"><link rel="search" title="Search" href="../../../../search.html"><link rel="next" title="pdstools.explanations.Preprocess" href="../Preprocess/index.html"><link rel="prev" title="pdstools.explanations.FilterWidget" href="../FilterWidget/index.html">
+<link rel="index" title="Index" href="../../../../genindex.html"><link rel="search" title="Search" href="../../../../search.html"><link rel="next" title="pdstools.explanations.Reports" href="../Reports/index.html"><link rel="prev" title="pdstools.explanations.ExplanationsUtils" href="../ExplanationsUtils/index.html">
         <link rel="prefetch" href="../../../../_static/pegasystems-inc-vector-logo.svg" as="image">
 
     <link rel="shortcut icon" href="../../../../_static/pegasystems-inc-vector-logo.svg"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
@@ -271,12 +271,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../Aggregate/index.html">pdstools.explanations.Aggregate</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../Explanations/index.html">pdstools.explanations.Explanations</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../ExplanationsUtils/index.html">pdstools.explanations.ExplanationsUtils</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../FilterWidget/index.html">pdstools.explanations.FilterWidget</a></li>
 <li class="toctree-l4 current current-page"><a class="current reference internal" href="#">pdstools.explanations.Plots</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../Preprocess/index.html">pdstools.explanations.Preprocess</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../Reports/index.html">pdstools.explanations.Reports</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../Schema/index.html">pdstools.explanations.Schema</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../resources/index.html">pdstools.explanations.resources</a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../ih/index.html">pdstools.ih</a><input aria-label="Toggle navigation of pdstools.ih" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -501,45 +497,6 @@
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pdstools.explanations.Plots.Plots.contributions">
-<span class="sig-name descname"><span class="pre">contributions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">top_n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../ExplanationsUtils/index.html#pdstools.explanations.ExplanationsUtils.SortBy" title="pdstools.explanations.ExplanationsUtils.SortBy"><span class="pre">pdstools.explanations.ExplanationsUtils.SortBy</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'contribution_abs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">display_by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../ExplanationsUtils/index.html#pdstools.explanations.ExplanationsUtils.DisplayBy" title="pdstools.explanations.ExplanationsUtils.DisplayBy"><span class="pre">pdstools.explanations.ExplanationsUtils.DisplayBy</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'contribution'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">descending</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remaining</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_numeric_single_bin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.explanations.Plots.Plots.contributions" title="Link to this definition">¶</a></dt>
-<dd><p>Plots contributions for the overall model or a selected context.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>top_n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of top predictors to display.</p></li>
-<li><p><strong>top_k</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of top unique values for each categorical predictor to display.</p></li>
-<li><p><strong>return_df</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, skip plotting and return the underlying dataframes instead.
-When a context is selected, returns
-<code class="docutils literal notranslate"><span class="pre">(predictor_df,</span> <span class="pre">predictor_value_df)</span></code>; otherwise returns the same
-pair computed against the overall model.</p></li>
-<li><p><strong>sort_by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column to rank/select top predictors. One of
-<code class="docutils literal notranslate"><span class="pre">contribution</span></code>, <code class="docutils literal notranslate"><span class="pre">contribution_abs</span></code>,
-<code class="docutils literal notranslate"><span class="pre">contribution_weighted</span></code>, <code class="docutils literal notranslate"><span class="pre">contribution_weighted_abs</span></code>.
-Default: <code class="docutils literal notranslate"><span class="pre">&quot;contribution_abs&quot;</span></code>.</p></li>
-<li><p><strong>display_by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column to use for the chart axis values.
-Default: <code class="docutils literal notranslate"><span class="pre">&quot;contribution&quot;</span></code>.</p></li>
-<li><p><strong>descending</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Sort most- or least-impactful first. Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
-<li><p><strong>missing</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Include missing-value bins. Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
-<li><p><strong>remaining</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Include an aggregated “remaining” row. Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
-<li><p><strong>include_numeric_single_bin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Include numeric predictors that have only a single bin.
-Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p>left: context header if context is selected, otherwise None</p></li>
-<li><p>right: overall contributions plot and a list of predictor contribution plots.</p></li>
-</ul>
-</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[go.Figure, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[go.Figure]]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="pdstools.explanations.Plots.Plots.plot_contributions_for_overall">
 <span class="sig-name descname"><span class="pre">plot_contributions_for_overall</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">top_n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">...</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">False</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../ExplanationsUtils/index.html#pdstools.explanations.ExplanationsUtils.SortBy" title="pdstools.explanations.ExplanationsUtils.SortBy"><span class="pre">pdstools.explanations.ExplanationsUtils.SortBy</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">display_by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../ExplanationsUtils/index.html#pdstools.explanations.ExplanationsUtils.DisplayBy" title="pdstools.explanations.ExplanationsUtils.DisplayBy"><span class="pre">pdstools.explanations.ExplanationsUtils.DisplayBy</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">descending</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remaining</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_numeric_single_bin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">...</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><span class="pre">plotly.graph_objects.Figure</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><span class="pre">plotly.graph_objects.Figure</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.explanations.Plots.Plots.plot_contributions_for_overall" title="Link to this definition">¶</a></dt>
 <dt class="sig sig-object py">
@@ -565,23 +522,23 @@ Default: <code class="docutils literal notranslate"><span class="pre">False</spa
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="../Preprocess/index.html">
+          <a class="next-page" href="../Reports/index.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">pdstools.explanations.Preprocess</div>
+                <div class="title">pdstools.explanations.Reports</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="../FilterWidget/index.html">
+          <a class="prev-page" href="../ExplanationsUtils/index.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">pdstools.explanations.FilterWidget</div>
+                <div class="title">pdstools.explanations.ExplanationsUtils</div>
                 
               </div>
             </a>
@@ -632,7 +589,6 @@ Default: <code class="docutils literal notranslate"><span class="pre">False</spa
 <li><a class="reference internal" href="#pdstools.explanations.Plots.Plots.Y_AXIS_TITLE_DEFAULT"><code class="docutils literal notranslate"><span class="pre">Y_AXIS_TITLE_DEFAULT</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.explanations.Plots.Plots.explanations"><code class="docutils literal notranslate"><span class="pre">explanations</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.explanations.Plots.Plots.aggregate"><code class="docutils literal notranslate"><span class="pre">aggregate</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.explanations.Plots.Plots.contributions"><code class="docutils literal notranslate"><span class="pre">contributions()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.explanations.Plots.Plots.plot_contributions_for_overall"><code class="docutils literal notranslate"><span class="pre">plot_contributions_for_overall()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.explanations.Plots.Plots.plot_contributions_by_context"><code class="docutils literal notranslate"><span class="pre">plot_contributions_by_context()</span></code></a></li>
 </ul>
@@ -657,7 +613,6 @@ Default: <code class="docutils literal notranslate"><span class="pre">False</spa
     <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../../../_static/copybutton.js?v=f281be69"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
     <script src="../../../../_static/version-switcher.js?v=108131f4"></script>
     </body>
 </html>

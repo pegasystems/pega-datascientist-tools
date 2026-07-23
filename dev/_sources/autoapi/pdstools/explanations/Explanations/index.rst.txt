@@ -15,24 +15,30 @@ Classes
 Module Contents
 ---------------
 
-.. py:class:: Explanations(*, model_name: str | None = None, from_date: datetime.datetime | None = None, to_date: datetime.datetime | None = None)
+.. py:class:: Explanations(*, root_dir: str = _DEFAULT_ROOT_DIR, data_folder: str | pathlib.Path = _DEFAULT_DATA_FOLDER, model_name: str | None = None, from_date: datetime.datetime | None = None, to_date: datetime.datetime | None = None)
 
    Process and explore explanation data for Adaptive Gradient Boost models.
 
-   The class is a thin orchestrator over four sub-namespaces (``preprocess``,
-   ``aggregate``, ``plot``, ``report``, ``filter``) that operate on the
-   parquet files produced by Pega's explanation file repository.
+   The class is a thin orchestrator over three sub-namespaces (``aggregate``,
+   ``plot``, ``report``) that operate on pre-aggregated parquet files.
 
-   The constructor is **pure configuration** — it takes no filesystem paths
-   and performs no I/O. Use the ``from_local_directory`` classmethod to load
-   raw explanation parquet files from disk (or a remote URL) and run the
-   DuckDB aggregation step, or :meth:`from_aggregates` to reopen an existing
-   pre-aggregated folder. After that, ``aggregate``, ``plot`` and ``report``
-   can be used freely.
+   The constructor is **pure configuration** — it accepts optional filesystem
+   path settings (``root_dir`` / ``data_folder``) but performs no I/O.
+   Use the ``from_aggregates`` classmethod to point at pre-aggregated data
+   (typically ``.tmp/aggregated_data/``) with validation.
+   After initialization, ``aggregate``, ``plot`` and ``report`` can be used
+   freely.
 
-   :param model_name: Name of the model rule. Used to identify and validate raw
-                      explanation parquet files when loading via
-                      :meth:`from_local_directory`.
+   :param root_dir: Working directory under which the pre-aggregated parquet files
+                    (and report scratch space) are written. Ignored if a custom ``data_folder`` is provided,
+                    in which case the parent of ``data_folder`` is used as the root.
+   :type root_dir: str, optional, default ".tmp"
+   :param data_folder: Path to the folder containing pre-aggregated parquet files.
+                       Can be a relative path (combined with ``root_dir``) or an absolute path.
+                       Note: validation (FileNotFoundError) only occurs via ``from_aggregates``;
+                       direct ``__init__`` calls skip validation.
+   :type data_folder: str | Path, optional, default "aggregated_data"
+   :param model_name: Name of the model rule. Used for report metadata only.
    :type model_name: str, optional
    :param from_date: Start date of the period over which aggregates are computed.
                      Defaults to ``to_date - 7 days`` if only ``to_date`` is given,
@@ -45,130 +51,70 @@ Module Contents
 
    .. seealso::
 
-      :py:obj:`Explanations.from_local_directory`
-          Load raw explanation parquet files from a local folder or remote URL and pre-aggregate them.
-      
       :py:obj:`Explanations.from_aggregates`
-          Reopen an already pre-aggregated explanations folder without rerunning DuckDB preprocessing.
+          Load pre-aggregated parquet files.
 
    .. rubric:: Notes
 
-   Environment variables that influence the (lazy) DuckDB aggregation step:
+   Environment variable that influence the batch parquet file generation:
 
-   ``MODEL_CONTEXT_LIMIT``
-       Maximum number of unique contexts processed in a single query.
-       Default: ``2500``.
-   ``QUERY_BATCH_LIMIT``
-       Number of contexts per DuckDB batch query. Default: ``10``.
    ``FILE_BATCH_LIMIT``
-       Number of files per DuckDB batch. Default: ``10``.
-   ``MEMORY_LIMIT``
-       DuckDB buffer memory limit in GB. Default: ``8``.
-   ``THREAD_COUNT``
-       Number of DuckDB worker threads. Default: ``4``.
-   ``PROGRESS_BAR``
-       ``"1"`` to enable the DuckDB progress bar. Default: disabled.
+       Number of context partitions per batch. Default: ``100``.
 
    .. rubric:: Examples
 
-   Load and explore a folder of raw explanation parquet files:
+   Load pre-aggregated explanation data:
 
-   >>> from datetime import datetime
-   >>> exp = Explanations.from_local_directory(
-   ...     data_folder="explanations_data",
+   >>> from pathlib import Path
+   >>> exp = Explanations.from_aggregates(
+   ...     data_folder=Path(".tmp/aggregated_data"),
    ...     model_name="AdaptiveBoostCT",
    ...     from_date=datetime(2025, 3, 28),
    ...     to_date=datetime(2025, 3, 28),
    ... )
    >>> df = exp.aggregate.get_df_overall().collect()  # doctest: +SKIP
 
-   Load a single remote parquet file:
+   Construct with a custom aggregates path:
 
-   >>> exp = Explanations.from_local_directory(
-   ...     data_file="https://example.com/AdaptiveBoostCT_20250328.parquet",
-   ...     model_name="AdaptiveBoostCT",
-   ... )  # doctest: +SKIP
-
-   Reopen an existing pre-aggregated folder:
-
-   >>> exp = Explanations.from_aggregates("/path/to/aggregated_data")  # doctest: +SKIP
+   >>> exp = Explanations(data_folder="/path/to/my/aggregates")
+   >>> df = exp.aggregate.get_df_overall().collect()  # doctest: +SKIP
 
 
-   .. py:method:: from_local_directory(root_dir: str = _DEFAULT_ROOT_DIR, data_folder: str = _DEFAULT_DATA_FOLDER, data_file: str | None = None, *, model_name: str | None = None, from_date: datetime.datetime | None = None, to_date: datetime.datetime | None = None) -> Explanations
+   .. py:method:: from_aggregates(*, root_dir: str = _DEFAULT_ROOT_DIR, data_folder: str | pathlib.Path = _DEFAULT_DATA_FOLDER, model_name: str | None = None, from_date: datetime.datetime | None = None, to_date: datetime.datetime | None = None) -> Explanations
       :classmethod:
 
 
-      Construct an ``Explanations`` from raw parquet files on disk or a URL.
+      Construct an ``Explanations`` from pre-aggregated parquet files.
 
-      This is the standard entry point: it wires the path configuration,
-      runs the DuckDB pre-aggregation step (writing the per-context and
-      per-overall aggregates to ``<root_dir>/aggregated_data/``) and
-      returns a ready-to-query instance.
+      This is the standard entry point: it points to a folder containing
+      pre-aggregated parquet files and returns a ready-to-query instance.
 
       :param root_dir: Working directory under which the pre-aggregated parquet files
                        (and report scratch space) are written.
       :type root_dir: str, default ".tmp"
-      :param data_folder: Folder containing the raw model-explanation parquet files
-                          downloaded from the Pega explanation file repository. Used
-                          when ``data_file`` is not provided.
-      :type data_folder: str, default "explanations_data"
-      :param data_file: Direct path or URL to a single explanation parquet file. When
-                        given, takes precedence over ``data_folder``. ``http://`` and
-                        ``https://`` URLs are downloaded into ``root_dir`` before
-                        aggregation.
-      :type data_file: str, optional
-      :param model_name: Name of the model rule. Used to filter files in ``data_folder``
-                         and validate that the correct files are being processed.
+      :param data_folder: Path to the folder containing pre-aggregated parquet files.
+                          Can be a relative path (combined with ``root_dir``) or an absolute path.
+                          Must exist and be non-empty; raises FileNotFoundError otherwise.
+      :type data_folder: str | Path, default "aggregated_data"
+      :param model_name: Name of the model rule. Used for report metadata only.
       :type model_name: str, optional
-      :param from_date: Start date of the period over which aggregates are collected.
+      :param from_date: Start date of the period over which aggregates are computed.
                         See :class:`Explanations` for default behaviour.
       :type from_date: datetime, optional
-      :param to_date: End date of the period over which aggregates are collected.
+      :param to_date: End date of the period over which aggregates are computed.
                       See :class:`Explanations` for default behaviour.
       :type to_date: datetime, optional
 
-      :returns: A fully initialised instance with pre-aggregation completed.
+      :returns: A fully initialised instance pointing at the aggregated data.
       :rtype: Explanations
 
-      :raises ValueError: If ``from_date > to_date``, if no files match ``model_name``
-          within the date range, or if a remote ``data_file`` cannot be
-          downloaded.
+      :raises FileNotFoundError: If ``root_dir`` or ``data_folder`` does not exist or is empty.
 
 
 
-   .. py:method:: from_aggregates(aggregates_dir: str | pathlib.Path, *, data_pattern: str | None = None, model_name: str | None = None, from_date: datetime.datetime | None = None, to_date: datetime.datetime | None = None) -> Explanations
-      :classmethod:
+   .. py:method:: validate_data_folder() -> None
 
-
-      Construct an ``Explanations`` from an existing aggregates folder.
-
-      This reopens a pre-aggregated explanation dataset without rerunning
-      the DuckDB preprocessing step. It is the preferred entry point for
-      report/template code that already has ``*_BATCH_*.parquet`` and
-      ``*_OVERALL.parquet`` outputs on disk.
-
-      :param aggregates_dir: Directory containing the pre-aggregated explanation parquet files.
-                             Typically ``<root_dir>/aggregated_data`` from a prior
-                             :meth:`from_local_directory` run.
-      :type aggregates_dir: str or pathlib.Path
-      :param data_pattern: Optional glob pattern for contextual parquet files. When omitted,
-                           the default ``"*_BATCH_*.parquet"`` pattern is used.
-      :type data_pattern: str, optional
-      :param model_name: Name of the model rule. Stored on the instance for consistency
-                         with :class:`Explanations`, but not used to reload aggregates.
-      :type model_name: str, optional
-      :param from_date: Start date metadata carried on the instance. See
-                        :class:`Explanations` for default behaviour.
-      :type from_date: datetime, optional
-      :param to_date: End date metadata carried on the instance. See
-                      :class:`Explanations` for default behaviour.
-      :type to_date: datetime, optional
-
-      :returns: A configured instance pointing at the existing aggregates folder.
-      :rtype: Explanations
-
-      :raises FileNotFoundError: If ``aggregates_dir`` does not exist, is not a directory, or is
-          empty.
+      Validate that data_folder exists and contains parquet files.
 
 
 

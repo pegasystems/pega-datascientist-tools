@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../../../genindex.html"><link rel="search" title="Search" href="../../../../search.html"><link rel="next" title="pdstools.explanations.FilterWidget" href="../FilterWidget/index.html"><link rel="prev" title="pdstools.explanations.Explanations" href="../Explanations/index.html">
+<link rel="index" title="Index" href="../../../../genindex.html"><link rel="search" title="Search" href="../../../../search.html"><link rel="next" title="pdstools.explanations.Plots" href="../Plots/index.html"><link rel="prev" title="pdstools.explanations.Explanations" href="../Explanations/index.html">
         <link rel="prefetch" href="../../../../_static/pegasystems-inc-vector-logo.svg" as="image">
 
     <link rel="shortcut icon" href="../../../../_static/pegasystems-inc-vector-logo.svg"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
@@ -271,12 +271,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../Aggregate/index.html">pdstools.explanations.Aggregate</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../Explanations/index.html">pdstools.explanations.Explanations</a></li>
 <li class="toctree-l4 current current-page"><a class="current reference internal" href="#">pdstools.explanations.ExplanationsUtils</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../FilterWidget/index.html">pdstools.explanations.FilterWidget</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../Plots/index.html">pdstools.explanations.Plots</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../Preprocess/index.html">pdstools.explanations.Preprocess</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../Reports/index.html">pdstools.explanations.Reports</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../Schema/index.html">pdstools.explanations.Schema</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../resources/index.html">pdstools.explanations.resources</a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../ih/index.html">pdstools.ih</a><input aria-label="Toggle navigation of pdstools.ih" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -460,6 +456,9 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContributionType" title="pdstools.explanations.ExplanationsUtils.ContributionType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContributionType</span></code></a></p></td>
 <td><p></p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="pdstools.explanations.ExplanationsUtils.ContextInfo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContextInfo</span></code></a></p></td>
+<td><p></p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -469,11 +468,8 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="pdstools.explanations.ExplanationsUtils.ContextInfo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContextInfo</span></code></a></p></td>
-<td><p>Context info.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations" title="pdstools.explanations.ExplanationsUtils.ContextOperations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContextOperations</span></code></a></p></td>
-<td><p>Context related operations such as to filter unique contexts.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations" title="pdstools.explanations.ExplanationsUtils.ContextOperations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContextOperations</span></code></a></p></td>
+<td><p>Context-related operations for querying unique contexts.</p></td>
 </tr>
 </tbody>
 </table>
@@ -496,31 +492,19 @@
 <span class="sig-name descname"><span class="pre">ContributionType</span></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContributionType" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="py class">
+<dl class="py data">
 <dt class="sig sig-object py" id="pdstools.explanations.ExplanationsUtils.ContextInfo">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">ContextInfo</span></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">TypedDict</span></code></p>
-<p>Context info.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.explanations.ExplanationsUtils.ContextInfo.context_key">
-<span class="sig-name descname"><span class="pre">context_key</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextInfo.context_key" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">ContextInfo</span></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="pdstools.explanations.ExplanationsUtils.ContextInfo.context_value">
-<span class="sig-name descname"><span class="pre">context_value</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextInfo.context_value" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pdstools.explanations.ExplanationsUtils.ContextOperations">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">ContextOperations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../Aggregate/index.html#pdstools.explanations.Aggregate.Aggregate" title="pdstools.explanations.Aggregate.Aggregate"><span class="pre">pdstools.explanations.Aggregate.Aggregate</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextOperations" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="../../utils/namespaces/index.html#pdstools.utils.namespaces.LazyNamespace" title="pdstools.utils.namespaces.LazyNamespace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.utils.namespaces.LazyNamespace</span></code></a></p>
-<p>Context related operations such as to filter unique contexts.</p>
+<p>Context-related operations for querying unique contexts.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>aggregate</strong> (<a class="reference internal" href="../Aggregate/index.html#pdstools.explanations.Aggregate.Aggregate" title="pdstools.explanations.Aggregate.Aggregate"><em>Aggregate</em></a>) – The aggregate object to operate on.</p>
+<dd class="field-odd"><p><strong>aggregate</strong> (<a class="reference internal" href="../Aggregate/index.html#pdstools.explanations.Aggregate.Aggregate" title="pdstools.explanations.Aggregate.Aggregate"><em>Aggregate</em></a>) – Aggregate namespace instance that provides contextual explanation data.</p>
 </dd>
 </dl>
 <dl class="py attribute">
@@ -535,23 +519,31 @@
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.explanations.ExplanationsUtils.ContextOperations.aggregate">
-<span class="sig-name descname"><span class="pre">aggregate</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../Aggregate/index.html#pdstools.explanations.Aggregate.Aggregate" title="pdstools.explanations.Aggregate.Aggregate"><span class="pre">pdstools.explanations.Aggregate.Aggregate</span></a></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.aggregate" title="Link to this definition">¶</a></dt>
-<dd><p>Parent aggregate object used to load contextual data.</p>
-</dd></dl>
+<span class="sig-name descname"><span class="pre">aggregate</span></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.aggregate" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pdstools.explanations.ExplanationsUtils.ContextOperations.initialized">
-<span class="sig-name descname"><span class="pre">initialized</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.initialized" title="Link to this definition">¶</a></dt>
-<dd><p>Whether the contextual data cache has been loaded.</p>
-</dd></dl>
+<span class="sig-name descname"><span class="pre">initialized</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.initialized" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.explanations.ExplanationsUtils.ContextOperations.file_batch_limit">
+<span class="sig-name descname"><span class="pre">file_batch_limit</span></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.file_batch_limit" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.explanations.ExplanationsUtils.ContextOperations.unique_contexts_file">
+<span class="sig-name descname"><span class="pre">unique_contexts_file</span></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.unique_contexts_file" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.explanations.ExplanationsUtils.ContextOperations.get_context_keys">
 <span class="sig-name descname"><span class="pre">get_context_keys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.get_context_keys" title="Link to this definition">¶</a></dt>
-<dd><p>Return the contextual key columns available in the loaded data.</p>
+<dd><p>Get available context keys.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Context key names such as <code class="docutils literal notranslate"><span class="pre">[&quot;pyChannel&quot;,</span> <span class="pre">&quot;pyDirection&quot;,</span> <span class="pre">...]</span></code>.</p>
+<dd class="field-odd"><p>Context key column names, for example <code class="docutils literal notranslate"><span class="pre">[&quot;pyChannel&quot;,</span> <span class="pre">&quot;pyDirection&quot;]</span></code>.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]</p>
@@ -562,18 +554,17 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.explanations.ExplanationsUtils.ContextOperations.get_df">
 <span class="sig-name descname"><span class="pre">get_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">context_infos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="pdstools.explanations.ExplanationsUtils.ContextInfo"><span class="pre">ContextInfo</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_partition_col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.DataFrame</span></span></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.get_df" title="Link to this definition">¶</a></dt>
-<dd><p>Return unique contexts as a DataFrame.</p>
+<dd><p>Return unique contexts as a DataFrame, optionally filtered.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>context_infos</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="pdstools.explanations.ExplanationsUtils.ContextInfo"><em>ContextInfo</em></a><em>] </em><em>| </em><em>None</em><em>, </em><em>default None</em>) – Optional context filters. When omitted, returns all unique contexts.</p></li>
-<li><p><strong>with_partition_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default False</em>) – Whether to include the raw partition column alongside the expanded
-context keys.</p></li>
+<li><p><strong>context_infos</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="pdstools.explanations.ExplanationsUtils.ContextInfo"><em>ContextInfo</em></a><em>] </em><em>| </em><em>None</em><em>, </em><em>default None</em>) – Optional context filters. When provided, rows are filtered to the
+matching contexts.</p></li>
+<li><p><strong>with_partition_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default False</em>) – Whether to include the raw <code class="docutils literal notranslate"><span class="pre">context_partition</span></code> column in the output.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A DataFrame of unique contexts. When <code class="docutils literal notranslate"><span class="pre">with_partition_col</span></code> is
-<code class="docutils literal notranslate"><span class="pre">True</span></code>, the partition column is retained in the result.</p>
+<dd class="field-even"><p>Unique contexts with one row per context.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pl.DataFrame</p>
@@ -584,17 +575,17 @@ context keys.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.explanations.ExplanationsUtils.ContextOperations.get_list">
 <span class="sig-name descname"><span class="pre">get_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">context_infos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="pdstools.explanations.ExplanationsUtils.ContextInfo"><span class="pre">ContextInfo</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_partition_col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="pdstools.explanations.ExplanationsUtils.ContextInfo"><span class="pre">ContextInfo</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.get_list" title="Link to this definition">¶</a></dt>
-<dd><p>Return unique contexts as dictionaries.</p>
+<dd><p>Return unique contexts as dictionaries, optionally filtered.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>context_infos</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="pdstools.explanations.ExplanationsUtils.ContextInfo"><em>ContextInfo</em></a><em>] </em><em>| </em><em>None</em><em>, </em><em>default None</em>) – Optional context filters. When omitted, returns all unique contexts.</p></li>
-<li><p><strong>with_partition_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default False</em>) – Whether to include the raw partition column in each returned item.</p></li>
+<li><p><strong>context_infos</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="pdstools.explanations.ExplanationsUtils.ContextInfo"><em>ContextInfo</em></a><em>] </em><em>| </em><em>None</em><em>, </em><em>default None</em>) – Optional context filters. When provided, rows are filtered to the
+matching contexts.</p></li>
+<li><p><strong>with_partition_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>default False</em>) – Whether to include the raw <code class="docutils literal notranslate"><span class="pre">context_partition</span></code> field in each dictionary.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Unique context dictionaries, optionally filtered by the provided
-context information.</p>
+<dd class="field-even"><p>Unique contexts represented as dictionaries.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="pdstools.explanations.ExplanationsUtils.ContextInfo">ContextInfo</a>]</p>
@@ -603,18 +594,43 @@ context information.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="pdstools.explanations.ExplanationsUtils.ContextOperations.create_unique_contexts_file">
+<span class="sig-name descname"><span class="pre">create_unique_contexts_file</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.create_unique_contexts_file" title="Link to this definition">¶</a></dt>
+<dd><p>Create and persist the flat unique-context batch mapping if absent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.explanations.ExplanationsUtils.ContextOperations.create_batch_parquet_files">
+<span class="sig-name descname"><span class="pre">create_batch_parquet_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contexts_by_batch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.create_batch_parquet_files" title="Link to this definition">¶</a></dt>
+<dd><p>Create one batch parquet file per context batch in a separate batches/ subdirectory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>contexts_by_batch</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em><em>]</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="pdstools.explanations.ExplanationsUtils.ContextOperations.get_context_info_str">
 <span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">get_context_info_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">context_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="pdstools.explanations.ExplanationsUtils.ContextInfo"><span class="pre">ContextInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'-'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.get_context_info_str" title="Link to this definition">¶</a></dt>
-<dd><p>Format a context dictionary as a single string.</p>
+<dd><p>Format a context dictionary into a compact string.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>context_info</strong> (<a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="pdstools.explanations.ExplanationsUtils.ContextInfo"><em>ContextInfo</em></a>) – Context values to format.</p></li>
-<li><p><strong>sep</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>default &quot;-&quot;</em>) – Separator inserted between context values.</p></li>
+<li><p><strong>context_info</strong> (<a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo" title="pdstools.explanations.ExplanationsUtils.ContextInfo"><em>ContextInfo</em></a>) – Context dictionary to format.</p></li>
+<li><p><strong>sep</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>default &quot;-&quot;</em>) – Separator inserted between values.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A compact context string such as <code class="docutils literal notranslate"><span class="pre">channel1-direction1-...</span></code>.</p>
+<dd class="field-even"><p>String containing context values joined by <code class="docutils literal notranslate"><span class="pre">sep</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
@@ -632,12 +648,12 @@ context information.</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="../FilterWidget/index.html">
+          <a class="next-page" href="../Plots/index.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">pdstools.explanations.FilterWidget</div>
+                <div class="title">pdstools.explanations.Plots</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -696,19 +712,19 @@ context information.</p>
 <li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.SortBy"><code class="docutils literal notranslate"><span class="pre">SortBy</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.DisplayBy"><code class="docutils literal notranslate"><span class="pre">DisplayBy</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContributionType"><code class="docutils literal notranslate"><span class="pre">ContributionType</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo"><code class="docutils literal notranslate"><span class="pre">ContextInfo</span></code></a><ul>
-<li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo.context_key"><code class="docutils literal notranslate"><span class="pre">context_key</span></code></a></li>
-<li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo.context_value"><code class="docutils literal notranslate"><span class="pre">context_value</span></code></a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextInfo"><code class="docutils literal notranslate"><span class="pre">ContextInfo</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations"><code class="docutils literal notranslate"><span class="pre">ContextOperations</span></code></a><ul>
 <li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.dependencies"><code class="docutils literal notranslate"><span class="pre">dependencies</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.dependency_group"><code class="docutils literal notranslate"><span class="pre">dependency_group</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.aggregate"><code class="docutils literal notranslate"><span class="pre">aggregate</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.initialized"><code class="docutils literal notranslate"><span class="pre">initialized</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.file_batch_limit"><code class="docutils literal notranslate"><span class="pre">file_batch_limit</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.unique_contexts_file"><code class="docutils literal notranslate"><span class="pre">unique_contexts_file</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.get_context_keys"><code class="docutils literal notranslate"><span class="pre">get_context_keys()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.get_df"><code class="docutils literal notranslate"><span class="pre">get_df()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.get_list"><code class="docutils literal notranslate"><span class="pre">get_list()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.create_unique_contexts_file"><code class="docutils literal notranslate"><span class="pre">create_unique_contexts_file()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.create_batch_parquet_files"><code class="docutils literal notranslate"><span class="pre">create_batch_parquet_files()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.explanations.ExplanationsUtils.ContextOperations.get_context_info_str"><code class="docutils literal notranslate"><span class="pre">get_context_info_str()</span></code></a></li>
 </ul>
 </li>
@@ -732,7 +748,6 @@ context information.</p>
     <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../../../_static/copybutton.js?v=f281be69"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
     <script src="../../../../_static/version-switcher.js?v=108131f4"></script>
     </body>
 </html>

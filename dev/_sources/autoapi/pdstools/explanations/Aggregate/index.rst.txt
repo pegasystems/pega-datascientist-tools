@@ -41,7 +41,6 @@ Module Contents
 
 
    .. py:attribute:: data_pattern
-      :type:  str | None
       :value: None
 
 
@@ -134,21 +133,13 @@ Module Contents
 
 
 
-   .. py:method:: validate_folder()
-
-      Check if the aggregates folder exists.
-
-      :raises FileNotFoundError: If the aggregates folder does not exist or is empty.
-
-
-
    .. py:method:: get_unique_contexts_list(context_infos: list[pdstools.explanations.ExplanationsUtils.ContextInfo] | None = None, with_partition_col: bool = False) -> list[pdstools.explanations.ExplanationsUtils.ContextInfo]
 
       Get unique contexts list.
 
 
 
-   .. py:method:: add_frequency_pct_to_df(df, group_by) -> polars.LazyFrame
+   .. py:method:: add_frequency_pct_to_df(df: polars.DataFrame, group_by: list[str]) -> polars.DataFrame
 
       Add a frequency percentage column to the dataframe based on the total frequency per group.
 
