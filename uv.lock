@@ -1509,14 +1509,14 @@ wheels = [
 
 [[package]]
 name = "gitpython"
-version = "3.1.47"
+version = "3.1.52"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "gitdb" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c1/bd/50db468e9b1310529a19fce651b3b0e753b5c07954d486cba31bbee9a5d5/gitpython-3.1.47.tar.gz", hash = "sha256:dba27f922bd2b42cb54c87a8ab3cb6beb6bf07f3d564e21ac848913a05a8a3cd", size = 216978, upload-time = "2026-04-22T02:44:44.059Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e5/fd/df0bafa4eb5ea2f51e1adee9f7a94c8e62c5d180e65117045dfca3439c8a/gitpython-3.1.52.tar.gz", hash = "sha256:de0a8ad86274c6e75ae8b37dd055ba68f19818c813108642263227b20775b48e", size = 223726, upload-time = "2026-07-16T03:15:59.599Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f2/c5/a1bc0996af85757903cf2bf444a7824e68e0035ce63fb41d6f76f9def68b/gitpython-3.1.47-py3-none-any.whl", hash = "sha256:489f590edfd6d20571b2c0e72c6a6ac6915ee8b8cd04572330e3842207a78905", size = 209547, upload-time = "2026-04-22T02:44:41.271Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/90/04dff7c1e176bb1c3011ef1647393d368790da710d8dde1cdcfad301f45a/gitpython-3.1.52-py3-none-any.whl", hash = "sha256:79a36ee1f83523214a3f72d56cf1c4e490d577dc61af77e43dfe5862bd9da01a", size = 215366, upload-time = "2026-07-16T03:15:58.239Z" },
 ]
 
 [[package]]
@@ -1899,24 +1899,6 @@ wheels = [
 ]
 
 [[package]]
-name = "ipywidgets"
-version = "8.1.8"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "comm" },
-    { name = "ipython", version = "8.39.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "ipython", version = "9.10.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
-    { name = "ipython", version = "9.12.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "jupyterlab-widgets" },
-    { name = "traitlets" },
-    { name = "widgetsnbextension" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/4c/ae/c5ce1edc1afe042eadb445e95b0671b03cee61895264357956e61c0d2ac0/ipywidgets-8.1.8.tar.gz", hash = "sha256:61f969306b95f85fba6b6986b7fe45d73124d1d9e3023a8068710d47a22ea668", size = 116739, upload-time = "2025-11-01T21:18:12.393Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/56/6d/0d9848617b9f753b87f214f1c682592f7ca42de085f564352f10f0843026/ipywidgets-8.1.8-py3-none-any.whl", hash = "sha256:ecaca67aed704a338f88f67b1181b58f821ab5dc89c1f0f5ef99db43c1c2921e", size = 139808, upload-time = "2025-11-01T21:18:10.956Z" },
-]
-
-[[package]]
 name = "itables"
 version = "2.8.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2031,15 +2013,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/90/51/9187be60d989df97f5f0aba133fa54e7300f17616e065d1ada7d7646b6d6/jupyterlab_pygments-0.3.0.tar.gz", hash = "sha256:721aca4d9029252b11cfa9d185e5b5af4d54772bb8072f9b7036f4170054d35d", size = 512900, upload-time = "2023-11-23T09:26:37.44Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b1/dd/ead9d8ea85bf202d90cc513b533f9c363121c7792674f78e0d8a854b63b4/jupyterlab_pygments-0.3.0-py3-none-any.whl", hash = "sha256:841a89020971da1d8693f1a99997aefc5dc424bb1b251fd6322462a1b8842780", size = 15884, upload-time = "2023-11-23T09:26:34.325Z" },
-]
-
-[[package]]
-name = "jupyterlab-widgets"
-version = "3.0.16"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/26/2d/ef58fed122b268c69c0aa099da20bc67657cdfb2e222688d5731bd5b971d/jupyterlab_widgets-3.0.16.tar.gz", hash = "sha256:423da05071d55cf27a9e602216d35a3a65a3e41cdf9c5d3b643b814ce38c19e0", size = 897423, upload-time = "2025-11-01T21:11:29.724Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ab/b5/36c712098e6191d1b4e349304ef73a8d06aed77e56ceaac8c0a306c7bda1/jupyterlab_widgets-3.0.16-py3-none-any.whl", hash = "sha256:45fa36d9c6422cf2559198e4db481aa243c7a32d9926b500781c830c80f7ecf8", size = 914926, upload-time = "2025-11-01T21:11:28.008Z" },
 ]
 
 [[package]]
@@ -3689,13 +3662,11 @@ adm = [
 all = [
     { name = "aioboto3" },
     { name = "anyio" },
-    { name = "duckdb" },
     { name = "fastexcel" },
     { name = "great-tables" },
     { name = "httpx" },
     { name = "humanize" },
     { name = "ipykernel" },
-    { name = "ipywidgets" },
     { name = "onnx" },
     { name = "onnxruntime", version = "1.23.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "onnxruntime", version = "1.24.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -3703,7 +3674,6 @@ all = [
     { name = "plotly", extra = ["express"] },
     { name = "polars", extra = ["rt64"] },
     { name = "polars-hash" },
-    { name = "pyarrow" },
     { name = "pydantic" },
     { name = "pydot" },
     { name = "pyyaml" },
@@ -3767,10 +3737,7 @@ docs = [
     { name = "xgboost" },
 ]
 explanations = [
-    { name = "duckdb" },
-    { name = "ipywidgets" },
     { name = "plotly", extra = ["express"] },
-    { name = "pyarrow" },
     { name = "pyyaml" },
 ]
 healthcheck = [
@@ -3816,13 +3783,11 @@ tests = [
     { name = "aioboto3" },
     { name = "anyio" },
     { name = "coverage" },
-    { name = "duckdb" },
     { name = "fastexcel" },
     { name = "great-tables" },
     { name = "httpx" },
     { name = "humanize" },
     { name = "ipykernel" },
-    { name = "ipywidgets" },
     { name = "itables" },
     { name = "moto" },
     { name = "onnx" },
@@ -3833,7 +3798,6 @@ tests = [
     { name = "plotly", extra = ["express"] },
     { name = "polars", extra = ["rt64"] },
     { name = "polars-hash" },
-    { name = "pyarrow" },
     { name = "pydantic" },
     { name = "pydot" },
     { name = "pytest" },
@@ -3874,7 +3838,6 @@ requires-dist = [
     { name = "cleanlab", extras = ["datalab"], marker = "python_full_version < '3.14' and extra == 'nlp'" },
     { name = "coverage", marker = "extra == 'tests'", specifier = ">=7" },
     { name = "duckdb", marker = "extra == 'docs'" },
-    { name = "duckdb", marker = "extra == 'explanations'", specifier = ">=1.1,<2" },
     { name = "fastexcel", marker = "extra == 'app'", specifier = ">=0.19,<1" },
     { name = "furo", marker = "extra == 'docs'" },
     { name = "great-tables", marker = "extra == 'healthcheck'", specifier = ">=0.13,<1" },
@@ -3882,7 +3845,6 @@ requires-dist = [
     { name = "httpx", marker = "extra == 'docs'" },
     { name = "humanize", marker = "extra == 'app'", specifier = ">=4.0.0,<5" },
     { name = "ipykernel", marker = "extra == 'healthcheck'", specifier = ">=6,<8" },
-    { name = "ipywidgets", marker = "extra == 'explanations'" },
     { name = "itables", marker = "extra == 'tests'", specifier = ">=2" },
     { name = "moto", marker = "extra == 'tests'", specifier = ">=5.1" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.18,<3" },
@@ -3908,7 +3870,6 @@ requires-dist = [
     { name = "polars", extras = ["rt64"], marker = "extra == 'app'", specifier = "!=1.35.1,>=1.37,<2" },
     { name = "polars-hash", marker = "extra == 'pega-io'", specifier = ">=0.5,<1" },
     { name = "pre-commit", marker = "extra == 'dev'" },
-    { name = "pyarrow", marker = "extra == 'explanations'", specifier = ">=18,<25" },
     { name = "pydantic", marker = "extra == 'api'", specifier = ">=2.10,<3" },
     { name = "pydantic", marker = "extra == 'docs'" },
     { name = "pydot", marker = "extra == 'adm'", specifier = ">=4.0,<5" },
@@ -6512,15 +6473,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/dd/b2/381be8cfdee792dd117872481b6e378f85c957dd7c5bca38897b08f765fd/werkzeug-3.1.8.tar.gz", hash = "sha256:9bad61a4268dac112f1c5cd4630a56ede601b6ed420300677a869083d70a4c44", size = 875852, upload-time = "2026-04-02T18:49:14.268Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/93/8c/2e650f2afeb7ee576912636c23ddb621c91ac6a98e66dc8d29c3c69446e1/werkzeug-3.1.8-py3-none-any.whl", hash = "sha256:63a77fb8892bf28ebc3178683445222aa500e48ebad5ec77b0ad80f8726b1f50", size = 226459, upload-time = "2026-04-02T18:49:12.72Z" },
-]
-
-[[package]]
-name = "widgetsnbextension"
-version = "4.0.15"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/bd/f4/c67440c7fb409a71b7404b7aefcd7569a9c0d6bd071299bf4198ae7a5d95/widgetsnbextension-4.0.15.tar.gz", hash = "sha256:de8610639996f1567952d763a5a41af8af37f2575a41f9852a38f947eb82a3b9", size = 1097402, upload-time = "2025-11-01T21:15:55.178Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3f/0e/fa3b193432cfc60c93b42f3be03365f5f909d2b3ea410295cf36df739e31/widgetsnbextension-4.0.15-py3-none-any.whl", hash = "sha256:8156704e4346a571d9ce73b84bee86a29906c9abfd7223b7228a28899ccf3366", size = 2196503, upload-time = "2025-11-01T21:15:53.565Z" },
 ]
 
 [[package]]
