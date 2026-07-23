@@ -544,7 +544,7 @@ class TestGenerateZippedReport:
         (source_dir / "file2.txt").write_text("world")
 
         output_name = str(tmp_path / "my_archive.html")
-        report_utils.generate_zipped_report(output_name, str(source_dir))
+        report_utils.generate_zipped_report(output_name, source_dir)
 
         expected_zip = tmp_path / "my_archive.zip"
         assert expected_zip.exists()
@@ -557,14 +557,14 @@ class TestGenerateZippedReport:
         (source_dir / "data.csv").write_text("a,b,c")
 
         output_name = str(tmp_path / "report.pdf")
-        report_utils.generate_zipped_report(output_name, str(source_dir))
+        report_utils.generate_zipped_report(output_name, source_dir)
 
         assert (tmp_path / "report.zip").exists()
         assert not (tmp_path / "report.pdf").exists()
 
     def test_nonexistent_directory_returns_none(self, tmp_path):
         """Test that a non-existent directory logs an error and returns."""
-        fake_dir = str(tmp_path / "does_not_exist")
+        fake_dir = tmp_path / "does_not_exist"
         # Should not raise — just logs and returns
         result = report_utils.generate_zipped_report("output.html", fake_dir)
         assert result is None
@@ -573,7 +573,7 @@ class TestGenerateZippedReport:
         """Test that passing a file path (not a directory) logs an error and returns."""
         a_file = tmp_path / "not_a_dir.txt"
         a_file.write_text("I am a file")
-        result = report_utils.generate_zipped_report("output.html", str(a_file))
+        result = report_utils.generate_zipped_report("output.html", a_file)
         assert result is None
 
 

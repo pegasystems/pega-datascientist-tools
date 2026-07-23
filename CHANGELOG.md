@@ -185,20 +185,22 @@ See sections below for the full per-area detail.
 
 ### Changed
 
-- **`Explanations.__init__` no longer accepts filesystem paths.** The
-  `root_dir`, `data_folder`, and `data_file` parameters have moved to a
-  new `Explanations.from_local_directory(...)` classmethod. The
+- **`Explanations.__init__` no longer loads explanation data.** The
+  explanations API now expects pre-aggregated parquet files loaded through
+  `Explanations.from_aggregates(...)`. The
   constructor now takes only configuration (`model_name`, `from_date`,
   `to_date`) and performs no I/O — matching the pure-`__init__` pattern
   used by `ADMDatamart`, `IH`, `Prediction`, and other analyzer classes.
-  All path-keyword arguments are now keyword-only on the classmethod.
+  All aggregate path-keyword arguments are now keyword-only on the classmethod.
   **Migration:**
   `Explanations(data_folder="...", model_name="...", from_date=..., to_date=...)`
-  → `Explanations.from_local_directory(data_folder="...", model_name="...", from_date=..., to_date=...)`.
+  → `Explanations.from_aggregates(data_folder="...", model_name="...", from_date=..., to_date=...)`.
+  Raw single-file / remote-URL aggregation has been removed from this API;
+  provide `BY_CONTEXT.parquet` and `OVERVIEW.parquet` in the aggregate folder.
   Quarto report templates that previously did
   `Explanations(root_dir="...")` followed by manual
-  `aggregate.data_folderpath = "..."` should drop the `root_dir`
-  argument and call `Explanations()` with no arguments.
+  `aggregate.data_folderpath = "..."` should use explicit path configuration
+  on `Explanations` (`from_aggregates(root_dir=..., data_folder=...)`).
 - **BREAKING:** `IH.from_ds_export`'s `query` parameter is now
   keyword-only. Update positional callers to
   `IH.from_ds_export(path, query=...)`.
@@ -299,7 +301,7 @@ See sections below for the full per-area detail.
   `from_client_id_and_secret` classmethods are unchanged (#714).
 - Explanations: `sort_by`, `display_by`, `descending`, `missing`,
   `remaining`, `include_numeric_single_bin` are now explicit keyword-only
-  parameters with literal defaults across `Plots.contributions`,
+  parameters with literal defaults across
   `Plots.plot_contributions_for_overall`,
   `Plots.plot_contributions_by_context`,
   `Aggregate.get_predictor_contributions`,

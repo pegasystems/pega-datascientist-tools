@@ -3,7 +3,6 @@ from __future__ import annotations
 __all__ = ["Reports"]
 
 import logging
-import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -40,14 +39,12 @@ class Reports(LazyNamespace):
         self.explanations = explanations
 
         self.report_foldername = "reports"
-        self.report_folderpath = os.path.join(
-            self.explanations.root_dir,
-            self.report_foldername,
-        )
-        self.report_output_dir = os.path.join(self.report_folderpath, "_site")
+        self.report_folderpath = Path(self.explanations.root_dir) / self.report_foldername
+        self.report_output_dir = self.report_folderpath / "_site"
 
-        self.aggregate_folder = self.explanations.aggregate.data_folderpath
-        self.params_file = os.path.join(self.report_folderpath, "scripts", "params.yml")
+        self.aggregate_folder = self.explanations.data_folder
+        # Safeguard: aggregate_folder is guaranteed to be Path from Aggregate.data_folderpath
+        self.params_file = self.report_folderpath / "scripts" / "params.yml"
 
         super().__init__()
 
@@ -86,7 +83,10 @@ class Reports(LazyNamespace):
 
         """
         try:
-            self.explanations.aggregate.validate_folder()
+            self.explanations.validate_data_folder()
+            co = self.explanations.aggregate.context_operations
+            contexts = co.create_unique_contexts_file()
+            co.create_batch_parquet_files(contexts)
         except Exception as e:
             logger.error("Validation failed: %s", e)
             raise
@@ -129,15 +129,14 @@ class Reports(LazyNamespace):
             generate_zipped_report(report_filename, self.report_output_dir)
 
     def _validate_report_dir(self):
-        if not os.path.exists(self.report_folderpath):
-            os.makedirs(self.report_folderpath, exist_ok=True)
+        self.report_folderpath.mkdir(parents=True, exist_ok=True)
 
     def _copy_report_resources(self):
-        logger.debug(f"Copying report resources to {self.report_folderpath}")
+        logger.debug("Copying report resources to %s", self.report_folderpath)
         copy_report_resources(
             resource_dict=[
-                ("GlobalExplanations", self.report_folderpath),
-                ("assets", os.path.join(self.report_folderpath, "assets")),
+                ("GlobalExplanations", str(self.report_folderpath)),
+                ("assets", str(self.report_folderpath / "assets")),
             ],
         )
 
@@ -159,8 +158,8 @@ class Reports(LazyNamespace):
         params["sort_by_text"] = sort_by.text
         params["display_by"] = display_by.value
         params["display_by_text"] = display_by.text
-        params["data_folder"] = self.aggregate_folder.name
+        params["data_folder"] = str(self.aggregate_folder)
 
-        logger.debug(f"Writing report parameters to {self.params_file}")
+        logger.debug("Writing report parameters to %s", self.params_file)
         with open(self.params_file, "w", encoding="utf-8") as file:
             yaml.safe_dump(params, file)

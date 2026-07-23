@@ -1,43 +1,24 @@
 """Test cases for Aggregate class that handles loading and processing of aggregate data."""
 
-import shutil
-from datetime import datetime
+import json
 from pathlib import Path
-from unittest.mock import patch
 
 import polars as pl
 import pytest
 from pdstools.explanations import Explanations
-from pdstools.explanations.ExplanationsUtils import _COL, _SPECIAL
+from pdstools.explanations.ExplanationsUtils import _COL, _SPECIAL, ContextOperations
 
-basePath = Path(__file__).parent.parent.parent.parent
-
-
-def clean_up(root_dir):
-    _root_dir = Path(f"{basePath}/{root_dir}")
-    if _root_dir.exists():
-        for file in _root_dir.iterdir():
-            if file.is_file():
-                file.unlink()
-            elif file.is_dir():
-                # Remove subdirectories recursively
-                shutil.rmtree(file)
-        _root_dir.rmdir()
+DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
 
 
 @pytest.fixture(scope="class")
 def aggregate():
     """Fixture to serve as class to call functions from."""
-    explanations = Explanations.from_local_directory(
-        data_folder=f"{basePath}/data/explanations",
+    explanations = Explanations.from_aggregates(
+        data_folder=DATA_DIR,
         model_name="AdaptiveBoostCT",
-        from_date=datetime(2025, 3, 28),
-        to_date=datetime(2025, 3, 28),
     )
     yield explanations.aggregate
-
-    # cleanup .tmp folder
-    clean_up(explanations.root_dir)
 
 
 @pytest.fixture
@@ -78,7 +59,7 @@ class TestAggregateLoadData:
         overall = aggregate.df_overall.collect()
         contextual = aggregate.df_contextual.collect()
         expected_cols = {
-            "partition",
+            "context_partition",
             "contribution",
             "contribution_abs",
             "frequency",
@@ -91,13 +72,13 @@ class TestAggregateLoadData:
         }
         assert set(overall.columns) == expected_cols
         assert set(contextual.columns) == expected_cols
-        assert overall.height == 1095
-        assert contextual.height == 17743
+        assert overall.height == 1072
+        assert contextual.height == 8064
 
     def test_get_df_overall(self, aggregate):
         """Test get_df_overall returns a populated LazyFrame after loading."""
         df = aggregate.get_df_overall().collect()
-        assert df.height == 1095
+        assert df.height == 1072
         assert sorted(df["predictor_name"].unique().to_list()) == [
             "Age",
             "CustomerName",
@@ -116,7 +97,7 @@ class TestAggregateLoadData:
         """Test that numeric predictors with only one non-missing bin are filtered out."""
         df = aggregate.get_df_overall().collect()
         numeric_df = df.filter((pl.col("predictor_type") == "NUMERIC") & (pl.col("bin_contents") != "MISSING"))
-        bin_counts = numeric_df.group_by(["partition", "predictor_name"]).agg(
+        bin_counts = numeric_df.group_by(["context_partition", "predictor_name"]).agg(
             pl.col("bin_order").n_unique().alias("bin_count")
         )
         assert (bin_counts["bin_count"] > 1).all()
@@ -146,21 +127,229 @@ class TestAggregateLoadData:
 
     def test_load_data_folder_does_not_exist(self, aggregate):
         """Test handling of non-existent aggregates folder."""
+        original_root = aggregate.explanations.root_dir
+        original_folder = aggregate.explanations.data_folder
+        try:
+            aggregate.initialized = False
+            aggregate.explanations.root_dir = "/non/existent"
+            aggregate.explanations.data_folder = "path"
+            with pytest.raises(FileNotFoundError):
+                aggregate._load_data()
+        finally:
+            aggregate.explanations.root_dir = original_root
+            aggregate.explanations.data_folder = original_folder
+
+    def test_load_data_file_not_found_error(self, aggregate):
+        """Test handling of file not found errors (folder exists but no parquet files)."""
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = aggregate.explanations.root_dir
+            original_folder = aggregate.explanations.data_folder
+            try:
+                aggregate.initialized = False
+                aggregate.explanations.root_dir = tmpdir
+                aggregate.explanations.data_folder = "empty"
+                Path(tmpdir, "empty").mkdir()
+                with pytest.raises(FileNotFoundError):
+                    aggregate._load_data()
+            finally:
+                aggregate.explanations.root_dir = original_root
+                aggregate.explanations.data_folder = original_folder
+
+
+class TestContextOperations:
+    """Coverage for unique-context batching and file creation."""
+
+    def test_create_context_batches_keys(self, aggregate):
+        contexts = [f"ctx-{idx}" for idx in range(200)]
+        batches = aggregate.context_operations._create_context_batches(
+            contexts, aggregate.context_operations.file_batch_limit
+        )
+        assert list(batches) == ["0", "1"]
+
+    def test_create_context_batches_sizes(self, aggregate):
+        contexts = [f"ctx-{idx}" for idx in range(230)]
+        batches = aggregate.context_operations._create_context_batches(
+            contexts, aggregate.context_operations.file_batch_limit
+        )
+        assert sum(len(batch) for batch in batches.values()) == len(contexts)
+        assert all(len(batch) <= aggregate.context_operations.file_batch_limit for batch in batches.values())
+
+    def test_create_context_batches_single_batch(self, aggregate):
+        contexts = [f"ctx-{idx}" for idx in range(42)]
+        batches = aggregate.context_operations._create_context_batches(
+            contexts, aggregate.context_operations.file_batch_limit
+        )
+        assert list(batches) == ["0"]
+        assert len(batches["0"]) == 42
+
+    def test_create_context_batches_custom_batch_size(self, aggregate):
+        contexts = [f"ctx-{idx}" for idx in range(150)]
+        batches = aggregate.context_operations._create_context_batches(contexts, 50)
+        assert list(batches) == ["0", "1", "2"]
+        assert all(len(batch) <= 50 for batch in batches.values())
+
+    def test_create_unique_contexts_file_creates_json(self, aggregate, tmp_path):
+        output = tmp_path / "unique_contexts.json"
+        original = aggregate.context_operations.unique_contexts_file
+        aggregate.context_operations.unique_contexts_file = output
+
+        contexts = aggregate.context_operations.create_unique_contexts_file()
+
+        assert output.exists()
+        persisted = json.loads(output.read_text())
+        assert persisted == contexts
+        assert list(persisted) == ["0"]
+        assert all(isinstance(key, str) for key in persisted)
+        aggregate.context_operations.unique_contexts_file = original
+
+    def test_create_unique_contexts_file_idempotent(self, aggregate, tmp_path):
+        output = tmp_path / "unique_contexts.json"
+        original = aggregate.context_operations.unique_contexts_file
+        aggregate.context_operations.unique_contexts_file = output
+
+        first = aggregate.context_operations.create_unique_contexts_file()
+        first_mtime = output.stat().st_mtime_ns
+        second = aggregate.context_operations.create_unique_contexts_file()
+
+        assert output.stat().st_mtime_ns == first_mtime
+        assert second == first
+        assert json.loads(output.read_text()) == first
+        aggregate.context_operations.unique_contexts_file = original
+
+    def test_create_unique_contexts_file_returns_dict(self, aggregate, tmp_path):
+        output = tmp_path / "unique_contexts.json"
+        original = aggregate.context_operations.unique_contexts_file
+        aggregate.context_operations.unique_contexts_file = output
+
+        contexts = aggregate.context_operations.create_unique_contexts_file()
+
+        assert contexts == json.loads(output.read_text())
+        aggregate.context_operations.unique_contexts_file = original
+
+    def test_create_batch_parquet_files_creates_files(self, aggregate, tmp_path):
+        original_folder = aggregate.data_folderpath
+        original_file = aggregate.context_operations.unique_contexts_file
+
+        # Copy parquet files to temp directory
+        Path(tmp_path, "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
+        Path(tmp_path, "OVERVIEW.parquet").write_bytes((DATA_DIR / "OVERVIEW.parquet").read_bytes())
+
+        aggregate.data_folderpath = tmp_path
+        aggregate.context_operations.unique_contexts_file = tmp_path / "unique_contexts.json"
         aggregate.initialized = False
-        aggregate.data_folderpath = "/non/existent/path"
-        with pytest.raises(FileNotFoundError):
-            aggregate._load_data()
-            assert aggregate.initialized is False
+        contexts = aggregate.context_operations.create_unique_contexts_file()
 
-    @patch("polars.scan_parquet")
-    def test_load_data_file_not_found_error(self, mock_scan_parquet, aggregate):
-        """Test handling of file not found errors."""
-        aggregate.data_folderpath = "/non/existent/path"
-        mock_scan_parquet.side_effect = FileNotFoundError("File not found")
+        aggregate.context_operations.create_batch_parquet_files(contexts)
 
-        with pytest.raises(FileNotFoundError):
-            aggregate._load_data()
-            assert aggregate.initialized is False
+        expected_files = [tmp_path / "batches" / f"BATCH_{key}.parquet" for key in contexts]
+        assert all(path.exists() for path in expected_files)
+        aggregate.data_folderpath = original_folder
+        aggregate.context_operations.unique_contexts_file = original_file
+        aggregate.initialized = False
+
+    def test_create_batch_parquet_files_row_counts(self, aggregate, tmp_path):
+        original_folder = aggregate.data_folderpath
+        original_file = aggregate.context_operations.unique_contexts_file
+
+        # Copy parquet files to temp directory
+        Path(tmp_path, "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
+        Path(tmp_path, "OVERVIEW.parquet").write_bytes((DATA_DIR / "OVERVIEW.parquet").read_bytes())
+
+        aggregate.data_folderpath = tmp_path
+        aggregate.context_operations.unique_contexts_file = tmp_path / "unique_contexts.json"
+        aggregate.initialized = False  # Reset to force reload with new folder
+        contexts = aggregate.context_operations.create_unique_contexts_file()
+
+        aggregate.context_operations.create_batch_parquet_files(contexts)
+        contextual = aggregate.get_df_contextual().collect()
+
+        for batch_key, batch_contexts in contexts.items():
+            batch_df = pl.read_parquet(tmp_path / "batches" / f"BATCH_{batch_key}.parquet")
+            expected = contextual.filter(pl.col(_COL.PARTITION.value).is_in(batch_contexts))
+            assert batch_df.height == expected.height
+            assert set(batch_df[_COL.PARTITION.value].unique()) == set(batch_contexts)
+        aggregate.data_folderpath = original_folder
+        aggregate.context_operations.unique_contexts_file = original_file
+        aggregate.initialized = False
+
+    def test_no_file_writes_on_load(self, tmp_path):
+        data_dir = tmp_path / "aggregated_data"
+        data_dir.mkdir()
+        (data_dir / "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
+        (data_dir / "OVERVIEW.parquet").write_bytes((DATA_DIR / "OVERVIEW.parquet").read_bytes())
+
+        aggregate = Explanations.from_aggregates(data_folder=data_dir).aggregate
+        before = sorted(path.name for path in data_dir.iterdir())
+        aggregate._load_data()
+        after = sorted(path.name for path in data_dir.iterdir())
+
+        assert after == before
+
+    def test_no_file_writes_on_init(self, tmp_path):
+        data_dir = tmp_path / "aggregated_data"
+        data_dir.mkdir()
+        (data_dir / "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
+        (data_dir / "OVERVIEW.parquet").write_bytes((DATA_DIR / "OVERVIEW.parquet").read_bytes())
+
+        before = sorted(path.name for path in data_dir.iterdir())
+        Explanations.from_aggregates(data_folder=data_dir)
+        after = sorted(path.name for path in data_dir.iterdir())
+
+        assert after == before
+
+
+class TestAggregateAndContextOperationHelpers:
+    """Coverage for helper paths in Aggregate and ContextOperations."""
+
+    def test_get_unique_contexts_list_returns_contexts(self, aggregate):
+        contexts = aggregate.get_unique_contexts_list()
+        assert len(contexts) > 0
+        assert isinstance(contexts[0], dict)
+        assert "pyChannel" in contexts[0]
+
+    def test_internal_get_predictor_contributions_filters_predictors(self, aggregate, selected_context):
+        df = aggregate._get_predictor_contributions(
+            contexts=[selected_context],
+            predictors=["Age"],
+            remaining=False,
+        )
+        assert set(df["predictor_name"].unique().to_list()) == {"Age"}
+
+    def test_get_base_df_triggers_load_when_frames_are_missing(self, aggregate):
+        aggregate.initialized = False
+        aggregate.df_overall = None
+        aggregate.df_contextual = None
+
+        df = aggregate._get_base_df().collect()
+
+        assert aggregate.initialized is True
+        assert df.height > 0
+
+    def test_get_sort_over_columns_with_predictors(self, aggregate):
+        assert aggregate._get_sort_over_columns(["Age"]) == [_COL.PARTITION.value]
+
+    def test_context_operations_get_context_keys(self, aggregate):
+        keys = aggregate.context_operations.get_context_keys()
+        assert keys
+        assert all(key.startswith("py") for key in keys)
+
+    def test_context_operations_get_df_default_and_with_partition(self, aggregate):
+        df_default = aggregate.context_operations.get_df()
+        assert _COL.PARTITION.value not in df_default.columns
+
+        df_with_partition = aggregate.context_operations.get_df(with_partition_col=True)
+        assert _COL.PARTITION.value in df_with_partition.columns
+
+    def test_context_operations_get_list_and_context_string(self, aggregate, selected_context):
+        contexts = aggregate.context_operations.get_list([selected_context], with_partition_col=False)
+        assert len(contexts) == 1
+        assert contexts[0]["pyChannel"] == selected_context["pyChannel"]
+
+        context_str = ContextOperations.get_context_info_str(selected_context, sep="|")
+        assert "PegaBatch" in context_str
+        assert "|" in context_str
 
 
 class TestAggregatePredictorContributions:
@@ -170,8 +359,8 @@ class TestAggregatePredictorContributions:
         """Default top_n=20 returns one row per predictor (6 in fixture)."""
         df = aggregate.get_predictor_contributions()
         assert df.height == 6
-        assert {"predictor_name", "predictor_type", "contribution", "partition"}.issubset(df.columns)
-        assert df["partition"].n_unique() == 1
+        assert {"predictor_name", "predictor_type", "contribution", "context_partition"}.issubset(df.columns)
+        assert df["context_partition"].n_unique() == 1
         assert sorted(df["predictor_name"].unique().to_list()) == [
             "Age",
             "CustomerName",
@@ -209,7 +398,7 @@ class TestAggregatePredictorContributions:
         """Context-scoped query returns the same 6 predictor rows for that partition."""
         df = aggregate.get_predictor_contributions(context=selected_context)
         assert df.height == 6
-        assert df["partition"].n_unique() == 1
+        assert df["context_partition"].n_unique() == 1
 
     def test_get_predictor_contributions_for_context_custom_params(
         self,
@@ -433,14 +622,14 @@ class TestAggregateFrequencyPct:
     def test_add_frequency_pct_to_df(self, aggregate):
         """Test that frequency_pct column is added correctly."""
         df = aggregate.get_df_overall()
-        result = aggregate.add_frequency_pct_to_df(df, group_by=["partition"]).collect()
+        result = aggregate.add_frequency_pct_to_df(df, group_by=["context_partition"]).collect()
         assert "frequency_pct" in result.columns
         assert result["frequency_pct"].dtype == pl.Float64
 
     def test_frequency_pct_values_in_range(self, aggregate):
         """Test that frequency_pct values are between 0 and 100."""
         df = aggregate.get_df_overall()
-        result = aggregate.add_frequency_pct_to_df(df, group_by=["partition"]).collect()
+        result = aggregate.add_frequency_pct_to_df(df, group_by=["context_partition"]).collect()
         assert (result["frequency_pct"] >= 0.0).all()
         assert (result["frequency_pct"] <= 100.0).all()
 
@@ -518,7 +707,7 @@ class TestWeightedAverageComputation:
         """Build a LazyFrame from a list of dicts matching the Aggregate schema."""
 
         schema = {
-            _COL.PARTITON.value: pl.Utf8,
+            _COL.PARTITION.value: pl.Utf8,
             _COL.PREDICTOR_NAME.value: pl.Utf8,
             _COL.PREDICTOR_TYPE.value: pl.Utf8,
             _COL.BIN_CONTENTS.value: pl.Utf8,
@@ -541,7 +730,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:30]",
@@ -553,7 +742,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    "partition": "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[30:60]",
@@ -567,7 +756,7 @@ class TestWeightedAverageComputation:
             ]
         )
         result = aggregate._add_total_frequency_to_df(
-            df, group_by=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
+            df, group_by=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
         ).collect()
 
         assert (result[_SPECIAL.TOTAL_FREQUENCY.value] == 150).all()
@@ -588,7 +777,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:30]",
@@ -600,7 +789,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[30:60]",
@@ -615,8 +804,8 @@ class TestWeightedAverageComputation:
         )
         result = aggregate._calculate_aggregates(
             df,
-            frequency_over=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
-            aggregate_over=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            frequency_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            aggregate_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
         ).collect()
 
         assert result.shape[0] == 1
@@ -629,7 +818,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Color",
                     "predictor_type": "SYMBOLIC",
                     "bin_contents": "Red",
@@ -641,7 +830,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Color",
                     "predictor_type": "SYMBOLIC",
                     "bin_contents": "Blue",
@@ -656,8 +845,8 @@ class TestWeightedAverageComputation:
         )
         result = aggregate._calculate_aggregates(
             df,
-            frequency_over=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
-            aggregate_over=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            frequency_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            aggregate_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
         ).collect()
 
         weighted = result[_COL.CONTRIBUTION_WEIGHTED.value][0]
@@ -681,7 +870,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:30]",
@@ -693,7 +882,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[30:60]",
@@ -705,7 +894,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Score",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:50]",
@@ -717,7 +906,7 @@ class TestWeightedAverageComputation:
                     "frequency": 10,
                 },
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Score",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[50:100]",
@@ -732,8 +921,8 @@ class TestWeightedAverageComputation:
         )
         result = aggregate._calculate_aggregates(
             df,
-            frequency_over=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
-            aggregate_over=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            frequency_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            aggregate_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
         ).collect()
 
         by_name = {row["predictor_name"]: row for row in result.to_dicts()}
@@ -756,7 +945,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "OneRange",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:100]",
@@ -778,7 +967,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:30]",
@@ -790,7 +979,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[30:60]",
@@ -812,7 +1001,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Color",
                     "predictor_type": "SYMBOLIC",
                     "bin_contents": "Red",
@@ -835,7 +1024,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Score",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:100]",
@@ -847,7 +1036,7 @@ class TestWeightedAverageComputation:
                     "frequency": 80,
                 },
                 {
-                    "partition": "p1",
+                    _COL.PARTITION.value: "p1",
                     "predictor_name": "Score",
                     "predictor_type": "NUMERIC",
                     "bin_contents": _SPECIAL.MISSING.name,
@@ -871,11 +1060,11 @@ def assert_predictor_rows_per_partition(df, top_n):
     appends a single aggregated 'remaining' row per partition.
     """
     expected_per_partition = top_n + 1
-    counts = df.group_by("partition").agg(pl.len().alias("n")).to_dicts()
+    counts = df.group_by("context_partition").agg(pl.len().alias("n")).to_dicts()
     assert counts, "Expected at least one partition in the result."
     for row in counts:
         assert row["n"] == expected_per_partition, (
-            f"Partition {row['partition']!r} has {row['n']} rows, "
+            f"Partition {row['context_partition']!r} has {row['n']} rows, "
             f"expected {expected_per_partition} (top_n + 1 remaining)."
         )
 
@@ -894,3 +1083,16 @@ def assert_symbolic_bins_per_predictor_capped(df, top_k):
                 f"Symbolic predictor {row['predictor_name']!r} has {row['n']} bins, "
                 f"expected at most {expected_max} (top_k + 1 remaining)."
             )
+
+
+def test_create_context_batches_empty_list():
+    """Test that empty context list returns empty batches dict."""
+    batches = ContextOperations._create_context_batches([], 100)
+    assert batches == {}
+
+
+def test_create_context_batches_none():
+    """Test that None context list returns empty batches dict."""
+    batches = ContextOperations._create_context_batches(None, 100)
+    assert isinstance(batches, dict)
+    assert len(batches) == 0

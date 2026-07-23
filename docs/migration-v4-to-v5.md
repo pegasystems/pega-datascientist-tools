@@ -149,7 +149,7 @@ model=...)` directly.
 Previously `def __init__(self, *args, **kwargs)`. Now uses explicit
 parameters matching the documented constructor signature.
 
-### `Explanations.__init__` is pure config; loading moves to `from_local_directory`
+### `Explanations.__init__` is pure config; loading moves to `from_aggregates`
 
 The `Explanations` constructor used to accept filesystem paths
 (`root_dir`, `data_folder`, `data_file`) and run the DuckDB
@@ -157,10 +157,11 @@ pre-aggregation pipeline as a side effect of construction. This
 violated the project's pure-`__init__` rule (see AGENTS.md, "I/O lives
 in classmethods, not `__init__`").
 
-In v5 the constructor takes only configuration (`model_name`,
-`from_date`, `to_date`, all keyword-only) and performs no I/O. All
-path-driven loading moves to a new `from_local_directory` classmethod
-that mirrors `ADMDatamart.from_ds_export` / `from_s3`.
+In v5 the constructor takes only configuration (`root_dir`,
+`data_folder`, `model_name`, `from_date`, `to_date`, all keyword-only)
+and performs no I/O. The
+explanations API now expects pre-aggregated parquet files and loads them
+with `from_aggregates`.
 
 ```python
 # Before (v4.x):
@@ -172,7 +173,7 @@ exp = Explanations(
 )
 
 # After (v5):
-exp = Explanations.from_local_directory(
+exp = Explanations.from_aggregates(
     data_folder="explanations_data",
     model_name="AdaptiveBoostCT",
     from_date=datetime(2025, 3, 28),
@@ -180,30 +181,40 @@ exp = Explanations.from_local_directory(
 )
 ```
 
-Single-file / remote-URL loading still works the same way, just on the
-classmethod:
+Raw single-file / remote-URL aggregation is no longer part of this API.
+Generate or provide a folder containing the pre-aggregated parquet files
+(`BY_CONTEXT.parquet` and `OVERVIEW.parquet`) before constructing
+`Explanations`:
 
 ```python
-# Before:
-exp = Explanations(data_file="https://.../file.parquet", model_name="...")
-# After:
-exp = Explanations.from_local_directory(
-    data_file="https://.../file.parquet", model_name="...",
-)
+exp = Explanations.from_aggregates(data_folder=".tmp/aggregated_data")
+```
+
+If you previously used `Explanations.from_local_directory(...)`, migrate
+to `from_aggregates(...)`:
+
+```python
+# Before (v4.x):
+exp = Explanations.from_local_directory(data_folder=".tmp/aggregated_data")
+
+# After (v5):
+exp = Explanations.from_aggregates(data_folder=".tmp/aggregated_data")
 ```
 
 Quarto report templates that previously did
 `Explanations(root_dir="...")` followed by manual
-`aggregate.data_folderpath = "..."` should drop the `root_dir` argument
-entirely — the bare constructor is now safe to call without I/O:
+`aggregate.data_folderpath = "..."` should use explicit path configuration
+on `Explanations` itself:
 
 ```python
 # Before:
 explanations = Explanations(root_dir=ROOT_DIR)
 explanations.aggregate.data_folderpath = DATA_FOLDER
 # After:
-explanations = Explanations()
-explanations.aggregate.data_folderpath = DATA_FOLDER
+explanations = Explanations.from_aggregates(
+    root_dir=ROOT_DIR,
+    data_folder=DATA_FOLDER,
+)
 ```
 
 ### Explanations: explicit filter parameters
@@ -212,8 +223,7 @@ The `**filter_kwargs` catch-all on the Explanations `Plots`,
 `Aggregate`, and `Reports` public methods has been replaced with
 explicit, keyword-only parameters: `sort_by`, `display_by`,
 `descending`, `missing`, `remaining`, `include_numeric_single_bin`.
-Affected methods: `Plots.contributions`,
-`Plots.plot_contributions_for_overall`,
+Affected methods: `Plots.plot_contributions_for_overall`,
 `Plots.plot_contributions_by_context`,
 `Aggregate.get_predictor_contributions`,
 `Aggregate.get_predictor_value_contributions`, and `Reports.generate`.
@@ -222,10 +232,40 @@ Unknown kwargs now raise `TypeError`. New `SortBy` / `DisplayBy`
 
 ```python
 # Before (v4.x):
-plots.contributions(**{"sort_by": "value", "typo_arg": True})  # silently dropped
+plots.plot_contributions_for_overall(**{"sort_by": "contribution", "typo_arg": True})  # silently dropped
 
 # After (v5):
-plots.contributions(sort_by="value")  # unknown kwargs raise TypeError
+plots.plot_contributions_for_overall(sort_by="contribution")  # unknown kwargs raise TypeError
+```
+
+`Plots.contributions(...)` was removed. Use the remaining public plot
+methods directly:
+
+```python
+# Before (v4.x):
+plots.contributions(top_n=20, top_k=20)
+
+# After (v5):
+plots.plot_contributions_for_overall(top_n=20, top_k=20)
+# or
+plots.plot_contributions_by_context({"pyChannel": "Web"}, top_n=20, top_k=20)
+```
+
+### Explanations: context partition field name
+
+When requesting raw partition values from context helpers, the column/key
+name is now `context_partition` (instead of `partition`) in both
+`get_df(..., with_partition_col=True)` and
+`get_list(..., with_partition_col=True)`.
+
+```python
+# Before (v4.x):
+df = exp.aggregate.context_operations.get_df(with_partition_col=True)
+assert "partition" in df.columns
+
+# After (v5):
+df = exp.aggregate.context_operations.get_df(with_partition_col=True)
+assert "context_partition" in df.columns
 ```
 
 ### `DecisionAnalyzer.__init__` and `from_*` classmethods

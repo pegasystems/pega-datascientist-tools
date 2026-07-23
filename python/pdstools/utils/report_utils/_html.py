@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import re
 import shutil
 import zipfile
@@ -64,7 +63,7 @@ def _inline_css(html_path: Path, base_dir: Path) -> int:
     return inlined
 
 
-def generate_zipped_report(output_filename: str, folder_to_zip: str):
+def generate_zipped_report(output_filename: str, folder_to_zip: Path):
     """Generate a zipped archive of a directory.
 
     This is a general-purpose utility function that can compress any directory
@@ -75,7 +74,7 @@ def generate_zipped_report(output_filename: str, folder_to_zip: str):
     ----------
     output_filename : str
         Name of the output file (extension will be replaced with .zip)
-    folder_to_zip : str
+    folder_to_zip : Path
         Path to the directory to be compressed
 
     Returns
@@ -89,22 +88,22 @@ def generate_zipped_report(output_filename: str, folder_to_zip: str):
 
     Examples
     --------
-    >>> generate_zipped_report("my_archive.zip", "/path/to/directory")
-    >>> generate_zipped_report("report_2023", "/tmp/report_output")
+    >>> generate_zipped_report("my_archive.zip", Path("/path/to/directory"))
+    >>> generate_zipped_report("report_2023", Path("/tmp/report_output"))
 
     """
-    if not os.path.isdir(folder_to_zip):
-        logger.error(f"The output path {folder_to_zip} is not a directory.")
-        return
-
-    if not os.path.exists(folder_to_zip):
+    if not folder_to_zip.exists():
         logger.warning(
             f"The {folder_to_zip} directory does not exist. Skipping zip creation.",
         )
         return
 
-    base_filename = os.path.splitext(output_filename)[0]
-    zippy = shutil.make_archive(base_filename, "zip", folder_to_zip)
+    if not folder_to_zip.is_dir():
+        logger.error(f"The output path {folder_to_zip} is not a directory.")
+        return
+
+    base_filename = Path(output_filename).with_suffix("")
+    zippy = shutil.make_archive(str(base_filename), "zip", str(folder_to_zip))
     logger.info(f"created zip file...{zippy}")
 
 
