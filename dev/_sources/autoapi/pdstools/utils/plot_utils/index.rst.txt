@@ -22,6 +22,8 @@ Attributes
    pdstools.utils.plot_utils.logger
    pdstools.utils.plot_utils.Figure
    pdstools.utils.plot_utils.LIFT_DIRECTION_COLORS
+   pdstools.utils.plot_utils.PERFORMANCE_RANGE_MIN
+   pdstools.utils.plot_utils.PERFORMANCE_RANGE_MAX
    pdstools.utils.plot_utils.COLORSCALES
    pdstools.utils.plot_utils.DEFAULT_LABEL_MAX_LENGTH
    pdstools.utils.plot_utils.HOVER_PERFORMANCE_PCT
@@ -56,6 +58,14 @@ Module Contents
 
 .. py:data:: LIFT_DIRECTION_COLORS
    :type:  dict[str, str]
+
+.. py:data:: PERFORMANCE_RANGE_MIN
+   :value: 0.5
+
+
+.. py:data:: PERFORMANCE_RANGE_MAX
+   :value: 1.0
+
 
 .. py:data:: COLORSCALES
    :type:  dict[str, Any]
