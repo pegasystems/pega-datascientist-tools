@@ -223,6 +223,29 @@ def test_over_time_multi_by(sample2: ADMDatamart):
     ]
 
 
+def test_over_time_response_count_change_normalizes_missing_periods():
+    data = pl.DataFrame(
+        {
+            "SnapshotTime": [datetime(2024, 1, 1), datetime(2024, 1, 15)],
+            "ModelID": ["model-1", "model-1"],
+            "Performance": [0.75, 0.78],
+            "ResponseCount": [100, 300],
+            "Positives": [10, 30],
+        },
+    ).lazy()
+    datamart = ADMDatamart(model_df=data)
+
+    weekly = datamart.plot.over_time(
+        metric="ResponseCount",
+        by="ModelID",
+        every="1w",
+        cumulative=False,
+        return_df=True,
+    ).collect()
+
+    assert weekly.get_column("ResponseCount_change").to_list() == [None, 100.0]
+
+
 def test_proposition_success_rates(sample: ADMDatamart):
     df = sample.plot.proposition_success_rates(return_df=True)
 

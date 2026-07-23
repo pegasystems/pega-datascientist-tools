@@ -3,6 +3,8 @@ from __future__ import annotations
 import plotly.graph_objects as go
 import plotly.io as pio
 
+from .plot_utils import get_colorscale
+
 colorway = [
     "#001F5F",  # dark blue
     "#10A5AC",
@@ -19,6 +21,8 @@ colorway = [
     "#A7A9B4",  # medium grey
     "#D0D1DB",  # light grey
 ]
+# Generic visual ramps. They are not tied to MetricLimits until a call site maps
+# them to a concrete metric ID with canonical thresholds.
 neutral_positive = [(0, "#FFB546"), (0.1, "#FCE880"), (0.6, "#66CB66"), (1, "#27803E")]
 
 negative_positive = [
@@ -35,15 +39,11 @@ positive_negative = [
     (0.8, "#FF853D"),
     (1, "#DE4342"),
 ]
-performance = [
-    (0, "#DE4342"),
-    (0.1, "#FFB546"),
-    (0.3, "#66CB66"),
-    (0.6, "#27803E"),
-    (0.9, "#FFB546"),
-    (1, "#0000FF"),
-]
+# Performance is metric-specific: source it from ModelPerformance limits.
+performance = get_colorscale("Performance")
 
+# Success-rate quality depends on channel and implementation details; there is
+# intentionally no SuccessRate row in MetricLimits.csv today.
 success = [(0, "#DE4342"), (0.2, "#66CB66"), (1, "#27803E")]
 
 pio.templates["pega"] = go.layout.Template(

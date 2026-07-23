@@ -43,6 +43,33 @@ def test_find_data_directories_discovers_canonical_prediction(tmp_path):
     ]
 
 
+def test_print_report_size_comparison_highlights_smaller_embed(capsys):
+    batch._print_report_size_comparison("HC", cdn_mb=2.0, embed_mb=1.0)
+
+    captured = capsys.readouterr()
+
+    assert "HC size: CDN 2.0 MB vs embed 1.0 MB (0.5x)" in captured.out
+    assert "HC full-embed output is smaller than CDN output" in captured.out
+
+
+def test_print_dataset_paths_omits_missing_optional_files(capsys):
+    batch._print_dataset_paths(
+        {
+            "Data_Dir": "/tmp/data/HC",
+            "Model_File": "/tmp/data/HC/PR_DATA_DM_ADMMART_MDL_FACT.parquet",
+            "Predictor_File": None,
+            "Prediction_File": "/tmp/data/HC/PR_DATA_DM_SNAPSHOTS.parquet",
+        }
+    )
+
+    captured = capsys.readouterr()
+
+    assert "Data directory: /tmp/data/HC" in captured.out
+    assert "Model file: /tmp/data/HC/PR_DATA_DM_ADMMART_MDL_FACT.parquet" in captured.out
+    assert "Prediction file: /tmp/data/HC/PR_DATA_DM_SNAPSHOTS.parquet" in captured.out
+    assert "Predictor file" not in captured.out
+
+
 def test_process_dataset_passes_prediction_and_canonical_paths(tmp_path):
     model = tmp_path / "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
     predictor = tmp_path / "PR_DATA_DM_ADMMART_PRED.parquet"
@@ -155,6 +182,58 @@ def test_main_defaults_to_per_dataset_output(tmp_path, monkeypatch):
         max_models=3,
     )
     assert (tmp_path / "summary.csv").exists()
+
+
+def test_main_error_summary_includes_data_paths(tmp_path, monkeypatch, capsys):
+    dataset = {
+        "name": "Dataset",
+        "data_dir": tmp_path / "Dataset" / "HC",
+        "model_file": tmp_path / "Dataset" / "HC" / "PR_DATA_DM_ADMMART_MDL_FACT.parquet",
+        "predictor_file": tmp_path / "Dataset" / "HC" / "PR_DATA_DM_ADMMART_PRED.parquet",
+        "prediction_file": None,
+    }
+    result = {
+        "Dataset": "Dataset",
+        "Data_Dir": str(dataset["data_dir"]),
+        "Model_File": str(dataset["model_file"]),
+        "Predictor_File": str(dataset["predictor_file"]),
+        "Prediction_File": None,
+        "Model_File_MB": 1.0,
+        "Predictor_File_MB": 1.0,
+        "Prediction_File_MB": 0.0,
+        "HC_CDN_MB": 0.0,
+        "HC_CDN_Status": "Error",
+        "HC_CDN_Errors": "render failed",
+        "HC_Embed_MB": 0.0,
+        "HC_Embed_Status": "Skipped",
+        "HC_Embed_Errors": None,
+        "ModelReport_Models": 0,
+        "ModelReport_CDN_MB": 0.0,
+        "ModelReport_CDN_Status": "Skipped",
+        "ModelReport_CDN_Errors": None,
+        "ModelReport_Embed_MB": 0.0,
+        "ModelReport_Embed_Status": "Skipped",
+        "ModelReport_Embed_Errors": None,
+        "Excel_MB": 0.0,
+        "Excel_Status": "Skipped",
+    }
+    monkeypatch.setattr(sys, "argv", ["batch_healthcheck.py", str(tmp_path)])
+
+    with (
+        patch.object(batch, "find_data_directories", return_value=[dataset]),
+        patch.object(batch, "process_dataset", return_value=result),
+        pytest.raises(SystemExit) as exit_info,
+    ):
+        batch.main()
+
+    captured = capsys.readouterr()
+
+    assert exit_info.value.code == 1
+    assert "Report Errors Detected (HC CDN)" in captured.out
+    assert f"Data directory: {dataset['data_dir']}" in captured.out
+    assert f"Model file: {dataset['model_file']}" in captured.out
+    assert f"Predictor file: {dataset['predictor_file']}" in captured.out
+    assert "  - render failed" in captured.out
 
 
 def test_process_dataset_generates_individual_model_reports(tmp_path):
@@ -323,7 +402,7 @@ def test_batch_healthcheck_cdn(hc_layout, tmp_path):
 
 @pytest.mark.slow
 def test_batch_healthcheck_full_embed(hc_layout, tmp_path):
-    """Verify both CDN and full-embed reports are produced and compare sizes."""
+    """Verify both CDN and full-embed reports are produced."""
     output_dir = tmp_path / "reports"
     result = _run_batch(hc_layout, output_dir)
 
@@ -334,16 +413,15 @@ def test_batch_healthcheck_full_embed(hc_layout, tmp_path):
     assert len(cdn_files) >= 1, f"No CDN report, files: {[f.name for f in output_dir.glob('*.html')]}"
     assert len(full_files) >= 1, f"No full-embed report, files: {[f.name for f in output_dir.glob('*.html')]}"
 
-    # HealthCheck: full-embed should be larger than CDN
-    hc_cdn = [f for f in cdn_files if "models" not in f.name]
-    hc_full = [f for f in full_files if "models" not in f.name]
-    if hc_cdn and hc_full:
-        cdn_size = hc_cdn[0].stat().st_size
-        full_size = hc_full[0].stat().st_size
-        print(f"HC CDN:        {cdn_size / (1024 * 1024):.1f} MB")
-        print(f"HC full-embed: {full_size / (1024 * 1024):.1f} MB")
-        print(f"Ratio:         {full_size / cdn_size:.1f}x")
-        assert full_size > cdn_size, "Full-embed HC should be larger than CDN"
+    # HealthCheck: both rendering modes should produce non-trivial reports.
+    hc_cdn = [f for f in cdn_files if "model" not in f.name]
+    hc_full = [f for f in full_files if "model" not in f.name]
+    assert len(hc_cdn) >= 1, f"No HealthCheck CDN report, files: {[f.name for f in cdn_files]}"
+    assert len(hc_full) >= 1, f"No HealthCheck full-embed report, files: {[f.name for f in full_files]}"
+    for html_file in [hc_cdn[0], hc_full[0]]:
+        size_kb = html_file.stat().st_size / 1024
+        print(f"{html_file.name}: {size_kb:.1f} KB")
+        assert size_kb > 100, f"{html_file.name} is suspiciously small: {size_kb:.1f} KB"
 
     # Verify summary has both HC modes
     df = pl.read_csv(output_dir / "summary.csv")
@@ -354,8 +432,8 @@ def test_batch_healthcheck_full_embed(hc_layout, tmp_path):
     n_models = df["ModelReport_Models"][0]
     print(f"Model reports generated: {n_models}")
     if n_models > 0:
-        # Multi-model reports are zipped; single model reports are HTML
-        all_outputs = list(output_dir.glob("*models*"))
+        # Individual model reports use singular "model" in the generated file names.
+        all_outputs = list(output_dir.glob("*model*"))
         print(f"Model report files: {[f.name for f in all_outputs]}")
         assert len(all_outputs) >= 2, (
             f"Expected CDN + full-embed model report outputs, found: {[f.name for f in all_outputs]}"
