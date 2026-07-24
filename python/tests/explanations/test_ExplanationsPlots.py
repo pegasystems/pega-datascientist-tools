@@ -4,7 +4,6 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import plotly.graph_objects as go
-import polars as pl
 import pytest
 from pdstools.explanations import Explanations
 from pdstools.explanations.ExplanationsUtils import _SPECIAL
@@ -203,8 +202,18 @@ def test_plot_contributions_for_overall_return_df(plots):
         return_df=True,
     )
 
-    assert isinstance(overall_df, pl.DataFrame)
-    assert isinstance(predictors_df, pl.DataFrame)
+    assert overall_df["predictor_name"].to_list() == [
+        "pyName",
+        "Age",
+        "Occupation",
+        "CustomerName",
+        "NumX",
+        _SPECIAL.REMAINING.value,
+    ]
+    assert predictors_df.group_by("predictor_name").len().sort("predictor_name").to_dict(as_series=False) == {
+        "predictor_name": ["Age", "CustomerName", "NumX", "Occupation", "pyName"],
+        "len": [6, 6, 6, 6, 6],
+    }
 
     fig_overall, _ = plots.plot_contributions_for_overall(top_n=5, top_k=5)
     fig_overall_y = list(fig_overall.data[0].y)
@@ -229,10 +238,20 @@ def test_plot_contributions_by_context_return_df(plots):
         return_df=True,
     )
 
-    assert isinstance(context_df, pl.DataFrame)
-    assert isinstance(value_df, pl.DataFrame)
-    # context keys must be filtered out of the predictor frame
-    assert not context_df["predictor_name"].is_in(list(selected_context)).any()
+    assert context_df["predictor_name"].to_list() == ["Age", "Occupation", _SPECIAL.REMAINING.value]
+    assert value_df.select("predictor_name", "bin_contents").to_dict(as_series=False) == {
+        "predictor_name": ["Age", "Age", "Age", "Age", "Occupation", "Occupation", "Occupation", "Occupation"],
+        "bin_contents": [
+            "remaining",
+            "[25.000:32.000]",
+            "[32.000:40.000]",
+            "[40.000:45.000]",
+            "remaining",
+            "Geneticist, molecular",
+            "Podiatrist",
+            "Food technologist",
+        ],
+    }
 
 
 def _assert_fig_bar_data_predictors_special_bins(

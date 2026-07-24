@@ -219,8 +219,7 @@ def test_read_ds_export_prefers_local_repo_data_for_raw_github_samples(monkeypat
         path="https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data",
     )
 
-    assert isinstance(df, pl.LazyFrame)
-    assert df.collect().height > 0
+    assert df.collect().shape == (7297, 17)
 
 
 # ---------------------------------------------------------------------------
@@ -231,9 +230,9 @@ def test_read_ds_export_prefers_local_repo_data_for_raw_github_samples(monkeypat
 class TestReadDataExcel:
     FIXTURE = Path(__file__).parent.parent / "data" / "ia" / "ImpactAnalyzerExport_minimal.xlsx"
 
-    def test_read_data_xlsx_returns_lazyframe(self):
+    def test_read_data_xlsx_returns_expected_row_count(self):
         result = F.read_data(self.FIXTURE)
-        assert isinstance(result, pl.LazyFrame)
+        assert result.collect().height == 41
 
     def test_read_data_xlsx_known_columns_and_value(self):
         df = F.read_data(self.FIXTURE).collect()

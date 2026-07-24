@@ -16,7 +16,8 @@ import pytest
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data"
 SCRIPT = Path(__file__).parent.parent.parent.parent / "scripts" / "batch_healthcheck.py"
 SPEC = importlib.util.spec_from_file_location("batch_healthcheck", SCRIPT)
-assert SPEC is not None and SPEC.loader is not None
+if SPEC is None or SPEC.loader is None:
+    raise ImportError(f"Unable to load batch healthcheck script from {SCRIPT}")
 batch = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(batch)
 
@@ -327,7 +328,6 @@ def test_generate_quarto_report_fails_when_rendered_html_contains_errors(tmp_pat
 
     assert size_mb > 0
     assert status == "Error"
-    assert errors is not None
     assert "Plot rendering error" in errors
     assert "TypeError exception" in errors
 

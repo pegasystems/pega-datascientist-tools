@@ -34,7 +34,8 @@ class TestAppsDict:
     def test_display_names_are_strings(self):
         for _key, value in APPS.items():
             assert isinstance(value["display_name"], str)
-            assert len(value["display_name"]) > 0
+            assert value["display_name"].strip() == value["display_name"]
+            assert value["display_name"] != ""
 
     def test_paths_are_dotted_module_paths(self):
         for _key, value in APPS.items():
@@ -52,12 +53,12 @@ class TestAppsDict:
 class TestCreateParser:
     def test_parser_is_created(self):
         parser = create_parser()
-        assert parser is not None
+        assert parser.description == "Command line utility to run pdstools apps."
 
     def test_parser_choices(self):
         parser = create_parser()
         # The 'app' positional argument should have correct choices (including aliases)
-        app_action = None
+        matching_actions = []
         expected_choices = {
             "launcher",
             "health_check",
@@ -73,9 +74,8 @@ class TestCreateParser:
         for action in parser._actions:
             if hasattr(action, "choices") and action.choices is not None:
                 if set(action.choices) == expected_choices:
-                    app_action = action
-                    break
-        assert app_action is not None, "Parser should have an 'app' argument with the app choices and aliases"
+                    matching_actions.append(action)
+        assert [action.dest for action in matching_actions] == ["app"]
 
     def test_parser_description(self):
         parser = create_parser()

@@ -57,7 +57,7 @@ def test_chunk_to_parquet(anonymizer):
 
 def test_preprocess(anonymizer):
     chunked_files = anonymizer.preprocess(verbose=False)
-    assert len(chunked_files) > 0
+    assert chunked_files == [os.path.join(anonymizer.temp_path, "0.parquet")]
 
 
 def test_process(anonymizer):

@@ -74,7 +74,7 @@ class _ChampionChallengerV24_2Mixin:
         champion_percentage: float | None = None,
         model_objective: str | None = None,
     ):
-        super().__init__(client=client)  # type: ignore[call-arg]
+        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative mixin init resolves at runtime; mypy sees object.__init__
         self.prediction_id = prediction_id
         self.cc_id = cc_id
         self.context = context

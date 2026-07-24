@@ -5,6 +5,9 @@ from pathlib import Path
 
 import pytest
 from pdstools.explanations import Explanations
+from pdstools.explanations.Aggregate import Aggregate
+from pdstools.explanations.Plots import Plots
+from pdstools.explanations.Reports import Reports
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
 
@@ -79,9 +82,9 @@ class TestPureInit:
 
     def test_namespaces_attached(self):
         exp = Explanations()
-        assert exp.aggregate is not None
-        assert exp.plot is not None
-        assert exp.report is not None
+
+        assert (type(exp.aggregate), type(exp.plot), type(exp.report)) == (Aggregate, Plots, Reports)
+        assert all(namespace.explanations is exp for namespace in (exp.aggregate, exp.plot, exp.report))
 
     def test_absolute_path_splits_correctly(self, tmp_path):
         """Test that absolute data_folder path is split into root_dir and data_folder."""

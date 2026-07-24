@@ -53,8 +53,6 @@ class TestAggregateLoadData:
         aggregate._load_data()
 
         assert aggregate.initialized is True
-        assert aggregate.df_contextual is not None
-        assert aggregate.df_overall is not None
 
         overall = aggregate.df_overall.collect()
         contextual = aggregate.df_contextual.collect()
@@ -305,9 +303,11 @@ class TestAggregateAndContextOperationHelpers:
 
     def test_get_unique_contexts_list_returns_contexts(self, aggregate):
         contexts = aggregate.get_unique_contexts_list()
-        assert len(contexts) > 0
-        assert isinstance(contexts[0], dict)
-        assert "pyChannel" in contexts[0]
+        assert len(contexts) == 20
+        assert {context["pyName"] for context in contexts} == {f"P{i}" for i in range(1, 21)}
+        assert {tuple(context) for context in contexts} == {
+            ("pyChannel", "pyDirection", "pyGroup", "pyIssue", "pyName"),
+        }
 
     def test_internal_get_predictor_contributions_filters_predictors(self, aggregate, selected_context):
         df = aggregate._get_predictor_contributions(

@@ -352,7 +352,6 @@ class TestRecommendations:
 class TestSummaryReport:
     def test_report_metrics(self, dq: TopicDataQuality) -> None:
         report = dq.health.summary_report()
-        assert isinstance(report, pl.DataFrame)
         assert report.height == 8
         metrics = report.get_column("Metric").to_list()
         assert "Total Samples" in metrics
@@ -381,23 +380,26 @@ class TestSummaryReport:
 class TestPlot:
     def test_topic_distribution_return_df(self, dq: TopicDataQuality) -> None:
         df = dq.plot.topic_distribution(return_df=True)
-        assert isinstance(df, pl.DataFrame)
         assert df.height == 3
-        assert "percent" in df.columns
-        # Percentages should sum to ~100
-        assert df.get_column("percent").sum() == pytest.approx(100.0, abs=0.5)
+        assert df.to_dict(as_series=False) == {
+            "topic": ["animals", "tech", "finance"],
+            "count": [7, 5, 4],
+            "percent": [43.8, 31.2, 25.0],
+        }
 
     def test_umap_2d_return_df(self, dq: TopicDataQuality) -> None:
         df = dq.plot.umap_2d(return_df=True)
-        assert isinstance(df, pl.DataFrame)
         assert df.height == 16
         assert "x" in df.columns
         assert "y" in df.columns
 
     def test_similarity_heatmap_return_df(self, dq: TopicDataQuality) -> None:
         df = dq.plot.similarity_heatmap(return_df=True)
-        assert isinstance(df, pl.DataFrame)
-        assert "topic" in df.columns
+        assert df.columns == ["topic", "animals", "finance", "tech"]
+        assert df.get_column("topic").to_list() == ["animals", "finance", "tech"]
+        assert df.get_column("animals").to_list() == pytest.approx([1.0, 0.0, 0.09484928632254082])
+        assert df.get_column("finance").to_list() == pytest.approx([0.0, 1.0, 0.0])
+        assert df.get_column("tech").to_list() == pytest.approx([0.09484928632254082, 0.0, 1.0])
 
 
 # ------------------------------------------------------------------
@@ -427,7 +429,6 @@ class TestClusterTightness:
 class TestOutliers:
     def test_outlier_schema(self, dq: TopicDataQuality) -> None:
         outliers = dq.health.find_outliers()
-        assert isinstance(outliers, pl.DataFrame)
         assert set(outliers.columns) == {"index", "text", "topic", "distance"}
 
     def test_outlier_distances_positive(self, dq: TopicDataQuality) -> None:
@@ -477,7 +478,6 @@ class TestImbalanceRatioEdge:
 class TestConfusedSamples:
     def test_confused_samples_schema(self, dq: TopicDataQuality) -> None:
         confused = dq.health.find_confused_samples()
-        assert isinstance(confused, pl.DataFrame)
         expected_cols = {"text", "assigned_topic", "confused_with", "confusion_risk", "similarity_score"}
         assert set(confused.columns) == expected_cols
 
@@ -581,7 +581,6 @@ class TestCleanlabAudit:
 class TestTopicLearnability:
     def test_learnability_returns_dataframe(self, dq: TopicDataQuality) -> None:
         learn = dq.compute.topic_learnability()
-        assert isinstance(learn, pl.DataFrame)
         assert set(learn.columns) == {"topic", "f1_mean", "f1_std"}
 
     def test_learnability_all_topics(self, dq: TopicDataQuality) -> None:
@@ -667,9 +666,9 @@ class TestSimilarityCaching:
 
     def test_tfidf_artifacts_stored(self, dq: TopicDataQuality) -> None:
         dq.compute.topic_similarity()
-        assert dq._tfidf_vectorizer is not None
-        assert dq._tfidf_matrix is not None
-        assert dq._topic_order is not None
+        assert list(dq._tfidf_vectorizer.get_feature_names_out()) != []
+        assert dq._tfidf_matrix.shape[0] == 3
+        assert set(dq._topic_order) == {"animals", "tech", "finance"}
 
 
 # ------------------------------------------------------------------
@@ -713,7 +712,6 @@ class TestPlotCleanlab:
     @pytest.mark.usefixtures("_skip_if_no_cleanlab")
     def test_label_quality_histogram_return_df(self, dq: TopicDataQuality) -> None:
         df = dq.plot.label_quality_histogram(return_df=True)
-        assert isinstance(df, pl.DataFrame)
         assert "label_score" in df.columns
         assert "is_label_issue" in df.columns
         assert df.height == dq.total_samples
@@ -728,7 +726,6 @@ class TestPlotCleanlab:
     @pytest.mark.usefixtures("_skip_if_no_cleanlab")
     def test_cleanlab_issue_summary_return_df(self, dq: TopicDataQuality) -> None:
         df = dq.plot.cleanlab_issue_summary(return_df=True)
-        assert isinstance(df, pl.DataFrame)
         assert "Issue Type" in df.columns
         assert "Count" in df.columns
 
@@ -748,7 +745,6 @@ class TestPlotCleanlab:
 class TestPlotLearnability:
     def test_learnability_scorecard_return_df(self, dq: TopicDataQuality) -> None:
         df = dq.plot.learnability_scorecard(return_df=True)
-        assert isinstance(df, pl.DataFrame)
         assert set(df.columns) == {"topic", "f1_mean", "f1_std"}
         assert df.height == 3
 

@@ -26,13 +26,11 @@ def test_predictors_overview(dm_aggregates):
     """Test the predictors_overview method."""
     # Test with no model_id (all models)
     overview = dm_aggregates.predictors_overview().collect()
-    assert overview is not None
-    assert isinstance(overview, pl.DataFrame)
 
-    # Check that the expected columns are present
     expected_columns = [
         "ModelID",
         "PredictorName",
+        "PredictorCategory",
         "Responses",
         "Positives",
         "EntryType",
@@ -44,16 +42,25 @@ def test_predictors_overview(dm_aggregates):
         "Missing %",
         "Residual %",
     ]
-    for col in expected_columns:
-        assert col in overview.columns
+    assert overview.columns == expected_columns
+    assert overview.shape == (1800, 13)
 
     # Test with a specific model_id
     model_id = "692f453a-f825-5a90-ab40-f83cbb34b058"
     overview_single = dm_aggregates.predictors_overview(model_id=model_id).collect()
-    assert overview_single is not None
-    assert isinstance(overview_single, pl.DataFrame)
-    assert "ModelID" not in overview_single.columns  # ModelID column should be removed
-    assert "PredictorName" in overview_single.columns
+    assert overview_single.columns == expected_columns[1:]
+    assert overview_single.shape == (90, 12)
+    assert overview_single.head(2).select(
+        "PredictorName",
+        "Responses",
+        "Positives",
+        "EntryType",
+    ).to_dict(as_series=False) == {
+        "PredictorName": ["Customer.Prefix", "Classifier"],
+        "Responses": [518, 518],
+        "Positives": [13, 13],
+        "EntryType": ["Active", "Classifier"],
+    }
 
     # Test with additional aggregations
     additional_aggs = [pl.col("BinResponseCount").sum().alias("Total Responses")]
