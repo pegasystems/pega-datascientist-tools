@@ -243,12 +243,12 @@ def test_plot_contributions_by_context_return_df(plots):
         "predictor_name": ["Age", "Age", "Age", "Age", "Occupation", "Occupation", "Occupation", "Occupation"],
         "bin_contents": [
             "remaining",
-            "[33.000:38.000]",
-            "[38.000:43.000]",
-            "[43.000:48.000]",
+            "[25.000:32.000]",
+            "[32.000:40.000]",
+            "[40.000:45.000]",
             "remaining",
-            "Interior and spatial designer",
-            "Psychotherapist, child",
+            "Geneticist, molecular",
+            "Podiatrist",
             "Food technologist",
         ],
     }
