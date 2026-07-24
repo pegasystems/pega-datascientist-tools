@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pathlib
+import tempfile
 import warnings
 from typing import TYPE_CHECKING
 from urllib.request import urlretrieve
@@ -117,7 +118,7 @@ def sample_value_finder(threshold: float | None = None) -> ValueFinder:
 
 def sample_explanations(
     *,
-    target_dir: str | pathlib.Path = ".tmp/aggregated_data",
+    target_dir: str | pathlib.Path | None = None,
     model_name: str | None = "AdaptiveBoostCT",
     from_date: datetime | None = None,
     to_date: datetime | None = None,
@@ -127,8 +128,9 @@ def sample_explanations(
 
     Parameters
     ----------
-    target_dir : str | pathlib.Path, default ".tmp/aggregated_data"
-        Local folder where sample aggregate files are stored.
+    target_dir : str | pathlib.Path | None, default None
+        Local folder where sample aggregate files are stored. If ``None``,
+        files are stored in ``<tempdir>/pdstools/aggregated_data``.
     model_name : str | None, default "AdaptiveBoostCT"
         Optional model name propagated to :class:`pdstools.explanations.Explanations`.
     from_date : datetime | None, optional
@@ -143,7 +145,11 @@ def sample_explanations(
     Explanations
         An initialized :class:`pdstools.explanations.Explanations` instance.
     """
-    target = pathlib.Path(target_dir)
+    target = (
+        pathlib.Path(target_dir)
+        if target_dir is not None
+        else pathlib.Path(tempfile.gettempdir()) / "pdstools" / "aggregated_data"
+    )
     target.mkdir(parents=True, exist_ok=True)
 
     with warnings.catch_warnings(record=True) as w:
