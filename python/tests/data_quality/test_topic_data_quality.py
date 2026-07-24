@@ -395,8 +395,11 @@ class TestPlot:
 
     def test_similarity_heatmap_return_df(self, dq: TopicDataQuality) -> None:
         df = dq.plot.similarity_heatmap(return_df=True)
-        assert df.shape == (6, 3)
-        assert "topic" in df.columns
+        assert df.columns == ["topic", "animals", "finance", "tech"]
+        assert df.get_column("topic").to_list() == ["animals", "finance", "tech"]
+        assert df.get_column("animals").to_list() == pytest.approx([1.0, 0.0, 0.09484928632254082])
+        assert df.get_column("finance").to_list() == pytest.approx([0.0, 1.0, 0.0])
+        assert df.get_column("tech").to_list() == pytest.approx([0.09484928632254082, 0.0, 1.0])
 
 
 # ------------------------------------------------------------------
