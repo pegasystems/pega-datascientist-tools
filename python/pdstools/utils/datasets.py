@@ -20,11 +20,10 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from ..data_quality._topic_data_quality import TopicDataQuality
-    from ..explanations import Explanations
+    from ..explanations.Explanations import Explanations
     from ..utils.types import QUERY
 else:
     ADMTreesModel = None
-    Explanations = None
 
 
 def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
@@ -123,7 +122,7 @@ def sample_explanations(
     from_date: datetime | None = None,
     to_date: datetime | None = None,
     refresh: bool = False,
-):
+) -> "Explanations":
     """Load sample global-explanations aggregates into an Explanations instance.
 
     Parameters
@@ -154,11 +153,7 @@ def sample_explanations(
                 if refresh or not destination.exists():
                     urlretrieve(f"{_SAMPLE_EXPLANATIONS_BASE_URL}/{filename}", destination)
 
-            global Explanations
-            if Explanations is None:
-                from ..explanations import Explanations as _Explanations
-
-                Explanations = _Explanations
+            from ..explanations.Explanations import Explanations
 
             return Explanations.from_aggregates(
                 data_folder=target,

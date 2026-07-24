@@ -60,6 +60,7 @@ def test_sample_value_finder_raises_runtime_error(monkeypatch):
 
 def test_sample_explanations_downloads_expected_files(monkeypatch, tmp_path):
     from pdstools.utils import datasets as ds_mod
+    from pdstools.explanations.Explanations import Explanations
 
     downloaded_urls: list[str] = []
 
@@ -70,14 +71,12 @@ def test_sample_explanations_downloads_expected_files(monkeypatch, tmp_path):
 
     call_kwargs: dict = {}
 
-    class _FakeExplanations:
-        @staticmethod
-        def from_aggregates(**kwargs):
-            call_kwargs.update(kwargs)
-            return "sentinel"
+    def fake_from_aggregates(cls, **kwargs):
+        call_kwargs.update(kwargs)
+        return "sentinel"
 
     monkeypatch.setattr(ds_mod, "urlretrieve", fake_urlretrieve)
-    monkeypatch.setattr(ds_mod, "Explanations", _FakeExplanations)
+    monkeypatch.setattr(Explanations, "from_aggregates", classmethod(fake_from_aggregates))
 
     result = ds_mod.sample_explanations(target_dir=tmp_path / "agg")
 
@@ -91,6 +90,7 @@ def test_sample_explanations_downloads_expected_files(monkeypatch, tmp_path):
 
 def test_sample_explanations_skips_download_when_cached(monkeypatch, tmp_path):
     from pdstools.utils import datasets as ds_mod
+    from pdstools.explanations.Explanations import Explanations
 
     target_dir = tmp_path / "agg"
     target_dir.mkdir(parents=True)
@@ -103,13 +103,11 @@ def test_sample_explanations_skips_download_when_cached(monkeypatch, tmp_path):
         downloaded_urls.append(url)
         return (str(destination), None)
 
-    class _FakeExplanations:
-        @staticmethod
-        def from_aggregates(**kwargs):
-            return "sentinel"
+    def fake_from_aggregates(cls, **kwargs):
+        return "sentinel"
 
     monkeypatch.setattr(ds_mod, "urlretrieve", fake_urlretrieve)
-    monkeypatch.setattr(ds_mod, "Explanations", _FakeExplanations)
+    monkeypatch.setattr(Explanations, "from_aggregates", classmethod(fake_from_aggregates))
 
     result = ds_mod.sample_explanations(target_dir=target_dir)
 
