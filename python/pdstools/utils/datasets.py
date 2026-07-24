@@ -2,20 +2,29 @@ from __future__ import annotations
 
 import pathlib
 import warnings
+from typing import TYPE_CHECKING
+from urllib.request import urlretrieve
 
 from ..adm.ADMDatamart import ADMDatamart
 from ..valuefinder.ValueFinder import ValueFinder
-from typing import TYPE_CHECKING
 
 _REPO_DATA_DIR = pathlib.Path(__file__).parent.parent.parent.parent / "data" / "agb"
 _SAMPLE_TREES_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/agb/ModelExportWithSampleCount.json"
+_SAMPLE_EXPLANATIONS_BASE_URL = (
+    "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/explanations/aggregated_data"
+)
+_SAMPLE_EXPLANATIONS_FILES = ("OVERVIEW.parquet", "BY_CONTEXT.parquet")
 
 if TYPE_CHECKING:
     from ..adm.trees import ADMTreesModel
+    from datetime import datetime
+
     from ..data_quality._topic_data_quality import TopicDataQuality
+    from ..explanations import Explanations
     from ..utils.types import QUERY
 else:
     ADMTreesModel = None
+    Explanations = None
 
 
 def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
@@ -104,6 +113,62 @@ def sample_value_finder(threshold: float | None = None) -> ValueFinder:
         except Exception as e:
             raise RuntimeError(
                 f"Error importing the Value Finder dataset. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
+            ) from e
+
+
+def sample_explanations(
+    *,
+    target_dir: str | pathlib.Path = ".tmp/aggregated_data",
+    model_name: str | None = "AdaptiveBoostCT",
+    from_date: datetime | None = None,
+    to_date: datetime | None = None,
+    refresh: bool = False,
+):
+    """Load sample global-explanations aggregates into an Explanations instance.
+
+    Parameters
+    ----------
+    target_dir : str | pathlib.Path, default ".tmp/aggregated_data"
+        Local folder where sample aggregate files are stored.
+    model_name : str | None, default "AdaptiveBoostCT"
+        Optional model name propagated to :class:`pdstools.explanations.Explanations`.
+    from_date : datetime | None, optional
+        Optional lower date bound for the explanations context.
+    to_date : datetime | None, optional
+        Optional upper date bound for the explanations context.
+    refresh : bool, default False
+        If ``True``, always re-download sample files even if already present.
+
+    Returns
+    -------
+    Explanations
+        An initialized :class:`pdstools.explanations.Explanations` instance.
+    """
+    target = pathlib.Path(target_dir)
+    target.mkdir(parents=True, exist_ok=True)
+
+    with warnings.catch_warnings(record=True) as w:
+        try:
+            for filename in _SAMPLE_EXPLANATIONS_FILES:
+                destination = target / filename
+                if refresh or not destination.exists():
+                    urlretrieve(f"{_SAMPLE_EXPLANATIONS_BASE_URL}/{filename}", destination)
+
+            global Explanations
+            if Explanations is None:
+                from ..explanations import Explanations as _Explanations
+
+                Explanations = _Explanations
+
+            return Explanations.from_aggregates(
+                data_folder=target,
+                model_name=model_name,
+                from_date=from_date,
+                to_date=to_date,
+            )
+        except Exception as e:
+            raise RuntimeError(
+                f"Error importing the Sample Explanations dataset. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
             ) from e
 
 

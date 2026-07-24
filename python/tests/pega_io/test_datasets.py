@@ -1,5 +1,7 @@
 """Testing the functionality of the built-in datasets"""
 
+from pathlib import Path
+
 from pdstools import datasets
 
 
@@ -54,3 +56,62 @@ def test_sample_value_finder_raises_runtime_error(monkeypatch):
     monkeypatch.setattr(ValueFinder, "from_ds_export", _raise)
     with pytest.raises(RuntimeError, match="Error importing the Value Finder"):
         datasets.sample_value_finder()
+
+
+def test_sample_explanations_downloads_expected_files(monkeypatch, tmp_path):
+    from pdstools.utils import datasets as ds_mod
+
+    downloaded_urls: list[str] = []
+
+    def fake_urlretrieve(url, destination):
+        downloaded_urls.append(url)
+        Path(destination).write_text("placeholder")
+        return (str(destination), None)
+
+    call_kwargs: dict = {}
+
+    class _FakeExplanations:
+        @staticmethod
+        def from_aggregates(**kwargs):
+            call_kwargs.update(kwargs)
+            return "sentinel"
+
+    monkeypatch.setattr(ds_mod, "urlretrieve", fake_urlretrieve)
+    monkeypatch.setattr(ds_mod, "Explanations", _FakeExplanations)
+
+    result = ds_mod.sample_explanations(target_dir=tmp_path / "agg")
+
+    assert result == "sentinel"
+    assert downloaded_urls == [
+        "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/explanations/aggregated_data/OVERVIEW.parquet",
+        "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/explanations/aggregated_data/BY_CONTEXT.parquet",
+    ]
+    assert call_kwargs["data_folder"] == tmp_path / "agg"
+
+
+def test_sample_explanations_skips_download_when_cached(monkeypatch, tmp_path):
+    from pdstools.utils import datasets as ds_mod
+
+    target_dir = tmp_path / "agg"
+    target_dir.mkdir(parents=True)
+    (target_dir / "OVERVIEW.parquet").write_text("cached")
+    (target_dir / "BY_CONTEXT.parquet").write_text("cached")
+
+    downloaded_urls: list[str] = []
+
+    def fake_urlretrieve(url, destination):
+        downloaded_urls.append(url)
+        return (str(destination), None)
+
+    class _FakeExplanations:
+        @staticmethod
+        def from_aggregates(**kwargs):
+            return "sentinel"
+
+    monkeypatch.setattr(ds_mod, "urlretrieve", fake_urlretrieve)
+    monkeypatch.setattr(ds_mod, "Explanations", _FakeExplanations)
+
+    result = ds_mod.sample_explanations(target_dir=target_dir)
+
+    assert result == "sentinel"
+    assert downloaded_urls == []
