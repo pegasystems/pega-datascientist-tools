@@ -15,7 +15,7 @@ from ..utils.namespaces import LazyNamespace
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from .Aggregates import Aggregates
+    from .Explanations import Explanations
 
 logger = logging.getLogger(__name__)
 
@@ -27,30 +27,34 @@ class ContextOperations(LazyNamespace):
 
     Parameters
     ----------
-    aggregates : Aggregates
-        Aggregates namespace instance that provides contextual explanation data.
+    explanations : Explanations
+        Parent instance providing the contextual data and the data folder.
     """
 
     dependencies: ClassVar[list[str]] = ["polars"]
     dependency_group = "explanations"
 
-    def __init__(self, aggregates: Aggregates):
-        self.aggregates = aggregates
+    def __init__(self, explanations: Explanations):
+        self.explanations = explanations
         self.file_batch_limit = int(os.getenv("PDSTOOLS_FILE_BATCH_LIMIT", "100"))
         super().__init__()
 
     @cached_property
     def _contexts(self) -> pl.DataFrame:
         """Unique contexts, one row per context, including the raw partition column."""
-        partitions = self.aggregates.contextual.select("context_partition").unique().collect().to_series().to_list()
-        return pl.from_dicts(
-            [{**json.loads(partition)["partition"], "context_partition": partition} for partition in partitions],
+        partitions = (
+            self.explanations.contextual.select("context_partition").unique().sort("context_partition").collect()
         )
+        # infer_schema_length=None scans every row: the default of 100 would raise on
+        # (or, with the old from_dicts approach, silently drop) a context key that
+        # first appears beyond the 100th partition.
+        decoded = partitions["context_partition"].str.json_decode(infer_schema_length=None).struct.field("partition")
+        return decoded.to_frame().unnest("partition").with_columns(partitions["context_partition"])
 
     @property
     def unique_contexts_file(self) -> Path:
         """Path of the JSON file holding the context-to-batch mapping."""
-        return self.aggregates.data_folderpath / "unique_contexts.json"
+        return self.explanations.data_folderpath / "unique_contexts.json"
 
     @property
     def context_keys(self) -> list[str]:
@@ -114,17 +118,18 @@ class ContextOperations(LazyNamespace):
         )
 
     def create_unique_contexts_file(self) -> dict[str, list[str]]:
-        """Create and persist the flat unique-context batch mapping if absent.
+        """Split the unique contexts into batches and persist the mapping.
+
+        The JSON file is an interchange artifact for the report subprocess, not
+        a cache: it is rewritten on every call so that a change of dataset or of
+        ``PDSTOOLS_FILE_BATCH_LIMIT`` takes effect.
 
         Returns
         -------
         dict[str, list[str]]
             Mapping of batch key to the context partitions in that batch.
         """
-        if self.unique_contexts_file.exists():
-            return cast("dict[str, list[str]]", json.loads(self.unique_contexts_file.read_text()))
-
-        partitions = self.aggregates.contextual.select("context_partition").unique().collect().to_series().to_list()
+        partitions = self._contexts["context_partition"].to_list()
         contexts_by_batch = self._create_context_batches(partitions, self.file_batch_limit)
 
         self.unique_contexts_file.write_text(json.dumps(contexts_by_batch), encoding="utf-8")
@@ -139,14 +144,23 @@ class ContextOperations(LazyNamespace):
         contexts_by_batch : dict[str, list[str]]
             Mapping of batch key to the context partitions in that batch.
         """
-        batch_dir = self.aggregates.data_folderpath / "batches"
+        batch_dir = self.explanations.data_folderpath / "batches"
         batch_dir.mkdir(exist_ok=True)
 
-        for batch_key, contexts in contexts_by_batch.items():
-            batch_df = self.aggregates.contextual.filter(pl.col("context_partition").is_in(contexts)).collect()
+        batch_of = pl.LazyFrame(
+            {
+                "context_partition": [ctx for contexts in contexts_by_batch.values() for ctx in contexts],
+                "batch_key": [key for key, contexts in contexts_by_batch.items() for _ in contexts],
+            }
+        )
+        # Join the batch assignment on and collect once, rather than re-filtering
+        # the whole frame per batch.
+        tagged = self.explanations.contextual.join(batch_of, on="context_partition", how="inner").collect()
+
+        for (batch_key,), batch_df in tagged.partition_by("batch_key", as_dict=True).items():
             batch_file_path = batch_dir / f"BATCH_{batch_key}.parquet"
-            batch_df.write_parquet(batch_file_path)
-            logger.info("Created batch file: %s with %d rows", batch_file_path, len(batch_df))
+            batch_df.drop("batch_key").write_parquet(batch_file_path)
+            logger.info("Created batch file: %s with %d rows", batch_file_path, batch_df.height)
 
     @staticmethod
     def get_context_info_str(context_info: dict[str, str], sep: str = "-") -> str:

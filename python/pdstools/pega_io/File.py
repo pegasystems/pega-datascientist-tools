@@ -331,6 +331,13 @@ def scan_parquet_path(source: str | Path | list[str] | list[Path]) -> pl.LazyFra
     pl.LazyFrame
         LazyFrame over the matched parquet file(s).
 
+    Raises
+    ------
+    FileNotFoundError
+        If a plain (non-glob) path does not exist. ``pl.scan_parquet`` is
+        lazy, so without this the failure would surface much later from an
+        unrelated ``collect()``, pointing at the wrong operation.
+
     """
     # lgtm [py/path-injection]
     # CodeQL suppression: User-controlled paths are expected in a data reading
@@ -338,6 +345,8 @@ def scan_parquet_path(source: str | Path | list[str] | list[Path]) -> pl.LazyFra
     # intended functionality, not a vulnerability.
     if isinstance(source, list):
         return pl.scan_parquet(source)
+    if not any(c in str(source) for c in "*?[") and not Path(source).exists():
+        raise FileNotFoundError(f"No parquet file found at {source}")
     return _scan_by_extension(source, ".parquet")
 
 

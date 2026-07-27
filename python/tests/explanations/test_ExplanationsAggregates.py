@@ -47,14 +47,14 @@ class TestAggregateLoadData:
     def test_frames_are_lazy_and_cached(self, aggregates):
         """Frames stay lazy and are computed once, not on every access."""
         # A LazyFrame exposes the schema without reading the row groups.
-        assert aggregates.overall.collect_schema().names() == list(AGGREGATE_SCHEMA)
-        assert aggregates.overall is aggregates.overall
-        assert aggregates.contextual is aggregates.contextual
+        assert aggregates.explanations.overall.collect_schema().names() == list(AGGREGATE_SCHEMA)
+        assert aggregates.explanations.overall is aggregates.explanations.overall
+        assert aggregates.explanations.contextual is aggregates.explanations.contextual
 
     def test_load_data_success(self, aggregates):
         """Test successful data loading produces the expected fixture shape."""
-        overall = aggregates.overall.collect()
-        contextual = aggregates.contextual.collect()
+        overall = aggregates.explanations.overall.collect()
+        contextual = aggregates.explanations.contextual.collect()
         expected_cols = {
             "context_partition",
             "contribution",
@@ -74,7 +74,7 @@ class TestAggregateLoadData:
 
     def test_overall_predictors(self, aggregates):
         """The overall frame exposes every predictor in the fixture."""
-        df = aggregates.overall.collect()
+        df = aggregates.explanations.overall.collect()
         assert df.height == 1072
         assert sorted(df["predictor_name"].unique().to_list()) == [
             "Age",
@@ -87,12 +87,12 @@ class TestAggregateLoadData:
 
     def test_zero_contribution_rows_filtered(self, aggregates):
         """Test that rows with zero contribution are filtered out during loading."""
-        df = aggregates.overall.collect()
+        df = aggregates.explanations.overall.collect()
         assert (df["contribution"] != 0.0).all()
 
     def test_single_bin_numeric_predictors_filtered(self, aggregates):
         """Test that numeric predictors with only one non-missing bin are filtered out."""
-        df = aggregates.overall.collect()
+        df = aggregates.explanations.overall.collect()
         numeric_df = df.filter((pl.col("predictor_type") == "NUMERIC") & (pl.col("bin_contents") != "MISSING"))
         bin_counts = numeric_df.group_by(["context_partition", "predictor_name"]).agg(
             pl.col("bin_order").n_unique().alias("bin_count")
@@ -106,7 +106,9 @@ class TestAggregateLoadData:
         ``bin_contents`` renders as ``[min:max]`` (not ``null`` or empty).
         """
         # predictor_value_contributions returns bin_contents; use all predictors
-        all_predictors = aggregates.overall.select("predictor_name").unique().collect()["predictor_name"].to_list()
+        all_predictors = (
+            aggregates.explanations.overall.select("predictor_name").unique().collect()["predictor_name"].to_list()
+        )
         df = aggregates.predictor_value_contributions(predictors=all_predictors, include_numeric_single_bin=True)
         numeric_rows = df.filter((pl.col("predictor_type") == "NUMERIC") & (pl.col("bin_contents") != "MISSING"))
 
@@ -119,17 +121,8 @@ class TestAggregateLoadData:
         for val in numeric_rows["bin_contents"].to_list():
             assert val != "", f"bin_contents should not be empty, got: {val!r}"
 
-    def test_missing_folder_raises_on_access(self):
-        """A non-existent data folder fails at read time, not at construction."""
-        exp = Explanations(data_folder="/non/existent/path")
-        with pytest.raises(FileNotFoundError):
-            _ = exp.aggregates.overall
-
-    def test_empty_folder_raises_on_access(self, tmp_path):
-        """An existing but empty data folder also fails at read time."""
-        exp = Explanations(data_folder=tmp_path)
-        with pytest.raises(FileNotFoundError):
-            _ = exp.aggregates.overall
+    # test_missing_folder_raises_on_access and test_empty_folder_raises_on_access
+    # are covered by TestFromAggregates in test_Explanations.py; duplicates deleted.
 
 
 class TestContextOperations:
@@ -183,16 +176,38 @@ class TestContextOperations:
         assert list(persisted) == ["0"]
         assert all(isinstance(key, str) for key in persisted)
 
-    def test_create_unique_contexts_file_idempotent(self, aggregates, tmp_path, monkeypatch):
+    def test_create_unique_contexts_file_is_deterministic(self, aggregates, tmp_path, monkeypatch):
+        """Repeated calls produce the same mapping, in the same order."""
         output = self._redirect_to_tmp(aggregates, tmp_path, monkeypatch)
 
         first = aggregates.context_operations.create_unique_contexts_file()
-        first_mtime = output.stat().st_mtime_ns
         second = aggregates.context_operations.create_unique_contexts_file()
 
-        assert output.stat().st_mtime_ns == first_mtime
         assert second == first
         assert json.loads(output.read_text()) == first
+
+    def test_create_unique_contexts_file_overwrites_stale_mapping(self, aggregates, tmp_path, monkeypatch):
+        """The JSON is an interchange artifact, not a cache: a stale file is replaced."""
+        output = self._redirect_to_tmp(aggregates, tmp_path, monkeypatch)
+        output.write_text(json.dumps({"99": ["a-context-that-no-longer-exists"]}))
+
+        contexts = aggregates.context_operations.create_unique_contexts_file()
+
+        assert list(contexts) == ["0"]
+        assert json.loads(output.read_text()) == contexts
+
+    def test_batch_limit_change_takes_effect(self, aggregates, tmp_path, monkeypatch):
+        """A changed PDSTOOLS_FILE_BATCH_LIMIT must not be masked by an existing file."""
+        output = self._redirect_to_tmp(aggregates, tmp_path, monkeypatch)
+        co = aggregates.context_operations
+
+        co.create_unique_contexts_file()
+        monkeypatch.setattr(co, "file_batch_limit", 5)
+        contexts = co.create_unique_contexts_file()
+
+        # 20 unique contexts in the sample data, 5 per batch.
+        assert [len(batch) for batch in contexts.values()] == [5, 5, 5, 5]
+        assert json.loads(output.read_text()) == contexts
 
     def test_create_unique_contexts_file_returns_dict(self, aggregates, tmp_path, monkeypatch):
         output = self._redirect_to_tmp(aggregates, tmp_path, monkeypatch)
@@ -215,7 +230,7 @@ class TestContextOperations:
         contexts = aggregates.context_operations.create_unique_contexts_file()
 
         aggregates.context_operations.create_batch_parquet_files(contexts)
-        contextual = aggregates.contextual.collect()
+        contextual = aggregates.explanations.contextual.collect()
 
         for batch_key, batch_contexts in contexts.items():
             batch_df = pl.read_parquet(tmp_path / "batches" / f"BATCH_{batch_key}.parquet")
@@ -231,8 +246,8 @@ class TestContextOperations:
 
         aggregates = Explanations.from_aggregates(data_folder=data_dir).aggregates
         before = sorted(path.name for path in data_dir.iterdir())
-        aggregates.overall.collect()
-        aggregates.contextual.collect()
+        aggregates.explanations.overall.collect()
+        aggregates.explanations.contextual.collect()
         after = sorted(path.name for path in data_dir.iterdir())
 
         assert after == before
@@ -271,7 +286,7 @@ class TestAggregateAndContextOperationHelpers:
 
     def test_get_base_df_defaults_to_overall(self, aggregates):
         """Without a context filter, the base frame is the overall frame."""
-        assert aggregates._get_base_df() is aggregates.overall
+        assert aggregates._get_base_df() is aggregates.explanations.overall
 
     def test_context_operations_context_keys(self, aggregates):
         keys = aggregates.context_operations.context_keys
@@ -582,14 +597,14 @@ class TestAggregateFrequencyPct:
 
     def test__add_frequency_pct(self, aggregates):
         """Test that frequency_pct column is added correctly."""
-        df = aggregates.overall
+        df = aggregates.explanations.overall
         result = aggregates._add_frequency_pct(df, group_by=["context_partition"]).collect()
         assert "frequency_pct" in result.columns
         assert result["frequency_pct"].dtype == pl.Float64
 
     def test_frequency_pct_values_in_range(self, aggregates):
         """Test that frequency_pct values are between 0 and 100."""
-        df = aggregates.overall
+        df = aggregates.explanations.overall
         result = aggregates._add_frequency_pct(df, group_by=["context_partition"]).collect()
         assert (result["frequency_pct"] >= 0.0).all()
         assert (result["frequency_pct"] <= 100.0).all()
@@ -601,7 +616,7 @@ class TestAggregateFrequencyPct:
         exact expected values of ``context_freq / overall_freq * 100``.
         """
 
-        overall_df = aggregates.overall.collect()
+        overall_df = aggregates.explanations.overall.collect()
         join_cols = ["predictor_name", "predictor_type"]
         overall_totals = overall_df.group_by(join_cols).agg(pl.sum("frequency").alias("expected_overall_total"))
 
@@ -1114,7 +1129,7 @@ class TestSchema:
     """The aggregated parquet files are narrowed and cast on read."""
 
     def test_scan_applies_expected_dtypes(self, aggregates):
-        schema = aggregates.overall.collect_schema()
+        schema = aggregates.explanations.overall.collect_schema()
         assert dict(schema) == AGGREGATE_SCHEMA
 
     def test_missing_column_raises(self, tmp_path):

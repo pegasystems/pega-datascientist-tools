@@ -30,6 +30,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   preserve order and the following sort keys had ties.
 - Explanations: `top_n=0` was silently accepted and `top_n=1` was rejected;
   both are now validated as "positive integer", and `True` is rejected.
+- Explanations: `create_unique_contexts_file` reused an existing
+  `unique_contexts.json` as a cache, so a stale mapping from an earlier run
+  (or a changed `PDSTOOLS_FILE_BATCH_LIMIT`) silently drove which contexts
+  were written to the batch parquet files. It now always rewrites.
+- Explanations: context keys appearing only beyond the 100th unique context
+  were silently dropped from the context table, because `pl.from_dicts`
+  infers its schema from the first 100 rows. Decoding is now vectorised via
+  `str.json_decode(infer_schema_length=None)`.
+- `pega_io.scan_parquet_path` now raises `FileNotFoundError` for a missing
+  non-glob path instead of deferring the failure to a later `collect()`.
 
 ### Changed
 
@@ -44,9 +54,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   given and against the working directory otherwise; the resolved location
   is exposed as `Explanations.data_folderpath`. A missing or empty folder
   raises `FileNotFoundError` when the data is first read.
-- Explanations: `Aggregates.overall` / `.contextual` are cached properties
-  returning a `LazyFrame`, replacing `get_df_overall()` / `get_df_contextual()`
-  and the eager `_load_data()` step.
+- **Breaking (explanations):** `Explanations.__init__` is now pure
+  configuration and accepts the two already-scanned `LazyFrame`s; all file
+  reading moved into `from_aggregates`, which raises `FileNotFoundError`
+  immediately for a missing or empty folder. The frames are plain attributes
+  on the parent (`Explanations.overall` / `.contextual`), matching
+  `ADMDatamart.model_data` / `.predictor_data`, and are no longer reachable
+  via the `aggregates` namespace.
+- **Breaking (explanations):** the mutable `Aggregates.data_pattern` hook is
+  replaced by an explicit `from_aggregates(contextual_file=...)` argument.
 - ADM Health Check app data import now shows upload controls immediately,
   keeps file paths as an optional fallback, and uses the new import API for
   advanced parsing and processed parquet cache output.

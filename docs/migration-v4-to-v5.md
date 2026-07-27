@@ -233,17 +233,54 @@ methods reached through the `plot` namespace, and a plural
 | `aggregate.get_predictor_contributions(...)` | `aggregates.predictor_contributions(...)` |
 | `aggregate.get_predictor_value_contributions(...)` | `aggregates.predictor_value_contributions(...)` |
 | `aggregate.get_unique_contexts_list(...)` | `aggregates.unique_contexts(...)` |
-| `aggregate.get_df_overall()` | `aggregates.overall` |
-| `aggregate.get_df_contextual()` | `aggregates.contextual` |
+| `aggregate.get_df_overall()` | `Explanations.overall` |
+| `aggregate.get_df_contextual()` | `Explanations.contextual` |
 
-`overall` and `contextual` are now cached properties returning a
-`pl.LazyFrame`, read on first access. A missing or empty data folder
-raises `FileNotFoundError` at that point.
+### Explanations: I/O moved out of the constructor
 
-`Explanations.root_dir` now defaults to `None` instead of `".tmp"`. A
-relative `data_folder` resolves against `root_dir` when one is given, and
-against the current working directory otherwise; an absolute `data_folder`
-is used as-is. The resolved location is available as
+`Explanations.__init__` is now pure configuration, matching `ADMDatamart`:
+it takes the two already-scanned `pl.LazyFrame`s and performs no I/O.
+All file reading lives in `from_aggregates`, which is now the only
+constructor that touches disk.
+
+```python
+# Before (v4.x): the constructor took a path and read lazily on first use
+exp = Explanations(data_folder="my/aggregates")
+
+# After (v5): from_aggregates does the reading
+exp = Explanations.from_aggregates(data_folder="my/aggregates")
+
+# ...or pass frames you loaded yourself
+exp = Explanations(overall_lf, contextual_lf, data_folderpath="my/aggregates")
+```
+
+The frames are plain attributes on the parent — `exp.overall` and
+`exp.contextual` — mirroring `dm.model_data` / `dm.predictor_data` on
+`ADMDatamart`. They are no longer reachable through the `aggregates`
+namespace, and `Aggregates.data_folderpath` has been removed in favour of
+`Explanations.data_folderpath`.
+
+A missing or empty data folder now raises `FileNotFoundError` from
+`from_aggregates` itself rather than from the first operation that touches
+the data.
+
+`Aggregates.data_pattern` — a mutable attribute the report pipeline used to
+redirect `contextual` at a single batch file — has been replaced by an
+explicit `contextual_file` argument:
+
+```python
+# Before (v4.x):
+exp = Explanations.from_aggregates(data_folder=folder)
+exp.aggregates.data_pattern = "batches/BATCH_3.parquet"
+
+# After (v5):
+exp = Explanations.from_aggregates(data_folder=folder, contextual_file="batches/BATCH_3.parquet")
+```
+
+`Explanations.root_dir` now defaults to `None` on `from_aggregates` instead
+of `".tmp"`. A relative `data_folder` resolves against `root_dir` when one is
+given, and against the current working directory otherwise; an absolute
+`data_folder` is used as-is. The resolved location is available as
 `Explanations.data_folderpath`.
 
 ### Explanations: explicit filter parameters

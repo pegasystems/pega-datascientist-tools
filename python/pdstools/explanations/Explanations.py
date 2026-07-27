@@ -6,11 +6,20 @@ import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import polars as pl
+
+from ..pega_io import scan_parquet_path
 from .Aggregates import Aggregates
 from .Plots import Plots
 from .Reports import Reports
+from .Schema import apply_schema
 
 logger = logging.getLogger(__name__)
+
+
+def _scan_aggregate(path: Path) -> pl.LazyFrame:
+    """Scan one aggregated parquet file and normalise it for downstream use."""
+    return apply_schema(scan_parquet_path(path)).filter(pl.col("contribution") != 0.0).sort(by="predictor_name")
 
 
 class Explanations:
@@ -19,19 +28,21 @@ class Explanations:
     The class is a thin orchestrator over three sub-namespaces (``aggregates``,
     ``plot``, ``report``) that operate on pre-aggregated parquet files.
 
-    The constructor is **pure configuration** — it accepts path settings but
-    performs no I/O. The parquet files are read lazily on first access.
+    The constructor is **pure configuration** — it accepts already-scanned
+    :class:`polars.LazyFrame`s and path settings, and performs no I/O. Use
+    :meth:`from_aggregates` to read the parquet files from disk.
 
     Parameters
     ----------
-    root_dir : str, optional
-        Scratch directory for generated reports, default ``".tmp"``. When given
-        explicitly it is also used as the base for a relative ``data_folder``.
-    data_folder : str | Path, optional, default "aggregated_data"
-        Path to the folder containing pre-aggregated parquet files. Absolute
-        paths are used as-is. A relative path is resolved against ``root_dir``
-        when that was passed explicitly, and against the current working
-        directory otherwise, so ``"../../data/aggregates"`` means what it says.
+    overall : pl.LazyFrame
+        Contributions aggregated across all contexts.
+    contextual : pl.LazyFrame
+        Contributions aggregated per context.
+    data_folderpath : str | Path
+        Resolved folder used for the context artifacts that the report
+        pipeline reads and writes (``unique_contexts.json``, ``batches/``).
+    root_dir : str, default ".tmp"
+        Scratch directory for generated reports.
     model_name : str, optional
         Name of the model rule. Used for report metadata only.
     from_date : datetime, optional
@@ -65,12 +76,12 @@ class Explanations:
     ...     from_date=datetime(2025, 3, 28),
     ...     to_date=datetime(2025, 3, 28),
     ... )
-    >>> df = exp.aggregates.overall.collect()  # doctest: +SKIP
+    >>> df = exp.overall.collect()  # doctest: +SKIP
 
     Construct with a custom aggregates path:
 
-    >>> exp = Explanations(data_folder="/path/to/my/aggregates")
-    >>> df = exp.aggregates.overall.collect()  # doctest: +SKIP
+    >>> exp = Explanations.from_aggregates(data_folder="/path/to/my/aggregates")
+    >>> df = exp.overall.collect()  # doctest: +SKIP
 
     """
 
@@ -78,24 +89,27 @@ class Explanations:
     # Default storage location for aggregated data.
     _DEFAULT_DATA_FOLDER = "aggregated_data"
 
+    overall: pl.LazyFrame
+    """Contributions aggregated across all contexts."""
+
+    contextual: pl.LazyFrame
+    """Contributions aggregated per context."""
+
     def __init__(
         self,
+        overall: pl.LazyFrame,
+        contextual: pl.LazyFrame,
         *,
-        root_dir: str | None = None,
-        data_folder: str | Path = _DEFAULT_DATA_FOLDER,
+        data_folderpath: str | Path,
+        root_dir: str = _DEFAULT_ROOT_DIR,
         model_name: str | None = None,
         from_date: datetime | None = None,
         to_date: datetime | None = None,
     ):
-        # `root_dir` is the scratch directory for generated reports. It doubles as
-        # the base for `data_folder` only when the caller opted into it by passing
-        # it explicitly, or when `data_folder` is left at its default. A relative
-        # `data_folder` on its own is therefore relative to the working directory,
-        # which is what a path like "../../data/aggregates" is expected to mean.
-        self.root_dir = self._DEFAULT_ROOT_DIR if root_dir is None else root_dir
-        self.data_folder = data_folder
-        base = Path(self.root_dir) if root_dir is not None or str(data_folder) == self._DEFAULT_DATA_FOLDER else Path()
-        self.data_folderpath = (base / data_folder).resolve()
+        self.overall = overall
+        self.contextual = contextual
+        self.data_folderpath = Path(data_folderpath)
+        self.root_dir = root_dir
 
         self.model_name = model_name
         self._set_date_range(from_date, to_date)
@@ -103,12 +117,28 @@ class Explanations:
         self.plot = Plots(explanations=self)
         self.report = Reports(explanations=self)
 
+    @staticmethod
+    def _resolve_data_folder(root_dir: str | None, data_folder: str | Path) -> Path:
+        """Resolve ``data_folder`` to an absolute path, once.
+
+        ``root_dir`` is the scratch directory for generated reports. It doubles
+        as the base for ``data_folder`` only when the caller opted into it by
+        passing it explicitly, or when ``data_folder`` is left at its default.
+        A relative ``data_folder`` on its own is therefore relative to the
+        working directory, which is what a path like ``"../../data/aggregates"``
+        is expected to mean.
+        """
+        use_root = root_dir is not None or str(data_folder) == Explanations._DEFAULT_DATA_FOLDER
+        base = Path(root_dir or Explanations._DEFAULT_ROOT_DIR) if use_root else Path()
+        return (base / data_folder).resolve()
+
     @classmethod
     def from_aggregates(
         cls,
         *,
         root_dir: str | None = None,
         data_folder: str | Path = _DEFAULT_DATA_FOLDER,
+        contextual_file: str = "BY_CONTEXT.parquet",
         model_name: str | None = None,
         from_date: datetime | None = None,
         to_date: datetime | None = None,
@@ -129,6 +159,10 @@ class Explanations:
             paths are used as-is. A relative path is resolved against
             ``root_dir`` when that was passed explicitly, and against the current
             working directory otherwise.
+        contextual_file : str, default "BY_CONTEXT.parquet"
+            Name of the per-context parquet file inside ``data_folder``. The
+            report pipeline uses this to point a page at a single pre-computed
+            batch (e.g. ``"batches/BATCH_3.parquet"``) instead of the full set.
         model_name : str, optional
             Name of the model rule. Used for report metadata only.
         from_date : datetime, optional
@@ -141,17 +175,20 @@ class Explanations:
         Returns
         -------
         Explanations
-            A fully initialised instance pointing at the aggregated data.
+            A fully initialised instance holding LazyFrames over the
+            aggregated data.
 
-        Notes
-        -----
-        The parquet files are read lazily on first access, so a missing or empty
-        ``data_folder`` surfaces as a ``FileNotFoundError`` from the first
-        operation that touches the data rather than from this constructor.
+        Raises
+        ------
+        FileNotFoundError
+            If ``data_folder`` does not contain the expected parquet files.
         """
+        folder = cls._resolve_data_folder(root_dir, data_folder)
         return cls(
-            root_dir=root_dir,
-            data_folder=data_folder,
+            overall=_scan_aggregate(folder / "OVERVIEW.parquet"),
+            contextual=_scan_aggregate(folder / contextual_file),
+            data_folderpath=folder,
+            root_dir=root_dir or cls._DEFAULT_ROOT_DIR,
             model_name=model_name,
             from_date=from_date,
             to_date=to_date,

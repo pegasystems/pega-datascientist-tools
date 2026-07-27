@@ -84,7 +84,7 @@ def test_set_params(report_paths):
     assert params["sort_by_text"] == "absolute average contribution"
     assert params["display_by"] == "contribution"
     assert params["display_by_text"] == "average contribution"
-    assert params["data_folder"] == Path(reports.explanations.data_folder).as_posix()
+    assert params["data_folder"] == Path(reports.explanations.data_folderpath).as_posix()
 
 
 def test_set_params_writes_resolved_data_folder(tmp_path):

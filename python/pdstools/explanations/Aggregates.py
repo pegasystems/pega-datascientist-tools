@@ -3,12 +3,10 @@ from __future__ import annotations
 __all__ = ["Aggregates"]
 
 import logging
-from functools import cached_property
 from typing import ClassVar, TYPE_CHECKING
 
 import polars as pl
 
-from ..pega_io import scan_parquet_path
 from ..utils.namespaces import LazyNamespace
 from ._constants import (
     MISSING,
@@ -20,7 +18,6 @@ from ._constants import (
     validate_contribution_type,
 )
 from .ContextOperations import ContextOperations
-from .Schema import apply_schema
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +38,6 @@ _CONTRIBUTION_AGGREGATIONS = [
 ]
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from ..utils.cdh_utils._common import F
 
     from .Explanations import Explanations
@@ -56,34 +51,8 @@ class Aggregates(LazyNamespace):
 
     def __init__(self, explanations: Explanations):
         self.explanations = explanations
-        self.data_pattern = None
-        self.context_operations = ContextOperations(aggregates=self)
+        self.context_operations = ContextOperations(explanations=explanations)
         super().__init__()
-
-    @property
-    def data_folderpath(self) -> Path:
-        """Folder holding the pre-aggregated parquet files."""
-        return self.explanations.data_folderpath
-
-    @cached_property
-    def contextual(self) -> pl.LazyFrame:
-        """Per-context contributions, read lazily on first access."""
-        return self._scan(self.data_pattern or "BY_CONTEXT.parquet")
-
-    @cached_property
-    def overall(self) -> pl.LazyFrame:
-        """Contributions across all contexts, read lazily on first access."""
-        return self._scan("OVERVIEW.parquet")
-
-    def _scan(self, filename: str) -> pl.LazyFrame:
-        path = self.data_folderpath / filename
-        if "*" not in filename and not path.is_file():
-            raise FileNotFoundError(f"No aggregated data found at {path}")
-        return (
-            apply_schema(scan_parquet_path(self.data_folderpath / filename))
-            .filter(pl.col("contribution") != 0.0)
-            .sort(by="predictor_name")
-        )
 
     def predictor_contributions(
         self,
@@ -492,8 +461,8 @@ class Aggregates(LazyNamespace):
         df_filtered_contexts: pl.DataFrame | None = None,
     ) -> pl.LazyFrame:
         if df_filtered_contexts is None:
-            return self.overall
-        return self.contextual.join(
+            return self.explanations.overall
+        return self.explanations.contextual.join(
             df_filtered_contexts.lazy(),
             on="context_partition",
             how="inner",
@@ -585,7 +554,9 @@ class Aggregates(LazyNamespace):
             *df* with an added ``frequency_pct`` column (0–100).
         """
         overall_freq = (
-            self.overall.group_by(join_on).agg(pl.sum("frequency").alias("overall_total_frequency")).collect()
+            self.explanations.overall.group_by(join_on)
+            .agg(pl.sum("frequency").alias("overall_total_frequency"))
+            .collect()
         )
         df_joined = df.join(overall_freq, on=join_on, how="left")
         return df_joined.with_columns(
