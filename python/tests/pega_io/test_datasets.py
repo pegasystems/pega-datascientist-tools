@@ -1,6 +1,5 @@
 """Testing the functionality of the built-in datasets"""
 
-import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -96,8 +95,8 @@ def test_sample_explanations_skips_download_when_cached(monkeypatch, tmp_path):
 
     target_dir = tmp_path / "agg"
     target_dir.mkdir(parents=True)
-    (target_dir / "OVERVIEW.parquet").write_text("cached")
-    (target_dir / "BY_CONTEXT.parquet").write_text("cached")
+    (target_dir / "OVERVIEW.parquet").write_bytes(b"PAR1cached-parquet-bytesPAR1")
+    (target_dir / "BY_CONTEXT.parquet").write_bytes(b"PAR1cached-parquet-bytesPAR1")
 
     downloaded_urls: list[str] = []
 
@@ -180,9 +179,17 @@ def test_sample_explanations_refresh_redownloads_cached_files(monkeypatch, tmp_p
     ]
 
 
-def test_sample_explanations_uses_tempdir_when_target_dir_not_provided(monkeypatch):
+def test_sample_explanations_uses_tempdir_when_target_dir_not_provided(monkeypatch, tmp_path):
     from pdstools.utils import datasets as ds_mod
     from pdstools.explanations.Explanations import Explanations
+
+    # Point the module's notion of the OS temp dir at a per-test tmp_path so
+    # this test can't leave a stray/invalid cached file behind in the real
+    # shared temp directory, where it would poison other tests or notebook
+    # runs (e.g. examples/articles/explanations/agb_global_explanations.ipynb)
+    # that rely on the same default cache location, especially under
+    # parallel (xdist) test execution.
+    monkeypatch.setattr(ds_mod.tempfile, "gettempdir", lambda: str(tmp_path))
 
     downloaded_destinations: list[Path] = []
 
@@ -203,7 +210,7 @@ def test_sample_explanations_uses_tempdir_when_target_dir_not_provided(monkeypat
 
     result = ds_mod.sample_explanations()
 
-    expected_target = Path(tempfile.gettempdir()) / "pdstools" / "aggregated_data"
+    expected_target = tmp_path / "pdstools" / "aggregated_data"
     assert result == "sentinel"
     assert call_kwargs["data_folder"] == expected_target
     assert all(destination.parent == expected_target for destination in downloaded_destinations)

@@ -15,6 +15,7 @@ _SAMPLE_EXPLANATIONS_BASE_URL = (
     "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/explanations/aggregated_data"
 )
 _SAMPLE_EXPLANATIONS_FILES = ("OVERVIEW.parquet", "BY_CONTEXT.parquet")
+_PARQUET_MAGIC = b"PAR1"
 
 if TYPE_CHECKING:
     from ..adm.trees import ADMTreesModel
@@ -116,6 +117,24 @@ def sample_value_finder(threshold: float | None = None) -> ValueFinder:
             ) from e
 
 
+def _is_valid_parquet(path: pathlib.Path) -> bool:
+    """Check whether a file looks like a well-formed parquet file.
+
+    A parquet file starts and ends with the 4-byte magic string ``PAR1``. This
+    is a cheap sanity check used to detect a cached file that is missing,
+    empty, or a truncated/corrupted download (e.g. an HTML error page saved
+    by mistake), so a stale cache doesn't silently break downstream reads.
+    """
+    magic_len = len(_PARQUET_MAGIC)
+    if not path.exists() or path.stat().st_size < magic_len * 2:
+        return False
+    with path.open("rb") as f:
+        head = f.read(magic_len)
+        f.seek(-magic_len, 2)
+        tail = f.read(magic_len)
+    return head == _PARQUET_MAGIC and tail == _PARQUET_MAGIC
+
+
 def sample_explanations(
     *,
     target_dir: str | pathlib.Path | None = None,
@@ -156,7 +175,7 @@ def sample_explanations(
         try:
             for filename in _SAMPLE_EXPLANATIONS_FILES:
                 destination = target / filename
-                if refresh or not destination.exists():
+                if refresh or not _is_valid_parquet(destination):
                     urlretrieve(f"{_SAMPLE_EXPLANATIONS_BASE_URL}/{filename}", destination)
 
             from ..explanations.Explanations import Explanations
