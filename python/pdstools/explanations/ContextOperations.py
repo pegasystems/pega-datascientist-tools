@@ -42,9 +42,7 @@ class ContextOperations(LazyNamespace):
     @cached_property
     def _contexts(self) -> pl.DataFrame:
         """Unique contexts, one row per context, including the raw partition column."""
-        partitions = (
-            self.aggregate.get_df_contextual().select("context_partition").unique().collect().to_series().to_list()
-        )
+        partitions = self.aggregate.contextual.select("context_partition").unique().collect().to_series().to_list()
         return pl.from_dicts(
             [{**json.loads(partition)["partition"], "context_partition": partition} for partition in partitions],
         )
@@ -126,9 +124,7 @@ class ContextOperations(LazyNamespace):
         if self.unique_contexts_file.exists():
             return cast("dict[str, list[str]]", json.loads(self.unique_contexts_file.read_text()))
 
-        partitions = (
-            self.aggregate.get_df_contextual().select("context_partition").unique().collect().to_series().to_list()
-        )
+        partitions = self.aggregate.contextual.select("context_partition").unique().collect().to_series().to_list()
         contexts_by_batch = self._create_context_batches(partitions, self.file_batch_limit)
 
         self.unique_contexts_file.write_text(json.dumps(contexts_by_batch), encoding="utf-8")
@@ -147,7 +143,7 @@ class ContextOperations(LazyNamespace):
         batch_dir.mkdir(exist_ok=True)
 
         for batch_key, contexts in contexts_by_batch.items():
-            batch_df = self.aggregate.get_df_contextual().filter(pl.col("context_partition").is_in(contexts)).collect()
+            batch_df = self.aggregate.contextual.filter(pl.col("context_partition").is_in(contexts)).collect()
             batch_file_path = batch_dir / f"BATCH_{batch_key}.parquet"
             batch_df.write_parquet(batch_file_path)
             logger.info("Created batch file: %s with %d rows", batch_file_path, len(batch_df))

@@ -3,8 +3,8 @@ from __future__ import annotations
 __all__ = ["Aggregate"]
 
 import logging
+from functools import cached_property
 from typing import ClassVar, TYPE_CHECKING, cast, overload
-from pathlib import Path
 
 import polars as pl
 
@@ -23,7 +23,22 @@ from .ContextOperations import ContextOperations
 
 logger = logging.getLogger(__name__)
 
+_SELECTED_COLUMNS = [
+    "context_partition",
+    "contribution",
+    "contribution_abs",
+    "frequency",
+    "predictor_type",
+    "predictor_name",
+    "bin_contents",
+    "bin_order",
+    "contribution_min",
+    "contribution_max",
+]
+
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from .Explanations import Explanations
 
 
@@ -33,27 +48,37 @@ class Aggregate(LazyNamespace):
     dependencies: ClassVar[list[str]] = ["polars"]
     dependency_group = "explanations"
 
-    def __init__(self, explanations: "Explanations"):
+    def __init__(self, explanations: Explanations):
         self.explanations = explanations
-        self.data_folderpath = Path(explanations.root_dir) / explanations.data_folder
         self.data_pattern = None
-        self.df_contextual: pl.LazyFrame | None = None
-        self.df_overall: pl.LazyFrame | None = None
         self.context_operations = ContextOperations(aggregate=self)
-        self.initialized = False
         super().__init__()
 
-    def get_df_contextual(self) -> pl.LazyFrame:
-        """Get the contextual dataframe, loading it if not already loaded."""
-        self._load_data()
-        assert self.df_contextual is not None
-        return self.df_contextual
+    @property
+    def data_folderpath(self) -> Path:
+        """Folder holding the pre-aggregated parquet files."""
+        return self.explanations.data_folderpath
 
-    def get_df_overall(self) -> pl.LazyFrame:
-        """Get the overall dataframe, loading it if not already loaded."""
-        self._load_data()
-        assert self.df_overall is not None
-        return self.df_overall
+    @cached_property
+    def contextual(self) -> pl.LazyFrame:
+        """Per-context contributions, read lazily on first access."""
+        return self._scan(self.data_pattern or "BY_CONTEXT.parquet")
+
+    @cached_property
+    def overall(self) -> pl.LazyFrame:
+        """Contributions across all contexts, read lazily on first access."""
+        return self._scan("OVERVIEW.parquet")
+
+    def _scan(self, filename: str) -> pl.LazyFrame:
+        path = self.data_folderpath / filename
+        if "*" not in filename and not path.is_file():
+            raise FileNotFoundError(f"No aggregated data found at {path}")
+        return (
+            scan_parquet_path(self.data_folderpath / filename)
+            .select(_SELECTED_COLUMNS)
+            .filter(pl.col("contribution") != 0.0)
+            .sort(by="predictor_name")
+        )
 
     def get_predictor_contributions(
         self,
@@ -95,8 +120,6 @@ class Aggregate(LazyNamespace):
 
         if not isinstance(top_n, int) or isinstance(top_n, bool) or top_n < 1:
             raise ValueError(f"Invalid top_n value: {top_n}. Must be a positive integer.")
-
-        self._load_data()
 
         return self._get_predictor_contributions(
             contexts=cast("list[dict[str, str]]", [context]) if context else None,
@@ -152,8 +175,6 @@ class Aggregate(LazyNamespace):
         if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1:
             raise ValueError(f"Invalid top_k value: {top_k}. Must be a positive integer.")
 
-        self._load_data()
-
         return self._get_predictor_value_contributions(
             contexts=cast("list[dict[str, str]]", [context]) if context else None,
             predictors=predictors,
@@ -172,46 +193,6 @@ class Aggregate(LazyNamespace):
     ) -> list[dict[str, str]]:
         """Get unique contexts list."""
         return self.context_operations.get_list(context_infos, with_partition_col)
-
-    def _load_data(self):
-        if self.initialized:
-            return
-
-        try:
-            self.explanations.validate_data_folder()
-        except FileNotFoundError as e:
-            logger.error("Error validating aggregates folder: %s", e)
-            raise
-
-        selected_columns = [
-            "context_partition",
-            "contribution",
-            "contribution_abs",
-            "frequency",
-            "predictor_type",
-            "predictor_name",
-            "bin_contents",
-            "bin_order",
-            "contribution_min",
-            "contribution_max",
-        ]
-
-        context_ = self.data_folderpath / (self.data_pattern if self.data_pattern else "BY_CONTEXT.parquet")
-
-        self.df_contextual = (
-            scan_parquet_path(context_)
-            .select(selected_columns)
-            .filter(pl.col("contribution") != 0.0)
-            .sort(by="predictor_name")
-        )
-        self.df_overall = (
-            scan_parquet_path(self.data_folderpath / "OVERVIEW.parquet")
-            .select(selected_columns)
-            .filter(pl.col("contribution") != 0.0)
-            .sort(by="predictor_name")
-        )
-
-        self.initialized = True
 
     def _get_predictor_contributions(
         self,
@@ -504,14 +485,9 @@ class Aggregate(LazyNamespace):
         self,
         df_filtered_contexts: pl.DataFrame | None = None,
     ) -> pl.LazyFrame:
-        if self.df_overall is None or self.df_contextual is None:
-            self._load_data()
-        assert self.df_overall is not None
-        assert self.df_contextual is not None
-
         if df_filtered_contexts is None:
-            return self.df_overall
-        return self.df_contextual.join(
+            return self.overall
+        return self.contextual.join(
             df_filtered_contexts.lazy(),
             on="context_partition",
             how="inner",
@@ -619,7 +595,7 @@ class Aggregate(LazyNamespace):
             *df* with an added ``frequency_pct`` column (0–100).
         """
         overall_freq = (
-            self.get_df_overall().group_by(join_on).agg(pl.sum("frequency").alias("overall_total_frequency")).collect()
+            self.overall.group_by(join_on).agg(pl.sum("frequency").alias("overall_total_frequency")).collect()
         )
         df_joined = df.join(overall_freq, on=join_on, how="left")
         return df_joined.with_columns(

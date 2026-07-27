@@ -41,22 +41,18 @@ def predictors():
 
 
 class TestAggregateLoadData:
-    """Test cases for Aggregate.load_data method."""
+    """Test cases for the lazily-read ``contextual`` / ``overall`` frames."""
 
-    def test_initial_state(self, aggregate):
-        """Test the initial state of Aggregate before load_data is called."""
-        assert aggregate.initialized is False
-        assert aggregate.df_contextual is None
-        assert aggregate.df_overall is None
+    def test_frames_are_lazy_and_cached(self, aggregate):
+        """Frames are LazyFrames and the same object on repeated access."""
+        assert isinstance(aggregate.overall, pl.LazyFrame)
+        assert aggregate.overall is aggregate.overall
+        assert aggregate.contextual is aggregate.contextual
 
     def test_load_data_success(self, aggregate):
         """Test successful data loading produces the expected fixture shape."""
-        aggregate._load_data()
-
-        assert aggregate.initialized is True
-
-        overall = aggregate.df_overall.collect()
-        contextual = aggregate.df_contextual.collect()
+        overall = aggregate.overall.collect()
+        contextual = aggregate.contextual.collect()
         expected_cols = {
             "context_partition",
             "contribution",
@@ -74,9 +70,9 @@ class TestAggregateLoadData:
         assert overall.height == 1072
         assert contextual.height == 8064
 
-    def test_get_df_overall(self, aggregate):
-        """Test get_df_overall returns a populated LazyFrame after loading."""
-        df = aggregate.get_df_overall().collect()
+    def test_overall_predictors(self, aggregate):
+        """The overall frame exposes every predictor in the fixture."""
+        df = aggregate.overall.collect()
         assert df.height == 1072
         assert sorted(df["predictor_name"].unique().to_list()) == [
             "Age",
@@ -89,12 +85,12 @@ class TestAggregateLoadData:
 
     def test_zero_contribution_rows_filtered(self, aggregate):
         """Test that rows with zero contribution are filtered out during loading."""
-        df = aggregate.get_df_overall().collect()
+        df = aggregate.overall.collect()
         assert (df["contribution"] != 0.0).all()
 
     def test_single_bin_numeric_predictors_filtered(self, aggregate):
         """Test that numeric predictors with only one non-missing bin are filtered out."""
-        df = aggregate.get_df_overall().collect()
+        df = aggregate.overall.collect()
         numeric_df = df.filter((pl.col("predictor_type") == "NUMERIC") & (pl.col("bin_contents") != "MISSING"))
         bin_counts = numeric_df.group_by(["context_partition", "predictor_name"]).agg(
             pl.col("bin_order").n_unique().alias("bin_count")
@@ -107,11 +103,8 @@ class TestAggregateLoadData:
         When ``include_numeric_single_bin=True``, the SQL COALESCE ensures
         ``bin_contents`` renders as ``[min:max]`` (not ``null`` or empty).
         """
-        aggregate._load_data()
         # get_predictor_value_contributions returns bin_contents; use all predictors
-        all_predictors = (
-            aggregate.get_df_overall().select("predictor_name").unique().collect()["predictor_name"].to_list()
-        )
+        all_predictors = aggregate.overall.select("predictor_name").unique().collect()["predictor_name"].to_list()
         df = aggregate.get_predictor_value_contributions(predictors=all_predictors, include_numeric_single_bin=True)
         numeric_rows = df.filter((pl.col("predictor_type") == "NUMERIC") & (pl.col("bin_contents") != "MISSING"))
 
@@ -124,37 +117,17 @@ class TestAggregateLoadData:
         for val in numeric_rows["bin_contents"].to_list():
             assert val != "", f"bin_contents should not be empty, got: {val!r}"
 
-    def test_load_data_folder_does_not_exist(self, aggregate):
-        """Test handling of non-existent aggregates folder."""
-        original_root = aggregate.explanations.root_dir
-        original_folder = aggregate.explanations.data_folder
-        try:
-            aggregate.initialized = False
-            aggregate.explanations.root_dir = "/non/existent"
-            aggregate.explanations.data_folder = "path"
-            with pytest.raises(FileNotFoundError):
-                aggregate._load_data()
-        finally:
-            aggregate.explanations.root_dir = original_root
-            aggregate.explanations.data_folder = original_folder
+    def test_missing_folder_raises_on_access(self):
+        """A non-existent data folder fails at read time, not at construction."""
+        exp = Explanations(data_folder="/non/existent/path")
+        with pytest.raises(FileNotFoundError):
+            _ = exp.aggregate.overall
 
-    def test_load_data_file_not_found_error(self, aggregate):
-        """Test handling of file not found errors (folder exists but no parquet files)."""
-        import tempfile
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            original_root = aggregate.explanations.root_dir
-            original_folder = aggregate.explanations.data_folder
-            try:
-                aggregate.initialized = False
-                aggregate.explanations.root_dir = tmpdir
-                aggregate.explanations.data_folder = "empty"
-                Path(tmpdir, "empty").mkdir()
-                with pytest.raises(FileNotFoundError):
-                    aggregate._load_data()
-            finally:
-                aggregate.explanations.root_dir = original_root
-                aggregate.explanations.data_folder = original_folder
+    def test_empty_folder_raises_on_access(self, tmp_path):
+        """An existing but empty data folder also fails at read time."""
+        exp = Explanations(data_folder=tmp_path)
+        with pytest.raises(FileNotFoundError):
+            _ = exp.aggregate.overall
 
 
 class TestContextOperations:
@@ -194,8 +167,7 @@ class TestContextOperations:
         """Point the aggregate at a copy of the sample data inside tmp_path."""
         for name in ("BY_CONTEXT.parquet", "OVERVIEW.parquet"):
             (tmp_path / name).write_bytes((DATA_DIR / name).read_bytes())
-        monkeypatch.setattr(aggregate, "data_folderpath", tmp_path)
-        monkeypatch.setattr(aggregate, "initialized", False)
+        monkeypatch.setattr(aggregate.explanations, "data_folderpath", tmp_path)
         return tmp_path / "unique_contexts.json"
 
     def test_create_unique_contexts_file_creates_json(self, aggregate, tmp_path, monkeypatch):
@@ -241,7 +213,7 @@ class TestContextOperations:
         contexts = aggregate.context_operations.create_unique_contexts_file()
 
         aggregate.context_operations.create_batch_parquet_files(contexts)
-        contextual = aggregate.get_df_contextual().collect()
+        contextual = aggregate.contextual.collect()
 
         for batch_key, batch_contexts in contexts.items():
             batch_df = pl.read_parquet(tmp_path / "batches" / f"BATCH_{batch_key}.parquet")
@@ -257,7 +229,8 @@ class TestContextOperations:
 
         aggregate = Explanations.from_aggregates(data_folder=data_dir).aggregate
         before = sorted(path.name for path in data_dir.iterdir())
-        aggregate._load_data()
+        aggregate.overall.collect()
+        aggregate.contextual.collect()
         after = sorted(path.name for path in data_dir.iterdir())
 
         assert after == before
@@ -294,15 +267,9 @@ class TestAggregateAndContextOperationHelpers:
         )
         assert set(df["predictor_name"].unique().to_list()) == {"Age"}
 
-    def test_get_base_df_triggers_load_when_frames_are_missing(self, aggregate):
-        aggregate.initialized = False
-        aggregate.df_overall = None
-        aggregate.df_contextual = None
-
-        df = aggregate._get_base_df().collect()
-
-        assert aggregate.initialized is True
-        assert df.height > 0
+    def test_get_base_df_defaults_to_overall(self, aggregate):
+        """Without a context filter, the base frame is the overall frame."""
+        assert aggregate._get_base_df() is aggregate.overall
 
     def test_get_sort_over_columns_with_predictors(self, aggregate):
         assert aggregate._get_sort_over_columns(["Age"]) == ["context_partition"]
@@ -616,14 +583,14 @@ class TestAggregateFrequencyPct:
 
     def test_add_frequency_pct_to_df(self, aggregate):
         """Test that frequency_pct column is added correctly."""
-        df = aggregate.get_df_overall()
+        df = aggregate.overall
         result = aggregate.add_frequency_pct_to_df(df, group_by=["context_partition"]).collect()
         assert "frequency_pct" in result.columns
         assert result["frequency_pct"].dtype == pl.Float64
 
     def test_frequency_pct_values_in_range(self, aggregate):
         """Test that frequency_pct values are between 0 and 100."""
-        df = aggregate.get_df_overall()
+        df = aggregate.overall
         result = aggregate.add_frequency_pct_to_df(df, group_by=["context_partition"]).collect()
         assert (result["frequency_pct"] >= 0.0).all()
         assert (result["frequency_pct"] <= 100.0).all()
@@ -634,9 +601,8 @@ class TestAggregateFrequencyPct:
         Uses a small context DataFrame with known frequencies and asserts
         exact expected values of ``context_freq / overall_freq * 100``.
         """
-        aggregate._load_data()
 
-        overall_df = aggregate.get_df_overall().collect()
+        overall_df = aggregate.overall.collect()
         join_cols = ["predictor_name", "predictor_type"]
         overall_totals = overall_df.group_by(join_cols).agg(pl.sum("frequency").alias("expected_overall_total"))
 
@@ -668,7 +634,6 @@ class TestAggregateFrequencyPct:
 
     def test_add_context_frequency_pct_zero_overall(self, aggregate):
         """When overall frequency is zero, frequency_pct should be 0.0."""
-        aggregate._load_data()
 
         context_df = pl.DataFrame(
             {

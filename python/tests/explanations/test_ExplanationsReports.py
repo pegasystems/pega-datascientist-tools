@@ -87,7 +87,7 @@ def test_set_params(report_paths):
     assert params["data_folder"] == Path(reports.explanations.data_folder).as_posix()
 
 
-def test_set_params_preserves_nested_relative_data_folder(tmp_path):
+def test_set_params_writes_resolved_data_folder(tmp_path):
     nested_aggregate_dir = tmp_path / "nested" / "aggregated_data"
     nested_aggregate_dir.mkdir(parents=True)
     for filename in ("BY_CONTEXT.parquet", "OVERVIEW.parquet"):
@@ -110,7 +110,9 @@ def test_set_params_preserves_nested_relative_data_folder(tmp_path):
     with open(reports.params_file, encoding="utf-8") as f:
         params = yaml.safe_load(f)
 
-    assert params["data_folder"] == "nested/aggregated_data"
+    # An absolute path is written so the Quarto templates resolve it
+    # independently of the directory Quarto happens to run in.
+    assert params["data_folder"] == str(nested_aggregate_dir.resolve())
 
 
 def test_set_params_custom_contribution_types(report_paths):
@@ -276,15 +278,12 @@ class TestGenerateFilterKwargs:
 
         mock_create_batch_parquet_files.assert_called_once_with(contexts)
 
-    def test_generate_raises_when_validation_fails(self, report_paths):
+    def test_generate_raises_when_data_folder_is_missing(self, report_paths):
+        """Generation surfaces the read error rather than swallowing it."""
         reports = report_paths
-        with patch.object(
-            reports.explanations,
-            "validate_data_folder",
-            side_effect=FileNotFoundError("missing parquet"),
-        ):
-            with pytest.raises(FileNotFoundError, match="missing parquet"):
-                reports.generate()
+        reports.explanations.data_folderpath = Path("/non/existent/path")
+        with pytest.raises(FileNotFoundError):
+            reports.generate()
 
     def test_generate_raises_when_copy_fails(self, report_paths):
         reports = report_paths

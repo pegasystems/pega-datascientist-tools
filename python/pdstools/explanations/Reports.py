@@ -3,8 +3,6 @@ from __future__ import annotations
 __all__ = ["Reports"]
 
 import logging
-import shutil
-import subprocess
 from pathlib import Path
 from typing import ClassVar, TYPE_CHECKING
 
@@ -41,8 +39,7 @@ class Reports(LazyNamespace):
         self.report_folderpath = Path(self.explanations.root_dir) / self.report_foldername
         self.report_output_dir = self.report_folderpath / "_site"
 
-        self.aggregate_folder = self.explanations.data_folder
-        # Safeguard: aggregate_folder is guaranteed to be Path from Aggregate.data_folderpath
+        self.aggregate_folder = self.explanations.data_folderpath
         self.params_file = self.report_folderpath / "scripts" / "params.yml"
 
         super().__init__()
@@ -81,25 +78,15 @@ class Reports(LazyNamespace):
         Enable debug logging to see detailed report generation steps.
 
         """
-        try:
-            self.explanations.validate_data_folder()
-            co = self.explanations.aggregate.context_operations
-            contexts = co.create_unique_contexts_file()
-            co.create_batch_parquet_files(contexts)
-        except Exception as e:
-            logger.error("Validation failed: %s", e)
-            raise
+        co = self.explanations.aggregate.context_operations
+        contexts = co.create_unique_contexts_file()
+        co.create_batch_parquet_files(contexts)
 
-        validated_sort_by = validate_contribution_type(sort_by)
-        validated_display_by = validate_contribution_type(display_by)
+        sort_by = validate_contribution_type(sort_by)
+        display_by = validate_contribution_type(display_by)
 
         self._validate_report_dir()
-
-        try:
-            self._copy_report_resources()
-        except (OSError, shutil.Error) as e:
-            logger.error("IO error during resource copy: %s", e)
-            raise
+        self._copy_report_resources()
 
         if self.explanations.from_date and self.explanations.to_date:
             self._set_params(
@@ -107,21 +94,16 @@ class Reports(LazyNamespace):
                 top_k=top_k,
                 from_date=self.explanations.from_date.strftime("%Y-%m-%d"),
                 to_date=self.explanations.to_date.strftime("%Y-%m-%d"),
-                sort_by=validated_sort_by,
-                display_by=validated_display_by,
+                sort_by=sort_by,
+                display_by=display_by,
             )
 
-        try:
-            return_code = run_quarto(
-                temp_dir=Path(self.report_folderpath),
-                output_type=None,
-            )
-        except subprocess.CalledProcessError as e:
-            logger.error("Quarto command failed: %s", e)
-            raise
+        return_code = run_quarto(
+            temp_dir=Path(self.report_folderpath),
+            output_type=None,
+        )
 
         if return_code != 0:
-            logger.error("Quarto command failed with return code %s", return_code)
             raise RuntimeError(f"Quarto command failed with return code {return_code}")
 
         if zip_output:

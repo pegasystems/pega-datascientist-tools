@@ -86,23 +86,33 @@ class TestPureInit:
         assert (type(exp.aggregate), type(exp.plot), type(exp.report)) == (Aggregate, Plots, Reports)
         assert all(namespace.explanations is exp for namespace in (exp.aggregate, exp.plot, exp.report))
 
-    def test_absolute_path_splits_correctly(self, tmp_path):
-        """Test that absolute data_folder path is split into root_dir and data_folder."""
+    def test_absolute_data_folder_is_used_as_is(self, tmp_path):
+        """An absolute data_folder is used verbatim, ignoring root_dir."""
         custom_data_path = tmp_path / "mydata"
         custom_data_path.mkdir(parents=True)
 
         exp = Explanations(data_folder=str(custom_data_path))
 
-        assert exp.root_dir == str(tmp_path)
-        assert exp.data_folder == "mydata"
-        assert Path(exp.root_dir) / exp.data_folder == custom_data_path
+        assert exp.data_folderpath == custom_data_path
 
-    def test_relative_path_splits_correctly(self):
-        """Test that relative data_folder path is split into root_dir and data_folder."""
+    def test_relative_data_folder_resolves_against_cwd(self, tmp_path, monkeypatch):
+        """Without an explicit root_dir, a relative data_folder is CWD-relative."""
+        monkeypatch.chdir(tmp_path)
+
         exp = Explanations(data_folder="custom/path/mydata")
 
-        assert Path(exp.root_dir).as_posix() == "custom/path"
-        assert exp.data_folder == "mydata"
+        assert exp.data_folderpath == (tmp_path / "custom/path/mydata").resolve()
+
+    def test_relative_data_folder_is_cwd_independent_once_built(self, tmp_path, monkeypatch):
+        """data_folderpath is resolved once, so later chdir cannot break it."""
+        monkeypatch.chdir(tmp_path)
+        exp = Explanations(data_folder="custom/path/mydata")
+        expected = exp.data_folderpath
+
+        monkeypatch.chdir(tmp_path.parent)
+
+        assert exp.data_folderpath == expected
+        assert exp.data_folderpath.is_absolute()
 
     def test_explicit_root_dir_with_relative_data_folder(self, tmp_path):
         """A relative aggregate folder resolves under the explicit root_dir."""
@@ -113,9 +123,24 @@ class TestPureInit:
 
         exp = Explanations.from_aggregates(root_dir=str(tmp_path), data_folder="custom_aggs")
 
-        assert exp.root_dir == str(tmp_path)
-        assert exp.data_folder == "custom_aggs"
+        assert exp.data_folderpath == data_dir
         assert exp.aggregate.data_folderpath == data_dir
+
+    def test_nested_relative_data_folder_under_explicit_root(self, tmp_path):
+        """Multi-segment relative folders keep every segment under root_dir."""
+        exp = Explanations(root_dir=str(tmp_path), data_folder="nested/aggregated_data")
+
+        assert exp.data_folderpath == (tmp_path / "nested/aggregated_data").resolve()
+
+    def test_parent_relative_data_folder(self, tmp_path, monkeypatch):
+        """A ``../``-prefixed relative folder resolves upward from the CWD."""
+        workdir = tmp_path / "a" / "b"
+        workdir.mkdir(parents=True)
+        monkeypatch.chdir(workdir)
+
+        exp = Explanations(data_folder="../../data/aggregated_data")
+
+        assert exp.data_folderpath == (tmp_path / "data/aggregated_data").resolve()
 
     def test_path_object_accepted(self, tmp_path):
         """Test that Path objects are accepted for data_folder."""
@@ -124,20 +149,4 @@ class TestPureInit:
 
         exp = Explanations(data_folder=custom_data_path)
 
-        assert exp.root_dir == str(tmp_path)
-        assert exp.data_folder == "mydata"
-
-
-class TestValidateDataFolder:
-    """Test the validate_data_folder method of Explanations."""
-
-    def test_folder_exists_but_no_parquet_files(self, tmp_path):
-        """Folder exists but contains no .parquet files raises FileNotFoundError."""
-        data_dir = tmp_path / "aggregated_data"
-        data_dir.mkdir()
-        (data_dir / "readme.txt").write_text("no parquet here")
-
-        exp = Explanations(data_folder=str(data_dir))
-
-        with pytest.raises(FileNotFoundError, match="No parquet files found"):
-            exp.validate_data_folder()
+        assert exp.data_folderpath == custom_data_path
