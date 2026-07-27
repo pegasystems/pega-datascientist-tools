@@ -296,9 +296,14 @@ class Aggregate(LazyNamespace):
                 df.select(sorted(df.collect_schema().names())) for df in [df_remaining, df_top_predictors]
             )
 
-        # Ensure all predictors are unique and sorted by sort_by
+        # Ensure all predictors are unique and sorted by sort_by. `unique` does not
+        # preserve order, so the sort needs a total ordering: predictor names are
+        # unique here and break ties in `sort_by` deterministically.
         df_out = df_top_predictors.unique()
-        df_out = df_out.sort(by=sort_by, descending=descending)
+        df_out = df_out.sort(
+            by=[sort_by, _COL.PREDICTOR_NAME.value],
+            descending=[descending, False],
+        )
 
         return df_out.collect()
 
@@ -407,10 +412,17 @@ class Aggregate(LazyNamespace):
                 df.select(sorted(df.collect_schema().names())) for df in [df_remaining, df_top_predictor_values]
             )
 
-        # Ensure all predictor values are unique and sorted according to predictor type
+        # Ensure all predictor values are unique and sorted according to predictor type.
+        # `unique` does not preserve order, so `bin_contents` is appended as a final
+        # tiebreaker to keep the output deterministic when `sort_value` ties (the
+        # forced MISSING bin and the 'remaining' rollup share a sort value).
         df_out = df_top_predictor_values.unique()
         df_out = df_out.sort(
-            by=[*self._get_sort_over_columns(predictors=None), "sort_value"],
+            by=[
+                *self._get_sort_over_columns(predictors=None),
+                "sort_value",
+                _COL.BIN_CONTENTS.value,
+            ],
         )
         return df_out.collect()
 

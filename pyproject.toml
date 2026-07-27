@@ -146,6 +146,7 @@ extend-select = [
     "B024",    # abstract-base-class-without-abstract-method
     "B028",    # no-explicit-stacklevel (warnings.warn without stacklevel)
     "S101",    # assert (no asserts in library code; use real exceptions)
+    "TRY400",  # error-instead-of-exception (logger.exception inside except blocks)
     "RET504",  # unnecessary-assign (return temporary variable)
     "RET505",  # superfluous-else-return
     "RET506",  # superfluous-else-raise

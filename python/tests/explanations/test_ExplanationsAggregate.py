@@ -1088,18 +1088,27 @@ def assert_predictor_rows_per_partition(df, top_n):
 
 
 def assert_symbolic_bins_per_predictor_capped(df, top_k):
-    """Assert each symbolic predictor has at most top_k + 1 rows (top bins + remaining).
+    """Assert each symbolic predictor has at most ``top_k`` ordinary bins.
+
+    The 'remaining' rollup and the force-included MISSING bin are appended after
+    the top-k selection, so they are excluded from the count rather than folded
+    into the limit.
 
     Numeric predictors are not capped by ``top_k``.
     """
-    expected_max = top_k + 1
-    rows = df.group_by(["predictor_name", "predictor_type"]).agg(pl.len().alias("n")).to_dicts()
+    special = [_SPECIAL.REMAINING.value, _SPECIAL.MISSING.name]
+    rows = (
+        df.filter(~pl.col(_COL.BIN_CONTENTS.value).is_in(special))
+        .group_by(["predictor_name", "predictor_type"])
+        .agg(pl.len().alias("n"))
+        .to_dicts()
+    )
     assert rows, "Expected at least one predictor in the result."
     for row in rows:
         if row["predictor_type"] == "SYMBOLIC":
-            assert row["n"] <= expected_max, (
-                f"Symbolic predictor {row['predictor_name']!r} has {row['n']} bins, "
-                f"expected at most {expected_max} (top_k + 1 remaining)."
+            assert row["n"] <= top_k, (
+                f"Symbolic predictor {row['predictor_name']!r} has {row['n']} ordinary bins, "
+                f"expected at most {top_k}."
             )
 
 
@@ -1140,9 +1149,9 @@ def test_missing_flag_changes_predictor_value_contributions(aggregate, predictor
     with_missing = aggregate.get_predictor_value_contributions(predictors=predictors, missing=True)
     without_missing = aggregate.get_predictor_value_contributions(predictors=predictors, missing=False)
 
-    assert with_missing.height == 11
+    assert with_missing.height == 19
     assert with_missing.filter(pl.col(_COL.BIN_CONTENTS.value) == _SPECIAL.MISSING.name).height == 2
-    assert without_missing.height == 10
+    assert without_missing.height == 17
     assert without_missing.filter(pl.col(_COL.BIN_CONTENTS.value) == _SPECIAL.MISSING.name).height == 0
 
 
@@ -1160,4 +1169,4 @@ def test_get_predictor_contributions_rejects_invalid_top_n(aggregate, top_n):
 def test_get_predictor_contributions_accepts_top_n_of_one(aggregate):
     """``top_n=1`` is valid and returns exactly one predictor plus the rollup."""
     df = aggregate.get_predictor_contributions(top_n=1)
-    assert df[_COL.PREDICTOR_NAME.value].to_list() == ["Age", _SPECIAL.REMAINING.value]
+    assert df[_COL.PREDICTOR_NAME.value].to_list() == ["pyName", _SPECIAL.REMAINING.value]
