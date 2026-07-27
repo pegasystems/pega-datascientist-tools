@@ -14,6 +14,9 @@ from pdstools.explanations import Explanations
 from pdstools.explanations.ExplanationsUtils import _CONTRIBUTION_TYPE
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
+REPORT_SCRIPT = (
+    Path(__file__).parents[2] / "pdstools" / "reports" / "GlobalExplanations" / "scripts" / "generate_report.py"
+)
 
 
 @pytest.fixture(scope="module")
@@ -138,7 +141,7 @@ def test_pre_render_uses_full_embed_plotly_renderer(report_paths, tmp_path, monk
     reports._set_params(full_embed=True)
 
     monkeypatch.chdir(reports.report_folderpath)
-    runpy.run_path(str(reports.report_folderpath / "scripts" / "generate_report.py"), run_name="__main__")
+    runpy.run_path(str(REPORT_SCRIPT), run_name="__main__")
 
     overview = (reports.report_folderpath / "overview.qmd").read_text(encoding="utf-8")
     by_context = next((reports.report_folderpath / "by-model-context").glob("plots_for_batch_*.qmd")).read_text(
@@ -148,17 +151,49 @@ def test_pre_render_uses_full_embed_plotly_renderer(report_paths, tmp_path, monk
     assert 'pio.renderers.default = "notebook"' in by_context
 
 
+def test_pre_render_accepts_string_full_embed_false(report_paths, tmp_path, monkeypatch):
+    reports = report_paths
+    reports._validate_report_dir()
+    reports._copy_report_resources()
+
+    aggregate_dir = tmp_path / "aggregated_data"
+    aggregate_dir.mkdir()
+    (aggregate_dir / "unique_contexts.json").write_text(
+        json.dumps({"0": [json.dumps({"partition": {"Issue": "Sales"}})]}),
+        encoding="utf-8",
+    )
+    reports.aggregate_folder = aggregate_dir
+    reports._set_params(full_embed=True)
+    with open(reports.params_file, encoding="utf-8") as f:
+        params = yaml.safe_load(f)
+    params["full_embed"] = "False"
+    with open(reports.params_file, "w", encoding="utf-8") as f:
+        yaml.safe_dump(params, f)
+
+    monkeypatch.chdir(reports.report_folderpath)
+    runpy.run_path(str(REPORT_SCRIPT), run_name="__main__")
+
+    overview = (reports.report_folderpath / "overview.qmd").read_text(encoding="utf-8")
+    by_context = next((reports.report_folderpath / "by-model-context").glob("plots_for_batch_*.qmd")).read_text(
+        encoding="utf-8"
+    )
+    assert 'pio.renderers.default = "notebook_connected"' in overview
+    assert 'pio.renderers.default = "notebook_connected"' in by_context
+
+
 def test_pre_render_defaults_to_full_embed_without_params(report_paths, monkeypatch):
     reports = report_paths
     reports._validate_report_dir()
     reports._copy_report_resources()
 
     monkeypatch.chdir(reports.report_folderpath)
-    namespace = runpy.run_path(str(reports.report_folderpath / "scripts" / "generate_report.py"))
+    namespace = runpy.run_path(str(REPORT_SCRIPT))
 
     generator = namespace["ReportGenerator"]()
     assert generator.full_embed is True
     assert generator.plotly_renderer == "notebook"
+    assert generator._parse_bool(1) is True
+    assert generator._parse_bool(0) is False
 
 
 def test_set_params_preserves_nested_relative_data_folder(tmp_path):
