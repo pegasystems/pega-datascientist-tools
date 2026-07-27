@@ -277,3 +277,35 @@ def test_model_reports_logs_export_path(tmp_path, monkeypatch, caplog):
 
     assert output_path.exists()
     assert f"Data exported to {output_path}" in caplog.text
+
+
+def test_multiple_model_reports_use_generic_zip_name(tmp_path, monkeypatch):
+    datamart = datasets.cdh_sample()
+    reports = Reports(datamart)
+
+    def fake_copy_quarto_file(qmd_filename, temp_dir):
+        (temp_dir / qmd_filename).write_text("", encoding="utf-8")
+
+    def fake_save_data(path, selected_model_ids=None):
+        return pathlib.Path(path) / "model.parquet", pathlib.Path(path) / "predictor.parquet"
+
+    def fake_run_quarto(*, output_filename, temp_dir, **_kwargs):
+        (temp_dir / output_filename).write_text("<html></html>", encoding="utf-8")
+        return None
+
+    monkeypatch.setattr("pdstools.adm.Reports.copy_quarto_file", fake_copy_quarto_file)
+    monkeypatch.setattr("pdstools.adm.Reports.run_quarto", fake_run_quarto)
+    monkeypatch.setattr(datamart, "save_data", fake_save_data)
+
+    output_path = reports.model_reports(
+        model_ids=["model-1", "model-2"],
+        output_dir=tmp_path,
+    )
+
+    assert output_path.exists()
+    assert output_path.name.startswith("ModelReports_")
+    assert output_path.suffix == ".zip"
+    assert "model-1" not in output_path.name
+    assert "model-2" not in output_path.name
+    with zipfile.ZipFile(output_path) as zf:
+        assert set(zf.namelist()) == {"ModelReport_model-1.html", "ModelReport_model-2.html"}

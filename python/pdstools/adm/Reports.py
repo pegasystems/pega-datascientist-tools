@@ -263,9 +263,10 @@ class Reports(LazyNamespace):
                 if progress_callback:
                     progress_callback(i + 1, len(model_ids))
 
+            bundled_file_name = output_path if len(output_file_paths) == 1 else Path("ModelReports.zip")
             file_data, file_name = cdh_utils.process_files_to_bytes(
                 output_file_paths,
-                base_file_name=output_path,
+                base_file_name=bundled_file_name,
             )
             final_path = output_dir / file_name
             with open(final_path, "wb") as f:
