@@ -12,6 +12,8 @@ _REPO_DATA_DIR = pathlib.Path(__file__).parent.parent.parent.parent / "data" / "
 _SAMPLE_TREES_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/agb/ModelExportWithSampleCount.json"
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from ..adm.trees import ADMTreesModel
     from ..data_quality._topic_data_quality import TopicDataQuality
     from ..explanations.Explanations import Explanations
@@ -112,15 +114,23 @@ def sample_value_finder(threshold: float | None = None) -> ValueFinder:
 def sample_explanations(
     *,
     model_name: str = "AdaptiveBoostCT",
+    from_date: datetime | None = None,
+    to_date: datetime | None = None,
 ) -> "Explanations":
     """Import a sample set of pre-aggregated AGB global explanations.
 
-    These were generated from a stock CDH Sample system.
+    These were generated from a stock CDH Sample system. The aggregates are
+    fetched from the pdstools repository over HTTPS, so this works from an
+    installed package as well as from a repository checkout.
 
     Parameters
     ----------
     model_name : str, keyword-only, default "AdaptiveBoostCT"
         Name of the model rule. Used for report metadata only.
+    from_date : datetime | None, keyword-only, optional
+        Start of the reporting window. Defaults to a week before ``to_date``.
+    to_date : datetime | None, keyword-only, optional
+        End of the reporting window. Defaults to today.
 
     Returns
     -------
@@ -133,7 +143,12 @@ def sample_explanations(
     base_path = f"{_RAW_GITHUB_DATA_URL}/explanations/aggregated_data"
     with warnings.catch_warnings(record=True) as w:
         try:
-            return Explanations.from_aggregates(base_path=base_path, model_name=model_name)
+            return Explanations.from_aggregates(
+                base_path=base_path,
+                model_name=model_name,
+                from_date=from_date,
+                to_date=to_date,
+            )
         except Exception as e:
             raise RuntimeError(
                 f"Error importing the sample Explanations dataset. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",

@@ -67,3 +67,29 @@ def test_sample_explanations_raises_runtime_error(monkeypatch):
     monkeypatch.setattr(Explanations, "from_aggregates", _raise)
     with pytest.raises(RuntimeError, match="Error importing the sample Explanations dataset"):
         datasets.sample_explanations()
+
+
+def test_sample_explanations_passes_args_through(monkeypatch):
+    """model_name and the date window reach Explanations.from_aggregates."""
+    from datetime import datetime
+
+    from pdstools.explanations import Explanations
+
+    captured = {}
+
+    def _capture(**kwargs):
+        captured.update(kwargs)
+        return "explanations"
+
+    monkeypatch.setattr(Explanations, "from_aggregates", _capture)
+    result = datasets.sample_explanations(
+        model_name="MyModel",
+        from_date=datetime(2024, 3, 28),
+        to_date=datetime(2025, 3, 28),
+    )
+
+    assert result == "explanations"
+    assert captured["model_name"] == "MyModel"
+    assert captured["from_date"] == datetime(2024, 3, 28)
+    assert captured["to_date"] == datetime(2025, 3, 28)
+    assert captured["base_path"].startswith("https://")

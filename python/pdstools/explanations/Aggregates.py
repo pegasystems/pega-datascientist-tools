@@ -506,18 +506,17 @@ class Aggregates(LazyNamespace):
     @staticmethod
     def _add_total_frequency_to_df(df: F, group_by: list[str]) -> F:
         """Join a per-group ``total_frequency`` column onto *df*."""
-        # Dropped first: a df that already carries the column would otherwise gain a
-        # suffixed `total_frequency_right` from the join, and downstream code reading
-        # TOTAL_FREQUENCY would silently use the stale one.
-        df = df.drop(TOTAL_FREQUENCY, strict=False)
         grouped = df.group_by(group_by).agg(pl.sum("frequency").alias(TOTAL_FREQUENCY))
+        # grouped is the left side, so its freshly-computed TOTAL_FREQUENCY keeps the
+        # plain name and a pre-existing one on df arrives suffixed. Dropping the
+        # suffixed copy stops downstream readers picking up the stale value.
         # pyrefly bug: when expanding a constrained TypeVar it fails to narrow the
         # argument to the branch's concrete type, so `df` stays `F` and no overload
         # of `join` matches. pyright accepts this. Minimal repro:
         #     F = TypeVar("F", pl.DataFrame, pl.LazyFrame)
         #     def f(df: F) -> F: return df.head(1).join(df, on="x", how="left")
         # pyrefly: ignore[bad-argument-type, bad-return]
-        return grouped.join(df, on=group_by, how="left")
+        return grouped.join(df, on=group_by, how="left").drop(f"{TOTAL_FREQUENCY}_right", strict=False)
 
     def _add_frequency_pct(self, df: pl.DataFrame, group_by: list[str]) -> pl.DataFrame:
         """Add a frequency percentage column to the dataframe based on the total frequency per group."""
