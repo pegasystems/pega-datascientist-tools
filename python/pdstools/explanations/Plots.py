@@ -34,11 +34,11 @@ class Plots(LazyNamespace):
 
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
-        self.aggregate = self.explanations.aggregate
+        self.aggregates = self.explanations.aggregates
         super().__init__()
 
     @overload
-    def plot_contributions_for_overall(
+    def contributions_overall(
         self,
         top_n: int = ...,
         top_k: int = ...,
@@ -53,7 +53,7 @@ class Plots(LazyNamespace):
     ) -> tuple[go.Figure, list[go.Figure]]: ...
 
     @overload
-    def plot_contributions_for_overall(
+    def contributions_overall(
         self,
         top_n: int = ...,
         top_k: int = ...,
@@ -67,7 +67,7 @@ class Plots(LazyNamespace):
         include_numeric_single_bin: bool = ...,
     ) -> tuple[pl.DataFrame, pl.DataFrame]: ...
 
-    def plot_contributions_for_overall(
+    def contributions_overall(
         self,
         top_n: int = 20,
         top_k: int = 20,
@@ -83,7 +83,7 @@ class Plots(LazyNamespace):
         """Plot contributions for overall."""
         display_by = validate_contribution_type(display_by)
         display_by_label = CONTRIBUTION_LABELS[display_by][0]
-        df = self.aggregate.get_predictor_contributions(
+        df = self.aggregates.predictor_contributions(
             top_n=top_n,
             sort_by=sort_by,
             descending=descending,
@@ -100,7 +100,7 @@ class Plots(LazyNamespace):
             .to_list()
         )
 
-        df_predictors = self.aggregate.get_predictor_value_contributions(
+        df_predictors = self.aggregates.predictor_value_contributions(
             predictors=predictors,
             top_k=top_k,
             sort_by=sort_by,
@@ -113,13 +113,13 @@ class Plots(LazyNamespace):
         if return_df:
             return df, df_predictors
 
-        overall_fig = self._plot_overall_contributions(
+        overall_fig = self._overall_figure(
             df,
             x_col=display_by,
             y_col="predictor_name",
             x_title=display_by_label,
         )
-        predictors_figs = self._plot_predictor_contributions(
+        predictors_figs = self._predictor_figures(
             df_predictors,
             x_col=display_by,
             y_col="bin_contents",
@@ -129,7 +129,7 @@ class Plots(LazyNamespace):
         return overall_fig, predictors_figs
 
     @overload
-    def plot_contributions_by_context(
+    def contributions_by_context(
         self,
         context: dict[str, str],
         top_n: int = ...,
@@ -145,7 +145,7 @@ class Plots(LazyNamespace):
     ) -> tuple[go.Figure, go.Figure, list[go.Figure]]: ...
 
     @overload
-    def plot_contributions_by_context(
+    def contributions_by_context(
         self,
         context: dict[str, str],
         top_n: int = ...,
@@ -160,7 +160,7 @@ class Plots(LazyNamespace):
         include_numeric_single_bin: bool = ...,
     ) -> tuple[pl.DataFrame, pl.DataFrame]: ...
 
-    def plot_contributions_by_context(
+    def contributions_by_context(
         self,
         context: dict[str, str],
         top_n: int = 20,
@@ -177,7 +177,7 @@ class Plots(LazyNamespace):
         """Plot contributions by context."""
         display_by = validate_contribution_type(display_by)
         display_by_label = CONTRIBUTION_LABELS[display_by][0]
-        df_context = self.aggregate.get_predictor_contributions(
+        df_context = self.aggregates.predictor_contributions(
             context,
             top_n=top_n,
             sort_by=sort_by,
@@ -203,7 +203,7 @@ class Plots(LazyNamespace):
             .to_list()
         )
 
-        df = self.aggregate.get_predictor_value_contributions(
+        df = self.aggregates.predictor_value_contributions(
             predictors,
             context=context,
             top_k=top_k,
@@ -217,9 +217,9 @@ class Plots(LazyNamespace):
         if return_df:
             return df_context, df
 
-        header_fig = self._plot_context_table(cast("dict[str, str]", context))
+        header_fig = self._context_table_figure(cast("dict[str, str]", context))
 
-        overall_fig = self._plot_overall_contributions(
+        overall_fig = self._overall_figure(
             df_context,
             x_col=display_by,
             y_col="predictor_name",
@@ -227,7 +227,7 @@ class Plots(LazyNamespace):
             context=cast("dict[str, str]", context),
         )
 
-        predictors_figs = self._plot_predictor_contributions(
+        predictors_figs = self._predictor_figures(
             df,
             x_col=display_by,
             y_col="bin_contents",
@@ -279,7 +279,7 @@ class Plots(LazyNamespace):
 
         return customdata, hovertemplate
 
-    def _plot_overall_contributions(
+    def _overall_figure(
         self,
         df: pl.DataFrame,
         x_col: str,
@@ -297,7 +297,7 @@ class Plots(LazyNamespace):
         else:
             title += "-".join([f"{v}" for k, v in context.items()])
             # Show each predictor's context frequency as a share of the overall model.
-            df_with_pct = self.aggregate.add_context_frequency_pct_to_df(
+            df_with_pct = self.aggregates._add_context_frequency_pct(
                 df,
                 join_on=["predictor_name", "predictor_type"],
             )
@@ -329,7 +329,7 @@ class Plots(LazyNamespace):
         fig.update_layout(xaxis_title=x_title, yaxis_title=y_title, height=600)
         return fig
 
-    def _plot_predictor_contributions(
+    def _predictor_figures(
         self,
         df: pl.DataFrame,
         x_col: str,
@@ -339,7 +339,7 @@ class Plots(LazyNamespace):
     ) -> list[go.Figure]:
         import plotly.graph_objects as go
 
-        df_with_frequency_pct = self.aggregate.add_frequency_pct_to_df(
+        df_with_frequency_pct = self.aggregates._add_frequency_pct(
             df, group_by=["context_partition", "predictor_name", "predictor_type"]
         )
 
@@ -380,7 +380,7 @@ class Plots(LazyNamespace):
         return plots
 
     @staticmethod
-    def _plot_context_table(context_info: dict[str, str]) -> go.Figure:
+    def _context_table_figure(context_info: dict[str, str]) -> go.Figure:
         import plotly.graph_objects as go
 
         fig = go.Figure(

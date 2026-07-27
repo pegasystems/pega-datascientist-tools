@@ -78,7 +78,7 @@ class Reports(LazyNamespace):
         Enable debug logging to see detailed report generation steps.
 
         """
-        co = self.explanations.aggregate.context_operations
+        co = self.explanations.aggregates.context_operations
         contexts = co.create_unique_contexts_file()
         co.create_batch_parquet_files(contexts)
 

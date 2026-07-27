@@ -1,4 +1,4 @@
-"""Context-related operations for querying the unique contexts in an aggregate."""
+"""Context-related operations for querying the unique contexts in an aggregates set."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from ..utils.namespaces import LazyNamespace
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from .Aggregate import Aggregate
+    from .Aggregates import Aggregates
 
 logger = logging.getLogger(__name__)
 
@@ -27,22 +27,22 @@ class ContextOperations(LazyNamespace):
 
     Parameters
     ----------
-    aggregate : Aggregate
-        Aggregate namespace instance that provides contextual explanation data.
+    aggregates : Aggregates
+        Aggregates namespace instance that provides contextual explanation data.
     """
 
     dependencies: ClassVar[list[str]] = ["polars"]
     dependency_group = "explanations"
 
-    def __init__(self, aggregate: Aggregate):
-        self.aggregate = aggregate
+    def __init__(self, aggregates: Aggregates):
+        self.aggregates = aggregates
         self.file_batch_limit = int(os.getenv("PDSTOOLS_FILE_BATCH_LIMIT", "100"))
         super().__init__()
 
     @cached_property
     def _contexts(self) -> pl.DataFrame:
         """Unique contexts, one row per context, including the raw partition column."""
-        partitions = self.aggregate.contextual.select("context_partition").unique().collect().to_series().to_list()
+        partitions = self.aggregates.contextual.select("context_partition").unique().collect().to_series().to_list()
         return pl.from_dicts(
             [{**json.loads(partition)["partition"], "context_partition": partition} for partition in partitions],
         )
@@ -50,7 +50,7 @@ class ContextOperations(LazyNamespace):
     @property
     def unique_contexts_file(self) -> Path:
         """Path of the JSON file holding the context-to-batch mapping."""
-        return self.aggregate.data_folderpath / "unique_contexts.json"
+        return self.aggregates.data_folderpath / "unique_contexts.json"
 
     @property
     def context_keys(self) -> list[str]:
@@ -124,7 +124,7 @@ class ContextOperations(LazyNamespace):
         if self.unique_contexts_file.exists():
             return cast("dict[str, list[str]]", json.loads(self.unique_contexts_file.read_text()))
 
-        partitions = self.aggregate.contextual.select("context_partition").unique().collect().to_series().to_list()
+        partitions = self.aggregates.contextual.select("context_partition").unique().collect().to_series().to_list()
         contexts_by_batch = self._create_context_batches(partitions, self.file_batch_limit)
 
         self.unique_contexts_file.write_text(json.dumps(contexts_by_batch), encoding="utf-8")
@@ -139,11 +139,11 @@ class ContextOperations(LazyNamespace):
         contexts_by_batch : dict[str, list[str]]
             Mapping of batch key to the context partitions in that batch.
         """
-        batch_dir = self.aggregate.data_folderpath / "batches"
+        batch_dir = self.aggregates.data_folderpath / "batches"
         batch_dir.mkdir(exist_ok=True)
 
         for batch_key, contexts in contexts_by_batch.items():
-            batch_df = self.aggregate.contextual.filter(pl.col("context_partition").is_in(contexts)).collect()
+            batch_df = self.aggregates.contextual.filter(pl.col("context_partition").is_in(contexts)).collect()
             batch_file_path = batch_dir / f"BATCH_{batch_key}.parquet"
             batch_df.write_parquet(batch_file_path)
             logger.info("Created batch file: %s with %d rows", batch_file_path, len(batch_df))

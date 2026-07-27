@@ -29,7 +29,7 @@ MISSING = "MISSING"
 # outside the requested top-n / top-k.
 REMAINING = "remaining"
 
-# Column added by `add_frequency_pct_to_df` holding the per-group frequency total.
+# Column added by `_add_frequency_pct` holding the per-group frequency total.
 TOTAL_FREQUENCY = "total_frequency"
 
 NUMERIC = "NUMERIC"

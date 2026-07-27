@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from .Aggregate import Aggregate
+from .Aggregates import Aggregates
 from .Plots import Plots
 from .Reports import Reports
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class Explanations:
     """Process and explore explanation data for Adaptive Gradient Boost models.
 
-    The class is a thin orchestrator over three sub-namespaces (``aggregate``,
+    The class is a thin orchestrator over three sub-namespaces (``aggregates``,
     ``plot``, ``report``) that operate on pre-aggregated parquet files.
 
     The constructor is **pure configuration** — it accepts path settings but
@@ -65,12 +65,12 @@ class Explanations:
     ...     from_date=datetime(2025, 3, 28),
     ...     to_date=datetime(2025, 3, 28),
     ... )
-    >>> df = exp.aggregate.overall.collect()  # doctest: +SKIP
+    >>> df = exp.aggregates.overall.collect()  # doctest: +SKIP
 
     Construct with a custom aggregates path:
 
     >>> exp = Explanations(data_folder="/path/to/my/aggregates")
-    >>> df = exp.aggregate.overall.collect()  # doctest: +SKIP
+    >>> df = exp.aggregates.overall.collect()  # doctest: +SKIP
 
     """
 
@@ -99,7 +99,7 @@ class Explanations:
 
         self.model_name = model_name
         self._set_date_range(from_date, to_date)
-        self.aggregate = Aggregate(explanations=self)
+        self.aggregates = Aggregates(explanations=self)
         self.plot = Plots(explanations=self)
         self.report = Reports(explanations=self)
 

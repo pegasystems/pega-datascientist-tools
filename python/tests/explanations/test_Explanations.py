@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 from pdstools.explanations import Explanations
-from pdstools.explanations.Aggregate import Aggregate
+from pdstools.explanations.Aggregates import Aggregates
 from pdstools.explanations.Plots import Plots
 from pdstools.explanations.Reports import Reports
 
@@ -83,8 +83,8 @@ class TestPureInit:
     def test_namespaces_attached(self):
         exp = Explanations()
 
-        assert (type(exp.aggregate), type(exp.plot), type(exp.report)) == (Aggregate, Plots, Reports)
-        assert all(namespace.explanations is exp for namespace in (exp.aggregate, exp.plot, exp.report))
+        assert (type(exp.aggregates), type(exp.plot), type(exp.report)) == (Aggregates, Plots, Reports)
+        assert all(namespace.explanations is exp for namespace in (exp.aggregates, exp.plot, exp.report))
 
     def test_absolute_data_folder_is_used_as_is(self, tmp_path):
         """An absolute data_folder is used verbatim, ignoring root_dir."""
@@ -115,7 +115,7 @@ class TestPureInit:
         assert exp.data_folderpath.is_absolute()
 
     def test_explicit_root_dir_with_relative_data_folder(self, tmp_path):
-        """A relative aggregate folder resolves under the explicit root_dir."""
+        """A relative aggregates folder resolves under the explicit root_dir."""
         data_dir = tmp_path / "custom_aggs"
         data_dir.mkdir()
         for filename in ("BY_CONTEXT.parquet", "OVERVIEW.parquet"):
@@ -124,7 +124,7 @@ class TestPureInit:
         exp = Explanations.from_aggregates(root_dir=str(tmp_path), data_folder="custom_aggs")
 
         assert exp.data_folderpath == data_dir
-        assert exp.aggregate.data_folderpath == data_dir
+        assert exp.aggregates.data_folderpath == data_dir
 
     def test_nested_relative_data_folder_under_explicit_root(self, tmp_path):
         """Multi-segment relative folders keep every segment under root_dir."""

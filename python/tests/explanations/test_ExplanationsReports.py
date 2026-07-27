@@ -179,12 +179,12 @@ class TestGenerateFilterKwargs:
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params") as mock_set_params,
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_unique_contexts_file",
                 return_value={100: ["ctx1"]},
             ),
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_batch_parquet_files",
             ),
             patch(
@@ -207,12 +207,12 @@ class TestGenerateFilterKwargs:
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params") as mock_set_params,
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_unique_contexts_file",
                 return_value={100: ["ctx1"]},
             ),
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_batch_parquet_files",
             ),
             patch(
@@ -240,12 +240,12 @@ class TestGenerateFilterKwargs:
                 return_value=0,
             ),
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_unique_contexts_file",
                 return_value={100: ["ctx1"]},
             ) as mock_create_unique_contexts_file,
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_batch_parquet_files",
             ),
         ):
@@ -265,12 +265,12 @@ class TestGenerateFilterKwargs:
                 return_value=0,
             ),
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_unique_contexts_file",
                 return_value=contexts,
             ),
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_batch_parquet_files",
             ) as mock_create_batch_parquet_files,
         ):
@@ -290,12 +290,12 @@ class TestGenerateFilterKwargs:
         with (
             patch.object(reports, "_copy_report_resources", side_effect=OSError("copy failed")),
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_unique_contexts_file",
                 return_value={"100": ["ctx1"]},
             ),
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_batch_parquet_files",
             ),
         ):
@@ -309,12 +309,12 @@ class TestGenerateFilterKwargs:
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params"),
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_unique_contexts_file",
                 return_value={"100": ["ctx1"]},
             ),
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_batch_parquet_files",
             ),
             patch(
@@ -332,12 +332,12 @@ class TestGenerateFilterKwargs:
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params"),
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_unique_contexts_file",
                 return_value={"100": ["ctx1"]},
             ),
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_batch_parquet_files",
             ),
             patch(
@@ -355,12 +355,12 @@ class TestGenerateFilterKwargs:
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params"),
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_unique_contexts_file",
                 return_value={"100": ["ctx1"]},
             ),
             patch.object(
-                reports.explanations.aggregate.context_operations,
+                reports.explanations.aggregates.context_operations,
                 "create_batch_parquet_files",
             ),
             patch(

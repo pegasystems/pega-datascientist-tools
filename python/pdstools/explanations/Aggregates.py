@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ["Aggregate"]
+__all__ = ["Aggregates"]
 
 import logging
 from functools import cached_property
@@ -42,8 +42,8 @@ if TYPE_CHECKING:
     from .Explanations import Explanations
 
 
-class Aggregate(LazyNamespace):
-    """Aggregate."""
+class Aggregates(LazyNamespace):
+    """Aggregates."""
 
     dependencies: ClassVar[list[str]] = ["polars"]
     dependency_group = "explanations"
@@ -51,7 +51,7 @@ class Aggregate(LazyNamespace):
     def __init__(self, explanations: Explanations):
         self.explanations = explanations
         self.data_pattern = None
-        self.context_operations = ContextOperations(aggregate=self)
+        self.context_operations = ContextOperations(aggregates=self)
         super().__init__()
 
     @property
@@ -80,7 +80,7 @@ class Aggregate(LazyNamespace):
             .sort(by="predictor_name")
         )
 
-    def get_predictor_contributions(
+    def predictor_contributions(
         self,
         context: dict[str, str] | None = None,
         top_n: int = 20,
@@ -121,7 +121,7 @@ class Aggregate(LazyNamespace):
         if not isinstance(top_n, int) or isinstance(top_n, bool) or top_n < 1:
             raise ValueError(f"Invalid top_n value: {top_n}. Must be a positive integer.")
 
-        return self._get_predictor_contributions(
+        return self._predictor_contributions(
             contexts=cast("list[dict[str, str]]", [context]) if context else None,
             limit=top_n,
             sort_by=sort_by,
@@ -131,7 +131,7 @@ class Aggregate(LazyNamespace):
             include_numeric_single_bin=include_numeric_single_bin,
         )
 
-    def get_predictor_value_contributions(
+    def predictor_value_contributions(
         self,
         predictors: list[str],
         context: dict[str, str] | None = None,
@@ -175,7 +175,7 @@ class Aggregate(LazyNamespace):
         if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1:
             raise ValueError(f"Invalid top_k value: {top_k}. Must be a positive integer.")
 
-        return self._get_predictor_value_contributions(
+        return self._predictor_value_contributions(
             contexts=cast("list[dict[str, str]]", [context]) if context else None,
             predictors=predictors,
             limit=top_k,
@@ -186,7 +186,7 @@ class Aggregate(LazyNamespace):
             include_numeric_single_bin=include_numeric_single_bin,
         )
 
-    def get_unique_contexts_list(
+    def unique_contexts(
         self,
         context_infos: list[dict[str, str]] | None = None,
         with_partition_col: bool = False,
@@ -194,7 +194,7 @@ class Aggregate(LazyNamespace):
         """Get unique contexts list."""
         return self.context_operations.get_list(context_infos, with_partition_col)
 
-    def _get_predictor_contributions(
+    def _predictor_contributions(
         self,
         contexts: list[dict[str, str]] | None = None,
         predictors: list[str] | None = None,
@@ -224,7 +224,7 @@ class Aggregate(LazyNamespace):
         if not missing:
             df = df.filter(pl.col("bin_contents") != MISSING)
 
-        # Aggregate all the different types of contributions
+        # Aggregates all the different types of contributions
         # note: total_frequency is computed per predictor so the weighted average
         # divides by that predictor's own bin frequencies, not the entire partition.
         df = self._calculate_aggregates(
@@ -282,7 +282,7 @@ class Aggregate(LazyNamespace):
 
         return df_out.collect()
 
-    def _get_predictor_value_contributions(
+    def _predictor_value_contributions(
         self,
         contexts: list[dict[str, str]] | None = None,
         predictors: list[str] | None = None,
@@ -310,7 +310,7 @@ class Aggregate(LazyNamespace):
         if not missing:
             df = df.filter(pl.col("bin_contents") != MISSING)
 
-        # Aggregate all the different types of contributions
+        # Aggregates all the different types of contributions
         # note: we need to aggregate frequency over partition to calculate weighted contributions
         df = self._calculate_aggregates(
             df,
@@ -509,7 +509,7 @@ class Aggregate(LazyNamespace):
         frequency_over: list[str],
         aggregate_over: list[str],
     ) -> pl.LazyFrame:
-        """Anti-join to isolate non-top rows, aggregate, and label as 'remaining'."""
+        """Anti-join to isolate non-top rows, aggregates, and label as 'remaining'."""
         df_remaining = df_all.join(df_anti, on=anti_on, how="anti")
         df_remaining = self._calculate_aggregates(df_remaining, frequency_over, aggregate_over)
         return self._label_remaining(df_remaining, aggregate_over)
@@ -557,7 +557,7 @@ class Aggregate(LazyNamespace):
         grouped_lf = df.group_by(group_by).agg(pl.sum("frequency").alias(TOTAL_FREQUENCY))
         return grouped_lf.join(df, on=group_by, how="left")
 
-    def add_frequency_pct_to_df(self, df: pl.DataFrame, group_by: list[str]) -> pl.DataFrame:
+    def _add_frequency_pct(self, df: pl.DataFrame, group_by: list[str]) -> pl.DataFrame:
         """Add a frequency percentage column to the dataframe based on the total frequency per group."""
 
         df_with_total_frequency = self._add_total_frequency_to_df(df, group_by)
@@ -569,7 +569,7 @@ class Aggregate(LazyNamespace):
             .alias("frequency_pct")
         )
 
-    def add_context_frequency_pct_to_df(
+    def _add_context_frequency_pct(
         self,
         df: pl.DataFrame,
         join_on: list[str],
@@ -643,7 +643,7 @@ class Aggregate(LazyNamespace):
         ]
 
     def _agg_over_columns_in_df(self, df, group_by):
-        """Aggregate contribution metrics over specified columns."""
+        """Aggregates contribution metrics over specified columns."""
         aggregate_by_list = [
             *self._get_mean_aggregates(),
             *self._get_weighted_aggregates(),

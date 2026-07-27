@@ -209,7 +209,7 @@ on `Explanations` itself:
 ```python
 # Before:
 explanations = Explanations(root_dir=ROOT_DIR)
-explanations.aggregate.data_folderpath = DATA_FOLDER
+explanations.aggregates.data_folderpath = DATA_FOLDER
 # After:
 explanations = Explanations.from_aggregates(
     root_dir=ROOT_DIR,
@@ -217,26 +217,55 @@ explanations = Explanations.from_aggregates(
 )
 ```
 
+### Explanations: renamed namespaces and methods
+
+The explanations API now follows the same naming conventions as
+`ADMDatamart`: no `get_` prefixes on accessors, no `plot_` prefix on
+methods reached through the `plot` namespace, and a plural
+`aggregates` namespace.
+
+| Before (v4.x) | After (v5) |
+| --- | --- |
+| `Explanations.aggregate` | `Explanations.aggregates` |
+| `Aggregate` (class) | `Aggregates` |
+| `plot.plot_contributions_for_overall(...)` | `plot.contributions_overall(...)` |
+| `plot.plot_contributions_by_context(...)` | `plot.contributions_by_context(...)` |
+| `aggregate.get_predictor_contributions(...)` | `aggregates.predictor_contributions(...)` |
+| `aggregate.get_predictor_value_contributions(...)` | `aggregates.predictor_value_contributions(...)` |
+| `aggregate.get_unique_contexts_list(...)` | `aggregates.unique_contexts(...)` |
+| `aggregate.get_df_overall()` | `aggregates.overall` |
+| `aggregate.get_df_contextual()` | `aggregates.contextual` |
+
+`overall` and `contextual` are now cached properties returning a
+`pl.LazyFrame`, read on first access. `Explanations.validate_data_folder()`
+has been removed — a missing or empty data folder raises
+`FileNotFoundError` when the frames are first read.
+
+`Explanations.root_dir` now defaults to `None`. A relative `data_folder`
+resolves against `root_dir` when one is given, and against the current
+working directory otherwise; an absolute `data_folder` is used as-is.
+The resolved location is available as `Explanations.data_folderpath`.
+
 ### Explanations: explicit filter parameters
 
 The `**filter_kwargs` catch-all on the Explanations `Plots`,
-`Aggregate`, and `Reports` public methods has been replaced with
+`Aggregates`, and `Reports` public methods has been replaced with
 explicit, keyword-only parameters: `sort_by`, `display_by`,
 `descending`, `missing`, `remaining`, `include_numeric_single_bin`.
-Affected methods: `Plots.plot_contributions_for_overall`,
-`Plots.plot_contributions_by_context`,
-`Aggregate.get_predictor_contributions`,
-`Aggregate.get_predictor_value_contributions`, and `Reports.generate`.
+Affected methods: `Plots.contributions_overall`,
+`Plots.contributions_by_context`,
+`Aggregates.predictor_contributions`,
+`Aggregates.predictor_value_contributions`, and `Reports.generate`.
 Unknown kwargs now raise `TypeError`. The accepted values for `sort_by`
 and `display_by` are described by the `ContributionType` `Literal` alias
 in `pdstools.explanations._constants`.
 
 ```python
 # Before (v4.x):
-plots.plot_contributions_for_overall(**{"sort_by": "contribution", "typo_arg": True})  # silently dropped
+plots.contributions_overall(**{"sort_by": "contribution", "typo_arg": True})  # silently dropped
 
 # After (v5):
-plots.plot_contributions_for_overall(sort_by="contribution")  # unknown kwargs raise TypeError
+plots.contributions_overall(sort_by="contribution")  # unknown kwargs raise TypeError
 ```
 
 `Plots.contributions(...)` was removed. Use the remaining public plot
@@ -247,9 +276,9 @@ methods directly:
 plots.contributions(top_n=20, top_k=20)
 
 # After (v5):
-plots.plot_contributions_for_overall(top_n=20, top_k=20)
+plots.contributions_overall(top_n=20, top_k=20)
 # or
-plots.plot_contributions_by_context({"pyChannel": "Web"}, top_n=20, top_k=20)
+plots.contributions_by_context({"pyChannel": "Web"}, top_n=20, top_k=20)
 ```
 
 ### Explanations: context partition field name
@@ -261,11 +290,11 @@ name is now `context_partition` (instead of `partition`) in both
 
 ```python
 # Before (v4.x):
-df = exp.aggregate.context_operations.get_df(with_partition_col=True)
+df = exp.aggregates.context_operations.get_df(with_partition_col=True)
 assert "partition" in df.columns
 
 # After (v5):
-df = exp.aggregate.context_operations.get_df(with_partition_col=True)
+df = exp.aggregates.context_operations.get_df(with_partition_col=True)
 assert "context_partition" in df.columns
 ```
 

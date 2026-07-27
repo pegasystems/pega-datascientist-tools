@@ -19,7 +19,7 @@ try:
     explanations = Explanations.from_aggregates(
         data_folder="{DATA_FOLDER}",
     )
-    explanations.aggregate.data_pattern = "{DATA_PATTERN}"
+    explanations.aggregates.data_pattern = "{DATA_PATTERN}"
 except Exception as e:
     logger.error(f"Failed to initialize Explanations: {{e}}")
     raise

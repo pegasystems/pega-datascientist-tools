@@ -25,7 +25,7 @@ def _configure_report_output(explanations: Explanations, tmp_path: Path) -> Path
         (aggregate_dir / filename).write_bytes((DATA_DIR / filename).read_bytes())
 
     explanations.data_folderpath = aggregate_dir
-    explanations.aggregate.context_operations.unique_contexts_file = aggregate_dir / "unique_contexts.json"
+    explanations.aggregates.context_operations.unique_contexts_file = aggregate_dir / "unique_contexts.json"
     explanations.report.aggregate_folder = aggregate_dir
     explanations.report.report_folderpath = tmp_path / "reports"
     explanations.report.report_output_dir = explanations.report.report_folderpath / "_site"
