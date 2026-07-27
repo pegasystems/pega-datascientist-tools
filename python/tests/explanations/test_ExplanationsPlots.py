@@ -278,20 +278,25 @@ def _assert_fig_bar_data_predictors_special_bins(
     check_missing=False,
     exists=True,
 ):
-    for fig in predictor_figs:
-        bar_data = _get_bar_data_from_fig(fig)
-        if bar_data.name == predictor_name:
-            if check_missing:
-                if exists:
-                    assert _SPECIAL.MISSING.value in bar_data.y
-                else:
-                    assert _SPECIAL.MISSING.value not in bar_data.y
-            if check_remaining:
-                if exists:
-                    assert _SPECIAL.REMAINING.value in bar_data.y
-                else:
-                    assert _SPECIAL.REMAINING.value not in bar_data.y
-            return
+    fig = next(
+        (f for f in predictor_figs if _get_predictor_name_from_fig(f) == predictor_name),
+        None,
+    )
+    assert fig is not None, (
+        f"No figure found for predictor {predictor_name!r}; "
+        f"got {[_get_predictor_name_from_fig(f) for f in predictor_figs]}"
+    )
+    bar_data = _get_bar_data_from_fig(fig)
+    if check_missing:
+        if exists:
+            assert _SPECIAL.MISSING.name in bar_data.y
+        else:
+            assert _SPECIAL.MISSING.name not in bar_data.y
+    if check_remaining:
+        if exists:
+            assert _SPECIAL.REMAINING.value in bar_data.y
+        else:
+            assert _SPECIAL.REMAINING.value not in bar_data.y
 
 
 def _assert_fig_bar_data_predictors(
@@ -334,7 +339,7 @@ def _assert_fig_bar_data_overall(
 
     if check_missing:
         # Check if the missing bar is present
-        assert _SPECIAL.MISSING.value in bar_data.y
+        assert _SPECIAL.MISSING.name in bar_data.y
 
 
 def _get_bar_data_from_fig(fig):
@@ -348,6 +353,11 @@ def _get_bar_data_from_fig(fig):
 def _get_predictor_type_from_fig(fig):
     """Extract predictor type from customdata (column index 1)."""
     return _get_bar_data_from_fig(fig).customdata[0][1]
+
+
+def _get_predictor_name_from_fig(fig):
+    """Extract predictor name from customdata (column index 0)."""
+    return _get_bar_data_from_fig(fig).customdata[0][0]
 
 
 # --- Tests for contributions() dispatcher ---

@@ -96,7 +96,7 @@ class Plots(LazyNamespace):
         predictors = (
             df.filter(pl.col(_COL.PREDICTOR_NAME.value) != _SPECIAL.REMAINING.value)
             .select(_COL.PREDICTOR_NAME.value)
-            .unique()
+            .unique(maintain_order=True)
             .to_series()
             .to_list()
         )
@@ -198,7 +198,7 @@ class Plots(LazyNamespace):
                 pl.col(_COL.PREDICTOR_NAME.value) != _SPECIAL.REMAINING.value,
             )
             .select(_COL.PREDICTOR_NAME.value)
-            .unique()
+            .unique(maintain_order=True)
             .to_series()
             .to_list()
         )
@@ -343,7 +343,7 @@ class Plots(LazyNamespace):
             df, group_by=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
         )
 
-        predictor_info = df.select([_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]).unique()
+        predictor_info = df.select([_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]).unique(maintain_order=True)
 
         plots = []
         for predictor, predictor_type in predictor_info.iter_rows():
