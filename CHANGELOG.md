@@ -39,12 +39,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   accessors, and `plot.plot_contributions_*` becomes
   `plot.contributions_overall` / `plot.contributions_by_context`. See
   [`docs/migration-v4-to-v5.md`](docs/migration-v4-to-v5.md).
-- **Breaking (explanations):** `Explanations.validate_data_folder()` is
-  removed and `root_dir` now defaults to `None`. A relative `data_folder`
-  resolves against `root_dir` when one is given and against the working
-  directory otherwise; the resolved location is exposed as
-  `Explanations.data_folderpath`. A missing or empty folder raises
-  `FileNotFoundError` when the data is first read.
+- **Breaking (explanations):** `root_dir` now defaults to `None` instead of
+  `".tmp"`. A relative `data_folder` resolves against `root_dir` when one is
+  given and against the working directory otherwise; the resolved location
+  is exposed as `Explanations.data_folderpath`. A missing or empty folder
+  raises `FileNotFoundError` when the data is first read.
 - Explanations: `Aggregates.overall` / `.contextual` are cached properties
   returning a `LazyFrame`, replacing `get_df_overall()` / `get_df_contextual()`
   and the eager `_load_data()` step.

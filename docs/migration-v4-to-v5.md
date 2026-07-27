@@ -237,14 +237,14 @@ methods reached through the `plot` namespace, and a plural
 | `aggregate.get_df_contextual()` | `aggregates.contextual` |
 
 `overall` and `contextual` are now cached properties returning a
-`pl.LazyFrame`, read on first access. `Explanations.validate_data_folder()`
-has been removed — a missing or empty data folder raises
-`FileNotFoundError` when the frames are first read.
+`pl.LazyFrame`, read on first access. A missing or empty data folder
+raises `FileNotFoundError` at that point.
 
-`Explanations.root_dir` now defaults to `None`. A relative `data_folder`
-resolves against `root_dir` when one is given, and against the current
-working directory otherwise; an absolute `data_folder` is used as-is.
-The resolved location is available as `Explanations.data_folderpath`.
+`Explanations.root_dir` now defaults to `None` instead of `".tmp"`. A
+relative `data_folder` resolves against `root_dir` when one is given, and
+against the current working directory otherwise; an absolute `data_folder`
+is used as-is. The resolved location is available as
+`Explanations.data_folderpath`.
 
 ### Explanations: explicit filter parameters
 
