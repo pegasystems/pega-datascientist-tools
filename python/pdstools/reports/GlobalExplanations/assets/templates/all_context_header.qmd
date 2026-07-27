@@ -12,8 +12,14 @@ import logging
 from pathlib import Path
 from pdstools.explanations import Explanations
 from IPython.display import display, Markdown
+import plotly.io as pio
 
 logger = logging.getLogger(__name__)
+# Plotly serializes figures at display time, so generated pages set the
+# renderer before any plots are shown. The pre-render script substitutes this
+# placeholder with notebook for fully embedded reports or notebook_connected
+# for CDN-backed reports.
+pio.renderers.default = "{PLOTLY_RENDERER}"
 
 try:
     explanations = Explanations.from_aggregates(

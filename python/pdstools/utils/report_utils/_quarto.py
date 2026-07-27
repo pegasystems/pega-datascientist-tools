@@ -174,6 +174,7 @@ def run_quarto(
 
     env = os.environ.copy()
     env["QUARTO_PYTHON"] = sys.executable
+    env["PLOTLY_RENDERER"] = "notebook" if full_embed else "notebook_connected"
     logger.info(f"Setting QUARTO_PYTHON to: {sys.executable}")
 
     process = subprocess.Popen(

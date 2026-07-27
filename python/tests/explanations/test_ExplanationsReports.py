@@ -1,6 +1,8 @@
 """Test cases for the Reports class that handles generating reports from aggregated data."""
 
+import json
 import logging
+import runpy
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -86,6 +88,77 @@ def test_set_params(report_paths):
     assert params["display_by"] == "contribution"
     assert params["display_by_text"] == "average contribution"
     assert params["data_folder"] == Path(reports.explanations.data_folder).as_posix()
+    assert params["full_embed"] is False
+
+
+def test_set_params_full_embed(report_paths):
+    reports = report_paths
+    reports._validate_report_dir()
+    reports._copy_report_resources()
+    reports._set_params(full_embed=True)
+
+    with open(reports.params_file, encoding="utf-8") as f:
+        params = yaml.safe_load(f)
+
+    assert params["full_embed"] is True
+
+
+def test_set_full_embed_options(report_paths):
+    reports = report_paths
+    reports._validate_report_dir()
+    reports._copy_report_resources()
+
+    reports._set_full_embed_options(full_embed=True)
+    with open(reports.report_folderpath / "_quarto.yml", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+
+    assert config["format"]["html"]["embed-resources"] is True
+    assert config["format"]["html"]["plotly-connected"] is True
+
+    reports._set_full_embed_options(full_embed=False)
+    with open(reports.report_folderpath / "_quarto.yml", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+
+    assert config["format"]["html"]["embed-resources"] is False
+    assert config["format"]["html"]["plotly-connected"] is False
+
+
+def test_pre_render_uses_full_embed_plotly_renderer(report_paths, tmp_path, monkeypatch):
+    reports = report_paths
+    reports._validate_report_dir()
+    reports._copy_report_resources()
+
+    aggregate_dir = tmp_path / "aggregated_data"
+    aggregate_dir.mkdir()
+    (aggregate_dir / "unique_contexts.json").write_text(
+        json.dumps({"0": [json.dumps({"partition": {"Issue": "Sales"}})]}),
+        encoding="utf-8",
+    )
+    reports.aggregate_folder = aggregate_dir
+    reports._set_params(full_embed=True)
+
+    monkeypatch.chdir(reports.report_folderpath)
+    runpy.run_path(str(reports.report_folderpath / "scripts" / "generate_report.py"), run_name="__main__")
+
+    overview = (reports.report_folderpath / "overview.qmd").read_text(encoding="utf-8")
+    by_context = next((reports.report_folderpath / "by-model-context").glob("plots_for_batch_*.qmd")).read_text(
+        encoding="utf-8"
+    )
+    assert 'pio.renderers.default = "notebook"' in overview
+    assert 'pio.renderers.default = "notebook"' in by_context
+
+
+def test_pre_render_defaults_to_full_embed_without_params(report_paths, monkeypatch):
+    reports = report_paths
+    reports._validate_report_dir()
+    reports._copy_report_resources()
+
+    monkeypatch.chdir(reports.report_folderpath)
+    namespace = runpy.run_path(str(reports.report_folderpath / "scripts" / "generate_report.py"))
+
+    generator = namespace["ReportGenerator"]()
+    assert generator.full_embed is True
+    assert generator.plotly_renderer == "notebook"
 
 
 def test_set_params_preserves_nested_relative_data_folder(tmp_path):
@@ -197,6 +270,62 @@ class TestGenerateFilterKwargs:
             call_kwargs = mock_set_params.call_args
             assert call_kwargs.kwargs["sort_by"] == _CONTRIBUTION_TYPE.CONTRIBUTION_ABS
             assert call_kwargs.kwargs["display_by"] == _CONTRIBUTION_TYPE.CONTRIBUTION
+            assert call_kwargs.kwargs["full_embed"] is False
+
+    def test_generate_passes_full_embed_to_report_pipeline(self, report_paths):
+        reports = report_paths
+        with (
+            patch.object(reports, "_validate_report_dir"),
+            patch.object(reports, "_copy_report_resources"),
+            patch.object(reports, "_set_full_embed_options") as mock_set_full_embed_options,
+            patch.object(reports, "_set_params") as mock_set_params,
+            patch.object(
+                reports.explanations.aggregate.context_operations,
+                "create_unique_contexts_file",
+                return_value={100: ["ctx1"]},
+            ),
+            patch.object(
+                reports.explanations.aggregate.context_operations,
+                "create_batch_parquet_files",
+            ),
+            patch(
+                "pdstools.explanations.Reports.run_quarto",
+                return_value=0,
+            ) as mock_run_quarto,
+        ):
+            reports.generate(full_embed=True)
+
+            mock_set_full_embed_options.assert_called_once_with(full_embed=True)
+            assert mock_set_params.call_args.kwargs["full_embed"] is True
+            assert mock_run_quarto.call_args.kwargs["full_embed"] is True
+
+    def test_generate_writes_full_embed_param_without_dates(self, report_paths, monkeypatch):
+        reports = report_paths
+        monkeypatch.setattr(reports.explanations, "from_date", None)
+        monkeypatch.setattr(reports.explanations, "to_date", None)
+        with (
+            patch.object(reports, "_validate_report_dir"),
+            patch.object(reports, "_copy_report_resources"),
+            patch.object(reports, "_set_params") as mock_set_params,
+            patch.object(
+                reports.explanations.aggregate.context_operations,
+                "create_unique_contexts_file",
+                return_value={100: ["ctx1"]},
+            ),
+            patch.object(
+                reports.explanations.aggregate.context_operations,
+                "create_batch_parquet_files",
+            ),
+            patch(
+                "pdstools.explanations.Reports.run_quarto",
+                return_value=0,
+            ),
+        ):
+            reports.generate(full_embed=False)
+
+            assert mock_set_params.call_args.kwargs["from_date"] == ""
+            assert mock_set_params.call_args.kwargs["to_date"] == ""
+            assert mock_set_params.call_args.kwargs["full_embed"] is False
 
     def test_generate_resolves_custom_kwargs(self, report_paths):
         """generate() passes custom sort_by/display_by through the resolver."""
