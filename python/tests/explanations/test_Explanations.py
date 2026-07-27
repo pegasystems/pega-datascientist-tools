@@ -190,24 +190,30 @@ class TestSaveData:
 
 
 class TestJoin:
-    """A full path in filename always wins, regardless of the base path."""
+    """A full path in filename always wins, regardless of the base path.
 
-    def test_local_base_relative_filename(self):
+    Absolute paths come from ``tmp_path``: a POSIX-style ``/abs/f`` is not
+    absolute on Windows (it has no drive), so hardcoding one makes the
+    behaviour under test platform-dependent.
+    """
+
+    def test_local_base_relative_filename(self, tmp_path):
         from pdstools.explanations.Explanations import _join
 
-        assert _join("/data/agg", "OVERVIEW.parquet") == Path("/data/agg/OVERVIEW.parquet")
+        assert _join(tmp_path, "OVERVIEW.parquet") == tmp_path / "OVERVIEW.parquet"
 
     def test_url_base_relative_filename(self):
         from pdstools.explanations.Explanations import _join
 
         assert _join("https://host/agg/", "OVERVIEW.parquet") == "https://host/agg/OVERVIEW.parquet"
 
-    def test_url_base_absolute_local_filename(self):
+    def test_url_base_absolute_local_filename(self, tmp_path):
         from pdstools.explanations.Explanations import _join
 
-        assert _join("https://host/agg", "/abs/OVERVIEW.parquet") == Path("/abs/OVERVIEW.parquet")
+        absolute = tmp_path / "OVERVIEW.parquet"
+        assert _join("https://host/agg", str(absolute)) == absolute
 
-    def test_local_base_url_filename(self):
+    def test_local_base_url_filename(self, tmp_path):
         from pdstools.explanations.Explanations import _join
 
-        assert _join("/data/agg", "https://host/OVERVIEW.parquet") == "https://host/OVERVIEW.parquet"
+        assert _join(tmp_path, "https://host/OVERVIEW.parquet") == "https://host/OVERVIEW.parquet"
