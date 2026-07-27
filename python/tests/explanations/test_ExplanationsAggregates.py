@@ -174,6 +174,30 @@ class TestContextOperations:
         assert persisted == {}
         assert not (tmp_path / "batches").exists()
 
+    def test_write_batches_removes_stale_batch_files(self, aggregates, tmp_path, monkeypatch):
+        """A re-run with a larger batch limit must not leave orphaned BATCH_<n> files."""
+        co = aggregates.context_operations
+        monkeypatch.setattr(co, "file_batch_limit", 5)
+        co.write_batches(tmp_path)
+        assert len(list((tmp_path / "batches").glob("BATCH_*.parquet"))) == 4
+
+        monkeypatch.setattr(co, "file_batch_limit", 100)
+        co.write_batches(tmp_path)
+
+        batch_files = sorted(path.name for path in (tmp_path / "batches").glob("BATCH_*.parquet"))
+        assert batch_files == ["BATCH_0.parquet"]
+
+    def test_contexts_empty_contextual_frame(self, aggregates):
+        """An empty contextual frame yields no contexts instead of a struct-field error."""
+        from pdstools.explanations.ContextOperations import ContextOperations
+        from pdstools.explanations.Explanations import Explanations
+
+        empty = pl.LazyFrame(schema=aggregates.explanations.contextual.collect_schema())
+        co = ContextOperations(Explanations(aggregates.explanations.overall, empty))
+
+        assert co._contexts.is_empty()
+        assert co.context_keys == []
+
     def test_write_batches_creates_batch_parquet_files(self, aggregates, tmp_path):
         aggregates.context_operations.write_batches(tmp_path)
 

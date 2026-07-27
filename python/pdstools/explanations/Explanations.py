@@ -28,6 +28,8 @@ def _join(base_path: str | Path, filename: str | Path) -> str | Path:
     """
     if is_url(filename):
         return filename
+    if Path(filename).is_absolute():
+        return Path(filename)
     if is_url(base_path):
         return f"{str(base_path).rstrip('/')}/{filename}"
     return Path(base_path).resolve() / filename

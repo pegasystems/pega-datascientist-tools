@@ -506,6 +506,10 @@ class Aggregates(LazyNamespace):
     @staticmethod
     def _add_total_frequency_to_df(df: F, group_by: list[str]) -> F:
         """Join a per-group ``total_frequency`` column onto *df*."""
+        # Dropped first: a df that already carries the column would otherwise gain a
+        # suffixed `total_frequency_right` from the join, and downstream code reading
+        # TOTAL_FREQUENCY would silently use the stale one.
+        df = df.drop(TOTAL_FREQUENCY, strict=False)
         grouped = df.group_by(group_by).agg(pl.sum("frequency").alias(TOTAL_FREQUENCY))
         # pyrefly bug: when expanding a constrained TypeVar it fails to narrow the
         # argument to the branch's concrete type, so `df` stays `F` and no overload

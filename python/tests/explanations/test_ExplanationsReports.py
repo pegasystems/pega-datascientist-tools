@@ -298,6 +298,33 @@ class TestGenerateFilterKwargs:
             assert call_kwargs.kwargs["display_by"] == "contribution"
             assert call_kwargs.kwargs["full_embed"] is False
 
+    def test_generate_resolves_relative_output_dir(self, reports, tmp_path, monkeypatch):
+        """A relative output_dir must be resolved to an absolute path.
+
+        The Quarto pre-render script runs with the report folder as its cwd and
+        resolves a relative ``data_folder`` against that folder's *parent*, so a
+        relative path stored in params.yml gets doubled up.
+        """
+        monkeypatch.chdir(tmp_path)
+        with (
+            patch.object(reports, "_copy_report_resources"),
+            patch.object(reports, "_set_params") as mock_set_params,
+            patch.object(
+                reports.explanations.aggregates.context_operations,
+                "write_batches",
+            ),
+            patch(
+                "pdstools.explanations.Reports.run_quarto",
+                return_value=0,
+            ) as mock_run_quarto,
+        ):
+            reports.generate(output_dir=".tmp/reports")
+
+            data_folder = mock_set_params.call_args.kwargs["data_folder"]
+            assert data_folder.is_absolute()
+            assert data_folder == tmp_path.resolve() / ".tmp" / "reports" / "data"
+            assert mock_run_quarto.call_args.kwargs["temp_dir"].is_absolute()
+
     def test_generate_passes_full_embed_to_report_pipeline(self, reports, report_folder):
         """full_embed reaches the Quarto config, the params file and the CLI."""
         with (

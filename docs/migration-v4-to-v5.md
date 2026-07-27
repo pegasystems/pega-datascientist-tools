@@ -253,23 +253,10 @@ in `pdstools.explanations._constants`.
 
 ```python
 # Before (v4.x):
-plots.contributions_overall(**{"sort_by": "contribution", "typo_arg": True})  # silently dropped
+plots.plot_contributions_for_overall(**{"sort_by": "contribution", "typo_arg": True})  # silently dropped
 
 # After (v5):
 plots.contributions_overall(sort_by="contribution")  # unknown kwargs raise TypeError
-```
-
-`Plots.contributions(...)` was removed. Use the remaining public plot
-methods directly:
-
-```python
-# Before (v4.x):
-plots.contributions(top_n=20, top_k=20)
-
-# After (v5):
-plots.contributions_overall(top_n=20, top_k=20)
-# or
-plots.contributions_by_context({"pyChannel": "Web"}, top_n=20, top_k=20)
 ```
 
 ### Explanations: context partition field name

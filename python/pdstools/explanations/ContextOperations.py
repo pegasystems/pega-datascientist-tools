@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import shutil
 from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, cast
@@ -40,10 +41,22 @@ class ContextOperations(LazyNamespace):
 
     @cached_property
     def _contexts(self) -> pl.DataFrame:
-        """Unique contexts, one row per context, including the raw partition column."""
+        """Unique contexts, one row per context, including the raw partition column.
+
+        Cached for the lifetime of the instance: it collects the contextual frame,
+        and every caller here reads it repeatedly. Reassigning
+        ``Explanations.contextual`` afterwards will not refresh it — build a new
+        ``Explanations`` instead.
+        """
         partitions = (
             self.explanations.contextual.select("context_partition").unique().sort("context_partition").collect()
         )
+        if partitions.is_empty():
+            # json_decode on an empty Series yields a Null dtype, so .struct.field
+            # would raise StructFieldNotFoundError. An empty contextual dataset is
+            # legitimate (the report simply renders no per-context pages), so return
+            # an empty frame with the one column callers can rely on.
+            return partitions
         # infer_schema_length=None scans every row: the default of 100 would raise on
         # (or, with the old from_dicts approach, silently drop) a context key that
         # first appears beyond the 100th partition.
@@ -145,6 +158,13 @@ class ContextOperations(LazyNamespace):
             .iter_rows()
         }
         (target / "unique_contexts.json").write_text(json.dumps(contexts_by_batch), encoding="utf-8")
+
+        # Cleared first: a previous run with a different dataset or batch limit
+        # leaves BATCH_<n> files that the new run does not overwrite, and they would
+        # linger in the output directory as orphans.
+        batches_dir = target / "batches"
+        if batches_dir.exists():
+            shutil.rmtree(batches_dir)
 
         # Streamed straight to disk: the contextual frame is never collected.
         # pl.PartitionBy is marked unstable by polars, but emits no warning unless

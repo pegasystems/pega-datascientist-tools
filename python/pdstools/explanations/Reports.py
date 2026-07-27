@@ -81,7 +81,10 @@ class Reports(LazyNamespace):
         Enable debug logging to see detailed report generation steps.
 
         """
-        report_folder = Path(output_dir)
+        # Resolved eagerly: the Quarto pre-render script runs with the report
+        # folder as its cwd and resolves a relative data_folder against the
+        # folder's *parent*, so a relative output_dir would be doubled up.
+        report_folder = Path(output_dir).resolve()
         # The Quarto subprocess reads plain local files, so materialise the
         # frames (which may be backed by a URL, or built in memory) alongside
         # the context artifacts it needs. Mirrors ADMDatamart.save_data usage.

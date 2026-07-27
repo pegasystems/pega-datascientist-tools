@@ -187,3 +187,27 @@ class TestSaveData:
 
         assert (new_dir / "OVERVIEW.parquet").exists()
         assert (new_dir / "BY_CONTEXT.parquet").exists()
+
+
+class TestJoin:
+    """A full path in filename always wins, regardless of the base path."""
+
+    def test_local_base_relative_filename(self):
+        from pdstools.explanations.Explanations import _join
+
+        assert _join("/data/agg", "OVERVIEW.parquet") == Path("/data/agg/OVERVIEW.parquet")
+
+    def test_url_base_relative_filename(self):
+        from pdstools.explanations.Explanations import _join
+
+        assert _join("https://host/agg/", "OVERVIEW.parquet") == "https://host/agg/OVERVIEW.parquet"
+
+    def test_url_base_absolute_local_filename(self):
+        from pdstools.explanations.Explanations import _join
+
+        assert _join("https://host/agg", "/abs/OVERVIEW.parquet") == Path("/abs/OVERVIEW.parquet")
+
+    def test_local_base_url_filename(self):
+        from pdstools.explanations.Explanations import _join
+
+        assert _join("/data/agg", "https://host/OVERVIEW.parquet") == "https://host/OVERVIEW.parquet"
