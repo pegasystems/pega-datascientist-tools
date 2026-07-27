@@ -149,74 +149,6 @@ model=...)` directly.
 Previously `def __init__(self, *args, **kwargs)`. Now uses explicit
 parameters matching the documented constructor signature.
 
-### `Explanations.__init__` is pure config; loading moves to `from_aggregates`
-
-The `Explanations` constructor used to accept filesystem paths
-(`root_dir`, `data_folder`, `data_file`) and run the DuckDB
-pre-aggregation pipeline as a side effect of construction. This
-violated the project's pure-`__init__` rule (see AGENTS.md, "I/O lives
-in classmethods, not `__init__`").
-
-In v5 the constructor takes only configuration (`root_dir`,
-`data_folder`, `model_name`, `from_date`, `to_date`, all keyword-only)
-and performs no I/O. The
-explanations API now expects pre-aggregated parquet files and loads them
-with `from_aggregates`.
-
-```python
-# Before (v4.x):
-exp = Explanations(
-    data_folder="explanations_data",
-    model_name="AdaptiveBoostCT",
-    from_date=datetime(2025, 3, 28),
-    to_date=datetime(2025, 3, 28),
-)
-
-# After (v5):
-exp = Explanations.from_aggregates(
-    data_folder="explanations_data",
-    model_name="AdaptiveBoostCT",
-    from_date=datetime(2025, 3, 28),
-    to_date=datetime(2025, 3, 28),
-)
-```
-
-Raw single-file / remote-URL aggregation is no longer part of this API.
-Generate or provide a folder containing the pre-aggregated parquet files
-(`BY_CONTEXT.parquet` and `OVERVIEW.parquet`) before constructing
-`Explanations`:
-
-```python
-exp = Explanations.from_aggregates(data_folder=".tmp/aggregated_data")
-```
-
-If you previously used `Explanations.from_local_directory(...)`, migrate
-to `from_aggregates(...)`:
-
-```python
-# Before (v4.x):
-exp = Explanations.from_local_directory(data_folder=".tmp/aggregated_data")
-
-# After (v5):
-exp = Explanations.from_aggregates(data_folder=".tmp/aggregated_data")
-```
-
-Quarto report templates that previously did
-`Explanations(root_dir="...")` followed by manual
-`aggregate.data_folderpath = "..."` should use explicit path configuration
-on `Explanations` itself:
-
-```python
-# Before:
-explanations = Explanations(root_dir=ROOT_DIR)
-explanations.aggregates.data_folderpath = DATA_FOLDER
-# After:
-explanations = Explanations.from_aggregates(
-    root_dir=ROOT_DIR,
-    data_folder=DATA_FOLDER,
-)
-```
-
 ### Explanations: renamed namespaces and methods
 
 The explanations API now follows the same naming conventions as
@@ -251,7 +183,7 @@ exp = Explanations(root_dir=".tmp", data_folder="aggregated_data")
 exp = Explanations.from_aggregates(base_path=".tmp/aggregated_data")
 
 # ...or pass frames you loaded yourself
-exp = Explanations(overall_lf, contextual_lf, data_folderpath="my/aggregates")
+exp = Explanations(overall_lf, contextual_lf, model_name="AdaptiveBoostCT")
 ```
 
 | v4.x | v5 |
@@ -260,6 +192,7 @@ exp = Explanations(overall_lf, contextual_lf, data_folderpath="my/aggregates")
 | `aggregates.data_pattern = "batches/BATCH_3.parquet"` | `contextual_filename="batches/BATCH_3.parquet"` |
 | *(filename hardcoded)* | `overall_filename=` |
 | `root_dir=` | `report.generate(output_dir=...)` |
+| `Explanations.from_local_directory(...)` | `Explanations.from_aggregates(...)` |
 
 `Explanations` no longer carries an input path at all — it holds only the two
 LazyFrames, so the aggregates may live anywhere polars can read from:
@@ -286,8 +219,8 @@ explicitly.
 The frames are plain attributes on the parent — `exp.overall` and
 `exp.contextual` — mirroring `dm.model_data` / `dm.predictor_data` on
 `ADMDatamart`. They are no longer reachable through the `aggregates`
-namespace, and `Aggregates.data_folderpath` has been removed in favour of
-`Explanations.data_folderpath`.
+namespace, and `Aggregates.data_folderpath` is gone — the class carries no
+input path at all.
 
 A missing aggregate file now raises `FileNotFoundError` from
 `from_aggregates` itself rather than from the first operation that touches
