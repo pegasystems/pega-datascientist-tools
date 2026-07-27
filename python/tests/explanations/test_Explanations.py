@@ -41,7 +41,7 @@ class TestExplanationsDateRange:
         from_date = datetime(2023, 1, 8)
         to_date = datetime(2023, 1, 1)
 
-        with pytest.raises(ValueError, match="from_date cannot be after to_date"):
+        with pytest.raises(ValueError, match=r"from_date \(2023-01-08.*\) cannot be after to_date \(2023-01-01.*\)"):
             make_explanations(from_date=from_date, to_date=to_date)
 
     def test_valid_date_range(self):
@@ -76,16 +76,16 @@ class TestPureInit:
 
     def test_init_does_not_touch_filesystem(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
-        exp = make_explanations()
+        make_explanations()
 
         assert list(tmp_path.iterdir()) == []
-        assert exp.root_dir == ".tmp"
 
     def test_init_requires_both_frames(self):
         with pytest.raises(TypeError):
             Explanations(data_folderpath=".tmp")  # type: ignore[call-arg]
 
     def test_init_rejects_positional_paths(self):
+        # data_folderpath is keyword-only; a 3rd positional arg must be rejected.
         with pytest.raises(TypeError):
             Explanations(pl.LazyFrame(), pl.LazyFrame(), "some_root_dir")  # type: ignore[misc]
 
@@ -102,57 +102,6 @@ class TestPureInit:
         assert all(namespace.explanations is exp for namespace in (exp.aggregates, exp.plot, exp.report))
 
 
-class TestResolveDataFolder:
-    """Path resolution is a pure function, exercised without touching disk."""
-
-    def test_absolute_data_folder_is_used_as_is(self, tmp_path):
-        """An absolute data_folder is used verbatim, ignoring root_dir."""
-        custom = tmp_path / "mydata"
-
-        assert Explanations._resolve_data_folder(str(tmp_path), str(custom)) == custom
-
-    def test_path_object_accepted(self, tmp_path):
-        custom = tmp_path / "mydata"
-
-        assert Explanations._resolve_data_folder(None, custom) == custom
-
-    def test_relative_data_folder_resolves_against_cwd(self, tmp_path, monkeypatch):
-        """Without an explicit root_dir, a relative data_folder is CWD-relative."""
-        monkeypatch.chdir(tmp_path)
-
-        assert (
-            Explanations._resolve_data_folder(None, "custom/path/mydata") == (tmp_path / "custom/path/mydata").resolve()
-        )
-
-    def test_explicit_root_dir_with_relative_data_folder(self, tmp_path):
-        """A relative aggregates folder resolves under the explicit root_dir."""
-        assert Explanations._resolve_data_folder(str(tmp_path), "custom_aggs") == tmp_path / "custom_aggs"
-
-    def test_nested_relative_data_folder_under_explicit_root(self, tmp_path):
-        """Multi-segment relative folders keep every segment under root_dir."""
-        assert (
-            Explanations._resolve_data_folder(str(tmp_path), "nested/aggregated_data")
-            == (tmp_path / "nested/aggregated_data").resolve()
-        )
-
-    def test_parent_relative_data_folder(self, tmp_path, monkeypatch):
-        """A ``../``-prefixed relative folder resolves upward from the CWD."""
-        workdir = tmp_path / "a" / "b"
-        workdir.mkdir(parents=True)
-        monkeypatch.chdir(workdir)
-
-        assert (
-            Explanations._resolve_data_folder(None, "../../data/aggregated_data")
-            == (tmp_path / "data/aggregated_data").resolve()
-        )
-
-    def test_default_data_folder_goes_under_root_dir(self, tmp_path, monkeypatch):
-        """The default data_folder is root-relative even without an explicit root_dir."""
-        monkeypatch.chdir(tmp_path)
-
-        assert Explanations._resolve_data_folder(None, "aggregated_data") == tmp_path / ".tmp" / "aggregated_data"
-
-
 class TestFromAggregates:
     """from_aggregates owns all the I/O."""
 
@@ -160,29 +109,48 @@ class TestFromAggregates:
         for filename in ("BY_CONTEXT.parquet", "OVERVIEW.parquet"):
             (tmp_path / filename).write_bytes((DATA_DIR / filename).read_bytes())
 
-        exp = Explanations.from_aggregates(data_folder=str(tmp_path))
+        exp = Explanations.from_aggregates(base_path=str(tmp_path))
 
-        assert exp.data_folderpath == tmp_path
+        assert exp.data_folderpath == tmp_path.resolve()
         assert exp.overall.collect().height > 0
         assert exp.contextual.collect().height > 0
 
     def test_missing_folder_raises_immediately(self, tmp_path):
         with pytest.raises(FileNotFoundError):
-            Explanations.from_aggregates(data_folder=str(tmp_path / "nope"))
+            Explanations.from_aggregates(base_path=str(tmp_path / "nope"))
 
     def test_empty_folder_raises_immediately(self, tmp_path):
         with pytest.raises(FileNotFoundError):
-            Explanations.from_aggregates(data_folder=str(tmp_path))
+            Explanations.from_aggregates(base_path=str(tmp_path))
 
-    def test_contextual_file_selects_a_batch(self, tmp_path):
+    def test_contextual_filename_selects_a_batch(self, tmp_path):
         (tmp_path / "OVERVIEW.parquet").write_bytes((DATA_DIR / "OVERVIEW.parquet").read_bytes())
         batches = tmp_path / "batches"
         batches.mkdir()
         (batches / "BATCH_1.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
 
         exp = Explanations.from_aggregates(
-            data_folder=str(tmp_path),
-            contextual_file="batches/BATCH_1.parquet",
+            base_path=str(tmp_path),
+            contextual_filename="batches/BATCH_1.parquet",
         )
 
+        assert exp.contextual.collect().height > 0
+
+    def test_absolute_filename_ignores_base_path(self, tmp_path):
+        """An absolute overall_filename / contextual_filename wins over base_path."""
+        other_dir = tmp_path / "other"
+        other_dir.mkdir()
+        for filename in ("BY_CONTEXT.parquet", "OVERVIEW.parquet"):
+            (other_dir / filename).write_bytes((DATA_DIR / filename).read_bytes())
+
+        base = tmp_path / "empty_base"
+        base.mkdir()
+
+        exp = Explanations.from_aggregates(
+            overall_filename=other_dir / "OVERVIEW.parquet",
+            contextual_filename=other_dir / "BY_CONTEXT.parquet",
+            base_path=str(base),
+        )
+
+        assert exp.overall.collect().height > 0
         assert exp.contextual.collect().height > 0

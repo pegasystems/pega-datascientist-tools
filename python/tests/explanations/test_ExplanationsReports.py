@@ -17,7 +17,7 @@ DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" 
 def reports():
     """Fixture to serve as class to call functions from."""
     explanations = Explanations.from_aggregates(
-        data_folder=DATA_DIR,
+        base_path=DATA_DIR,
         model_name="AdaptiveBoostCT",
         from_date=datetime(2025, 3, 28),
         to_date=datetime(2025, 3, 28),
@@ -26,54 +26,44 @@ def reports():
 
 
 @pytest.fixture
-def report_paths(reports, tmp_path):
-    reports.report_folderpath = tmp_path / "reports"
-    reports.report_output_dir = reports.report_folderpath / "_site"
-    reports.params_file = reports.report_folderpath / "scripts" / "params.yml"
-    yield reports
+def report_folder(tmp_path):
+    """Provides a temporary report output directory."""
+    return tmp_path / "reports"
 
 
-def test_validate_report_dir(report_paths):
-    """Test the report directory validation."""
-    reports = report_paths
-    reports._validate_report_dir()
+def test_copy_report_resources(report_folder):
+    """Test the _copy_report_resources static method."""
+    from pdstools.explanations.Reports import Reports
 
-    assert reports.report_folderpath.exists(), "Report folder does not exist."
-    assert reports.report_folderpath.is_dir(), "Report folder is not a directory."
+    report_folder.mkdir(parents=True, exist_ok=True)
+    Reports._copy_report_resources(report_folder)
 
+    assert report_folder.exists(), "Report folder does not exist."
+    assert any(report_folder.iterdir()), "Report folder is empty."
 
-def test_copy_report_resources(report_paths):
-    """Test the copy_report_resources method."""
-    reports = report_paths
-    reports._validate_report_dir()
-    reports._copy_report_resources()
-
-    assert reports.report_folderpath.exists(), "Report folder does not exist."
-    assert any(reports.report_folderpath.iterdir()), "Report folder is empty."
-
-    assets_folder = reports.report_folderpath / "assets"
+    assets_folder = report_folder / "assets"
     assert assets_folder.exists(), "Assets folder not copied."
     assert any(assets_folder.iterdir()), "Assets folder is empty."
 
 
-def test_copy_report_resources_raises_on_error(report_paths):
-    reports = report_paths
+def test_copy_report_resources_raises_on_error(report_folder):
+    from pdstools.explanations.Reports import Reports
+
+    report_folder.mkdir(parents=True, exist_ok=True)
     with patch(
         "pdstools.explanations.Reports.copy_report_resources",
         side_effect=OSError("fail"),
     ):
         with pytest.raises(OSError):
-            reports._copy_report_resources()
+            Reports._copy_report_resources(report_folder)
 
 
-def test_set_params(report_paths):
+def test_set_params(reports, report_folder):
     """Test _set_params writes all parameters including sort_by and display_by."""
-    reports = report_paths
-    reports._validate_report_dir()
-    reports._copy_report_resources()
-    reports._set_params(top_n=5, top_k=3, from_date="2026-01-01", to_date="2026-01-31")
+    params_file = report_folder / "scripts" / "params.yml"
+    reports._set_params(params_file, top_n=5, top_k=3, from_date="2026-01-01", to_date="2026-01-31")
 
-    with open(reports.params_file, encoding="utf-8") as f:
+    with open(params_file, encoding="utf-8") as f:
         params = yaml.safe_load(f)
 
     assert params["top_n"] == 5
@@ -94,20 +84,15 @@ def test_set_params_writes_resolved_data_folder(tmp_path):
         (nested_aggregate_dir / filename).write_bytes((DATA_DIR / filename).read_bytes())
 
     explanations = Explanations.from_aggregates(
-        root_dir=str(tmp_path),
-        data_folder="nested/aggregated_data",
+        base_path=nested_aggregate_dir,
         model_name="AdaptiveBoostCT",
     )
     reports = explanations.report
-    reports.report_folderpath = tmp_path / "reports"
-    reports.report_output_dir = reports.report_folderpath / "_site"
-    reports.params_file = reports.report_folderpath / "scripts" / "params.yml"
+    params_file = tmp_path / "reports" / "scripts" / "params.yml"
 
-    reports._validate_report_dir()
-    reports._copy_report_resources()
-    reports._set_params()
+    reports._set_params(params_file)
 
-    with open(reports.params_file, encoding="utf-8") as f:
+    with open(params_file, encoding="utf-8") as f:
         params = yaml.safe_load(f)
 
     # An absolute path is written so the Quarto templates resolve it
@@ -115,16 +100,14 @@ def test_set_params_writes_resolved_data_folder(tmp_path):
     assert params["data_folder"] == str(nested_aggregate_dir.resolve())
 
 
-def test_set_params_custom_contribution_types(report_paths):
+def test_set_params_custom_contribution_types(reports, report_folder):
     """Test _set_params writes custom sort_by and display_by values."""
-    reports = report_paths
-    reports._validate_report_dir()
-    reports._copy_report_resources()
-
     sort_by = "contribution_abs"
     display_by = "contribution_abs"
+    params_file = report_folder / "scripts" / "params.yml"
 
     reports._set_params(
+        params_file,
         top_n=10,
         top_k=5,
         from_date="2026-03-01",
@@ -133,7 +116,7 @@ def test_set_params_custom_contribution_types(report_paths):
         display_by=display_by,
     )
 
-    with open(reports.params_file, encoding="utf-8") as f:
+    with open(params_file, encoding="utf-8") as f:
         params = yaml.safe_load(f)
 
     assert params["top_n"] == 10
@@ -144,14 +127,16 @@ def test_set_params_custom_contribution_types(report_paths):
     assert params["display_by_text"] == "absolute average contribution"
 
 
-def test_reports_logging(report_paths, caplog):
+def test_reports_logging(reports, report_folder, caplog):
     """Test that report operations produce debug logs when logging enabled."""
-    reports = report_paths
-    reports._validate_report_dir()
+    from pdstools.explanations.Reports import Reports
+
+    report_folder.mkdir(parents=True, exist_ok=True)
+    params_file = report_folder / "scripts" / "params.yml"
 
     with caplog.at_level(logging.DEBUG):
-        reports._copy_report_resources()
-        reports._set_params(top_n=5, top_k=3)
+        Reports._copy_report_resources(report_folder)
+        reports._set_params(params_file, top_n=5, top_k=3)
 
     # Should have debug messages from both operations
     debug_messages = [r.message for r in caplog.records if r.levelname == "DEBUG"]
@@ -171,11 +156,9 @@ class TestGenerateFilterKwargs:
         with pytest.raises(TypeError, match="unexpected keyword argument"):
             reports.generate(unknown_param=True)
 
-    def test_generate_resolves_defaults(self, report_paths):
+    def test_generate_resolves_defaults(self, reports, report_folder):
         """generate() resolves filter_kwargs and passes enums to _set_params."""
-        reports = report_paths
         with (
-            patch.object(reports, "_validate_report_dir"),
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params") as mock_set_params,
             patch.object(
@@ -192,18 +175,16 @@ class TestGenerateFilterKwargs:
                 return_value=0,
             ),
         ):
-            reports.generate()
+            reports.generate(output_dir=report_folder)
 
             mock_set_params.assert_called_once()
             call_kwargs = mock_set_params.call_args
             assert call_kwargs.kwargs["sort_by"] == "contribution_abs"
             assert call_kwargs.kwargs["display_by"] == "contribution"
 
-    def test_generate_resolves_custom_kwargs(self, report_paths):
+    def test_generate_resolves_custom_kwargs(self, reports, report_folder):
         """generate() passes custom sort_by/display_by through the resolver."""
-        reports = report_paths
         with (
-            patch.object(reports, "_validate_report_dir"),
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params") as mock_set_params,
             patch.object(
@@ -221,6 +202,7 @@ class TestGenerateFilterKwargs:
             ),
         ):
             reports.generate(
+                output_dir=report_folder,
                 sort_by="contribution",
                 display_by="contribution_abs",
             )
@@ -229,10 +211,8 @@ class TestGenerateFilterKwargs:
             assert call_kwargs.kwargs["sort_by"] == "contribution"
             assert call_kwargs.kwargs["display_by"] == "contribution_abs"
 
-    def test_generate_calls_create_unique_contexts_file(self, report_paths):
-        reports = report_paths
+    def test_generate_calls_create_unique_contexts_file(self, reports, report_folder):
         with (
-            patch.object(reports, "_validate_report_dir"),
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params"),
             patch(
@@ -249,15 +229,13 @@ class TestGenerateFilterKwargs:
                 "create_batch_parquet_files",
             ),
         ):
-            reports.generate()
+            reports.generate(output_dir=report_folder)
 
         mock_create_unique_contexts_file.assert_called_once_with()
 
-    def test_generate_calls_create_batch_parquet_files(self, report_paths):
-        reports = report_paths
+    def test_generate_calls_create_batch_parquet_files(self, reports, report_folder):
         contexts = {100: ["ctx1"]}
         with (
-            patch.object(reports, "_validate_report_dir"),
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params"),
             patch(
@@ -274,19 +252,17 @@ class TestGenerateFilterKwargs:
                 "create_batch_parquet_files",
             ) as mock_create_batch_parquet_files,
         ):
-            reports.generate()
+            reports.generate(output_dir=report_folder)
 
         mock_create_batch_parquet_files.assert_called_once_with(contexts)
 
-    def test_generate_raises_when_data_folder_is_missing(self, report_paths):
+    def test_generate_raises_when_data_folder_is_missing(self, reports, report_folder):
         """Generation surfaces the read error rather than swallowing it."""
-        reports = report_paths
         reports.explanations.data_folderpath = Path("/non/existent/path")
         with pytest.raises(FileNotFoundError):
-            reports.generate()
+            reports.generate(output_dir=report_folder)
 
-    def test_generate_raises_when_copy_fails(self, report_paths):
-        reports = report_paths
+    def test_generate_raises_when_copy_fails(self, reports, report_folder):
         with (
             patch.object(reports, "_copy_report_resources", side_effect=OSError("copy failed")),
             patch.object(
@@ -300,12 +276,10 @@ class TestGenerateFilterKwargs:
             ),
         ):
             with pytest.raises(OSError, match="copy failed"):
-                reports.generate()
+                reports.generate(output_dir=report_folder)
 
-    def test_generate_raises_when_quarto_process_errors(self, report_paths):
-        reports = report_paths
+    def test_generate_raises_when_quarto_process_errors(self, reports, report_folder):
         with (
-            patch.object(reports, "_validate_report_dir"),
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params"),
             patch.object(
@@ -323,12 +297,10 @@ class TestGenerateFilterKwargs:
             ),
         ):
             with pytest.raises(subprocess.CalledProcessError):
-                reports.generate()
+                reports.generate(output_dir=report_folder)
 
-    def test_generate_raises_when_quarto_returns_nonzero(self, report_paths):
-        reports = report_paths
+    def test_generate_raises_when_quarto_returns_nonzero(self, reports, report_folder):
         with (
-            patch.object(reports, "_validate_report_dir"),
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params"),
             patch.object(
@@ -346,12 +318,10 @@ class TestGenerateFilterKwargs:
             ),
         ):
             with pytest.raises(RuntimeError, match="return code 2"):
-                reports.generate()
+                reports.generate(output_dir=report_folder)
 
-    def test_generate_with_zip_output_creates_zip(self, report_paths):
-        reports = report_paths
+    def test_generate_with_zip_output_creates_zip(self, reports, report_folder):
         with (
-            patch.object(reports, "_validate_report_dir"),
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params"),
             patch.object(
@@ -371,6 +341,6 @@ class TestGenerateFilterKwargs:
                 "pdstools.explanations.Reports.generate_zipped_report",
             ) as mock_zip,
         ):
-            reports.generate(report_filename="out.zip", zip_output=True)
+            reports.generate(report_filename="out.zip", zip_output=True, output_dir=report_folder)
 
-        mock_zip.assert_called_once_with("out.zip", reports.report_output_dir)
+        mock_zip.assert_called_once_with("out.zip", report_folder / "_site")

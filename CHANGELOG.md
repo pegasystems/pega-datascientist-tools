@@ -61,8 +61,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   on the parent (`Explanations.overall` / `.contextual`), matching
   `ADMDatamart.model_data` / `.predictor_data`, and are no longer reachable
   via the `aggregates` namespace.
-- **Breaking (explanations):** the mutable `Aggregates.data_pattern` hook is
-  replaced by an explicit `from_aggregates(contextual_file=...)` argument.
+- **Breaking (explanations):** `from_aggregates` now mirrors
+  `ADMDatamart.from_ds_export` — `from_aggregates(overall_filename,
+  contextual_filename, base_path)` replaces `data_folder` / `root_dir` /
+  the mutable `Aggregates.data_pattern` hook. A full path in either filename
+  ignores `base_path`. The implicit `.tmp/aggregated_data` default is gone;
+  `base_path` defaults to `"."`.
+- **Breaking (explanations):** `root_dir` is removed from `Explanations`; the
+  report output folder is now `report.generate(output_dir=...)`, defaulting to
+  `".tmp/reports"`. `Reports` no longer stores `report_folderpath`,
+  `report_output_dir`, `aggregate_folder` or `params_file`.
+- Explanations: `_set_date_range` (four sequential `if`s that assigned to
+  `self`, plus an unused `days` knob) is now a pure
+  `_resolve_date_range` returning `tuple[datetime, datetime]`. The dates are
+  never `None`, so the unreachable `if from_date and to_date` guard in the
+  report pipeline is gone.
 - ADM Health Check app data import now shows upload controls immediately,
   keeps file paths as an optional fallback, and uses the new import API for
   advanced parsing and processed parquet cache output.

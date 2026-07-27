@@ -18,7 +18,7 @@ The top-{TOP_N} predictors over the entire model, selected by their {SORT_BY_TEX
 
 ```{{python}}
 explanations = Explanations.from_aggregates(
-    data_folder="{DATA_FOLDER}",
+    base_path="{DATA_FOLDER}",
 )
 
 try:

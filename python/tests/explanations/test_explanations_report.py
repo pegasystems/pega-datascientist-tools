@@ -13,31 +13,28 @@ DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" 
 @pytest.fixture(scope="module")
 def explanations():
     return Explanations.from_aggregates(
-        data_folder=DATA_DIR,
+        base_path=DATA_DIR,
         model_name="AdaptiveBoostCT",
     )
 
 
-def _configure_report_output(explanations: Explanations, tmp_path: Path) -> Path:
+def _configure_report_output(explanations: Explanations, tmp_path: Path) -> tuple[Path, Path]:
     aggregate_dir = tmp_path / "aggregated_data"
     aggregate_dir.mkdir()
     for filename in ("BY_CONTEXT.parquet", "OVERVIEW.parquet"):
         (aggregate_dir / filename).write_bytes((DATA_DIR / filename).read_bytes())
 
     explanations.data_folderpath = aggregate_dir
-    explanations.report.aggregate_folder = aggregate_dir
-    explanations.report.report_folderpath = tmp_path / "reports"
-    explanations.report.report_output_dir = explanations.report.report_folderpath / "_site"
-    explanations.report.params_file = explanations.report.report_folderpath / "scripts" / "params.yml"
-    return aggregate_dir
+    output_dir = tmp_path / "reports"
+    return aggregate_dir, output_dir
 
 
 def test_GenerateExplanationsReport(explanations: Explanations, tmp_path):
     """generate() creates the batch artifacts before invoking Quarto."""
-    aggregate_dir = _configure_report_output(explanations, tmp_path)
+    aggregate_dir, output_dir = _configure_report_output(explanations, tmp_path)
 
     with patch("pdstools.explanations.Reports.run_quarto", return_value=0) as mock_run_quarto:
-        explanations.report.generate(top_n=5, top_k=3, zip_output=False)
+        explanations.report.generate(top_n=5, top_k=3, zip_output=False, output_dir=output_dir)
 
     assert (aggregate_dir / "unique_contexts.json").exists()
     assert {path.name for path in (aggregate_dir / "batches").glob("BATCH_*.parquet")} == {"BATCH_0.parquet"}
@@ -46,7 +43,7 @@ def test_GenerateExplanationsReport(explanations: Explanations, tmp_path):
 
 def test_GenerateExplanationsReport_Zipped(explanations: Explanations, tmp_path):
     """zip_output=True delegates to generate_zipped_report after Quarto succeeds."""
-    _configure_report_output(explanations, tmp_path)
+    aggregate_dir, output_dir = _configure_report_output(explanations, tmp_path)
 
     with (
         patch("pdstools.explanations.Reports.run_quarto", return_value=0),
@@ -57,9 +54,10 @@ def test_GenerateExplanationsReport_Zipped(explanations: Explanations, tmp_path)
             top_n=5,
             top_k=3,
             zip_output=True,
+            output_dir=output_dir,
         )
 
     mock_generate_zipped_report.assert_called_once_with(
         "explanations_report.zip",
-        explanations.report.report_output_dir,
+        Path(output_dir) / "_site",
     )

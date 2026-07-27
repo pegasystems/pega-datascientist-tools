@@ -17,7 +17,7 @@ DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" 
 def aggregates():
     """Fixture to serve as class to call functions from."""
     explanations = Explanations.from_aggregates(
-        data_folder=DATA_DIR,
+        base_path=DATA_DIR,
         model_name="AdaptiveBoostCT",
     )
     yield explanations.aggregates
@@ -244,7 +244,7 @@ class TestContextOperations:
         (data_dir / "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
         (data_dir / "OVERVIEW.parquet").write_bytes((DATA_DIR / "OVERVIEW.parquet").read_bytes())
 
-        aggregates = Explanations.from_aggregates(data_folder=data_dir).aggregates
+        aggregates = Explanations.from_aggregates(base_path=data_dir).aggregates
         before = sorted(path.name for path in data_dir.iterdir())
         aggregates.explanations.overall.collect()
         aggregates.explanations.contextual.collect()
@@ -259,7 +259,7 @@ class TestContextOperations:
         (data_dir / "OVERVIEW.parquet").write_bytes((DATA_DIR / "OVERVIEW.parquet").read_bytes())
 
         before = sorted(path.name for path in data_dir.iterdir())
-        Explanations.from_aggregates(data_folder=data_dir)
+        Explanations.from_aggregates(base_path=data_dir)
         after = sorted(path.name for path in data_dir.iterdir())
 
         assert after == before

@@ -16,7 +16,7 @@ DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" 
 def plots():
     """Fixture to serve as class to call functions from."""
     explanations = Explanations.from_aggregates(
-        data_folder=DATA_DIR,
+        base_path=DATA_DIR,
         model_name="AdaptiveBoostCT",
     )
     explanations.filter = MagicMock()
