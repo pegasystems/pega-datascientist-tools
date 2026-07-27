@@ -261,6 +261,21 @@ exp = Explanations(overall_lf, contextual_lf, data_folderpath="my/aggregates")
 | *(filename hardcoded)* | `overall_filename=` |
 | `root_dir=` | `report.generate(output_dir=...)` |
 
+`Explanations` no longer carries an input path at all — it holds only the two
+LazyFrames, so the aggregates may live anywhere polars can read from:
+
+```python
+exp = Explanations.from_aggregates(base_path="https://example.com/aggregates")
+```
+
+Report artifacts (`unique_contexts.json`, `batches/`) used to be written back
+into the source folder. They now land in the report's own working directory,
+`<output_dir>/data/`, alongside parquet copies of the frames written by the new
+`Explanations.save_data()`. Consequently `ContextOperations.create_unique_contexts_file()` and
+`create_batch_parquet_files()` are merged into a single
+`write_batches(target_dir)`, and the `ContextOperations.unique_contexts_file`
+property is gone.
+
 As with `from_ds_export`, a full path in either filename is used as-is and
 `base_path` is ignored, so the two aggregates may live in different places.
 

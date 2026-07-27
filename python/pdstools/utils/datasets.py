@@ -7,12 +7,14 @@ from ..adm.ADMDatamart import ADMDatamart
 from ..valuefinder.ValueFinder import ValueFinder
 from typing import TYPE_CHECKING
 
+_RAW_GITHUB_DATA_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data"
 _REPO_DATA_DIR = pathlib.Path(__file__).parent.parent.parent.parent / "data" / "agb"
 _SAMPLE_TREES_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/agb/ModelExportWithSampleCount.json"
 
 if TYPE_CHECKING:
     from ..adm.trees import ADMTreesModel
     from ..data_quality._topic_data_quality import TopicDataQuality
+    from ..explanations import Explanations
     from ..utils.types import QUERY
 else:
     ADMTreesModel = None
@@ -104,6 +106,37 @@ def sample_value_finder(threshold: float | None = None) -> ValueFinder:
         except Exception as e:
             raise RuntimeError(
                 f"Error importing the Value Finder dataset. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
+            ) from e
+
+
+def sample_explanations(
+    *,
+    model_name: str = "AdaptiveBoostCT",
+) -> "Explanations":
+    """Import a sample set of pre-aggregated AGB global explanations.
+
+    These were generated from a stock CDH Sample system.
+
+    Parameters
+    ----------
+    model_name : str, keyword-only, default "AdaptiveBoostCT"
+        Name of the model rule. Used for report metadata only.
+
+    Returns
+    -------
+    Explanations
+        The Explanations class populated with the sample aggregates.
+
+    """
+    from ..explanations import Explanations
+
+    base_path = f"{_RAW_GITHUB_DATA_URL}/explanations/aggregated_data"
+    with warnings.catch_warnings(record=True) as w:
+        try:
+            return Explanations.from_aggregates(base_path=base_path, model_name=model_name)
+        except Exception as e:
+            raise RuntimeError(
+                f"Error importing the sample Explanations dataset. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
             ) from e
 
 

@@ -71,6 +71,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   report output folder is now `report.generate(output_dir=...)`, defaulting to
   `".tmp/reports"`. `Reports` no longer stores `report_folderpath`,
   `report_output_dir`, `aggregate_folder` or `params_file`.
+- **Breaking (explanations):** `Explanations` no longer has a
+  `data_folderpath`. It holds only LazyFrames, so the aggregates may live
+  anywhere polars can read from — including an `http(s)://` URL via
+  `from_aggregates(base_path=...)`. The report pipeline now materialises the
+  frames into its own working directory (`<output_dir>/data/`) with the new
+  `Explanations.save_data()`, mirroring `ADMDatamart.save_data`, instead of
+  writing `unique_contexts.json` and `batches/` back into the source folder.
+  `ContextOperations.create_unique_contexts_file()` and
+  `create_batch_parquet_files()` are merged into a single
+  `write_batches(target_dir)` that produces both artifacts from one batch
+  assignment, streaming to disk via `sink_parquet(pl.PartitionBy(...))` so the
+  contextual frame is never collected. The `unique_contexts_file` property is
+  removed.
+- Added `pdstools.sample_explanations()`, a sample set of pre-aggregated AGB
+  global explanations, alongside the existing `cdh_sample()` /
+  `sample_value_finder()` datasets.
+- `pega_io.scan_parquet_path` accepts `http(s)://` URLs; the new
+  `pega_io.is_url` helper exempts them from the local-existence check.
 - Explanations: `_set_date_range` (four sequential `if`s that assigned to
   `self`, plus an unused `days` knob) is now a pure
   `_resolve_date_range` returning `tuple[datetime, datetime]`. The dates are

@@ -15,7 +15,7 @@ DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" 
 
 def make_explanations(**kwargs) -> Explanations:
     """Build an Explanations over empty frames, for tests that don't touch data."""
-    return Explanations(pl.LazyFrame(), pl.LazyFrame(), data_folderpath=".tmp/aggregated_data", **kwargs)
+    return Explanations(pl.LazyFrame(), pl.LazyFrame(), **kwargs)
 
 
 class TestExplanationsDateRange:
@@ -82,16 +82,16 @@ class TestPureInit:
 
     def test_init_requires_both_frames(self):
         with pytest.raises(TypeError):
-            Explanations(data_folderpath=".tmp")  # type: ignore[call-arg]
+            Explanations()  # type: ignore[call-arg]
 
     def test_init_rejects_positional_paths(self):
-        # data_folderpath is keyword-only; a 3rd positional arg must be rejected.
+        # Only two positional args (overall, contextual) are accepted.
         with pytest.raises(TypeError):
             Explanations(pl.LazyFrame(), pl.LazyFrame(), "some_root_dir")  # type: ignore[misc]
 
     def test_frames_are_stored_verbatim(self):
         overall, contextual = pl.LazyFrame({"a": [1]}), pl.LazyFrame({"b": [2]})
-        exp = Explanations(overall, contextual, data_folderpath=".tmp")
+        exp = Explanations(overall, contextual)
 
         assert (exp.overall, exp.contextual) == (overall, contextual)
 
@@ -111,9 +111,8 @@ class TestFromAggregates:
 
         exp = Explanations.from_aggregates(base_path=str(tmp_path))
 
-        assert exp.data_folderpath == tmp_path.resolve()
-        assert exp.overall.collect().height > 0
-        assert exp.contextual.collect().height > 0
+        assert exp.overall.collect().height == 1072
+        assert exp.contextual.collect().height == 8064
 
     def test_missing_folder_raises_immediately(self, tmp_path):
         with pytest.raises(FileNotFoundError):
@@ -152,5 +151,39 @@ class TestFromAggregates:
             base_path=str(base),
         )
 
-        assert exp.overall.collect().height > 0
-        assert exp.contextual.collect().height > 0
+        assert exp.overall.collect().height == 1072
+        assert exp.contextual.collect().height == 8064
+
+
+class TestSaveData:
+    """Tests for Explanations.save_data."""
+
+    def test_save_data_returns_paths(self, tmp_path):
+        exp = Explanations.from_aggregates(base_path=DATA_DIR)
+        overview_path, context_path = exp.save_data(tmp_path)
+
+        assert overview_path == tmp_path / "OVERVIEW.parquet"
+        assert context_path == tmp_path / "BY_CONTEXT.parquet"
+
+    def test_save_data_creates_files(self, tmp_path):
+        exp = Explanations.from_aggregates(base_path=DATA_DIR)
+        overview_path, context_path = exp.save_data(tmp_path)
+
+        assert overview_path.exists()
+        assert context_path.exists()
+
+    def test_save_data_round_trips_row_counts(self, tmp_path):
+        exp = Explanations.from_aggregates(base_path=DATA_DIR)
+        exp.save_data(tmp_path)
+
+        reloaded = Explanations.from_aggregates(base_path=tmp_path)
+        assert reloaded.overall.collect().height == 1072
+        assert reloaded.contextual.collect().height == 8064
+
+    def test_save_data_creates_directory(self, tmp_path):
+        exp = Explanations.from_aggregates(base_path=DATA_DIR)
+        new_dir = tmp_path / "new" / "subdir"
+        exp.save_data(new_dir)
+
+        assert (new_dir / "OVERVIEW.parquet").exists()
+        assert (new_dir / "BY_CONTEXT.parquet").exists()

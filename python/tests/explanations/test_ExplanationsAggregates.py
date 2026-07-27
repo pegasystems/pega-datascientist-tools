@@ -126,117 +126,109 @@ class TestAggregateLoadData:
 
 
 class TestContextOperations:
-    """Coverage for unique-context batching and file creation."""
+    """Coverage for write_batches and related helpers."""
 
-    def test_create_context_batches_keys(self, aggregates):
-        contexts = [f"ctx-{idx}" for idx in range(200)]
-        batches = aggregates.context_operations._create_context_batches(
-            contexts, aggregates.context_operations.file_batch_limit
-        )
-        assert list(batches) == ["0", "1"]
+    def test_write_batches_creates_unique_contexts_json(self, aggregates, tmp_path):
+        aggregates.context_operations.write_batches(tmp_path)
 
-    def test_create_context_batches_sizes(self, aggregates):
-        contexts = [f"ctx-{idx}" for idx in range(230)]
-        batches = aggregates.context_operations._create_context_batches(
-            contexts, aggregates.context_operations.file_batch_limit
-        )
-        assert sum(len(batch) for batch in batches.values()) == len(contexts)
-        assert all(len(batch) <= aggregates.context_operations.file_batch_limit for batch in batches.values())
-
-    def test_create_context_batches_single_batch(self, aggregates):
-        contexts = [f"ctx-{idx}" for idx in range(42)]
-        batches = aggregates.context_operations._create_context_batches(
-            contexts, aggregates.context_operations.file_batch_limit
-        )
-        assert list(batches) == ["0"]
-        assert len(batches["0"]) == 42
-
-    def test_create_context_batches_custom_batch_size(self, aggregates):
-        contexts = [f"ctx-{idx}" for idx in range(150)]
-        batches = aggregates.context_operations._create_context_batches(contexts, 50)
-        assert list(batches) == ["0", "1", "2"]
-        assert all(len(batch) <= 50 for batch in batches.values())
-
-    @staticmethod
-    def _redirect_to_tmp(aggregates, tmp_path, monkeypatch):
-        """Point the aggregates at a copy of the sample data inside tmp_path."""
-        for name in ("BY_CONTEXT.parquet", "OVERVIEW.parquet"):
-            (tmp_path / name).write_bytes((DATA_DIR / name).read_bytes())
-        monkeypatch.setattr(aggregates.explanations, "data_folderpath", tmp_path)
-        return tmp_path / "unique_contexts.json"
-
-    def test_create_unique_contexts_file_creates_json(self, aggregates, tmp_path, monkeypatch):
-        output = self._redirect_to_tmp(aggregates, tmp_path, monkeypatch)
-
-        contexts = aggregates.context_operations.create_unique_contexts_file()
-
+        output = tmp_path / "unique_contexts.json"
         assert output.exists()
         persisted = json.loads(output.read_text())
-        assert persisted == contexts
         assert list(persisted) == ["0"]
         assert all(isinstance(key, str) for key in persisted)
 
-    def test_create_unique_contexts_file_is_deterministic(self, aggregates, tmp_path, monkeypatch):
-        """Repeated calls produce the same mapping, in the same order."""
-        output = self._redirect_to_tmp(aggregates, tmp_path, monkeypatch)
+    def test_write_batches_single_batch_all_contexts(self, aggregates, tmp_path):
+        """Default batch_limit=100 puts all 20 contexts in a single batch."""
+        aggregates.context_operations.write_batches(tmp_path)
 
-        first = aggregates.context_operations.create_unique_contexts_file()
-        second = aggregates.context_operations.create_unique_contexts_file()
+        persisted = json.loads((tmp_path / "unique_contexts.json").read_text())
+        assert list(persisted.keys()) == ["0"]
+        assert len(persisted["0"]) == 20
 
-        assert second == first
-        assert json.loads(output.read_text()) == first
+    def test_write_batches_exact_multiple(self, aggregates, tmp_path, monkeypatch):
+        """20 contexts / batch_limit=5 → 4 full batches of 5, no remainder."""
+        monkeypatch.setattr(aggregates.context_operations, "file_batch_limit", 5)
+        aggregates.context_operations.write_batches(tmp_path)
 
-    def test_create_unique_contexts_file_overwrites_stale_mapping(self, aggregates, tmp_path, monkeypatch):
-        """The JSON is an interchange artifact, not a cache: a stale file is replaced."""
-        output = self._redirect_to_tmp(aggregates, tmp_path, monkeypatch)
-        output.write_text(json.dumps({"99": ["a-context-that-no-longer-exists"]}))
+        persisted = json.loads((tmp_path / "unique_contexts.json").read_text())
+        assert [len(batch) for batch in persisted.values()] == [5, 5, 5, 5]
 
-        contexts = aggregates.context_operations.create_unique_contexts_file()
+    def test_write_batches_remainder_batch(self, aggregates, tmp_path, monkeypatch):
+        """20 contexts / batch_limit=7 → two full batches and one remainder batch."""
+        monkeypatch.setattr(aggregates.context_operations, "file_batch_limit", 7)
+        aggregates.context_operations.write_batches(tmp_path)
 
-        assert list(contexts) == ["0"]
-        assert json.loads(output.read_text()) == contexts
+        persisted = json.loads((tmp_path / "unique_contexts.json").read_text())
+        assert [len(batch) for batch in persisted.values()] == [7, 7, 6]
 
-    def test_batch_limit_change_takes_effect(self, aggregates, tmp_path, monkeypatch):
-        """A changed PDSTOOLS_FILE_BATCH_LIMIT must not be masked by an existing file."""
-        output = self._redirect_to_tmp(aggregates, tmp_path, monkeypatch)
+    def test_write_batches_empty_contexts_yields_empty_json(self, aggregates, tmp_path, monkeypatch):
+        """When there are no contexts, unique_contexts.json is {} and no parquets are written."""
+        empty_contexts = pl.DataFrame({"context_partition": pl.Series([], dtype=pl.String)})
         co = aggregates.context_operations
+        # Override the cached_property with an empty frame on the instance.
+        monkeypatch.setattr(co, "_contexts", empty_contexts)
 
-        co.create_unique_contexts_file()
+        co.write_batches(tmp_path)
+
+        persisted = json.loads((tmp_path / "unique_contexts.json").read_text())
+        assert persisted == {}
+        assert not (tmp_path / "batches").exists()
+
+    def test_write_batches_creates_batch_parquet_files(self, aggregates, tmp_path):
+        aggregates.context_operations.write_batches(tmp_path)
+
+        assert (tmp_path / "batches" / "BATCH_0.parquet").exists()
+        batch_files = list((tmp_path / "batches").glob("BATCH_*.parquet"))
+        assert len(batch_files) == 1
+
+    def test_write_batches_is_deterministic(self, aggregates, tmp_path):
+        """Repeated calls produce the same files."""
+        aggregates.context_operations.write_batches(tmp_path)
+        first_json = (tmp_path / "unique_contexts.json").read_text()
+
+        aggregates.context_operations.write_batches(tmp_path)
+        second_json = (tmp_path / "unique_contexts.json").read_text()
+
+        assert second_json == first_json
+
+    def test_write_batches_overwrites_stale_json(self, aggregates, tmp_path):
+        """The JSON is an interchange artifact, not a cache: a stale file is replaced."""
+        (tmp_path / "batches").mkdir()
+        (tmp_path / "unique_contexts.json").write_text(json.dumps({"99": ["stale-context"]}))
+
+        aggregates.context_operations.write_batches(tmp_path)
+
+        persisted = json.loads((tmp_path / "unique_contexts.json").read_text())
+        assert list(persisted) == ["0"]
+
+    def test_write_batches_batch_limit_change_takes_effect(self, aggregates, tmp_path, monkeypatch):
+        """Changing file_batch_limit changes the batch structure on the next write."""
+        co = aggregates.context_operations
         monkeypatch.setattr(co, "file_batch_limit", 5)
-        contexts = co.create_unique_contexts_file()
+        co.write_batches(tmp_path)
 
-        # 20 unique contexts in the sample data, 5 per batch.
-        assert [len(batch) for batch in contexts.values()] == [5, 5, 5, 5]
-        assert json.loads(output.read_text()) == contexts
+        # 20 unique contexts in the sample data, 5 per batch → 4 batches.
+        persisted = json.loads((tmp_path / "unique_contexts.json").read_text())
+        assert [len(batch) for batch in persisted.values()] == [5, 5, 5, 5]
 
-    def test_create_unique_contexts_file_returns_dict(self, aggregates, tmp_path, monkeypatch):
-        output = self._redirect_to_tmp(aggregates, tmp_path, monkeypatch)
+    def test_write_batches_json_parquet_contexts_agree(self, aggregates, tmp_path):
+        """Context partitions in JSON batch N exactly match distinct values in BATCH_N.parquet."""
+        aggregates.context_operations.write_batches(tmp_path)
+        persisted = json.loads((tmp_path / "unique_contexts.json").read_text())
 
-        contexts = aggregates.context_operations.create_unique_contexts_file()
+        for batch_key, batch_contexts in persisted.items():
+            df = pl.read_parquet(tmp_path / "batches" / f"BATCH_{batch_key}.parquet")
+            assert set(df["context_partition"].unique().to_list()) == set(batch_contexts)
 
-        assert contexts == json.loads(output.read_text())
-
-    def test_create_batch_parquet_files_creates_files(self, aggregates, tmp_path, monkeypatch):
-        self._redirect_to_tmp(aggregates, tmp_path, monkeypatch)
-        contexts = aggregates.context_operations.create_unique_contexts_file()
-
-        aggregates.context_operations.create_batch_parquet_files(contexts)
-
-        expected_files = [tmp_path / "batches" / f"BATCH_{key}.parquet" for key in contexts]
-        assert all(path.exists() for path in expected_files)
-
-    def test_create_batch_parquet_files_row_counts(self, aggregates, tmp_path, monkeypatch):
-        self._redirect_to_tmp(aggregates, tmp_path, monkeypatch)
-        contexts = aggregates.context_operations.create_unique_contexts_file()
-
-        aggregates.context_operations.create_batch_parquet_files(contexts)
+    def test_write_batches_row_counts(self, aggregates, tmp_path):
+        aggregates.context_operations.write_batches(tmp_path)
+        persisted = json.loads((tmp_path / "unique_contexts.json").read_text())
         contextual = aggregates.explanations.contextual.collect()
 
-        for batch_key, batch_contexts in contexts.items():
+        for batch_key, batch_contexts in persisted.items():
             batch_df = pl.read_parquet(tmp_path / "batches" / f"BATCH_{batch_key}.parquet")
             expected = contextual.filter(pl.col("context_partition").is_in(batch_contexts))
             assert batch_df.height == expected.height
-            assert set(batch_df["context_partition"].unique()) == set(batch_contexts)
 
     def test_no_file_writes_on_load(self, tmp_path):
         data_dir = tmp_path / "aggregated_data"
@@ -1063,19 +1055,6 @@ def assert_symbolic_bins_per_predictor_capped(df, top_k):
             assert row["n"] <= top_k, (
                 f"Symbolic predictor {row['predictor_name']!r} has {row['n']} ordinary bins, expected at most {top_k}."
             )
-
-
-def test_create_context_batches_empty_list():
-    """Test that empty context list returns empty batches dict."""
-    batches = ContextOperations._create_context_batches([], 100)
-    assert batches == {}
-
-
-def test_create_context_batches_none():
-    """Test that None context list returns empty batches dict."""
-    batches = ContextOperations._create_context_batches(None, 100)
-    assert isinstance(batches, dict)
-    assert len(batches) == 0
 
 
 def test_missing_flag_changes_predictor_contributions(aggregates):

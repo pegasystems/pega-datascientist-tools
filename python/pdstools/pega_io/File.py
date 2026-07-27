@@ -82,6 +82,15 @@ def _local_repo_data_path(path: str) -> str | None:
     return str(local_path) if local_path.is_dir() else None
 
 
+def is_url(source: str | Path) -> bool:
+    """Return True when ``source`` is an ``http(s)://`` URL rather than a local path.
+
+    ``pathlib`` mangles URLs (it collapses ``//`` and resolves them against the
+    working directory), so any path-like handling has to branch on this first.
+    """
+    return str(source).startswith(("http://", "https://"))
+
+
 def _is_artifact(name: str) -> bool:
     """Return True for OS-generated junk entries (macOS, Windows, etc.)."""
     return name.startswith("__MACOSX") or name.startswith("._") or name in {".DS_Store", "Thumbs.db", "desktop.ini"}
@@ -323,8 +332,8 @@ def scan_parquet_path(source: str | Path | list[str] | list[Path]) -> pl.LazyFra
     Parameters
     ----------
     source : str or Path or list of str/Path
-        Path to a parquet file, a glob pattern (e.g. ``"folder/*_BATCH_*.parquet"``),
-        or a list of file paths.
+        Path to a parquet file, an ``http(s)://`` URL, a glob pattern (e.g.
+        ``"folder/*_BATCH_*.parquet"``), or a list of file paths.
 
     Returns
     -------
@@ -334,9 +343,10 @@ def scan_parquet_path(source: str | Path | list[str] | list[Path]) -> pl.LazyFra
     Raises
     ------
     FileNotFoundError
-        If a plain (non-glob) path does not exist. ``pl.scan_parquet`` is
-        lazy, so without this the failure would surface much later from an
-        unrelated ``collect()``, pointing at the wrong operation.
+        If a plain (non-glob) local path does not exist. ``pl.scan_parquet``
+        is lazy, so without this the failure would surface much later from an
+        unrelated ``collect()``, pointing at the wrong operation. URLs are
+        exempt: only the remote server can answer whether they exist.
 
     """
     # lgtm [py/path-injection]
@@ -345,7 +355,7 @@ def scan_parquet_path(source: str | Path | list[str] | list[Path]) -> pl.LazyFra
     # intended functionality, not a vulnerability.
     if isinstance(source, list):
         return pl.scan_parquet(source)
-    if not any(c in str(source) for c in "*?[") and not Path(source).exists():
+    if not is_url(source) and not any(c in str(source) for c in "*?[") and not Path(source).exists():
         raise FileNotFoundError(f"No parquet file found at {source}")
     return _scan_by_extension(source, ".parquet")
 

@@ -54,3 +54,20 @@ def test_sample_value_finder_raises_runtime_error(monkeypatch):
     monkeypatch.setattr(ValueFinder, "from_ds_export", _raise)
     with pytest.raises(RuntimeError, match="Error importing the Value Finder"):
         datasets.sample_value_finder()
+
+
+def test_sample_explanations_is_exported():
+    """sample_explanations is importable from pdstools without a network call."""
+    import pdstools
+
+    assert callable(pdstools.sample_explanations)
+
+
+def test_sample_explanations_raises_runtime_error(monkeypatch):
+    import pytest
+
+    from pdstools.explanations import Explanations
+
+    monkeypatch.setattr(Explanations, "from_aggregates", _raise)
+    with pytest.raises(RuntimeError, match="Error importing the sample Explanations dataset"):
+        datasets.sample_explanations()

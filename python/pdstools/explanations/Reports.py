@@ -77,9 +77,13 @@ class Reports(LazyNamespace):
 
         """
         report_folder = Path(output_dir)
-        co = self.explanations.aggregates.context_operations
-        contexts = co.create_unique_contexts_file()
-        co.create_batch_parquet_files(contexts)
+        # The Quarto subprocess reads plain local files, so materialise the
+        # frames (which may be backed by a URL, or built in memory) alongside
+        # the context artifacts it needs. Mirrors ADMDatamart.save_data usage.
+        data_folder = report_folder / "data"
+        self.explanations.save_data(data_folder)
+
+        self.explanations.aggregates.context_operations.write_batches(data_folder)
 
         sort_by = validate_contribution_type(sort_by)
         display_by = validate_contribution_type(display_by)
@@ -91,6 +95,7 @@ class Reports(LazyNamespace):
             report_folder / "scripts" / "params.yml",
             top_n=top_n,
             top_k=top_k,
+            data_folder=data_folder,
             from_date=self.explanations.from_date.strftime("%Y-%m-%d"),
             to_date=self.explanations.to_date.strftime("%Y-%m-%d"),
             sort_by=sort_by,
@@ -118,6 +123,7 @@ class Reports(LazyNamespace):
     def _set_params(
         self,
         params_file: Path,
+        data_folder: Path,
         top_n: int = 20,
         top_k: int = 20,
         from_date: str = "",
@@ -134,7 +140,7 @@ class Reports(LazyNamespace):
             "sort_by_text": CONTRIBUTION_LABELS[sort_by][1],
             "display_by": display_by,
             "display_by_text": CONTRIBUTION_LABELS[display_by][1],
-            "data_folder": str(self.explanations.data_folderpath),
+            "data_folder": str(data_folder),
         }
 
         logger.debug("Writing report parameters to %s", params_file)

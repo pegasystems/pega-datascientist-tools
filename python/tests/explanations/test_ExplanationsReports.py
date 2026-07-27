@@ -61,7 +61,8 @@ def test_copy_report_resources_raises_on_error(report_folder):
 def test_set_params(reports, report_folder):
     """Test _set_params writes all parameters including sort_by and display_by."""
     params_file = report_folder / "scripts" / "params.yml"
-    reports._set_params(params_file, top_n=5, top_k=3, from_date="2026-01-01", to_date="2026-01-31")
+    data_folder = report_folder / "data"
+    reports._set_params(params_file, data_folder, top_n=5, top_k=3, from_date="2026-01-01", to_date="2026-01-31")
 
     with open(params_file, encoding="utf-8") as f:
         params = yaml.safe_load(f)
@@ -74,7 +75,7 @@ def test_set_params(reports, report_folder):
     assert params["sort_by_text"] == "absolute average contribution"
     assert params["display_by"] == "contribution"
     assert params["display_by_text"] == "average contribution"
-    assert params["data_folder"] == Path(reports.explanations.data_folderpath).as_posix()
+    assert params["data_folder"] == str(data_folder)
 
 
 def test_set_params_writes_resolved_data_folder(tmp_path):
@@ -89,15 +90,15 @@ def test_set_params_writes_resolved_data_folder(tmp_path):
     )
     reports = explanations.report
     params_file = tmp_path / "reports" / "scripts" / "params.yml"
+    data_folder = nested_aggregate_dir
 
-    reports._set_params(params_file)
+    reports._set_params(params_file, data_folder)
 
     with open(params_file, encoding="utf-8") as f:
         params = yaml.safe_load(f)
 
-    # An absolute path is written so the Quarto templates resolve it
-    # independently of the directory Quarto happens to run in.
-    assert params["data_folder"] == str(nested_aggregate_dir.resolve())
+    # The params file stores whatever path was passed to _set_params.
+    assert params["data_folder"] == str(data_folder)
 
 
 def test_set_params_custom_contribution_types(reports, report_folder):
@@ -105,9 +106,11 @@ def test_set_params_custom_contribution_types(reports, report_folder):
     sort_by = "contribution_abs"
     display_by = "contribution_abs"
     params_file = report_folder / "scripts" / "params.yml"
+    data_folder = report_folder / "data"
 
     reports._set_params(
         params_file,
+        data_folder,
         top_n=10,
         top_k=5,
         from_date="2026-03-01",
@@ -133,10 +136,11 @@ def test_reports_logging(reports, report_folder, caplog):
 
     report_folder.mkdir(parents=True, exist_ok=True)
     params_file = report_folder / "scripts" / "params.yml"
+    data_folder = report_folder / "data"
 
     with caplog.at_level(logging.DEBUG):
         Reports._copy_report_resources(report_folder)
-        reports._set_params(params_file, top_n=5, top_k=3)
+        reports._set_params(params_file, data_folder, top_n=5, top_k=3)
 
     # Should have debug messages from both operations
     debug_messages = [r.message for r in caplog.records if r.levelname == "DEBUG"]
@@ -163,12 +167,7 @@ class TestGenerateFilterKwargs:
             patch.object(reports, "_set_params") as mock_set_params,
             patch.object(
                 reports.explanations.aggregates.context_operations,
-                "create_unique_contexts_file",
-                return_value={100: ["ctx1"]},
-            ),
-            patch.object(
-                reports.explanations.aggregates.context_operations,
-                "create_batch_parquet_files",
+                "write_batches",
             ),
             patch(
                 "pdstools.explanations.Reports.run_quarto",
@@ -189,12 +188,7 @@ class TestGenerateFilterKwargs:
             patch.object(reports, "_set_params") as mock_set_params,
             patch.object(
                 reports.explanations.aggregates.context_operations,
-                "create_unique_contexts_file",
-                return_value={100: ["ctx1"]},
-            ),
-            patch.object(
-                reports.explanations.aggregates.context_operations,
-                "create_batch_parquet_files",
+                "write_batches",
             ),
             patch(
                 "pdstools.explanations.Reports.run_quarto",
@@ -211,7 +205,7 @@ class TestGenerateFilterKwargs:
             assert call_kwargs.kwargs["sort_by"] == "contribution"
             assert call_kwargs.kwargs["display_by"] == "contribution_abs"
 
-    def test_generate_calls_create_unique_contexts_file(self, reports, report_folder):
+    def test_generate_calls_write_batches(self, reports, report_folder):
         with (
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params"),
@@ -221,45 +215,19 @@ class TestGenerateFilterKwargs:
             ),
             patch.object(
                 reports.explanations.aggregates.context_operations,
-                "create_unique_contexts_file",
-                return_value={100: ["ctx1"]},
-            ) as mock_create_unique_contexts_file,
-            patch.object(
-                reports.explanations.aggregates.context_operations,
-                "create_batch_parquet_files",
-            ),
+                "write_batches",
+            ) as mock_write_batches,
         ):
             reports.generate(output_dir=report_folder)
 
-        mock_create_unique_contexts_file.assert_called_once_with()
+        mock_write_batches.assert_called_once_with(report_folder / "data")
 
-    def test_generate_calls_create_batch_parquet_files(self, reports, report_folder):
-        contexts = {100: ["ctx1"]}
+    def test_generate_raises_when_save_data_fails(self, reports, report_folder):
+        """Generation surfaces data access errors rather than swallowing them."""
         with (
-            patch.object(reports, "_copy_report_resources"),
-            patch.object(reports, "_set_params"),
-            patch(
-                "pdstools.explanations.Reports.run_quarto",
-                return_value=0,
-            ),
-            patch.object(
-                reports.explanations.aggregates.context_operations,
-                "create_unique_contexts_file",
-                return_value=contexts,
-            ),
-            patch.object(
-                reports.explanations.aggregates.context_operations,
-                "create_batch_parquet_files",
-            ) as mock_create_batch_parquet_files,
+            patch.object(reports.explanations, "save_data", side_effect=FileNotFoundError("data missing")),
+            pytest.raises(FileNotFoundError),
         ):
-            reports.generate(output_dir=report_folder)
-
-        mock_create_batch_parquet_files.assert_called_once_with(contexts)
-
-    def test_generate_raises_when_data_folder_is_missing(self, reports, report_folder):
-        """Generation surfaces the read error rather than swallowing it."""
-        reports.explanations.data_folderpath = Path("/non/existent/path")
-        with pytest.raises(FileNotFoundError):
             reports.generate(output_dir=report_folder)
 
     def test_generate_raises_when_copy_fails(self, reports, report_folder):
@@ -267,12 +235,7 @@ class TestGenerateFilterKwargs:
             patch.object(reports, "_copy_report_resources", side_effect=OSError("copy failed")),
             patch.object(
                 reports.explanations.aggregates.context_operations,
-                "create_unique_contexts_file",
-                return_value={"100": ["ctx1"]},
-            ),
-            patch.object(
-                reports.explanations.aggregates.context_operations,
-                "create_batch_parquet_files",
+                "write_batches",
             ),
         ):
             with pytest.raises(OSError, match="copy failed"):
@@ -284,12 +247,7 @@ class TestGenerateFilterKwargs:
             patch.object(reports, "_set_params"),
             patch.object(
                 reports.explanations.aggregates.context_operations,
-                "create_unique_contexts_file",
-                return_value={"100": ["ctx1"]},
-            ),
-            patch.object(
-                reports.explanations.aggregates.context_operations,
-                "create_batch_parquet_files",
+                "write_batches",
             ),
             patch(
                 "pdstools.explanations.Reports.run_quarto",
@@ -305,12 +263,7 @@ class TestGenerateFilterKwargs:
             patch.object(reports, "_set_params"),
             patch.object(
                 reports.explanations.aggregates.context_operations,
-                "create_unique_contexts_file",
-                return_value={"100": ["ctx1"]},
-            ),
-            patch.object(
-                reports.explanations.aggregates.context_operations,
-                "create_batch_parquet_files",
+                "write_batches",
             ),
             patch(
                 "pdstools.explanations.Reports.run_quarto",
@@ -326,12 +279,7 @@ class TestGenerateFilterKwargs:
             patch.object(reports, "_set_params"),
             patch.object(
                 reports.explanations.aggregates.context_operations,
-                "create_unique_contexts_file",
-                return_value={"100": ["ctx1"]},
-            ),
-            patch.object(
-                reports.explanations.aggregates.context_operations,
-                "create_batch_parquet_files",
+                "write_batches",
             ),
             patch(
                 "pdstools.explanations.Reports.run_quarto",

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import polars as pl
 
-from ..pega_io import scan_parquet_path
+from ..pega_io import is_url, scan_parquet_path
 from .Aggregates import Aggregates
 from .Plots import Plots
 from .Reports import Reports
@@ -19,7 +19,21 @@ logger = logging.getLogger(__name__)
 _DEFAULT_DATE_RANGE_DAYS = 7
 
 
-def _scan_aggregate(path: Path) -> pl.LazyFrame:
+def _join(base_path: str | Path, filename: str | Path) -> str | Path:
+    """Resolve ``filename`` against ``base_path``, URL-aware.
+
+    A full path in ``filename`` wins and ``base_path`` is ignored, matching
+    :meth:`ADMDatamart.from_ds_export`. ``pathlib`` cannot be used for URLs, so
+    those are joined as strings.
+    """
+    if is_url(filename):
+        return filename
+    if is_url(base_path):
+        return f"{str(base_path).rstrip('/')}/{filename}"
+    return Path(base_path).resolve() / filename
+
+
+def _scan_aggregate(path: str | Path) -> pl.LazyFrame:
     """Scan one aggregated parquet file and normalise it for downstream use."""
     return apply_schema(scan_parquet_path(path)).filter(pl.col("contribution") != 0.0).sort(by="predictor_name")
 
@@ -40,9 +54,6 @@ class Explanations:
         Contributions aggregated across all contexts.
     contextual : pl.LazyFrame
         Contributions aggregated per context.
-    data_folderpath : str | Path
-        Folder used for the context artifacts that the report pipeline reads
-        and writes (``unique_contexts.json``, ``batches/``).
     model_name : str, optional
         Name of the model rule. Used for report metadata only.
     from_date : datetime, optional
@@ -83,6 +94,11 @@ class Explanations:
     >>> exp = Explanations.from_aggregates(base_path="/path/to/my/aggregates")
     >>> df = exp.overall.collect()  # doctest: +SKIP
 
+    The aggregates may also live behind a URL:
+
+    >>> exp = Explanations.from_aggregates(base_path="https://example.com/aggregates")
+    >>> df = exp.overall.collect()  # doctest: +SKIP
+
     """
 
     overall: pl.LazyFrame
@@ -96,14 +112,12 @@ class Explanations:
         overall: pl.LazyFrame,
         contextual: pl.LazyFrame,
         *,
-        data_folderpath: str | Path,
         model_name: str | None = None,
         from_date: datetime | None = None,
         to_date: datetime | None = None,
     ):
         self.overall = overall
         self.contextual = contextual
-        self.data_folderpath = Path(data_folderpath)
         self.model_name = model_name
         self.from_date, self.to_date = self._resolve_date_range(from_date, to_date)
         self.aggregates = Aggregates(explanations=self)
@@ -137,9 +151,8 @@ class Explanations:
             uses this to point a page at a single pre-computed batch (e.g.
             ``"batches/BATCH_3.parquet"``) instead of the full set.
         base_path : str | Path, default "."
-            Folder containing the pre-aggregated parquet files. Also the folder
-            the report pipeline uses for its context artifacts
-            (``unique_contexts.json``, ``batches/``).
+            Folder containing the pre-aggregated parquet files. May be an
+            ``http(s)://`` URL.
         model_name : str, optional
             Name of the model rule. Used for report metadata only.
         from_date : datetime, optional
@@ -160,15 +173,39 @@ class Explanations:
         FileNotFoundError
             If either aggregate file does not exist.
         """
-        folder = Path(base_path).resolve()
         return cls(
-            overall=_scan_aggregate(folder / overall_filename),
-            contextual=_scan_aggregate(folder / contextual_filename),
-            data_folderpath=folder,
+            overall=_scan_aggregate(_join(base_path, overall_filename)),
+            contextual=_scan_aggregate(_join(base_path, contextual_filename)),
             model_name=model_name,
             from_date=from_date,
             to_date=to_date,
         )
+
+    def save_data(self, path: str | Path = ".") -> tuple[Path, Path]:
+        """Cache ``overall`` and ``contextual`` to parquet files.
+
+        Mirrors :meth:`ADMDatamart.save_data`. The report pipeline uses this to
+        materialise the frames into its working directory, so that the Quarto
+        subprocess reads local files regardless of where the data came from -
+        a URL, a database, or frames built in memory.
+
+        Parameters
+        ----------
+        path : str | Path, default "."
+            Directory to write into. Created if it does not exist.
+
+        Returns
+        -------
+        tuple[Path, Path]
+            Paths of the written overall and contextual parquet files.
+        """
+        folder = Path(path)
+        folder.mkdir(parents=True, exist_ok=True)
+        overall_file = folder / "OVERVIEW.parquet"
+        contextual_file = folder / "BY_CONTEXT.parquet"
+        self.overall.sink_parquet(overall_file)
+        self.contextual.sink_parquet(contextual_file)
+        return overall_file, contextual_file
 
     @staticmethod
     def _resolve_date_range(

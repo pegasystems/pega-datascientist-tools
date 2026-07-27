@@ -12,9 +12,9 @@ import polars as pl
 
 from ..utils.namespaces import LazyNamespace
 
-if TYPE_CHECKING:
-    from pathlib import Path
+from pathlib import Path
 
+if TYPE_CHECKING:
     from .Explanations import Explanations
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class ContextOperations(LazyNamespace):
     Parameters
     ----------
     explanations : Explanations
-        Parent instance providing the contextual data and the data folder.
+        Parent instance providing the contextual data.
     """
 
     dependencies: ClassVar[list[str]] = ["polars"]
@@ -50,11 +50,6 @@ class ContextOperations(LazyNamespace):
         # first appears beyond the 100th partition.
         decoded = partitions["context_partition"].str.json_decode(infer_schema_length=None).struct.field("partition")
         return decoded.to_frame().unnest("partition").with_columns(partitions["context_partition"])
-
-    @property
-    def unique_contexts_file(self) -> Path:
-        """Path of the JSON file holding the context-to-batch mapping."""
-        return self.explanations.data_folderpath / "unique_contexts.json"
 
     @property
     def context_keys(self) -> list[str]:
@@ -117,50 +112,54 @@ class ContextOperations(LazyNamespace):
             self.get_df(context_infos, with_partition_col).unique().to_dicts(),
         )
 
-    def create_unique_contexts_file(self) -> dict[str, list[str]]:
-        """Split the unique contexts into batches and persist the mapping.
+    def write_batches(self, target_dir: str | Path) -> None:
+        """Write the per-batch parquet files and the context-to-batch mapping.
 
-        The JSON file is an interchange artifact for the report subprocess, not
-        a cache: it is rewritten on every call so that a change of dataset or of
-        ``PDSTOOLS_FILE_BATCH_LIMIT`` takes effect.
+        The report renders one page per batch, so contexts are chunked into
+        groups of ``file_batch_limit``. Both artifacts come out of the same
+        assignment and cannot disagree: ``unique_contexts.json`` tells the
+        report subprocess which contexts belong on which page, and each
+        ``batches/BATCH_<n>.parquet`` holds exactly that page's rows.
 
-        Returns
-        -------
-        dict[str, list[str]]
-            Mapping of batch key to the context partitions in that batch.
-        """
-        partitions = self._contexts["context_partition"].to_list()
-        contexts_by_batch = self._create_context_batches(partitions, self.file_batch_limit)
-
-        self.unique_contexts_file.write_text(json.dumps(contexts_by_batch), encoding="utf-8")
-
-        return contexts_by_batch
-
-    def create_batch_parquet_files(self, contexts_by_batch: dict[str, list[str]]) -> None:
-        """Write one parquet file per context batch into a ``batches/`` subdirectory.
+        Nothing is cached — the files are rewritten on every call, so a change
+        of dataset or of ``PDSTOOLS_FILE_BATCH_LIMIT`` takes effect.
 
         Parameters
         ----------
-        contexts_by_batch : dict[str, list[str]]
-            Mapping of batch key to the context partitions in that batch.
+        target_dir : str | Path
+            Directory to write ``unique_contexts.json`` and ``batches/`` into.
         """
-        batch_dir = self.explanations.data_folderpath / "batches"
-        batch_dir.mkdir(exist_ok=True)
+        target = Path(target_dir)
+        target.mkdir(parents=True, exist_ok=True)
 
-        batch_of = pl.LazyFrame(
-            {
-                "context_partition": [ctx for contexts in contexts_by_batch.values() for ctx in contexts],
-                "batch_key": [key for key, contexts in contexts_by_batch.items() for _ in contexts],
-            }
+        # _contexts is already unique and sorted, so a row index chunks it
+        # directly. It is one row per context, so the mapping is cheap to
+        # materialise even when the contextual data itself is large.
+        batch_of_context = self._contexts.select(
+            "context_partition",
+            batch_key=pl.int_range(pl.len()) // self.file_batch_limit,
         )
-        # Join the batch assignment on and collect once, rather than re-filtering
-        # the whole frame per batch.
-        tagged = self.explanations.contextual.join(batch_of, on="context_partition", how="inner").collect()
+        contexts_by_batch = {
+            str(batch_key): partitions
+            for batch_key, partitions in batch_of_context.group_by("batch_key", maintain_order=True)
+            .agg("context_partition")
+            .iter_rows()
+        }
+        (target / "unique_contexts.json").write_text(json.dumps(contexts_by_batch), encoding="utf-8")
 
-        for (batch_key,), batch_df in tagged.partition_by("batch_key", as_dict=True).items():
-            batch_file_path = batch_dir / f"BATCH_{batch_key}.parquet"
-            batch_df.drop("batch_key").write_parquet(batch_file_path)
-            logger.info("Created batch file: %s with %d rows", batch_file_path, batch_df.height)
+        # Streamed straight to disk: the contextual frame is never collected.
+        # pl.PartitionBy is marked unstable by polars, but emits no warning unless
+        # POLARS_WARN_UNSTABLE is set. The fallback if it changes is a single
+        # collect() + DataFrame.partition_by(as_dict=True).
+        self.explanations.contextual.join(batch_of_context.lazy(), on="context_partition", how="inner").sink_parquet(
+            pl.PartitionBy(
+                target / "batches",
+                key="batch_key",
+                include_key=False,
+                file_path_provider=lambda args: f"BATCH_{args.partition_keys.item()}.parquet",
+            ),
+            mkdir=True,
+        )
 
     @staticmethod
     def get_context_info_str(context_info: dict[str, str], sep: str = "-") -> str:
@@ -179,12 +178,3 @@ class ContextOperations(LazyNamespace):
             String containing context values joined by ``sep``.
         """
         return sep.join(f"{value}".strip() for value in context_info.values())
-
-    @staticmethod
-    def _create_context_batches(all_contexts: list[str] | None, batch_size: int) -> dict[str, list[str]]:
-        if not all_contexts:
-            return {}
-        return {
-            str(batch_idx): all_contexts[idx : idx + batch_size]
-            for batch_idx, idx in enumerate(range(0, len(all_contexts), batch_size))
-        }
