@@ -146,6 +146,7 @@ class Aggregates:
                 (pl.col("EntryType") == "Active") if active_only else (pl.col("EntryType") != "Classifier"),
             ),
             query,
+            allow_empty=True,
         )
         unique_predictors = df.select(pl.col("PredictorName").unique()).collect()["PredictorName"]
 
