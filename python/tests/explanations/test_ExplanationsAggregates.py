@@ -1106,3 +1106,20 @@ def test_predictor_contributions_accepts_top_n_of_one(aggregates):
     """``top_n=1`` is valid and returns exactly one predictor plus the rollup."""
     df = aggregates.predictor_contributions(top_n=1)
     assert df["predictor_name"].to_list() == ["pyName", REMAINING]
+
+
+class TestSchema:
+    """The aggregated parquet files are narrowed and cast on read."""
+
+    def test_scan_applies_expected_dtypes(self, aggregates):
+        from pdstools.explanations.Schema import AGGREGATE_SCHEMA
+
+        schema = aggregates.overall.collect_schema()
+        assert dict(schema) == AGGREGATE_SCHEMA
+
+    def test_missing_column_raises(self, tmp_path):
+        from pdstools.explanations.Schema import apply_schema
+
+        lf = pl.LazyFrame({"context_partition": ["0"], "predictor_name": ["Age"]})
+        with pytest.raises(ValueError, match="missing expected column"):
+            apply_schema(lf)

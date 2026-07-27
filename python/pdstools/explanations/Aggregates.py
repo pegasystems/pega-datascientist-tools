@@ -20,6 +20,7 @@ from ._constants import (
     validate_contribution_type,
 )
 from .ContextOperations import ContextOperations
+from .Schema import apply_schema
 
 logger = logging.getLogger(__name__)
 
@@ -39,19 +40,6 @@ _CONTRIBUTION_AGGREGATIONS = [
     pl.col("frequency").sum().alias("frequency"),
     pl.col("contribution_min").min().alias("contribution_min"),
     pl.col("contribution_max").max().alias("contribution_max"),
-]
-
-_SELECTED_COLUMNS = [
-    "context_partition",
-    "contribution",
-    "contribution_abs",
-    "frequency",
-    "predictor_type",
-    "predictor_name",
-    "bin_contents",
-    "bin_order",
-    "contribution_min",
-    "contribution_max",
 ]
 
 if TYPE_CHECKING:
@@ -92,8 +80,7 @@ class Aggregates(LazyNamespace):
         if "*" not in filename and not path.is_file():
             raise FileNotFoundError(f"No aggregated data found at {path}")
         return (
-            scan_parquet_path(self.data_folderpath / filename)
-            .select(_SELECTED_COLUMNS)
+            apply_schema(scan_parquet_path(self.data_folderpath / filename))
             .filter(pl.col("contribution") != 0.0)
             .sort(by="predictor_name")
         )

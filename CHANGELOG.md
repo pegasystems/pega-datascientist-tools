@@ -13,9 +13,41 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and missing-field repair options.
 - `pega_io.read_data` now supports TSV/TXT inputs, reader option forwarding,
   and in-memory Excel uploads.
+- `explanations.Schema` narrows and casts the aggregated parquet files on
+  read, so downstream aggregations see stable dtypes.
+
+### Fixed
+
+- Explanations: `missing=False` had no effect on
+  `predictor_contributions` (the exclusion filter compared two literals) and
+  was never applied at all on the value-level path.
+- Explanations: the `MISSING` bin filter compared against the wrong column,
+  and `_label_remaining` compared a column against an enum member rather
+  than its value.
+- Explanations: `predictor_contributions` /
+  `predictor_value_contributions` and the plot methods produced
+  non-deterministic row and figure order, because `unique()` does not
+  preserve order and the following sort keys had ties.
+- Explanations: `top_n=0` was silently accepted and `top_n=1` was rejected;
+  both are now validated as "positive integer", and `True` is rejected.
 
 ### Changed
 
+- **Breaking (explanations):** the module now follows the same conventions
+  as `ADMDatamart` — `Explanations.aggregate` is now `aggregates`, the
+  `Aggregate` class is `Aggregates`, `get_` prefixes are dropped from
+  accessors, and `plot.plot_contributions_*` becomes
+  `plot.contributions_overall` / `plot.contributions_by_context`. See
+  [`docs/migration-v4-to-v5.md`](docs/migration-v4-to-v5.md).
+- **Breaking (explanations):** `Explanations.validate_data_folder()` is
+  removed and `root_dir` now defaults to `None`. A relative `data_folder`
+  resolves against `root_dir` when one is given and against the working
+  directory otherwise; the resolved location is exposed as
+  `Explanations.data_folderpath`. A missing or empty folder raises
+  `FileNotFoundError` when the data is first read.
+- Explanations: `Aggregates.overall` / `.contextual` are cached properties
+  returning a `LazyFrame`, replacing `get_df_overall()` / `get_df_contextual()`
+  and the eager `_load_data()` step.
 - ADM Health Check app data import now shows upload controls immediately,
   keeps file paths as an optional fallback, and uses the new import API for
   advanced parsing and processed parquet cache output.
