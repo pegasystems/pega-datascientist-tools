@@ -135,6 +135,10 @@ extend-select = [
     "T20",     # flake8-print (no print() in library code; use logging)
     "TID251",  # banned-api (see flake8-tidy-imports.banned-api below)
     "D417",    # undocumented-param (documented sections must cover every param)
+    # NOT COM812 (missing-trailing-comma): ruff warns it conflicts with the
+    # formatter, and it does — it adds a comma to calls that fit on one line,
+    # which then trips magic-trailing-comma and explodes them. ruff-format
+    # already preserves trailing commas where they are written.
     "UP006",   # deprecated-collection-type (Dict -> dict, List -> list, etc.)
     "UP007",   # non-pep604-annotation (Union[X, Y] -> X | Y)
     "UP012",   # unnecessary-encode-utf8 (.encode("utf-8") -> .encode())
