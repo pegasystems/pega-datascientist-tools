@@ -1216,8 +1216,8 @@ class ADMDatamart:
             .with_columns(
                 AUC_FullRange=pl.map_groups(
                     exprs=[
-                        pl.col("classifierPos").explode(),
-                        pl.col("classifierNeg").explode(),
+                        pl.col("classifierPos").explode(empty_as_null=True),
+                        pl.col("classifierNeg").explode(empty_as_null=True),
                     ],
                     function=lambda data: cdh_utils.auc_from_bincounts(
                         data[0],
