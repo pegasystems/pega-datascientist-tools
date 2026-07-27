@@ -260,7 +260,7 @@ def z_ratio(
 
     Examples
     --------
-    >>> df.group_by(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
+    >>> df.group_by(['ModelID', 'PredictorName']).agg([zRatio()]).explode(empty_as_null=True)
 
     """
     if isinstance(pos_col, str):
@@ -308,7 +308,7 @@ def lift(
 
     Examples
     --------
-    >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode()
+    >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode(empty_as_null=True)
 
     """
     if isinstance(pos_col, str):

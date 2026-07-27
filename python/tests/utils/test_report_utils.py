@@ -438,6 +438,37 @@ def test_write_params_files_full_embed(tmp_path):
     assert config["format"]["html"]["embed-resources"] is False
 
 
+def test_run_quarto_sets_plotly_renderer_env(tmp_path, monkeypatch):
+    """run_quarto must pass the Plotly renderer mode to Quarto's Python process."""
+
+    class FakeStdout:
+        def readline(self):
+            return ""
+
+    class FakeProcess:
+        stdout = FakeStdout()
+
+        def wait(self):
+            return 0
+
+    captured_renderers = []
+
+    def fake_popen(*_args, **kwargs):
+        captured_renderers.append(kwargs["env"]["PLOTLY_RENDERER"])
+        return FakeProcess()
+
+    monkeypatch.setattr(
+        report_utils._quarto,
+        "get_quarto_with_version",
+        lambda: ("quarto", "1.4.0"),
+    )
+    monkeypatch.setattr(report_utils._quarto.subprocess, "Popen", fake_popen)
+
+    assert report_utils.run_quarto(temp_dir=tmp_path, full_embed=True) == 0
+    assert report_utils.run_quarto(temp_dir=tmp_path, full_embed=False) == 0
+    assert captured_renderers == ["notebook", "notebook_connected"]
+
+
 def test_create_metric_gttable_callable_rag_with_metric_format():
     """Test that columns with callable RAG functions still get formatting from MetricFormats.
 

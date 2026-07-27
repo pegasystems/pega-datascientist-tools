@@ -519,6 +519,15 @@ def test_predictor_category_performance(sample: ADMDatamart):
     assert isinstance(plot, Figure)
 
 
+def test_predictor_category_performance_empty_query(sample: ADMDatamart):
+    query = pl.col("ModelID") == "missing-model"
+
+    df = sample.plot.predictor_category_performance(query=query, return_df=True)
+
+    assert df.is_empty()
+    assert sample.plot.predictor_category_performance(query=query) is None
+
+
 def test_predictor_contribution(sample: ADMDatamart):
     df = sample.plot.predictor_contribution(return_df=True).collect()
     assert df.shape == (3, 4)
@@ -570,6 +579,16 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
     assert "Name" not in df.collect().columns
     assert "Predictor" in df.collect().columns
     assert "Sales/CreditCards/ChannelAction_Template" in df.collect().columns
+
+
+def test_predictor_performance_heatmap_empty_query(sample: ADMDatamart):
+    query = pl.col("ModelID") == "missing-model"
+
+    df = sample.plot.predictor_performance_heatmap(query=query, return_df=True).collect()
+
+    assert df.shape == (0, 1)
+    assert df.columns == ["Name"]
+    assert sample.plot.predictor_performance_heatmap(query=query) is None
 
 
 def test_tree_map(sample: ADMDatamart):

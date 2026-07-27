@@ -151,6 +151,7 @@ class Aggregates:
                 (pl.col("EntryType") == "Active") if active_only else (pl.col("EntryType") != "Classifier"),
             ),
             query,
+            allow_empty=True,
         )
         unique_predictors = df.select(pl.col("PredictorName").unique()).collect()["PredictorName"]
 
@@ -303,7 +304,7 @@ class Aggregates:
                 .agg(
                     pl.col("PredictorName").sort_by(metric, descending=True).head(top_n),
                 )
-                .explode("PredictorName"),
+                .explode("PredictorName", empty_as_null=True),
                 on=(*facets, "PredictorName"),
             )
 
@@ -727,7 +728,7 @@ class Aggregates:
             .collect()
             .lazy()
             .drop(["literal"] if every is None else [])
-            .explode(["Channel", "Direction", "OmniChannel"])
+            .explode(["Channel", "Direction", "OmniChannel"], empty_as_null=True)
         )
 
         result = (

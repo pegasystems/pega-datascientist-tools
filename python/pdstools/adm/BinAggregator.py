@@ -264,7 +264,7 @@ class BinAggregator(LazyNamespace):
             .filter(pl.col("PredictorName") == predictor)
             .filter(pl.col("BinSymbol") != "NON-MISSING")
             .filter(pl.col("Symbol").is_not_null())
-            .explode("Symbol")
+            .explode("Symbol", empty_as_null=True)
             .group_by("Symbol")
             .agg(
                 Frequency=pl.sum("BinResponses"),
@@ -303,7 +303,7 @@ class BinAggregator(LazyNamespace):
         # Explode symbol list into separate rows
         symbins_long = (
             symbins.join(lift_residual_bins, on="ModelID", how="left")
-            .explode("Symbol")
+            .explode("Symbol", empty_as_null=True)
             .filter(pl.col("Symbol").is_in(symbollist))
             .collect()
         )

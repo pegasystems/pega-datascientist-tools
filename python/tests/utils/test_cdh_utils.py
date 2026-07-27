@@ -290,7 +290,7 @@ def test_overlap_lists_polars_overall_summary():
             .alias("Overlap"),
         )
         .drop("literal")
-        # .explode(["Channel", "Overlap"])
+        # .explode(["Channel", "Overlap"], empty_as_null=True)
     )
 
     # print(summary_df)

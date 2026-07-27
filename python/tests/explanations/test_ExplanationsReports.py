@@ -1,6 +1,8 @@
 """Test cases for the Reports class that handles generating reports from aggregated data."""
 
+import json
 import logging
+import runpy
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -11,6 +13,9 @@ import yaml
 from pdstools.explanations import Explanations
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
+REPORT_SCRIPT = (
+    Path(__file__).parents[2] / "pdstools" / "reports" / "GlobalExplanations" / "scripts" / "generate_report.py"
+)
 
 
 @pytest.fixture(scope="module")
@@ -76,6 +81,117 @@ def test_set_params(reports, report_folder):
     assert params["display_by"] == "contribution"
     assert params["display_by_text"] == "average contribution"
     assert params["data_folder"] == str(data_folder)
+    assert params["full_embed"] is False
+
+
+def test_set_params_full_embed(reports, report_folder):
+    """full_embed is written through to params.yml."""
+    params_file = report_folder / "scripts" / "params.yml"
+    reports._set_params(params_file, report_folder / "data", full_embed=True)
+
+    with open(params_file, encoding="utf-8") as f:
+        params = yaml.safe_load(f)
+
+    assert params["full_embed"] is True
+
+
+def test_set_full_embed_options(report_folder):
+    """_set_full_embed_options toggles both Quarto HTML embedding keys."""
+    from pdstools.explanations.Reports import Reports
+
+    report_folder.mkdir(parents=True, exist_ok=True)
+    Reports._copy_report_resources(report_folder)
+
+    Reports._set_full_embed_options(report_folder, full_embed=True)
+    with open(report_folder / "_quarto.yml", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    assert config["format"]["html"]["embed-resources"] is True
+    assert config["format"]["html"]["plotly-connected"] is True
+
+    Reports._set_full_embed_options(report_folder, full_embed=False)
+    with open(report_folder / "_quarto.yml", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    assert config["format"]["html"]["embed-resources"] is False
+    assert config["format"]["html"]["plotly-connected"] is False
+
+
+def test_set_full_embed_options_without_config(report_folder):
+    """A missing _quarto.yml is a no-op rather than an error."""
+    from pdstools.explanations.Reports import Reports
+
+    report_folder.mkdir(parents=True, exist_ok=True)
+    Reports._set_full_embed_options(report_folder, full_embed=True)
+
+    assert not (report_folder / "_quarto.yml").exists()
+
+
+def _prepare_pre_render(reports, report_folder, *, full_embed):
+    """Lay out a report folder the pre-render script can run against."""
+    from pdstools.explanations.Reports import Reports
+
+    report_folder.mkdir(parents=True, exist_ok=True)
+    Reports._copy_report_resources(report_folder)
+
+    data_folder = report_folder / "data"
+    data_folder.mkdir(parents=True, exist_ok=True)
+    (data_folder / "unique_contexts.json").write_text(
+        json.dumps({"0": [json.dumps({"partition": {"Issue": "Sales"}})]}),
+        encoding="utf-8",
+    )
+    reports._set_params(report_folder / "scripts" / "params.yml", data_folder, full_embed=full_embed)
+    return report_folder / "scripts" / "params.yml"
+
+
+def _rendered_pages(report_folder):
+    overview = (report_folder / "overview.qmd").read_text(encoding="utf-8")
+    by_context = next((report_folder / "by-model-context").glob("plots_for_batch_*.qmd")).read_text(encoding="utf-8")
+    return overview, by_context
+
+
+def test_pre_render_uses_full_embed_plotly_renderer(reports, report_folder, monkeypatch):
+    """full_embed=True renders with the self-contained notebook renderer."""
+    _prepare_pre_render(reports, report_folder, full_embed=True)
+
+    monkeypatch.chdir(report_folder)
+    runpy.run_path(str(REPORT_SCRIPT), run_name="__main__")
+
+    overview, by_context = _rendered_pages(report_folder)
+    assert 'pio.renderers.default = "notebook"' in overview
+    assert 'pio.renderers.default = "notebook"' in by_context
+
+
+def test_pre_render_accepts_string_full_embed_false(reports, report_folder, monkeypatch):
+    """A stringified "False" in params.yml still selects the CDN renderer."""
+    params_file = _prepare_pre_render(reports, report_folder, full_embed=True)
+    with open(params_file, encoding="utf-8") as f:
+        params = yaml.safe_load(f)
+    params["full_embed"] = "False"
+    with open(params_file, "w", encoding="utf-8") as f:
+        yaml.safe_dump(params, f)
+
+    monkeypatch.chdir(report_folder)
+    runpy.run_path(str(REPORT_SCRIPT), run_name="__main__")
+
+    overview, by_context = _rendered_pages(report_folder)
+    assert 'pio.renderers.default = "notebook_connected"' in overview
+    assert 'pio.renderers.default = "notebook_connected"' in by_context
+
+
+def test_pre_render_defaults_to_full_embed_without_params(report_folder, monkeypatch):
+    """Without params.yml the script falls back to fully embedded output."""
+    from pdstools.explanations.Reports import Reports
+
+    report_folder.mkdir(parents=True, exist_ok=True)
+    Reports._copy_report_resources(report_folder)
+
+    monkeypatch.chdir(report_folder)
+    namespace = runpy.run_path(str(REPORT_SCRIPT))
+
+    generator = namespace["ReportGenerator"]()
+    assert generator.full_embed is True
+    assert generator.plotly_renderer == "notebook"
+    assert generator._parse_bool(1) is True
+    assert generator._parse_bool(0) is False
 
 
 def test_set_params_writes_resolved_data_folder(tmp_path):
@@ -180,6 +296,28 @@ class TestGenerateFilterKwargs:
             call_kwargs = mock_set_params.call_args
             assert call_kwargs.kwargs["sort_by"] == "contribution_abs"
             assert call_kwargs.kwargs["display_by"] == "contribution"
+            assert call_kwargs.kwargs["full_embed"] is False
+
+    def test_generate_passes_full_embed_to_report_pipeline(self, reports, report_folder):
+        """full_embed reaches the Quarto config, the params file and the CLI."""
+        with (
+            patch.object(reports, "_copy_report_resources"),
+            patch.object(reports, "_set_full_embed_options") as mock_set_full_embed_options,
+            patch.object(reports, "_set_params") as mock_set_params,
+            patch.object(
+                reports.explanations.aggregates.context_operations,
+                "write_batches",
+            ),
+            patch(
+                "pdstools.explanations.Reports.run_quarto",
+                return_value=0,
+            ) as mock_run_quarto,
+        ):
+            reports.generate(output_dir=report_folder, full_embed=True)
+
+            mock_set_full_embed_options.assert_called_once_with(report_folder, full_embed=True)
+            assert mock_set_params.call_args.kwargs["full_embed"] is True
+            assert mock_run_quarto.call_args.kwargs["full_embed"] is True
 
     def test_generate_resolves_custom_kwargs(self, reports, report_folder):
         """generate() passes custom sort_by/display_by through the resolver."""

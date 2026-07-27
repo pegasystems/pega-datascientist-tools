@@ -10,6 +10,13 @@ The top-{TOP_N} predictor's {SORT_BY_TEXT} per context.
 # | output: false
 from pdstools.explanations import Explanations
 from IPython.display import display, Markdown
+import plotly.io as pio
+
+# Plotly serializes figures at display time, so generated pages set the
+# renderer before any plots are shown. The pre-render script substitutes this
+# placeholder with notebook for fully embedded reports or notebook_connected
+# for CDN-backed reports.
+pio.renderers.default = "{PLOTLY_RENDERER}"
 
 explanations = Explanations.from_aggregates(
     contextual_filename="{DATA_PATTERN}",

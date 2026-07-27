@@ -299,6 +299,7 @@ class _PredictorPlotsMixin(_PlotsBase):
             .filter(pl.col("EntryType") != "Classifier")
             .filter(pl.col("ResponseCountBin") > 0),
             query=query,
+            allow_empty=True,
         )
         if active_only:
             df = df.filter(pl.col("EntryType") == "Active")

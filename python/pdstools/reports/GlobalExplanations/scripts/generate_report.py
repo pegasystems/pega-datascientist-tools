@@ -32,6 +32,7 @@ SORT_BY_DEFAULT = "contribution_abs"
 SORT_BY_TEXT_DEFAULT = "absolute average contribution"
 DISPLAY_BY_DEFAULT = "contribution"
 DISPLAY_BY_TEXT_DEFAULT = "average contribution"
+FULL_EMBED_DEFAULT = True
 
 DATA_FOLDER = "aggregated_data"
 UNIQUE_CONTEXTS_FILENAME = "unique_contexts.json"
@@ -52,11 +53,17 @@ SINGLE_CONTEXT_TEMPLATE = "context.qmd"
 
 class ReportGenerator:
     """Quarto pre-render generator for the GlobalExplanations website project.
+
     Reads .qmd templates from assets/templates/, substitutes parameter
     placeholders with values from params.yml, and writes the rendered .qmd
     files for Quarto to build. Shared configuration (front matter, theme,
     branding) is inherited from _quarto.yml; templates only contain
     page-specific content and code cells.
+
+    The generated pages also receive a Plotly renderer value. Plotly emits its
+    HTML when figures are displayed, so the renderer must be set inside each
+    generated page before any plots are shown: ``notebook`` for fully embedded
+    reports and ``notebook_connected`` for CDN-backed reports.
     """
 
     def __init__(self):
@@ -73,6 +80,7 @@ class ReportGenerator:
         self.display_by = None
         self.display_by_text = None
         self.model_context_limit = int(os.getenv("MODEL_CONTEXT_LIMIT", "2500"))
+        self.full_embed = None
 
         self.by_context_folder = f"{self.report_folder}/{CONTEXT_FOLDER}"
         if not os.path.exists(self.by_context_folder):
@@ -108,6 +116,19 @@ class ReportGenerator:
             self.display_by,
         )
 
+    @staticmethod
+    def _parse_bool(value: object) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.lower() == "true"
+        return bool(value)
+
+    @property
+    def plotly_renderer(self) -> str:
+        """Return the Plotly renderer matching the report resource mode."""
+        return "notebook" if self.full_embed else "notebook_connected"
+
     def _read_params(self):
         params_file = os.path.join(self.report_folder, "scripts", PARAMS_FILENAME)
 
@@ -122,6 +143,7 @@ class ReportGenerator:
             self.display_by = DISPLAY_BY_DEFAULT
             self.display_by_text = DISPLAY_BY_TEXT_DEFAULT
 
+            self.full_embed = FULL_EMBED_DEFAULT
             logger.info("Parameters file %s does not exist. Using defaults.", params_file)
 
         else:
@@ -137,6 +159,7 @@ class ReportGenerator:
                 self.display_by = params.get("display_by", DISPLAY_BY_DEFAULT)
                 self.display_by_text = params.get("display_by_text", DISPLAY_BY_TEXT_DEFAULT)
 
+                self.full_embed = self._parse_bool(params.get("full_embed", FULL_EMBED_DEFAULT))
         self.root_dir = os.path.abspath(os.path.join(self.report_folder, ".."))
         data_folder_path = Path(str(self.data_folder))
         if data_folder_path.is_absolute():
@@ -206,6 +229,7 @@ class ReportGenerator:
                     ROOT_DIR=self.root_dir,
                     DATA_FOLDER=self.data_folder,
                     DATA_PATTERN=f"batches/BATCH_{file_batch_nb}.parquet",
+                    PLOTLY_RENDERER=self.plotly_renderer,
                     TOP_N=self.top_n,
                     SORT_BY_TEXT=self.sort_by_text,
                 )
@@ -293,6 +317,7 @@ class ReportGenerator:
                     SORT_BY=self.sort_by,
                     SORT_BY_TEXT=self.sort_by_text,
                     DISPLAY_BY=self.display_by,
+                    PLOTLY_RENDERER=self.plotly_renderer,
                 )
             )
 

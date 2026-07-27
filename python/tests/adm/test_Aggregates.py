@@ -43,7 +43,7 @@ def modeldata_from_scratch(**overrides):
     for col in overrides.keys():
         df = df.with_columns(pl.lit(overrides.get(col)).alias(col))
     if len(overrides.keys()):
-        df = df.explode(overrides.keys())
+        df = df.explode(overrides.keys(), empty_as_null=True)
     df = df.with_columns(ModelID=pl.format("ModelID_{}_{}", "Name", "Treatment"))
 
     return df.lazy()

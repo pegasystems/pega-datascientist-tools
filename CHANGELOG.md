@@ -49,11 +49,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   accessors, and `plot.plot_contributions_*` becomes
   `plot.contributions_overall` / `plot.contributions_by_context`. See
   [`docs/migration-v4-to-v5.md`](docs/migration-v4-to-v5.md).
-- **Breaking (explanations):** `root_dir` now defaults to `None` instead of
-  `".tmp"`. A relative `data_folder` resolves against `root_dir` when one is
-  given and against the working directory otherwise; the resolved location
-  is exposed as `Explanations.data_folderpath`. A missing or empty folder
-  raises `FileNotFoundError` when the data is first read.
 - **Breaking (explanations):** `Explanations.__init__` is now pure
   configuration and accepts the two already-scanned `LazyFrame`s; all file
   reading moved into `from_aggregates`, which raises `FileNotFoundError`
@@ -94,6 +89,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `_resolve_date_range` returning `tuple[datetime, datetime]`. The dates are
   never `None`, so the unreachable `if from_date and to_date` guard in the
   report pipeline is gone.
+- ADM and Global Explanations Quarto reports now explicitly set Plotly's
+  renderer for CDN-backed vs fully embedded HTML output. Global Explanations
+  report generation also accepts ``full_embed`` while preserving CDN output as
+  the programmatic default.
 - ADM Health Check app data import now shows upload controls immediately,
   keeps file paths as an optional fallback, and uses the new import API for
   advanced parsing and processed parquet cache output.

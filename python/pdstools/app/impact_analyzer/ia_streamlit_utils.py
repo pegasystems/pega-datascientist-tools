@@ -379,7 +379,7 @@ def discover_vbd_outcomes(ia: ImpactAnalyzer) -> tuple[dict[str, list[str]], dic
 
     rows = (
         ia.ia_data.select("Channel", "Outcome")
-        .explode("Outcome")
+        .explode("Outcome", empty_as_null=True)
         .select("Channel", "Outcome")
         .unique()
         .sort("Channel", "Outcome")
