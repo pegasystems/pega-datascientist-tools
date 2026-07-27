@@ -8,13 +8,11 @@ from typing import ClassVar, Literal, TYPE_CHECKING, cast, overload
 import polars as pl
 
 from ..utils.namespaces import LazyNamespace
-from .ExplanationsUtils import (
-    _COL,
-    _SPECIAL,
-    ContextInfo,
-    DisplayBy,
-    SortBy,
-    _resolve_contribution_type,
+from ._constants import (
+    CONTRIBUTION_LABELS,
+    REMAINING,
+    ContributionType,
+    validate_contribution_type,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,8 +44,8 @@ class Plots(LazyNamespace):
         top_k: int = ...,
         *,
         return_df: Literal[False] = ...,
-        sort_by: SortBy = ...,
-        display_by: DisplayBy = ...,
+        sort_by: ContributionType = ...,
+        display_by: ContributionType = ...,
         descending: bool = ...,
         missing: bool = ...,
         remaining: bool = ...,
@@ -61,8 +59,8 @@ class Plots(LazyNamespace):
         top_k: int = ...,
         *,
         return_df: Literal[True],
-        sort_by: SortBy = ...,
-        display_by: DisplayBy = ...,
+        sort_by: ContributionType = ...,
+        display_by: ContributionType = ...,
         descending: bool = ...,
         missing: bool = ...,
         remaining: bool = ...,
@@ -75,15 +73,16 @@ class Plots(LazyNamespace):
         top_k: int = 20,
         *,
         return_df: bool = False,
-        sort_by: SortBy = "contribution_abs",
-        display_by: DisplayBy = "contribution",
+        sort_by: ContributionType = "contribution_abs",
+        display_by: ContributionType = "contribution",
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
         include_numeric_single_bin: bool = False,
     ) -> tuple[go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
         """Plot contributions for overall."""
-        display_by_enum = _resolve_contribution_type(display_by)
+        display_by = validate_contribution_type(display_by)
+        display_by_label = CONTRIBUTION_LABELS[display_by][0]
         df = self.aggregate.get_predictor_contributions(
             top_n=top_n,
             sort_by=sort_by,
@@ -94,8 +93,8 @@ class Plots(LazyNamespace):
         )
 
         predictors = (
-            df.filter(pl.col(_COL.PREDICTOR_NAME.value) != _SPECIAL.REMAINING.value)
-            .select(_COL.PREDICTOR_NAME.value)
+            df.filter(pl.col("predictor_name") != REMAINING)
+            .select("predictor_name")
             .unique(maintain_order=True)
             .to_series()
             .to_list()
@@ -116,15 +115,15 @@ class Plots(LazyNamespace):
 
         overall_fig = self._plot_overall_contributions(
             df,
-            x_col=display_by_enum.value,
-            y_col=_COL.PREDICTOR_NAME.value,
-            x_title=display_by_enum.alt,
+            x_col=display_by,
+            y_col="predictor_name",
+            x_title=display_by_label,
         )
         predictors_figs = self._plot_predictor_contributions(
             df_predictors,
-            x_col=display_by_enum.value,
-            y_col=_COL.BIN_CONTENTS.value,
-            x_title=display_by_enum.alt,
+            x_col=display_by,
+            y_col="bin_contents",
+            x_title=display_by_label,
         )
 
         return overall_fig, predictors_figs
@@ -137,8 +136,8 @@ class Plots(LazyNamespace):
         top_k: int = ...,
         *,
         return_df: Literal[False] = ...,
-        sort_by: SortBy = ...,
-        display_by: DisplayBy = ...,
+        sort_by: ContributionType = ...,
+        display_by: ContributionType = ...,
         descending: bool = ...,
         missing: bool = ...,
         remaining: bool = ...,
@@ -153,8 +152,8 @@ class Plots(LazyNamespace):
         top_k: int = ...,
         *,
         return_df: Literal[True],
-        sort_by: SortBy = ...,
-        display_by: DisplayBy = ...,
+        sort_by: ContributionType = ...,
+        display_by: ContributionType = ...,
         descending: bool = ...,
         missing: bool = ...,
         remaining: bool = ...,
@@ -168,15 +167,16 @@ class Plots(LazyNamespace):
         top_k: int = 20,
         *,
         return_df: bool = False,
-        sort_by: SortBy = "contribution_abs",
-        display_by: DisplayBy = "contribution",
+        sort_by: ContributionType = "contribution_abs",
+        display_by: ContributionType = "contribution",
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
         include_numeric_single_bin: bool = False,
     ) -> tuple[go.Figure, go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
         """Plot contributions by context."""
-        display_by_enum = _resolve_contribution_type(display_by)
+        display_by = validate_contribution_type(display_by)
+        display_by_label = CONTRIBUTION_LABELS[display_by][0]
         df_context = self.aggregate.get_predictor_contributions(
             context,
             top_n=top_n,
@@ -190,14 +190,14 @@ class Plots(LazyNamespace):
         # filter out the context rows for plotting by context
         contexts = list(context.keys())
         df_context = df_context.filter(
-            ~pl.col(_COL.PREDICTOR_NAME.value).is_in(contexts),
+            ~pl.col("predictor_name").is_in(contexts),
         )
 
         predictors = (
             df_context.filter(
-                pl.col(_COL.PREDICTOR_NAME.value) != _SPECIAL.REMAINING.value,
+                pl.col("predictor_name") != REMAINING,
             )
-            .select(_COL.PREDICTOR_NAME.value)
+            .select("predictor_name")
             .unique(maintain_order=True)
             .to_series()
             .to_list()
@@ -217,21 +217,21 @@ class Plots(LazyNamespace):
         if return_df:
             return df_context, df
 
-        header_fig = self._plot_context_table(cast("ContextInfo", context))
+        header_fig = self._plot_context_table(cast("dict[str, str]", context))
 
         overall_fig = self._plot_overall_contributions(
             df_context,
-            x_col=display_by_enum.value,
-            y_col=_COL.PREDICTOR_NAME.value,
-            x_title=display_by_enum.alt,
-            context=cast("ContextInfo", context),
+            x_col=display_by,
+            y_col="predictor_name",
+            x_title=display_by_label,
+            context=cast("dict[str, str]", context),
         )
 
         predictors_figs = self._plot_predictor_contributions(
             df,
-            x_col=display_by_enum.value,
-            y_col=_COL.BIN_CONTENTS.value,
-            x_title=display_by_enum.alt,
+            x_col=display_by,
+            y_col="bin_contents",
+            x_title=display_by_label,
         )
 
         return header_fig, overall_fig, predictors_figs
@@ -261,8 +261,8 @@ class Plots(LazyNamespace):
             Tuple of (customdata, hovertemplate).
         """
         select_cols = [
-            _COL.PREDICTOR_NAME.value,
-            _COL.PREDICTOR_TYPE.value,
+            "predictor_name",
+            "predictor_type",
             pl.col(x_col).alias("contribution"),
         ]
         if include_frequency:
@@ -286,7 +286,7 @@ class Plots(LazyNamespace):
         y_col: str,
         x_title: str = X_AXIS_TITLE_DEFAULT,
         y_title: str = Y_AXIS_TITLE_DEFAULT,
-        context: ContextInfo | None = None,
+        context: dict[str, str] | None = None,
     ) -> go.Figure:
         import plotly.graph_objects as go
 
@@ -299,7 +299,7 @@ class Plots(LazyNamespace):
             # Show each predictor's context frequency as a share of the overall model.
             df_with_pct = self.aggregate.add_context_frequency_pct_to_df(
                 df,
-                join_on=[_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+                join_on=["predictor_name", "predictor_type"],
             )
             customdata, hovertemplate = self._build_hover_customdata(df_with_pct, x_col)
 
@@ -340,14 +340,14 @@ class Plots(LazyNamespace):
         import plotly.graph_objects as go
 
         df_with_frequency_pct = self.aggregate.add_frequency_pct_to_df(
-            df, group_by=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
+            df, group_by=["context_partition", "predictor_name", "predictor_type"]
         )
 
-        predictor_info = df.select([_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]).unique(maintain_order=True)
+        predictor_info = df.select(["predictor_name", "predictor_type"]).unique(maintain_order=True)
 
         plots = []
         for predictor, predictor_type in predictor_info.iter_rows():
-            predictor_df = df_with_frequency_pct.filter(pl.col(_COL.PREDICTOR_NAME.value) == predictor)
+            predictor_df = df_with_frequency_pct.filter(pl.col("predictor_name") == predictor)
 
             customdata, hovertemplate = self._build_hover_customdata(predictor_df, x_col)
 
@@ -380,7 +380,7 @@ class Plots(LazyNamespace):
         return plots
 
     @staticmethod
-    def _plot_context_table(context_info: ContextInfo) -> go.Figure:
+    def _plot_context_table(context_info: dict[str, str]) -> go.Figure:
         import plotly.graph_objects as go
 
         fig = go.Figure(

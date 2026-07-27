@@ -9,7 +9,6 @@ from unittest.mock import patch
 import pytest
 import yaml
 from pdstools.explanations import Explanations
-from pdstools.explanations.ExplanationsUtils import _CONTRIBUTION_TYPE
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
 
@@ -120,8 +119,8 @@ def test_set_params_custom_contribution_types(report_paths):
     reports._validate_report_dir()
     reports._copy_report_resources()
 
-    sort_by = _CONTRIBUTION_TYPE.CONTRIBUTION_ABS
-    display_by = _CONTRIBUTION_TYPE.CONTRIBUTION_ABS
+    sort_by = "contribution_abs"
+    display_by = "contribution_abs"
 
     reports._set_params(
         top_n=10,
@@ -137,10 +136,10 @@ def test_set_params_custom_contribution_types(report_paths):
 
     assert params["top_n"] == 10
     assert params["top_k"] == 5
-    assert params["sort_by"] == sort_by.value
-    assert params["sort_by_text"] == sort_by.text
-    assert params["display_by"] == display_by.value
-    assert params["display_by_text"] == display_by.text
+    assert params["sort_by"] == sort_by
+    assert params["sort_by_text"] == "absolute average contribution"
+    assert params["display_by"] == display_by
+    assert params["display_by_text"] == "absolute average contribution"
 
 
 def test_reports_logging(report_paths, caplog):
@@ -195,8 +194,8 @@ class TestGenerateFilterKwargs:
 
             mock_set_params.assert_called_once()
             call_kwargs = mock_set_params.call_args
-            assert call_kwargs.kwargs["sort_by"] == _CONTRIBUTION_TYPE.CONTRIBUTION_ABS
-            assert call_kwargs.kwargs["display_by"] == _CONTRIBUTION_TYPE.CONTRIBUTION
+            assert call_kwargs.kwargs["sort_by"] == "contribution_abs"
+            assert call_kwargs.kwargs["display_by"] == "contribution"
 
     def test_generate_resolves_custom_kwargs(self, report_paths):
         """generate() passes custom sort_by/display_by through the resolver."""
@@ -225,8 +224,8 @@ class TestGenerateFilterKwargs:
             )
 
             call_kwargs = mock_set_params.call_args
-            assert call_kwargs.kwargs["sort_by"] == _CONTRIBUTION_TYPE.CONTRIBUTION
-            assert call_kwargs.kwargs["display_by"] == _CONTRIBUTION_TYPE.CONTRIBUTION_ABS
+            assert call_kwargs.kwargs["sort_by"] == "contribution"
+            assert call_kwargs.kwargs["display_by"] == "contribution_abs"
 
     def test_generate_calls_create_unique_contexts_file(self, report_paths):
         reports = report_paths

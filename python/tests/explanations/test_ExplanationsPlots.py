@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import plotly.graph_objects as go
 import pytest
 from pdstools.explanations import Explanations
-from pdstools.explanations.ExplanationsUtils import _SPECIAL
+from pdstools.explanations._constants import MISSING, REMAINING
 from pdstools.explanations.Plots import Plots
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
@@ -208,7 +208,7 @@ def test_plot_contributions_for_overall_return_df(plots):
         "Occupation",
         "CustomerName",
         "NumX",
-        _SPECIAL.REMAINING.value,
+        REMAINING,
     ]
     assert predictors_df.group_by("predictor_name").len().sort("predictor_name").to_dict(as_series=False) == {
         "predictor_name": ["Age", "CustomerName", "NumX", "Occupation", "pyName"],
@@ -240,7 +240,7 @@ def test_plot_contributions_by_context_return_df(plots):
         return_df=True,
     )
 
-    assert context_df["predictor_name"].to_list() == ["Age", "Occupation", _SPECIAL.REMAINING.value]
+    assert context_df["predictor_name"].to_list() == ["Age", "Occupation", REMAINING]
     # Each predictor now also carries its forced MISSING bin, which the broken
     # _get_missing_predictor_values_df filter previously dropped.
     assert value_df.select("predictor_name", "bin_contents").to_dict(as_series=False) == {
@@ -289,14 +289,14 @@ def _assert_fig_bar_data_predictors_special_bins(
     bar_data = _get_bar_data_from_fig(fig)
     if check_missing:
         if exists:
-            assert _SPECIAL.MISSING.name in bar_data.y
+            assert MISSING in bar_data.y
         else:
-            assert _SPECIAL.MISSING.name not in bar_data.y
+            assert MISSING not in bar_data.y
     if check_remaining:
         if exists:
-            assert _SPECIAL.REMAINING.value in bar_data.y
+            assert REMAINING in bar_data.y
         else:
-            assert _SPECIAL.REMAINING.value not in bar_data.y
+            assert REMAINING not in bar_data.y
 
 
 def _assert_fig_bar_data_predictors(
@@ -335,11 +335,11 @@ def _assert_fig_bar_data_overall(
 
     if check_remaining:
         # Check if the remaining bar is present
-        assert _SPECIAL.REMAINING.value in bar_data.y
+        assert REMAINING in bar_data.y
 
     if check_missing:
         # Check if the missing bar is present
-        assert _SPECIAL.MISSING.name in bar_data.y
+        assert MISSING in bar_data.y
 
 
 def _get_bar_data_from_fig(fig):

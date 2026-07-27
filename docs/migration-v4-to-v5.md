@@ -227,8 +227,9 @@ Affected methods: `Plots.plot_contributions_for_overall`,
 `Plots.plot_contributions_by_context`,
 `Aggregate.get_predictor_contributions`,
 `Aggregate.get_predictor_value_contributions`, and `Reports.generate`.
-Unknown kwargs now raise `TypeError`. New `SortBy` / `DisplayBy`
-`Literal` aliases are exported alongside.
+Unknown kwargs now raise `TypeError`. The accepted values for `sort_by`
+and `display_by` are described by the `ContributionType` `Literal` alias
+in `pdstools.explanations._constants`.
 
 ```python
 # Before (v4.x):

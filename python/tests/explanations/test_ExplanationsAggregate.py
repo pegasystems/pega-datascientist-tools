@@ -6,7 +6,8 @@ from pathlib import Path
 import polars as pl
 import pytest
 from pdstools.explanations import Explanations
-from pdstools.explanations.ExplanationsUtils import _COL, _SPECIAL, ContextOperations
+from pdstools.explanations.ContextOperations import ContextOperations
+from pdstools.explanations._constants import MISSING, REMAINING, TOTAL_FREQUENCY
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
 
@@ -188,10 +189,17 @@ class TestContextOperations:
         assert list(batches) == ["0", "1", "2"]
         assert all(len(batch) <= 50 for batch in batches.values())
 
-    def test_create_unique_contexts_file_creates_json(self, aggregate, tmp_path):
-        output = tmp_path / "unique_contexts.json"
-        original = aggregate.context_operations.unique_contexts_file
-        aggregate.context_operations.unique_contexts_file = output
+    @staticmethod
+    def _redirect_to_tmp(aggregate, tmp_path, monkeypatch):
+        """Point the aggregate at a copy of the sample data inside tmp_path."""
+        for name in ("BY_CONTEXT.parquet", "OVERVIEW.parquet"):
+            (tmp_path / name).write_bytes((DATA_DIR / name).read_bytes())
+        monkeypatch.setattr(aggregate, "data_folderpath", tmp_path)
+        monkeypatch.setattr(aggregate, "initialized", False)
+        return tmp_path / "unique_contexts.json"
+
+    def test_create_unique_contexts_file_creates_json(self, aggregate, tmp_path, monkeypatch):
+        output = self._redirect_to_tmp(aggregate, tmp_path, monkeypatch)
 
         contexts = aggregate.context_operations.create_unique_contexts_file()
 
@@ -200,12 +208,9 @@ class TestContextOperations:
         assert persisted == contexts
         assert list(persisted) == ["0"]
         assert all(isinstance(key, str) for key in persisted)
-        aggregate.context_operations.unique_contexts_file = original
 
-    def test_create_unique_contexts_file_idempotent(self, aggregate, tmp_path):
-        output = tmp_path / "unique_contexts.json"
-        original = aggregate.context_operations.unique_contexts_file
-        aggregate.context_operations.unique_contexts_file = output
+    def test_create_unique_contexts_file_idempotent(self, aggregate, tmp_path, monkeypatch):
+        output = self._redirect_to_tmp(aggregate, tmp_path, monkeypatch)
 
         first = aggregate.context_operations.create_unique_contexts_file()
         first_mtime = output.stat().st_mtime_ns
@@ -214,50 +219,25 @@ class TestContextOperations:
         assert output.stat().st_mtime_ns == first_mtime
         assert second == first
         assert json.loads(output.read_text()) == first
-        aggregate.context_operations.unique_contexts_file = original
 
-    def test_create_unique_contexts_file_returns_dict(self, aggregate, tmp_path):
-        output = tmp_path / "unique_contexts.json"
-        original = aggregate.context_operations.unique_contexts_file
-        aggregate.context_operations.unique_contexts_file = output
+    def test_create_unique_contexts_file_returns_dict(self, aggregate, tmp_path, monkeypatch):
+        output = self._redirect_to_tmp(aggregate, tmp_path, monkeypatch)
 
         contexts = aggregate.context_operations.create_unique_contexts_file()
 
         assert contexts == json.loads(output.read_text())
-        aggregate.context_operations.unique_contexts_file = original
 
-    def test_create_batch_parquet_files_creates_files(self, aggregate, tmp_path):
-        original_folder = aggregate.data_folderpath
-        original_file = aggregate.context_operations.unique_contexts_file
-
-        # Copy parquet files to temp directory
-        Path(tmp_path, "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
-        Path(tmp_path, "OVERVIEW.parquet").write_bytes((DATA_DIR / "OVERVIEW.parquet").read_bytes())
-
-        aggregate.data_folderpath = tmp_path
-        aggregate.context_operations.unique_contexts_file = tmp_path / "unique_contexts.json"
-        aggregate.initialized = False
+    def test_create_batch_parquet_files_creates_files(self, aggregate, tmp_path, monkeypatch):
+        self._redirect_to_tmp(aggregate, tmp_path, monkeypatch)
         contexts = aggregate.context_operations.create_unique_contexts_file()
 
         aggregate.context_operations.create_batch_parquet_files(contexts)
 
         expected_files = [tmp_path / "batches" / f"BATCH_{key}.parquet" for key in contexts]
         assert all(path.exists() for path in expected_files)
-        aggregate.data_folderpath = original_folder
-        aggregate.context_operations.unique_contexts_file = original_file
-        aggregate.initialized = False
 
-    def test_create_batch_parquet_files_row_counts(self, aggregate, tmp_path):
-        original_folder = aggregate.data_folderpath
-        original_file = aggregate.context_operations.unique_contexts_file
-
-        # Copy parquet files to temp directory
-        Path(tmp_path, "BY_CONTEXT.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
-        Path(tmp_path, "OVERVIEW.parquet").write_bytes((DATA_DIR / "OVERVIEW.parquet").read_bytes())
-
-        aggregate.data_folderpath = tmp_path
-        aggregate.context_operations.unique_contexts_file = tmp_path / "unique_contexts.json"
-        aggregate.initialized = False  # Reset to force reload with new folder
+    def test_create_batch_parquet_files_row_counts(self, aggregate, tmp_path, monkeypatch):
+        self._redirect_to_tmp(aggregate, tmp_path, monkeypatch)
         contexts = aggregate.context_operations.create_unique_contexts_file()
 
         aggregate.context_operations.create_batch_parquet_files(contexts)
@@ -265,12 +245,9 @@ class TestContextOperations:
 
         for batch_key, batch_contexts in contexts.items():
             batch_df = pl.read_parquet(tmp_path / "batches" / f"BATCH_{batch_key}.parquet")
-            expected = contextual.filter(pl.col(_COL.PARTITION.value).is_in(batch_contexts))
+            expected = contextual.filter(pl.col("context_partition").is_in(batch_contexts))
             assert batch_df.height == expected.height
-            assert set(batch_df[_COL.PARTITION.value].unique()) == set(batch_contexts)
-        aggregate.data_folderpath = original_folder
-        aggregate.context_operations.unique_contexts_file = original_file
-        aggregate.initialized = False
+            assert set(batch_df["context_partition"].unique()) == set(batch_contexts)
 
     def test_no_file_writes_on_load(self, tmp_path):
         data_dir = tmp_path / "aggregated_data"
@@ -328,19 +305,19 @@ class TestAggregateAndContextOperationHelpers:
         assert df.height > 0
 
     def test_get_sort_over_columns_with_predictors(self, aggregate):
-        assert aggregate._get_sort_over_columns(["Age"]) == [_COL.PARTITION.value]
+        assert aggregate._get_sort_over_columns(["Age"]) == ["context_partition"]
 
-    def test_context_operations_get_context_keys(self, aggregate):
-        keys = aggregate.context_operations.get_context_keys()
+    def test_context_operations_context_keys(self, aggregate):
+        keys = aggregate.context_operations.context_keys
         assert keys
         assert all(key.startswith("py") for key in keys)
 
     def test_context_operations_get_df_default_and_with_partition(self, aggregate):
         df_default = aggregate.context_operations.get_df()
-        assert _COL.PARTITION.value not in df_default.columns
+        assert "context_partition" not in df_default.columns
 
         df_with_partition = aggregate.context_operations.get_df(with_partition_col=True)
-        assert _COL.PARTITION.value in df_with_partition.columns
+        assert "context_partition" in df_with_partition.columns
 
     def test_context_operations_get_list_and_context_string(self, aggregate, selected_context):
         contexts = aggregate.context_operations.get_list([selected_context], with_partition_col=False)
@@ -459,7 +436,7 @@ class TestAggregatePredictorValueContributions:
         """
         df = aggregate.get_predictor_value_contributions(predictors=predictors, top_k=3)
         assert df.height == 9
-        assert sorted(df.filter(pl.col("bin_contents") == _SPECIAL.MISSING.name)["predictor_name"].to_list()) == [
+        assert sorted(df.filter(pl.col("bin_contents") == MISSING)["predictor_name"].to_list()) == [
             "Age",
             "EyeColor",
         ]
@@ -517,7 +494,7 @@ class TestAggregatePredictorValueContributions:
             top_k=3,
         )
         assert df.height == 10
-        assert sorted(df.filter(pl.col("bin_contents") == _SPECIAL.MISSING.name)["predictor_name"].to_list()) == [
+        assert sorted(df.filter(pl.col("bin_contents") == MISSING)["predictor_name"].to_list()) == [
             "Age",
             "EyeColor",
         ]
@@ -612,8 +589,8 @@ class TestFilterKwargsDefaults:
         df_default = aggregate.get_predictor_contributions()
         df_with_single = aggregate.get_predictor_contributions(include_numeric_single_bin=True)
         # With single-bin numerics included, we should get at least as many unique predictors
-        default_predictors = set(df_default[_COL.PREDICTOR_NAME.value].to_list())
-        with_single_predictors = set(df_with_single[_COL.PREDICTOR_NAME.value].to_list())
+        default_predictors = set(df_default["predictor_name"].to_list())
+        with_single_predictors = set(df_with_single["predictor_name"].to_list())
         assert default_predictors <= with_single_predictors
 
     def test_get_predictor_value_contributions_include_numeric_single_bin_default(self, aggregate, predictors):
@@ -660,19 +637,17 @@ class TestAggregateFrequencyPct:
         aggregate._load_data()
 
         overall_df = aggregate.get_df_overall().collect()
-        join_cols = [_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
-        overall_totals = overall_df.group_by(join_cols).agg(
-            pl.sum(_COL.FREQUENCY.value).alias("expected_overall_total")
-        )
+        join_cols = ["predictor_name", "predictor_type"]
+        overall_totals = overall_df.group_by(join_cols).agg(pl.sum("frequency").alias("expected_overall_total"))
 
         first_two = overall_totals.head(2)
         context_rows = []
         for row in first_two.to_dicts():
             context_rows.append(
                 {
-                    _COL.PREDICTOR_NAME.value: row[_COL.PREDICTOR_NAME.value],
-                    _COL.PREDICTOR_TYPE.value: row[_COL.PREDICTOR_TYPE.value],
-                    _COL.FREQUENCY.value: 50,
+                    "predictor_name": row["predictor_name"],
+                    "predictor_type": row["predictor_type"],
+                    "frequency": 50,
                 }
             )
 
@@ -681,10 +656,10 @@ class TestAggregateFrequencyPct:
 
         assert "frequency_pct" in result.columns
         for row in result.to_dicts():
-            name = row[_COL.PREDICTOR_NAME.value]
-            ptype = row[_COL.PREDICTOR_TYPE.value]
+            name = row["predictor_name"]
+            ptype = row["predictor_type"]
             overall_total = overall_totals.filter(
-                (pl.col(_COL.PREDICTOR_NAME.value) == name) & (pl.col(_COL.PREDICTOR_TYPE.value) == ptype)
+                (pl.col("predictor_name") == name) & (pl.col("predictor_type") == ptype)
             )["expected_overall_total"][0]
             expected_pct = round(50 / overall_total * 100, 4)
             assert row["frequency_pct"] == expected_pct, (
@@ -697,12 +672,12 @@ class TestAggregateFrequencyPct:
 
         context_df = pl.DataFrame(
             {
-                _COL.PREDICTOR_NAME.value: ["NonExistentPredictor"],
-                _COL.PREDICTOR_TYPE.value: ["NUMERIC"],
-                _COL.FREQUENCY.value: [100],
+                "predictor_name": ["NonExistentPredictor"],
+                "predictor_type": ["NUMERIC"],
+                "frequency": [100],
             }
         )
-        join_cols = [_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
+        join_cols = ["predictor_name", "predictor_type"]
         result = aggregate.add_context_frequency_pct_to_df(context_df, join_on=join_cols)
 
         assert result["frequency_pct"][0] == 0.0
@@ -725,16 +700,16 @@ class TestWeightedAverageComputation:
         """Build a LazyFrame from a list of dicts matching the Aggregate schema."""
 
         schema = {
-            _COL.PARTITION.value: pl.Utf8,
-            _COL.PREDICTOR_NAME.value: pl.Utf8,
-            _COL.PREDICTOR_TYPE.value: pl.Utf8,
-            _COL.BIN_CONTENTS.value: pl.Utf8,
-            _COL.BIN_ORDER.value: pl.Int64,
-            _COL.CONTRIBUTION.value: pl.Float64,
-            _COL.CONTRIBUTION_ABS.value: pl.Float64,
-            _COL.CONTRIBUTION_MIN.value: pl.Float64,
-            _COL.CONTRIBUTION_MAX.value: pl.Float64,
-            _COL.FREQUENCY.value: pl.Int64,
+            "context_partition": pl.Utf8,
+            "predictor_name": pl.Utf8,
+            "predictor_type": pl.Utf8,
+            "bin_contents": pl.Utf8,
+            "bin_order": pl.Int64,
+            "contribution": pl.Float64,
+            "contribution_abs": pl.Float64,
+            "contribution_min": pl.Float64,
+            "contribution_max": pl.Float64,
+            "frequency": pl.Int64,
         }
         return pl.DataFrame(rows, schema=schema).lazy()
 
@@ -774,10 +749,10 @@ class TestWeightedAverageComputation:
             ]
         )
         result = aggregate._add_total_frequency_to_df(
-            df, group_by=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
+            df, group_by=["context_partition", "predictor_name", "predictor_type"]
         ).collect()
 
-        assert (result[_SPECIAL.TOTAL_FREQUENCY.value] == 150).all()
+        assert (result[TOTAL_FREQUENCY] == 150).all()
 
     # ------------------------------------------------------------------
     # _get_weighted_aggregates (formula: sum(c*f) / total_f)
@@ -795,7 +770,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    _COL.PARTITION.value: "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:30]",
@@ -807,7 +782,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    _COL.PARTITION.value: "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[30:60]",
@@ -822,12 +797,12 @@ class TestWeightedAverageComputation:
         )
         result = aggregate._calculate_aggregates(
             df,
-            frequency_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
-            aggregate_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            frequency_over=["context_partition", "predictor_name", "predictor_type"],
+            aggregate_over=["context_partition", "predictor_name", "predictor_type"],
         ).collect()
 
         assert result.shape[0] == 1
-        weighted = result[_COL.CONTRIBUTION_WEIGHTED.value][0]
+        weighted = result["contribution_weighted"][0]
         assert abs(weighted - 0.4) < 1e-9, f"Expected 0.4, got {weighted}"
 
     def test_weighted_average_equal_frequencies_matches_mean(self, aggregate):
@@ -836,7 +811,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    _COL.PARTITION.value: "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Color",
                     "predictor_type": "SYMBOLIC",
                     "bin_contents": "Red",
@@ -848,7 +823,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    _COL.PARTITION.value: "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Color",
                     "predictor_type": "SYMBOLIC",
                     "bin_contents": "Blue",
@@ -863,12 +838,12 @@ class TestWeightedAverageComputation:
         )
         result = aggregate._calculate_aggregates(
             df,
-            frequency_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
-            aggregate_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            frequency_over=["context_partition", "predictor_name", "predictor_type"],
+            aggregate_over=["context_partition", "predictor_name", "predictor_type"],
         ).collect()
 
-        weighted = result[_COL.CONTRIBUTION_WEIGHTED.value][0]
-        mean_val = result[_COL.CONTRIBUTION.value][0]
+        weighted = result["contribution_weighted"][0]
+        mean_val = result["contribution"][0]
         assert abs(weighted - mean_val) < 1e-9
 
     # ------------------------------------------------------------------
@@ -888,7 +863,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    _COL.PARTITION.value: "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:30]",
@@ -900,7 +875,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    _COL.PARTITION.value: "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[30:60]",
@@ -912,7 +887,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    _COL.PARTITION.value: "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Score",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:50]",
@@ -924,7 +899,7 @@ class TestWeightedAverageComputation:
                     "frequency": 10,
                 },
                 {
-                    _COL.PARTITION.value: "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Score",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[50:100]",
@@ -939,17 +914,17 @@ class TestWeightedAverageComputation:
         )
         result = aggregate._calculate_aggregates(
             df,
-            frequency_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
-            aggregate_over=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+            frequency_over=["context_partition", "predictor_name", "predictor_type"],
+            aggregate_over=["context_partition", "predictor_name", "predictor_type"],
         ).collect()
 
         by_name = {row["predictor_name"]: row for row in result.to_dicts()}
 
-        age_weighted = by_name["Age"][_COL.CONTRIBUTION_WEIGHTED.value]
+        age_weighted = by_name["Age"]["contribution_weighted"]
         # (0.2*100 + 0.8*100) / 200 = 100/200 = 0.5
         assert abs(age_weighted - 0.5) < 1e-9, f"Age weighted: expected 0.5, got {age_weighted}"
 
-        score_weighted = by_name["Score"][_COL.CONTRIBUTION_WEIGHTED.value]
+        score_weighted = by_name["Score"]["contribution_weighted"]
         # (0.1*10 + 0.9*90) / 100 = (1 + 81) / 100 = 0.82
         assert abs(score_weighted - 0.82) < 1e-9, f"Score weighted: expected 0.82, got {score_weighted}"
 
@@ -963,7 +938,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    _COL.PARTITION.value: "p1",
+                    "context_partition": "p1",
                     "predictor_name": "OneRange",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:100]",
@@ -985,7 +960,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    _COL.PARTITION.value: "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:30]",
@@ -997,7 +972,7 @@ class TestWeightedAverageComputation:
                     "frequency": 100,
                 },
                 {
-                    _COL.PARTITION.value: "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Age",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[30:60]",
@@ -1019,7 +994,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    _COL.PARTITION.value: "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Color",
                     "predictor_type": "SYMBOLIC",
                     "bin_contents": "Red",
@@ -1042,7 +1017,7 @@ class TestWeightedAverageComputation:
         df = self._make_df(
             [
                 {
-                    _COL.PARTITION.value: "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Score",
                     "predictor_type": "NUMERIC",
                     "bin_contents": "[0:100]",
@@ -1054,10 +1029,10 @@ class TestWeightedAverageComputation:
                     "frequency": 80,
                 },
                 {
-                    _COL.PARTITION.value: "p1",
+                    "context_partition": "p1",
                     "predictor_name": "Score",
                     "predictor_type": "NUMERIC",
-                    "bin_contents": _SPECIAL.MISSING.name,
+                    "bin_contents": MISSING,
                     "bin_order": 2,
                     "contribution": 0.1,
                     "contribution_abs": 0.1,
@@ -1096,9 +1071,9 @@ def assert_symbolic_bins_per_predictor_capped(df, top_k):
 
     Numeric predictors are not capped by ``top_k``.
     """
-    special = [_SPECIAL.REMAINING.value, _SPECIAL.MISSING.name]
+    special = [REMAINING, MISSING]
     rows = (
-        df.filter(~pl.col(_COL.BIN_CONTENTS.value).is_in(special))
+        df.filter(~pl.col("bin_contents").is_in(special))
         .group_by(["predictor_name", "predictor_type"])
         .agg(pl.len().alias("n"))
         .to_dicts()
@@ -1107,8 +1082,7 @@ def assert_symbolic_bins_per_predictor_capped(df, top_k):
     for row in rows:
         if row["predictor_type"] == "SYMBOLIC":
             assert row["n"] <= top_k, (
-                f"Symbolic predictor {row['predictor_name']!r} has {row['n']} ordinary bins, "
-                f"expected at most {top_k}."
+                f"Symbolic predictor {row['predictor_name']!r} has {row['n']} ordinary bins, expected at most {top_k}."
             )
 
 
@@ -1134,8 +1108,8 @@ def test_missing_flag_changes_predictor_contributions(aggregate):
     with_missing = aggregate.get_predictor_contributions(missing=True)
     without_missing = aggregate.get_predictor_contributions(missing=False)
 
-    age_with = with_missing.filter(pl.col(_COL.PREDICTOR_NAME.value) == "Age")["contribution"].item()
-    age_without = without_missing.filter(pl.col(_COL.PREDICTOR_NAME.value) == "Age")["contribution"].item()
+    age_with = with_missing.filter(pl.col("predictor_name") == "Age")["contribution"].item()
+    age_without = without_missing.filter(pl.col("predictor_name") == "Age")["contribution"].item()
     assert age_with == pytest.approx(-0.011185, abs=1e-6)
     assert age_without == pytest.approx(-0.011055, abs=1e-6)
 
@@ -1150,9 +1124,9 @@ def test_missing_flag_changes_predictor_value_contributions(aggregate, predictor
     without_missing = aggregate.get_predictor_value_contributions(predictors=predictors, missing=False)
 
     assert with_missing.height == 19
-    assert with_missing.filter(pl.col(_COL.BIN_CONTENTS.value) == _SPECIAL.MISSING.name).height == 2
+    assert with_missing.filter(pl.col("bin_contents") == MISSING).height == 2
     assert without_missing.height == 17
-    assert without_missing.filter(pl.col(_COL.BIN_CONTENTS.value) == _SPECIAL.MISSING.name).height == 0
+    assert without_missing.filter(pl.col("bin_contents") == MISSING).height == 0
 
 
 @pytest.mark.parametrize("top_n", [0, -1, True])
@@ -1169,4 +1143,4 @@ def test_get_predictor_contributions_rejects_invalid_top_n(aggregate, top_n):
 def test_get_predictor_contributions_accepts_top_n_of_one(aggregate):
     """``top_n=1`` is valid and returns exactly one predictor plus the rollup."""
     df = aggregate.get_predictor_contributions(top_n=1)
-    assert df[_COL.PREDICTOR_NAME.value].to_list() == ["pyName", _SPECIAL.REMAINING.value]
+    assert df["predictor_name"].to_list() == ["pyName", REMAINING]

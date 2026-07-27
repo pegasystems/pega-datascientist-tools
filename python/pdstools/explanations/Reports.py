@@ -16,11 +16,10 @@ from ..utils.report_utils import (
     generate_zipped_report,
     run_quarto,
 )
-from .ExplanationsUtils import (
-    _CONTRIBUTION_TYPE,
-    DisplayBy,
-    SortBy,
-    _resolve_contribution_type,
+from ._constants import (
+    CONTRIBUTION_LABELS,
+    ContributionType,
+    validate_contribution_type,
 )
 
 logger = logging.getLogger(__name__)
@@ -55,8 +54,8 @@ class Reports(LazyNamespace):
         top_k: int = 20,
         zip_output: bool = False,
         *,
-        sort_by: SortBy = "contribution_abs",
-        display_by: DisplayBy = "contribution",
+        sort_by: ContributionType = "contribution_abs",
+        display_by: ContributionType = "contribution",
     ):
         """Generate the explanations report.
 
@@ -91,8 +90,8 @@ class Reports(LazyNamespace):
             logger.error("Validation failed: %s", e)
             raise
 
-        validated_sort_by = _resolve_contribution_type(sort_by)
-        validated_display_by = _resolve_contribution_type(display_by)
+        validated_sort_by = validate_contribution_type(sort_by)
+        validated_display_by = validate_contribution_type(display_by)
 
         self._validate_report_dir()
 
@@ -146,19 +145,20 @@ class Reports(LazyNamespace):
         top_k: int = 20,
         from_date: str = "",
         to_date: str = "",
-        sort_by: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION_ABS,
-        display_by: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION,
+        sort_by: ContributionType = "contribution_abs",
+        display_by: ContributionType = "contribution",
     ):
-        params: dict[str, str | int] = {}
-        params["top_n"] = top_n
-        params["top_k"] = top_k
-        params["from_date"] = from_date
-        params["to_date"] = to_date
-        params["sort_by"] = sort_by.value
-        params["sort_by_text"] = sort_by.text
-        params["display_by"] = display_by.value
-        params["display_by_text"] = display_by.text
-        params["data_folder"] = str(self.aggregate_folder)
+        params: dict[str, str | int] = {
+            "top_n": top_n,
+            "top_k": top_k,
+            "from_date": from_date,
+            "to_date": to_date,
+            "sort_by": sort_by,
+            "sort_by_text": CONTRIBUTION_LABELS[sort_by][1],
+            "display_by": display_by,
+            "display_by_text": CONTRIBUTION_LABELS[display_by][1],
+            "data_folder": str(self.aggregate_folder),
+        }
 
         logger.debug("Writing report parameters to %s", self.params_file)
         with open(self.params_file, "w", encoding="utf-8") as file:
