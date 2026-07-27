@@ -5,13 +5,14 @@ from typing import TYPE_CHECKING, Any
 
 import anyio
 
-from ...local_model_utils import ONNXModel
 from .....internal._resource import api_method
+from ...local_model_utils import ONNXModel
 from ..model_upload import UploadedModel
 
 if TYPE_CHECKING:
-    from ...base import LocalModel
     from collections.abc import Callable
+
+    from ...base import LocalModel
 
 
 class _PredictionStudioV24_2Mixin:

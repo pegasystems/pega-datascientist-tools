@@ -4,7 +4,7 @@ __all__ = ["Reports"]
 
 import logging
 from pathlib import Path
-from typing import ClassVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import yaml
 

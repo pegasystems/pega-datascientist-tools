@@ -4,7 +4,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from pdstools.explanations import Explanations
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"

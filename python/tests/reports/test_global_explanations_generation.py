@@ -11,7 +11,6 @@ from pathlib import Path
 
 import pytest
 import yaml
-
 from pdstools.reports.GlobalExplanations.scripts.generate_report import (
     ReportGenerator,
 )

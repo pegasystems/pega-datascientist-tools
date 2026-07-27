@@ -15,7 +15,6 @@ from datetime import datetime
 
 import polars as pl
 import pytest
-
 from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 from pdstools.decision_analyzer.utils import (
     ColumnResolver,

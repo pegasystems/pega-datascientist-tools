@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ["BinAggregator"]
 import logging
 from functools import cached_property
-from typing import ClassVar, Literal, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, ClassVar, Literal, cast
 
 import polars as pl
 

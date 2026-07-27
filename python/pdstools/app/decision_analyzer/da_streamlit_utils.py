@@ -1,18 +1,18 @@
 # python/pdstools/app/decision_analyzer/da_streamlit_utils.py
 from __future__ import annotations
+
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import polars as pl
 import streamlit as st
 
-from pdstools.pega_io import read_nested_zip_files
-from pdstools.pega_io.File import _clean_artifacts, read_data, read_ds_export
-
 from pdstools.decision_analyzer.plots import (
     plot_component_overview,
     plot_priority_component_distribution,
 )
+from pdstools.pega_io import read_nested_zip_files
+from pdstools.pega_io.File import _clean_artifacts, read_data, read_ds_export
 from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
     ensure_session_data,
@@ -653,6 +653,7 @@ def handle_file_upload() -> tuple[pl.LazyFrame | None, dict | None]:
         For other cases, metadata is None.
     """
     import tempfile
+
     from pdstools.decision_analyzer.utils import _read_source_metadata
 
     uploaded_files = st.file_uploader(

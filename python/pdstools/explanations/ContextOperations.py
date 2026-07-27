@@ -6,13 +6,12 @@ import json
 import logging
 import os
 from functools import cached_property
-from typing import ClassVar, TYPE_CHECKING, cast
+from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar, cast
 
 import polars as pl
 
 from ..utils.namespaces import LazyNamespace
-
-from pathlib import Path
 
 if TYPE_CHECKING:
     from .Explanations import Explanations

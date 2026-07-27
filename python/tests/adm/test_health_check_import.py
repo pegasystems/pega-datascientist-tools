@@ -1,19 +1,18 @@
-from datetime import datetime
 import gzip
-from io import BytesIO
 import json
 import zipfile
+from datetime import datetime
+from io import BytesIO
 from unittest.mock import patch
 
 import polars as pl
 import pytest
-
 from pdstools.adm.HealthCheckImport import (
-    HealthCheckReadOptions,
-    HealthCheckRowFilter,
     MODEL_CACHE_FILENAME,
     PREDICTION_CACHE_FILENAME,
     PREDICTOR_CACHE_FILENAME,
+    HealthCheckReadOptions,
+    HealthCheckRowFilter,
     SourceImportOptions,
     SourceNormalizationOptions,
     import_health_check_data,
@@ -22,7 +21,6 @@ from pdstools.adm.HealthCheckImport import (
     resolve_health_check_output_dir,
     save_health_check_parquet,
 )
-
 
 MINIMAL_MODEL_HEADER = (
     "pyModelID,pyConfigurationName,pySnapshotTime,pyPositives,pyNegatives,"

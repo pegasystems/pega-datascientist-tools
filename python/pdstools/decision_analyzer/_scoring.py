@@ -9,7 +9,7 @@ from __future__ import annotations
 
 __all__ = ["Scoring"]
 
-from typing import Literal, TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import polars as pl
 import polars.selectors as cs

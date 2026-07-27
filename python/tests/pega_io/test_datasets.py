@@ -28,7 +28,6 @@ def _raise(*args, **kwargs):
 
 def test_cdh_sample_raises_runtime_error(monkeypatch):
     import pytest
-
     from pdstools.adm.ADMDatamart import ADMDatamart
 
     monkeypatch.setattr(ADMDatamart, "from_ds_export", _raise)
@@ -38,7 +37,6 @@ def test_cdh_sample_raises_runtime_error(monkeypatch):
 
 def test_sample_trees_raises_runtime_error(monkeypatch):
     import pytest
-
     from pdstools.utils import datasets as ds_mod
 
     monkeypatch.setattr(ds_mod, "ADMTreesModel", _raise)
@@ -48,7 +46,6 @@ def test_sample_trees_raises_runtime_error(monkeypatch):
 
 def test_sample_value_finder_raises_runtime_error(monkeypatch):
     import pytest
-
     from pdstools.valuefinder.ValueFinder import ValueFinder
 
     monkeypatch.setattr(ValueFinder, "from_ds_export", _raise)
@@ -65,7 +62,6 @@ def test_sample_explanations_is_exported():
 
 def test_sample_explanations_raises_runtime_error(monkeypatch):
     import pytest
-
     from pdstools.explanations import Explanations
 
     monkeypatch.setattr(Explanations, "from_aggregates", _raise)

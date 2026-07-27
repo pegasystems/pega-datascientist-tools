@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ["Plots"]
 
 import logging
-from typing import ClassVar, Literal, TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, ClassVar, Literal, overload
 
 import polars as pl
 

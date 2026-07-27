@@ -36,7 +36,7 @@ def parse_pega_date_time_formats(
 
     Parameters
     ----------
-    timestampCol: str, default = 'SnapshotTime'
+    timestamp_col: str, default = 'SnapshotTime'
         The column to parse
     timestamp_fmt: str, default = None
         An optional format to use rather than the default formats
@@ -110,6 +110,9 @@ def from_prpc_date_time(
     return_string: bool, default=False
         If True it will return the date in string format. If
         False it will return in datetime type
+    use_timezones: bool, default=True
+        Whether to honour the timezone suffix in the input string. When
+        False the timestamp is interpreted as naive local time.
 
     Returns
     -------
@@ -158,7 +161,7 @@ def to_prpc_date_time(dt: datetime.datetime) -> str:
 
     Parameters
     ----------
-    x: datetime.datetime
+    dt: datetime.datetime
         A datetime object
 
     Returns

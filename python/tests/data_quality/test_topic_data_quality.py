@@ -19,7 +19,6 @@ from pdstools.data_quality._topic_data_quality import (
     TopicOverlapPair,
 )
 
-
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------

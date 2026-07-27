@@ -13,7 +13,6 @@ import builtins
 import sys
 
 import pytest
-
 from pdstools.utils.namespaces import MissingDependenciesException
 
 

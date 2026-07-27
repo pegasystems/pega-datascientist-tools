@@ -372,6 +372,7 @@ def test_safe_condition_evaluate_unsupported_operator(tree_sample):
 def test_safe_condition_evaluate_handles_bad_numeric(tree_sample, caplog):
     """First failure logs at INFO; subsequent identical failures log at DEBUG."""
     import logging
+
     from pdstools.adm.trees import ADMTreesModel
 
     # Reset the dedupe set so we get a deterministic INFO on first call.
@@ -570,8 +571,9 @@ def test_multitrees_from_datamart_timestamp_formatting():
     12:30:20) used to get mangled to ``12:30:2``.  The fix uses
     ``dt.strftime`` which formats explicitly.
     """
-    import polars as pl
     from datetime import datetime
+
+    import polars as pl
     from pdstools.adm.trees import MultiTrees
 
     df = pl.DataFrame(
@@ -616,10 +618,11 @@ def test_multitrees_add_admtreesmodel_without_timestamp_raises(exported_model):
 def test_multitrees_from_datamart_rejects_multi_config(exported_model):
     """Passing a multi-config DataFrame to from_datamart should raise —
     callers must use from_datamart_grouped or pass `configuration=`."""
-    import polars as pl
     from datetime import datetime
-    from pdstools.adm.trees import MultiTrees, ADMTreesModel
+
     import pdstools.adm.trees as mod
+    import polars as pl
+    from pdstools.adm.trees import ADMTreesModel, MultiTrees
 
     df = pl.DataFrame(
         {
@@ -648,10 +651,11 @@ def test_multitrees_from_datamart_rejects_multi_config(exported_model):
 
 def test_multitrees_from_datamart_grouped(exported_model):
     """from_datamart_grouped returns a {config: MultiTrees} dict."""
-    import polars as pl
     from datetime import datetime
-    from pdstools.adm.trees import MultiTrees, ADMTreesModel
+
     import pdstools.adm.trees as mod
+    import polars as pl
+    from pdstools.adm.trees import ADMTreesModel, MultiTrees
 
     df = pl.DataFrame(
         {

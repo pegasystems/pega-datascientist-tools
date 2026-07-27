@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import pathlib
 import warnings
+from typing import TYPE_CHECKING
 
 from ..adm.ADMDatamart import ADMDatamart
 from ..valuefinder.ValueFinder import ValueFinder
-from typing import TYPE_CHECKING
 
 _RAW_GITHUB_DATA_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data"
 _REPO_DATA_DIR = pathlib.Path(__file__).parent.parent.parent.parent / "data" / "agb"

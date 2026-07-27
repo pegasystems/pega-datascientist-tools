@@ -6,7 +6,6 @@ from __future__ import annotations
 #     "pdstools[app]>=4.0.3",
 # ]
 # ///
-
 import argparse
 import difflib
 import logging

@@ -204,9 +204,9 @@ python -m build --sdist --wheel --outdir dist/ .
 ## Code style guidelines
 
 ### Imports
-- Order: stdlib, third-party, local (`pdstools...`).
-- Prefer explicit imports; avoid wildcard imports.
-- Keep imports at top of file; use `# noqa: F401` for intentional re-exports.
+Ordering, wildcards and placement are linted; use `# noqa: F401` for
+intentional re-exports.
+
 - **Optional dependencies**: use lazy imports inside the method that needs
   them (see `local_model_utils.py` for the pattern). Do not use
   module-level `try/except ImportError` blocks. For sub-namespace
@@ -220,9 +220,9 @@ python -m build --sdist --wheel --outdir dist/ .
   per-class missing-dep stand-in needed.
 
 ### Formatting
-- Use ruff-format (black-compatible). Do not hand-format.
-- Keep line length conservative; let the formatter decide.
-- Use trailing commas in multi-line literals and call arguments.
+Do not hand-format; ruff-format owns this. Use trailing commas in
+multi-line literals and call arguments so the formatter keeps them
+exploded.
 
 ### Docstring style: numpy
 - Use **numpy-style docstrings** for all public APIs (and any non-trivial
@@ -231,8 +231,7 @@ python -m build --sdist --wheel --outdir dist/ .
   this way; a Google-style (`Args:` / `Returns:`) or Sphinx-RST
   (`:param x:`) block in the middle of an otherwise numpy-style module
   is a stylistic break and renders inconsistently in the docs.
-- Sections use a header word followed by a dashed underline of equal
-  length. The common ones:
+- Section syntax is linted; the shape to aim for is:
 
   ```python
   def foo(x: int, y: str = "a") -> bool:
@@ -292,9 +291,6 @@ python -m build --sdist --wheel --outdir dist/ .
 ### Types and typing
 - Use type hints for public APIs and complex internal functions.
 - Reuse aliases from `python/pdstools/utils/types.py` where suitable.
-- Python 3.10+: use `list[str]`, `dict[str, ...]`, `X | None` (not
-  `Optional[X]`). Do not import `Optional`, `Union`, `List`, `Dict`
-  from `typing`.
 - **Reuse the shared frame TypeVar.** For helpers that accept and
   return the same polars frame type, import
   `F` from `pdstools.utils.cdh_utils._common`
@@ -377,8 +373,9 @@ suspicious during any refactor — they often hide real bugs.
   the user choose their tool.
 
 ### Logging
-- Use module-level `logger = logging.getLogger(__name__)`.
-- No `print()` in library code; log at `debug`/`info` levels.
+- Log at `debug`/`info` levels. The module-logger and no-`print` rules
+  are linted; `# noqa: T201` with a reason is the escape hatch for
+  genuinely user-facing CLI output.
 - `debug` as a parameter name: only when it changes the **return value**
   (extra columns, etc.), not for controlling log output.
 

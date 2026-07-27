@@ -8,8 +8,9 @@ from ...internal._exceptions import InternalServerError, InvalidInputs, PegaExce
 from ...internal._resource import AsyncAPIResource, SyncAPIResource, api_method
 
 if TYPE_CHECKING:
-    import httpx
     from collections.abc import Callable
+
+    import httpx
 
 
 class TextInput(TypedDict):

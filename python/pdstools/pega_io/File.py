@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from glob import glob
 from io import BytesIO
 from pathlib import Path
-from typing import Literal, cast, overload, TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, cast, overload
 
 import polars as pl
 import polars.selectors as cs
@@ -272,6 +272,9 @@ def _read_from_bytesio(
         The BytesIO object containing file data.
     extension : str
         The file extension (e.g., '.csv', '.json', '.zip', '.gz').
+    read_options : dict, optional
+        Extra keyword arguments forwarded to the polars reader for the
+        resolved leaf format, by default None.
 
     Returns
     -------
@@ -883,7 +886,7 @@ def read_multi_zip(
                 UserWarning,
                 stacklevel=2,
             )
-            print("Reading files...")
+            print("Reading files...")  # noqa: T201 - progress fallback when tqdm is missing
         files_iterator = file_list
 
     table = []
@@ -895,7 +898,7 @@ def read_multi_zip(
 
     df = pl.concat(table, how="diagonal")
     if verbose:
-        print("Combining completed")
+        print("Combining completed")  # noqa: T201 - user-facing progress
     return df.lazy()
 
 

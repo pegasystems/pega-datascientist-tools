@@ -25,7 +25,7 @@ class Aggregates:
 
         Parameters
         ----------
-        th: Optional[float]
+        threshold : float, optional
             The threshold to consider an action 'good'.
             If a customer has actions with propensity above this,
             the customer has at least one relevant action.
