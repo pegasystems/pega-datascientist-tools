@@ -3,18 +3,19 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING, Any
 
 import polars as pl
 
 from ...utils import cdh_utils
 from ._base import _PlotsBase
 from ._helpers import add_metric_limit_lines, requires
-from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from ...utils.types import QUERY
-    from ...utils.plot_utils import Figure
     from datetime import timedelta
+
+    from ...utils.plot_utils import Figure
+    from ...utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 

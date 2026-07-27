@@ -4,7 +4,6 @@ from __future__ import annotations
 import polars as pl
 import streamlit as st
 
-from pdstools.decision_analyzer.plots import getTrendChart, offer_quality_piecharts
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
     contextual_filters,
@@ -12,6 +11,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     stage_level_selector,
     stage_selectbox,
 )
+from pdstools.decision_analyzer.plots import getTrendChart, offer_quality_piecharts
 from pdstools.utils.streamlit_utils import standard_page_config
 
 standard_page_config(page_title="Offer Quality · Decision Analysis")

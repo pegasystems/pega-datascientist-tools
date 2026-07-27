@@ -8,9 +8,7 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-
 from pdstools.pega_io import File as F
-
 
 # ---------------------------------------------------------------------------
 # _is_artifact / _clean_artifacts

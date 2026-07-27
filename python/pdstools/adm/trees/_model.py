@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import base64
 import collections
-from collections.abc import Mapping
 import json
 import logging
 import math
 import threading
 import zlib
+from collections.abc import Mapping
 from functools import cached_property
 from math import exp
 from pathlib import Path

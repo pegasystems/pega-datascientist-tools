@@ -14,9 +14,10 @@ from ..utils.pega_outcomes import get_openrate_labels as _get_openrate_labels
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
-    from datetime import timedelta
     from collections.abc import Sequence
+    from datetime import timedelta
+
+    from ..utils.types import QUERY
     from .IH import IH as IH_Class
 
 

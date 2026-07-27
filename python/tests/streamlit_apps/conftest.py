@@ -17,7 +17,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from pdstools.adm.ADMDatamart import ADMDatamart
 from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 from pdstools.impactanalyzer.ImpactAnalyzer import ImpactAnalyzer

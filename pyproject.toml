@@ -131,6 +131,10 @@ line-length = 120
 
 [tool.ruff.lint]
 extend-select = [
+    "I",       # isort (stdlib / third-party / local import order)
+    "T20",     # flake8-print (no print() in library code; use logging)
+    "TID251",  # banned-api (see flake8-tidy-imports.banned-api below)
+    "D417",    # undocumented-param (documented sections must cover every param)
     "UP006",   # deprecated-collection-type (Dict -> dict, List -> list, etc.)
     "UP007",   # non-pep604-annotation (Union[X, Y] -> X | Y)
     "UP012",   # unnecessary-encode-utf8 (.encode("utf-8") -> .encode())
@@ -175,6 +179,15 @@ extend-select = [
 # and test fixtures (e.g. "5 × 10 grid", "ℹ info" headers, en-dashes in ranges).
 allowed-confusables = ["×", "ℹ", "–", "‑"]
 
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"streamlit.experimental_memo".msg = "Removed from Streamlit. Use st.cache_data."
+"streamlit.experimental_singleton".msg = "Removed from Streamlit. Use st.cache_resource."
+"streamlit.experimental_rerun".msg = "Removed from Streamlit. Use st.rerun."
+"typing.Optional".msg = "Use `X | None` (PEP 604)."
+"typing.Union".msg = "Use `X | Y` (PEP 604)."
+"typing.List".msg = "Use `list[...]`."
+"typing.Dict".msg = "Use `dict[...]`."
+
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
@@ -195,8 +208,13 @@ extend-immutable-calls = [
 "python/pdstools/ih/*" = ["D100", "D101", "D102", "D103"]
 "python/pdstools/infinity/*" = ["D100", "D101", "D102", "D103"]
 "python/pdstools/cli.py" = ["T20"]
-"python/tests/**" = ["D100", "D101", "D102", "D103", "RUF012", "S101"]
-"python/docs/*" = ["D100", "D101", "D102", "D103"]
+# Plot methods are defined as module-level functions taking `self` and bound
+# onto the namespace class in __init__.py; D417 reads `self` as a real param.
+"python/pdstools/decision_analyzer/plots/*" = ["D417"]
+# Printing the version report *is* the function's purpose.
+"python/pdstools/utils/show_versions.py" = ["T20"]
+"python/tests/**" = ["D100", "D101", "D102", "D103", "RUF012", "S101", "T20"]
+"python/docs/*" = ["D100", "D101", "D102", "D103", "T20"]
 # Notebooks and one-off scripts: relax docstring + style rules outside the library
 "examples/**/*.ipynb" = ["D100", "D101", "D102", "D103", "E401", "E402", "E703", "E722", "F401", "F541", "F811", "F821", "B905", "RUF005", "RUF015", "RET505"]
 "scripts/*" = ["D100", "D101", "D102", "D103", "T20"]

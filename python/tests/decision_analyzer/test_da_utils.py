@@ -13,7 +13,6 @@ from datetime import datetime
 
 import polars as pl
 import pytest
-
 from pdstools.decision_analyzer.column_schema import (
     DecisionAnalyzer,
     ExplainabilityExtract,
@@ -35,7 +34,6 @@ from pdstools.decision_analyzer.utils import (
     resolve_filter_column,
     sample_interactions,
 )
-
 
 # ---------------------------------------------------------------------------
 # parse_sample_flag
@@ -689,8 +687,8 @@ class TestPrepareAndSave:
         assert result.collect().height == 4
 
     def test_prepare_and_save_with_source_path_metadata(self, mock_decision_data, tmp_path):
-        from pdstools.decision_analyzer.utils import prepare_and_save
         import polars as pl
+        from pdstools.decision_analyzer.utils import prepare_and_save
 
         lf = mock_decision_data
         source_file = tmp_path / "original.parquet"
@@ -709,8 +707,8 @@ class TestPrepareAndSave:
         assert metadata["pdstools:sample_percentage_method"] == "exact"
 
     def test_prepare_and_save_with_chained_sampling(self, mock_decision_data, tmp_path):
-        from pdstools.decision_analyzer.utils import prepare_and_save
         import polars as pl
+        from pdstools.decision_analyzer.utils import prepare_and_save
 
         lf = mock_decision_data
         original_source = "/data/original.parquet"
@@ -752,8 +750,8 @@ class TestPrepareAndSave:
 
     def test_prepare_and_save_without_source_path(self, mock_decision_data, tmp_path):
         """Test backward compatibility - source_path is optional."""
-        from pdstools.decision_analyzer.utils import prepare_and_save
         import polars as pl
+        from pdstools.decision_analyzer.utils import prepare_and_save
 
         lf = mock_decision_data
 
@@ -767,8 +765,8 @@ class TestPrepareAndSave:
 
     def test_prepare_and_save_with_invalid_source_path(self, mock_decision_data, tmp_path):
         """Test graceful handling of nonexistent source path."""
-        from pdstools.decision_analyzer.utils import prepare_and_save
         import polars as pl
+        from pdstools.decision_analyzer.utils import prepare_and_save
 
         lf = mock_decision_data
 
@@ -784,8 +782,8 @@ class TestPrepareAndSave:
 
     def test_prepare_and_save_n_based_estimates_percentage(self, tmp_path):
         """Test that n-based sampling estimates the percentage instead of showing 0.00%."""
-        from pdstools.decision_analyzer.utils import prepare_and_save
         import polars as pl
+        from pdstools.decision_analyzer.utils import prepare_and_save
 
         # Create data with 1000 unique interactions (large enough to ensure sampling)
         ids = [f"int_{i:04d}" for i in range(1000) for _ in range(2)]
@@ -952,8 +950,8 @@ class TestGetInteractionIdCandidates:
 
 
 def test_read_source_metadata_with_metadata(tmp_path):
-    from pdstools.decision_analyzer.utils import _read_source_metadata
     import polars as pl
+    from pdstools.decision_analyzer.utils import _read_source_metadata
 
     # Create a file with metadata
     df = pl.DataFrame({"pxInteractionID": ["A", "B", "C"]})
@@ -974,8 +972,8 @@ def test_read_source_metadata_with_metadata(tmp_path):
 
 
 def test_read_source_metadata_without_metadata(tmp_path):
-    from pdstools.decision_analyzer.utils import _read_source_metadata
     import polars as pl
+    from pdstools.decision_analyzer.utils import _read_source_metadata
 
     # Create a file without our metadata
     df = pl.DataFrame({"pxInteractionID": ["A", "B", "C"]})
@@ -1091,15 +1089,17 @@ class TestDetermineOutputDirectory:
         assert result == tmp_path
 
     def test_falls_back_to_current_dir_when_source_is_none(self):
-        from pdstools.decision_analyzer.utils import _determine_output_directory
         from pathlib import Path
+
+        from pdstools.decision_analyzer.utils import _determine_output_directory
 
         result = _determine_output_directory(None, None)
         assert result == Path(".")
 
     def test_falls_back_to_current_dir_when_source_nonexistent(self):
-        from pdstools.decision_analyzer.utils import _determine_output_directory
         from pathlib import Path
+
+        from pdstools.decision_analyzer.utils import _determine_output_directory
 
         result = _determine_output_directory("/nonexistent/file.parquet", None)
         assert result == Path(".")

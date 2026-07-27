@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any, cast
+
 import polars as pl
 import polars.selectors as cs
 
@@ -9,7 +11,6 @@ from ...utils import cdh_utils
 from ...utils.plot_utils import get_colorscale
 from ._base import _PlotsBase
 from ._helpers import requires
-from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from ...utils.types import QUERY

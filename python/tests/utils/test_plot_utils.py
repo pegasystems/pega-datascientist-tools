@@ -1,7 +1,6 @@
-import polars as pl
 import plotly.express as px
+import polars as pl
 import pytest
-
 from pdstools.utils.metric_limits import MetricLimits
 from pdstools.utils.plot_utils import (
     fig_update_facet,

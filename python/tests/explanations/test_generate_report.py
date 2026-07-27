@@ -5,7 +5,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from pdstools.reports.GlobalExplanations.scripts.generate_report import ReportGenerator
 
 TEMPLATES_DIR = (

@@ -4,7 +4,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import ClassVar, Literal, overload, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Literal, overload
 
 import polars as pl
 import polars.selectors as cs
@@ -23,9 +23,10 @@ from .Schema import REQUIRED_IA_COLUMNS, ImpactAnalyzerData
 from .statistics import lift_pl
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
-    from collections.abc import Callable, Sequence
     import os
+    from collections.abc import Callable, Sequence
+
+    from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 

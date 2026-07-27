@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ["Aggregates"]
 
 import logging
-from typing import ClassVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import polars as pl
 
@@ -39,7 +39,6 @@ _CONTRIBUTION_AGGREGATIONS = [
 
 if TYPE_CHECKING:
     from ..utils.cdh_utils._common import F
-
     from .Explanations import Explanations
 
 

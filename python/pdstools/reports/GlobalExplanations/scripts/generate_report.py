@@ -10,11 +10,12 @@ Generated .qmd files are written to the project root for Quarto to render.
 
 from __future__ import annotations
 
-import logging
 import json
+import logging
 import os
 from pathlib import Path
 from typing import cast
+
 import yaml
 
 logger = logging.getLogger(__name__)

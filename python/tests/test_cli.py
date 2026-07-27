@@ -4,10 +4,8 @@ import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from pdstools import cli as cli_module
 from pdstools.cli import ALIASES, APPS, check_for_typos, create_parser, main, run
-
 
 # ---------------------------------------------------------------------------
 # APPS dict
@@ -652,11 +650,11 @@ class TestDoctor:
         assert "--- Dependency group:" in captured.out
 
     def test_doctor_renders_not_installed_when_which_returns_none(self, monkeypatch, capsys):
-        from pdstools import cli as cli_mod
-
         # Force shutil.which to return None so both quarto and pandoc are
         # reported as 'not installed'.
         import shutil
+
+        from pdstools import cli as cli_mod
 
         monkeypatch.setattr(shutil, "which", lambda _name: None)
         cli_mod.doctor()

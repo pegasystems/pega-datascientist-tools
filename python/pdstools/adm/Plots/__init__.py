@@ -25,7 +25,7 @@ Layout
 
 from __future__ import annotations
 
-from typing import ClassVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from ...utils.namespaces import LazyNamespace
 from ...utils.plot_utils import fig_update_facet

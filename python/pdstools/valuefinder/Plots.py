@@ -19,9 +19,10 @@ from ..utils.namespaces import LazyNamespace
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
-    from ..utils.plot_utils import Figure
     from collections.abc import Iterable
+
+    from ..utils.plot_utils import Figure
+    from ..utils.types import QUERY
     from .ValueFinder import ValueFinder
 
 COLORSCALE_TYPES = list[tuple[float, str]] | list[str]

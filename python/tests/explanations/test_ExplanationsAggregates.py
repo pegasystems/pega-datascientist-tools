@@ -6,8 +6,8 @@ from pathlib import Path
 import polars as pl
 import pytest
 from pdstools.explanations import Explanations
-from pdstools.explanations.ContextOperations import ContextOperations
 from pdstools.explanations._constants import MISSING, REMAINING, TOTAL_FREQUENCY
+from pdstools.explanations.ContextOperations import ContextOperations
 from pdstools.explanations.Schema import AGGREGATE_SCHEMA
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"

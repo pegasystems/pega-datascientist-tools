@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import re
+from typing import TYPE_CHECKING
 
 import polars as pl
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -19,8 +19,11 @@ def _capitalize(
 
     Parameters
     ----------
-    fields : list
-        A list of names
+    fields : str | Iterable[str]
+        A name, or a list of names
+    extra_endwords : Iterable[str], optional
+        Additional atomic word parts to recognize on top of the built-in
+        ``capitalize_endwords`` list, by default None
 
     Returns
     -------

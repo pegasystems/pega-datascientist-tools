@@ -116,10 +116,12 @@ def render(locked_page_titles: list[str] | None = None) -> None:
         get_filter_specs,
         get_sample_limit,
         get_temp_dir,
-        set_active_app as _set_active_app,
         show_sidebar_branding,
         show_version_header,
         standard_page_config,
+    )
+    from pdstools.utils.streamlit_utils import (
+        set_active_app as _set_active_app,
     )
 
     standard_page_config(page_title="Decision Analysis")

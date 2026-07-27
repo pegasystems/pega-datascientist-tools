@@ -1,7 +1,7 @@
 """Tests for GlobalExplanations template validation."""
 
-from pathlib import Path
 import re
+from pathlib import Path
 
 import pytest
 

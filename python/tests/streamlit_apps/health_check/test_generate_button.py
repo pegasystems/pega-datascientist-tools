@@ -17,9 +17,9 @@ the page renders before the button is clicked.
 
 from __future__ import annotations
 
-from streamlit.testing.v1 import AppTest
-
 from typing import TYPE_CHECKING
+
+from streamlit.testing.v1 import AppTest
 
 if TYPE_CHECKING:
     pass

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import multiprocessing
 from dataclasses import dataclass
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import polars as pl
 

@@ -3,10 +3,10 @@ import datetime
 import polars as pl
 import pytest
 from pdstools.infinity.internal._pagination import PaginatedList
-from pdstools.infinity.resources.prediction_studio.v26_1.model import Model
 from pdstools.infinity.resources.prediction_studio.v24_2.model import Model as ModelV24_2
-from pdstools.infinity.resources.prediction_studio.v26_1.prediction import Prediction
 from pdstools.infinity.resources.prediction_studio.v24_2.prediction import Prediction as PredictionV24_2
+from pdstools.infinity.resources.prediction_studio.v26_1.model import Model
+from pdstools.infinity.resources.prediction_studio.v26_1.prediction import Prediction
 from pdstools.infinity.resources.prediction_studio.v26_1.prediction_studio import (
     PredictionStudio,
 )
