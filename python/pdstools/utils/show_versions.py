@@ -233,7 +233,7 @@ def _dependency_table(public_only: bool = False):
         for private_dep_group in ("dev", "docs", "tests"):
             _ = dependencies.pop(private_dep_group)
     deps = [{"group": k, "deps": list(v.union(required))} for k, v in dependencies.items()]
-    pivot = pl.DataFrame(deps).explode("deps").pivot(values="deps", index="group", on="deps")
+    pivot = pl.DataFrame(deps).explode("deps", empty_as_null=True).pivot(values="deps", index="group", on="deps")
     return pivot.with_columns(
         pl.when(pl.col(col).is_not_null()).then(pl.lit("√")).otherwise(pl.lit("X")).alias(col)
         for col in pivot.columns

@@ -36,6 +36,7 @@ import polars as pl
 from IPython.display import display, Markdown
 from great_tables import GT, style, md, html, loc
 import plotly.express as px
+import plotly.io as pio
 from plotly.graph_objects import Figure
 from typing import Union, Optional, Literal
 
@@ -61,6 +62,9 @@ query = None
 model_id = None
 
 only_active_predictors = True
+# Fallback for direct/manual QMD execution. pdstools report generation passes
+# this parameter explicitly from Reports.model_reports(...).
+full_embed = True
 
 ```
 
@@ -75,6 +79,13 @@ if query and query == "None":
     query = None
 if model_id and model_id == "None":
     model_id = None
+if isinstance(full_embed, str):
+    full_embed = full_embed.lower() == "true"
+
+# Plotly serializes figures at display time, so choose the renderer before
+# any plots are shown. Quarto embed-resources alone cannot rewrite already
+# emitted Plotly HTML between CDN and fully embedded modes.
+pio.renderers.default = "notebook" if full_embed else "notebook_connected"
 
 if model_id is not None and predictor_file_path is not None:
     datamart = ADMDatamart.from_ds_export(

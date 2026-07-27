@@ -54,6 +54,7 @@ class Reports(LazyNamespace):
         top_n: int = 20,
         top_k: int = 20,
         zip_output: bool = False,
+        full_embed: bool = False,
         *,
         sort_by: SortBy = "contribution_abs",
         display_by: DisplayBy = "contribution",
@@ -71,6 +72,9 @@ class Reports(LazyNamespace):
         zip_output : bool
             Whether to zip the output report.
             The filename will be used as the zip file name.
+        full_embed : bool, default=False
+            When True, fully embed JavaScript libraries into the generated Quarto
+            website. Defaults to False to preserve the current CDN-based output.
         sort_by : str, keyword-only
             Column to rank/select top predictors. Default: ``"contribution_abs"``.
         display_by : str, keyword-only
@@ -98,24 +102,28 @@ class Reports(LazyNamespace):
 
         try:
             self._copy_report_resources()
+            self._set_full_embed_options(full_embed=full_embed)
         except (OSError, shutil.Error) as e:
             logger.error("IO error during resource copy: %s", e)
             raise
 
-        if self.explanations.from_date and self.explanations.to_date:
-            self._set_params(
-                top_n=top_n,
-                top_k=top_k,
-                from_date=self.explanations.from_date.strftime("%Y-%m-%d"),
-                to_date=self.explanations.to_date.strftime("%Y-%m-%d"),
-                sort_by=validated_sort_by,
-                display_by=validated_display_by,
-            )
+        from_date = self.explanations.from_date.strftime("%Y-%m-%d") if self.explanations.from_date else ""
+        to_date = self.explanations.to_date.strftime("%Y-%m-%d") if self.explanations.to_date else ""
+        self._set_params(
+            top_n=top_n,
+            top_k=top_k,
+            from_date=from_date,
+            to_date=to_date,
+            sort_by=validated_sort_by,
+            display_by=validated_display_by,
+            full_embed=full_embed,
+        )
 
         try:
             return_code = run_quarto(
                 temp_dir=Path(self.report_folderpath),
                 output_type=None,
+                full_embed=full_embed,
             )
         except subprocess.CalledProcessError as e:
             logger.error("Quarto command failed: %s", e)
@@ -140,6 +148,22 @@ class Reports(LazyNamespace):
             ],
         )
 
+    def _set_full_embed_options(self, *, full_embed: bool) -> None:
+        quarto_config_path = self.report_folderpath / "_quarto.yml"
+        if not quarto_config_path.exists():
+            logger.debug("Quarto config not found at %s; skipping embed option update", quarto_config_path)
+            return
+
+        with open(quarto_config_path, encoding="utf-8") as file:
+            quarto_config = yaml.safe_load(file) or {}
+
+        html_format = quarto_config.setdefault("format", {}).setdefault("html", {})
+        html_format["embed-resources"] = full_embed
+        html_format["plotly-connected"] = full_embed
+
+        with open(quarto_config_path, "w", encoding="utf-8") as file:
+            yaml.safe_dump(quarto_config, file, sort_keys=False)
+
     def _set_params(
         self,
         top_n: int = 20,
@@ -148,8 +172,9 @@ class Reports(LazyNamespace):
         to_date: str = "",
         sort_by: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION_ABS,
         display_by: _CONTRIBUTION_TYPE = _CONTRIBUTION_TYPE.CONTRIBUTION,
+        full_embed: bool = False,
     ):
-        params: dict[str, str | int] = {}
+        params: dict[str, str | int | bool] = {}
         params["top_n"] = top_n
         params["top_k"] = top_k
         params["from_date"] = from_date
@@ -159,6 +184,7 @@ class Reports(LazyNamespace):
         params["display_by"] = display_by.value
         params["display_by_text"] = display_by.text
         params["data_folder"] = str(self.aggregate_folder)
+        params["full_embed"] = full_embed
 
         logger.debug("Writing report parameters to %s", self.params_file)
         with open(self.params_file, "w", encoding="utf-8") as file:

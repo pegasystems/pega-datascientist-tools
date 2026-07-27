@@ -67,7 +67,7 @@ class Plots(LazyNamespace):
         df = (
             df.group_by("Stage")
             .agg(pl.col(by).value_counts(sort=True, name="Count"))
-            .explode(by)
+            .explode(by, empty_as_null=True)
             .unnest(by)
             .sort("Stage")
         )

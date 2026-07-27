@@ -45,6 +45,7 @@ from pdstools.utils.plot_utils import hide_metric_annotations_on_non_rightmost
 # from plotly.offline import iplot
 from great_tables import GT, style, md, html, loc
 import plotly.express as px
+import plotly.io as pio
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
 import polars as pl
@@ -76,6 +77,9 @@ model_file_path = None
 predictor_file_path = None
 prediction_file_path = None
 query = None
+# Fallback for direct/manual QMD execution. pdstools report generation passes
+# this parameter explicitly from Reports.health_check(...).
+full_embed = True
 
 tables_max_rows = 200  # max number of rows for embedded tables
 barchart_max_bars = 20  # max number of bars showing in bar charts
@@ -106,6 +110,13 @@ if predictor_file_path and predictor_file_path == "None":
     predictor_file_path = None
 if query and query == "None":
     query = None
+if isinstance(full_embed, str):
+    full_embed = full_embed.lower() == "true"
+
+# Plotly serializes figures at display time, so choose the renderer before
+# any plots are shown. Quarto embed-resources alone cannot rewrite already
+# emitted Plotly HTML between CDN and fully embedded modes.
+pio.renderers.default = "notebook" if full_embed else "notebook_connected"
 
 query = report_utils.deserialize_query(query)
 responsecount_analysis_query = (

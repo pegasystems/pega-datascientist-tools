@@ -19,6 +19,12 @@ dependencies and execution.
 - **Git workflow.** Do not `git commit` on the user's working branch.
   Stage with `git add` and let the user commit. Exception: branches you
   created yourself, or when the user explicitly asks for a commit/PR.
+- **PR creation auth workaround.** If GitHub MCP or the VS Code PR tool
+  fails with `Enterprise Managed User` authorization errors after a
+  branch has already been pushed, check `gh auth status` for a
+  non-EMU account that can access the repo. Use that local `gh` account
+  to create the PR, then switch `gh` back to the user's preferred
+  account.
 - **Stay focused, but fix tightly-coupled bugs.** Don't fix
   pre-existing issues unrelated to the task at hand. However, if a
   refactor surfaces a bug that is directly caused by or tightly

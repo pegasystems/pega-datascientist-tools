@@ -1,4 +1,6 @@
 import pathlib
+import re
+import zipfile
 
 import pytest
 from openpyxl import load_workbook
@@ -6,6 +8,8 @@ from pdstools import ADMDatamart, Prediction, datasets, read_ds_export
 from pdstools.utils.report_utils import check_report_for_errors
 
 basePath = pathlib.Path(__file__).parent.parent.parent.parent
+
+PLOTLY_CDN_LOAD_RE = re.compile(r"(?:src=|import\s+)[\"']https://cdn\.plot\.ly/")
 
 
 def _assert_report_path(actual: pathlib.Path, parent: pathlib.Path, expected_stem: str) -> None:
@@ -20,6 +24,38 @@ def _assert_report_path(actual: pathlib.Path, parent: pathlib.Path, expected_ste
     assert actual.stem == expected_stem
     assert actual.suffix in {".html", ".zip"}, f"Unexpected extension: {actual.suffix}"
     assert actual.exists()
+
+
+def _read_report_html(report_path: pathlib.Path) -> str:
+    if report_path.suffix == ".zip":
+        with zipfile.ZipFile(report_path) as report_zip:
+            html_members = [name for name in report_zip.namelist() if name.endswith(".html")]
+            assert len(html_members) == 1
+            return report_zip.read(html_members[0]).decode("utf-8")
+    return report_path.read_text(encoding="utf-8")
+
+
+def _assert_plotly_resource_mode(
+    cdn_report: pathlib.Path, full_embed_report: pathlib.Path, *, report_label: str
+) -> None:
+    cdn_html = _read_report_html(cdn_report)
+    full_embed_html = _read_report_html(full_embed_report)
+
+    assert PLOTLY_CDN_LOAD_RE.search(cdn_html), f"{report_label} CDN output should load Plotly from the CDN"
+    assert not PLOTLY_CDN_LOAD_RE.search(full_embed_html), (
+        f"{report_label} full-embed output should not load Plotly from the CDN"
+    )
+    assert "Plotly.newPlot" in full_embed_html, f"{report_label} full-embed output should still contain Plotly charts"
+
+
+def _assert_full_embed_size_ratio(sizes: dict[str, int], *, report_label: str, min_ratio: float) -> None:
+    ratio = sizes["full_embed"] / sizes["cdn"]
+    assert ratio >= min_ratio, (
+        f"{report_label} full-embed output should be at least {min_ratio:.1f}x "
+        f"the CDN output, got {ratio:.1f}x "
+        f"(CDN {sizes['cdn'] / (1024 * 1024):.1f} MB, "
+        f"full-embed {sizes['full_embed'] / (1024 * 1024):.1f} MB)"
+    )
 
 
 @pytest.fixture
@@ -87,9 +123,8 @@ def test_HealthCheck_full_embed(sample: ADMDatamart, tmp_path):
 
     size_diff = abs(sizes["default"] - sizes["cdn"]) / sizes["cdn"]
     assert size_diff <= 0.10, f"Default is cdn, file sizes could be slightly different, got {size_diff:.1%} difference"
-
-    full_embed_mb = sizes["full_embed"] / (1024 * 1024)
-    assert 50 <= full_embed_mb <= 150, f"Embedded size should be large, got {full_embed_mb:.1f} MB"
+    _assert_plotly_resource_mode(cdn, full_embed, report_label="HealthCheck")
+    _assert_full_embed_size_ratio(sizes, report_label="HealthCheck", min_ratio=3.0)
 
 
 def test_ExportTables(sample: ADMDatamart, tmp_path, monkeypatch):
@@ -202,9 +237,8 @@ def test_ModelReport_full_embed(sample: ADMDatamart, tmp_path):
 
     size_diff = abs(sizes["default"] - sizes["cdn"]) / sizes["cdn"]
     assert size_diff <= 0.10, f"Default is cdn and sizes should be very close, got {size_diff:.1%} difference"
-
-    full_embed_mb = sizes["full_embed"] / (1024 * 1024)
-    assert 90 <= full_embed_mb <= 150, f"Embedded size should be large, got {full_embed_mb:.1f} MB"
+    _assert_plotly_resource_mode(cdn, full_embed, report_label="ModelReport")
+    _assert_full_embed_size_ratio(sizes, report_label="ModelReport", min_ratio=3.0)
 
 
 def test_GenerateHealthCheck_CustomQmdFile(sample: ADMDatamart, tmp_path):

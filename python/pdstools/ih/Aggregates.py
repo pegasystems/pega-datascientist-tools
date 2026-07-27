@@ -322,7 +322,7 @@ class Aggregates(LazyNamespace):
                 ],
                 Interactions=pl.len(),
                 # for debugging
-                Outcomes=pl.col.Outcomes.list.explode().unique().sort().drop_nulls(),
+                Outcomes=pl.col.Outcomes.list.explode(empty_as_null=True).unique().sort().drop_nulls(),
             )
             .with_columns(
                 [

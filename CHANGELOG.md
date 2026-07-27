@@ -16,6 +16,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- ADM and Global Explanations Quarto reports now explicitly set Plotly's
+  renderer for CDN-backed vs fully embedded HTML output. Global Explanations
+  report generation also accepts ``full_embed`` while preserving CDN output as
+  the programmatic default.
 - ADM Health Check app data import now shows upload controls immediately,
   keeps file paths as an optional fallback, and uses the new import API for
   advanced parsing and processed parquet cache output.
