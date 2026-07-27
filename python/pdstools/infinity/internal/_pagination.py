@@ -204,7 +204,8 @@ class PaginatedList(Generic[T]):
     def __getitem__(self, key: slice) -> _Slice[T]: ...
 
     def __getitem__(self, key: int | slice | str) -> T | _Slice[T]:
-        assert isinstance(key, (int, slice, str))
+        if not isinstance(key, (int, slice, str)):
+            raise TypeError("key must be an int, slice, or str")
         if isinstance(key, int):
             if key < 0:
                 raise IndexError("Cannot negative index a PaginatedList")

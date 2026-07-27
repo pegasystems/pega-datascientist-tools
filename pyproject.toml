@@ -145,6 +145,7 @@ extend-select = [
     "B019",    # cached-instance-method (functools.lru_cache on methods)
     "B024",    # abstract-base-class-without-abstract-method
     "B028",    # no-explicit-stacklevel (warnings.warn without stacklevel)
+    "S101",    # assert (no asserts in library code; use real exceptions)
     "RET504",  # unnecessary-assign (return temporary variable)
     "RET505",  # superfluous-else-return
     "RET506",  # superfluous-else-raise
@@ -192,8 +193,9 @@ extend-immutable-calls = [
 "python/pdstools/app/*" = ["D100", "D101", "D102", "D103", "T20"]
 "python/pdstools/ih/*" = ["D100", "D101", "D102", "D103"]
 "python/pdstools/infinity/*" = ["D100", "D101", "D102", "D103"]
+"python/pdstools/explanations/**" = ["S101", "TRY400"]
 "python/pdstools/cli.py" = ["T20"]
-"python/tests/*" = ["D100", "D101", "D102", "D103", "RUF012"]
+"python/tests/**" = ["D100", "D101", "D102", "D103", "RUF012", "S101"]
 "python/docs/*" = ["D100", "D101", "D102", "D103"]
 # Notebooks and one-off scripts: relax docstring + style rules outside the library
 "examples/**/*.ipynb" = ["D100", "D101", "D102", "D103", "E401", "E402", "E703", "E722", "F401", "F541", "F811", "F821", "B905", "RUF005", "RUF015", "RET505"]

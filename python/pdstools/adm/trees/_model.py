@@ -494,7 +494,8 @@ class ADMTreesModel:
 
                 has_split = True
                 split = node.split
-                assert split is not None  # narrow for mypy
+                if split is None:
+                    raise RuntimeError("Expected internal tree node to have a split.")
                 split_strings.append(split.raw)
                 var_ops[split.variable].add(split.operator)
                 var_split_count[split.variable] += 1

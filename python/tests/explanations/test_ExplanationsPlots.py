@@ -212,7 +212,9 @@ def test_plot_contributions_for_overall_return_df(plots):
     ]
     assert predictors_df.group_by("predictor_name").len().sort("predictor_name").to_dict(as_series=False) == {
         "predictor_name": ["Age", "CustomerName", "NumX", "Occupation", "pyName"],
-        "len": [6, 6, 6, 6, 6],
+        # CustomerName and Occupation gain a row now that the forced MISSING bin is
+        # actually appended; the others already had MISSING inside their top 5.
+        "len": [6, 7, 6, 7, 6],
     }
 
     fig_overall, _ = plots.plot_contributions_for_overall(top_n=5, top_k=5)
@@ -239,14 +241,29 @@ def test_plot_contributions_by_context_return_df(plots):
     )
 
     assert context_df["predictor_name"].to_list() == ["Age", "Occupation", _SPECIAL.REMAINING.value]
+    # Each predictor now also carries its forced MISSING bin, which the broken
+    # _get_missing_predictor_values_df filter previously dropped.
     assert value_df.select("predictor_name", "bin_contents").to_dict(as_series=False) == {
-        "predictor_name": ["Age", "Age", "Age", "Age", "Occupation", "Occupation", "Occupation", "Occupation"],
+        "predictor_name": [
+            "Age",
+            "Age",
+            "Age",
+            "Age",
+            "Age",
+            "Occupation",
+            "Occupation",
+            "Occupation",
+            "Occupation",
+            "Occupation",
+        ],
         "bin_contents": [
+            "MISSING",
             "remaining",
             "[25.000:32.000]",
             "[32.000:40.000]",
             "[40.000:45.000]",
             "remaining",
+            "MISSING",
             "Geneticist, molecular",
             "Podiatrist",
             "Food technologist",

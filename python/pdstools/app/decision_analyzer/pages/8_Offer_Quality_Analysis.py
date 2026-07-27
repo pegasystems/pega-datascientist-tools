@@ -61,8 +61,6 @@ if propensity_th is None or priority_th is None:
         "Please check your data or filters."
     )
     st.stop()
-assert propensity_th is not None
-assert priority_th is not None
 
 with st.session_state["sidebar"]:
     stage_level_selector()

@@ -154,7 +154,8 @@ with col1:
         Shows how many offers reach customers and how likely they are to respond. More
         offers typically means higher engagement.
         """
-        assert best_stage_for_overview is not None
+        if best_stage_for_overview is None:
+            raise RuntimeError("Expected best_stage_for_overview when arbitration data is available.")
         st.plotly_chart(
             _propensity_vs_optionality_plot(best_stage_for_overview, da.level),
         )
@@ -189,7 +190,8 @@ with col2:
         above 10th percentile), while red shows customers without offers. Orange shows
         customers with only irrelevant offers (propensity below 10th percentile).
         """
-        assert best_stage_for_overview is not None
+        if best_stage_for_overview is None:
+            raise RuntimeError("Expected best_stage_for_overview when arbitration data is available.")
         pie_fig = _offer_quality_pie(best_stage_for_overview, da.level)
         if pie_fig is not None:
             st.plotly_chart(pie_fig)

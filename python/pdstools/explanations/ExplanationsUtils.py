@@ -28,15 +28,15 @@ logger = logging.getLogger(__name__)
 
 def validate(top_n: int | None = None, top_k: int | None = None) -> None:
     """Validate the parameters for top_n and top_k."""
-    if top_n:
-        if not isinstance(top_n, int) or top_n <= 1:
+    if top_n is not None:
+        if not isinstance(top_n, int) or isinstance(top_n, bool) or top_n < 1:
             raise ValueError(
-                f"Invalid top_n value: {top_n}. Must be a positive integer greater than 1.",
+                f"Invalid top_n value: {top_n}. Must be a positive integer.",
             )
-    if top_k:
-        if not isinstance(top_k, int) or top_k <= 1:
+    if top_k is not None:
+        if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1:
             raise ValueError(
-                f"Invalid top_k value: {top_k}. Must be a positive integer greater than 1.",
+                f"Invalid top_k value: {top_k}. Must be a positive integer.",
             )
 
 

@@ -185,7 +185,8 @@ class BinAggregator(LazyNamespace):
                     )
 
                 if is_numeric:
-                    assert empty_numeric_binning is not None  # set above when is_numeric
+                    if empty_numeric_binning is None:
+                        raise RuntimeError("Expected numeric binning data when processing numeric predictors.")
                     cum_binning = self.accumulate_num_binnings(
                         predictor,
                         ids,

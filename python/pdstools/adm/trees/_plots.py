@@ -296,7 +296,7 @@ class Plots(LazyNamespace):
         except ImportError:
             pass
         except FileNotFoundError as exc:
-            logger.error(
+            logger.exception(
                 "Dot/Graphviz not installed; please install it on your machine: %s",
                 exc,
             )

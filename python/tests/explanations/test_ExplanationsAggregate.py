@@ -450,9 +450,19 @@ class TestAggregatePredictorValueContributions:
         aggregate,
         predictors,
     ):
-        """top_k=3 returns at most 3 symbolic bins per predictor (8 rows total)."""
+        """top_k=3 returns at most 3 symbolic bins per predictor, plus the forced
+        MISSING bin and the 'remaining' rollup for each (9 rows total).
+
+        Was 8 before the ``missing`` flag was repaired: ``_get_missing_predictor_values_df``
+        filtered on ``predictor_name`` instead of ``bin_contents``, so the forced
+        MISSING bin was never actually added.
+        """
         df = aggregate.get_predictor_value_contributions(predictors=predictors, top_k=3)
-        assert df.height == 8
+        assert df.height == 9
+        assert sorted(df.filter(pl.col("bin_contents") == _SPECIAL.MISSING.name)["predictor_name"].to_list()) == [
+            "Age",
+            "EyeColor",
+        ]
         assert_symbolic_bins_per_predictor_capped(df, top_k=3)
 
     def test_get_predictor_value_contributions_overall_invalid_contribution_type(
@@ -496,13 +506,21 @@ class TestAggregatePredictorValueContributions:
         predictors,
         selected_context,
     ):
-        """Context-scoped top_k=3 returns at most 3 symbolic bins per predictor."""
+        """Context-scoped top_k=3 returns at most 3 symbolic bins per predictor, plus
+        the forced MISSING bin and the 'remaining' rollup for each (10 rows total).
+
+        Was 8 before the ``missing`` flag was repaired; see the overall variant.
+        """
         df = aggregate.get_predictor_value_contributions(
             predictors=predictors,
             context=selected_context,
             top_k=3,
         )
-        assert df.height == 8
+        assert df.height == 10
+        assert sorted(df.filter(pl.col("bin_contents") == _SPECIAL.MISSING.name)["predictor_name"].to_list()) == [
+            "Age",
+            "EyeColor",
+        ]
         assert_symbolic_bins_per_predictor_capped(df, top_k=3)
 
     def test_get_predictor_value_contributions_for_context_invalid_contribution_type(
@@ -1096,3 +1114,50 @@ def test_create_context_batches_none():
     batches = ContextOperations._create_context_batches(None, 100)
     assert isinstance(batches, dict)
     assert len(batches) == 0
+
+
+def test_missing_flag_changes_predictor_contributions(aggregate):
+    """``missing=False`` must exclude MISSING bins from predictor-level contributions.
+
+    Regression test: a dropped ``pl.col(...)`` turned the exclusion filter into a
+    constant-true predicate, so both flag values produced identical numbers.
+    """
+    with_missing = aggregate.get_predictor_contributions(missing=True)
+    without_missing = aggregate.get_predictor_contributions(missing=False)
+
+    age_with = with_missing.filter(pl.col(_COL.PREDICTOR_NAME.value) == "Age")["contribution"].item()
+    age_without = without_missing.filter(pl.col(_COL.PREDICTOR_NAME.value) == "Age")["contribution"].item()
+    assert age_with == pytest.approx(-0.011185, abs=1e-6)
+    assert age_without == pytest.approx(-0.011055, abs=1e-6)
+
+
+def test_missing_flag_changes_predictor_value_contributions(aggregate, predictors):
+    """``missing`` must control whether MISSING bins appear at value level.
+
+    Regression test: the value-level path had no ``missing`` filter at all, so
+    MISSING bins were always returned regardless of the flag.
+    """
+    with_missing = aggregate.get_predictor_value_contributions(predictors=predictors, missing=True)
+    without_missing = aggregate.get_predictor_value_contributions(predictors=predictors, missing=False)
+
+    assert with_missing.height == 11
+    assert with_missing.filter(pl.col(_COL.BIN_CONTENTS.value) == _SPECIAL.MISSING.name).height == 2
+    assert without_missing.height == 10
+    assert without_missing.filter(pl.col(_COL.BIN_CONTENTS.value) == _SPECIAL.MISSING.name).height == 0
+
+
+@pytest.mark.parametrize("top_n", [0, -1, True])
+def test_get_predictor_contributions_rejects_invalid_top_n(aggregate, top_n):
+    """``top_n`` must be a positive integer.
+
+    Regression test: the check used truthiness, so ``0`` slipped through while the
+    perfectly valid ``1`` was rejected.
+    """
+    with pytest.raises(ValueError):
+        aggregate.get_predictor_contributions(top_n=top_n)
+
+
+def test_get_predictor_contributions_accepts_top_n_of_one(aggregate):
+    """``top_n=1`` is valid and returns exactly one predictor plus the rollup."""
+    df = aggregate.get_predictor_contributions(top_n=1)
+    assert df[_COL.PREDICTOR_NAME.value].to_list() == ["Age", _SPECIAL.REMAINING.value]

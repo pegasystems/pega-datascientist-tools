@@ -247,7 +247,7 @@ class Aggregate(LazyNamespace):
 
         # If we do not want to include the missing predictor values, we filter them out
         if not missing:
-            df = df.filter(_COL.BIN_CONTENTS.value != _SPECIAL.MISSING.name)
+            df = df.filter(pl.col(_COL.BIN_CONTENTS.value) != _SPECIAL.MISSING.name)
 
         # Aggregate all the different types of contributions
         # note: total_frequency is computed per predictor so the weighted average
@@ -325,6 +325,10 @@ class Aggregate(LazyNamespace):
         predictors = predictors or []
         if len(predictors) > 0:
             df = self._filter_for_predictors(df, predictors)
+
+        # If we do not want to include the missing predictor values, we filter them out
+        if not missing:
+            df = df.filter(pl.col(_COL.BIN_CONTENTS.value) != _SPECIAL.MISSING.name)
 
         # Aggregate all the different types of contributions
         # note: we need to aggregate frequency over partition to calculate weighted contributions
@@ -472,9 +476,10 @@ class Aggregate(LazyNamespace):
         )
 
     def _get_missing_predictor_values_df(self, df: pl.LazyFrame) -> pl.LazyFrame:
+        """Return the rows holding the "missing" bin, which is keyed on bin contents."""
         return df.filter(
-            pl.col(_COL.PREDICTOR_NAME.value) == _SPECIAL.MISSING.name,
-        ).select(pl.all())
+            pl.col(_COL.BIN_CONTENTS.value) == _SPECIAL.MISSING.name,
+        )
 
     def _get_df(
         self,
@@ -533,7 +538,7 @@ class Aggregate(LazyNamespace):
         if len(aggregate_over) == 1 and aggregate_over[0] == _COL.PARTITION.value:
             return df.with_columns(
                 pl.lit(_SPECIAL.REMAINING.value).alias(_COL.PREDICTOR_NAME.value),
-                pl.lit(_PREDICTOR_TYPE.SYMBOLIC).alias(_COL.PREDICTOR_TYPE.value),
+                pl.lit(_PREDICTOR_TYPE.SYMBOLIC.value).alias(_COL.PREDICTOR_TYPE.value),
             )
         return df.with_columns(
             pl.lit(_SPECIAL.REMAINING.value).alias(_COL.BIN_CONTENTS.value),

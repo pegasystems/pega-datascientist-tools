@@ -277,9 +277,6 @@ class Reports(LazyNamespace):
             logger.info("Data exported to %s", final_path)
             return final_path
 
-        except Exception as e:
-            logger.error(e)
-            raise
         finally:
             if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
                 shutil.rmtree(temp_dir, ignore_errors=True)

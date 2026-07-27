@@ -178,7 +178,8 @@ PATCH_TEMPLATE = r"{{% block {block} -%}}\n{patch}{{% endblock {block} %}}\n"
 def search(block, template):
     pattern = BLOCK_REGEX.format(block=block)
     m = re.search(pattern, template, re.DOTALL)
-    assert m is not None, f"Block {block} is not found"
+    if m is None:
+        raise ValueError(f"Block {block} is not found")
     return m.group(3)
 
 
