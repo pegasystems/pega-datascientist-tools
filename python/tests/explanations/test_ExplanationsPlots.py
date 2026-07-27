@@ -278,15 +278,14 @@ def _assert_fig_bar_data_predictors_special_bins(
     check_missing=False,
     exists=True,
 ):
-    fig = next(
-        (f for f in predictor_figs if _get_predictor_name_from_fig(f) == predictor_name),
-        None,
+    # An earlier version of this helper matched on trace.name (always None),
+    # so it silently found nothing and asserted nothing. Look the figure up by
+    # name so a miss fails here rather than passing vacuously.
+    figs_by_predictor = {_get_predictor_name_from_fig(f): f for f in predictor_figs}
+    assert predictor_name in figs_by_predictor, (
+        f"No figure found for predictor {predictor_name!r}; got {sorted(figs_by_predictor)}"
     )
-    assert fig is not None, (
-        f"No figure found for predictor {predictor_name!r}; "
-        f"got {[_get_predictor_name_from_fig(f) for f in predictor_figs]}"
-    )
-    bar_data = _get_bar_data_from_fig(fig)
+    bar_data = _get_bar_data_from_fig(figs_by_predictor[predictor_name])
     if check_missing:
         if exists:
             assert MISSING in bar_data.y

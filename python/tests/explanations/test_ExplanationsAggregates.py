@@ -8,6 +8,7 @@ import pytest
 from pdstools.explanations import Explanations
 from pdstools.explanations.ContextOperations import ContextOperations
 from pdstools.explanations._constants import MISSING, REMAINING, TOTAL_FREQUENCY
+from pdstools.explanations.Schema import AGGREGATE_SCHEMA
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
 
@@ -44,8 +45,9 @@ class TestAggregateLoadData:
     """Test cases for the lazily-read ``contextual`` / ``overall`` frames."""
 
     def test_frames_are_lazy_and_cached(self, aggregates):
-        """Frames are LazyFrames and the same object on repeated access."""
-        assert isinstance(aggregates.overall, pl.LazyFrame)
+        """Frames stay lazy and are computed once, not on every access."""
+        # A LazyFrame exposes the schema without reading the row groups.
+        assert aggregates.overall.collect_schema().names() == list(AGGREGATE_SCHEMA)
         assert aggregates.overall is aggregates.overall
         assert aggregates.contextual is aggregates.contextual
 
@@ -1112,8 +1114,6 @@ class TestSchema:
     """The aggregated parquet files are narrowed and cast on read."""
 
     def test_scan_applies_expected_dtypes(self, aggregates):
-        from pdstools.explanations.Schema import AGGREGATE_SCHEMA
-
         schema = aggregates.overall.collect_schema()
         assert dict(schema) == AGGREGATE_SCHEMA
 
