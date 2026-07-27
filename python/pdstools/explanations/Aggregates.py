@@ -4,7 +4,7 @@ __all__ = ["Aggregates"]
 
 import logging
 from functools import cached_property
-from typing import ClassVar, TYPE_CHECKING, cast, overload
+from typing import ClassVar, TYPE_CHECKING, TypeVar
 
 import polars as pl
 
@@ -22,6 +22,24 @@ from ._constants import (
 from .ContextOperations import ContextOperations
 
 logger = logging.getLogger(__name__)
+
+FrameT = TypeVar("FrameT", pl.DataFrame, pl.LazyFrame)
+
+
+def _weighted(col: str, alias: str) -> pl.Expr:
+    """Frequency-weighted mean of *col*, normalised by the group total frequency."""
+    return ((pl.col(col) * pl.col("frequency")).sum() / pl.col(TOTAL_FREQUENCY).first()).alias(alias)
+
+
+_CONTRIBUTION_AGGREGATIONS = [
+    pl.col("contribution").mean().alias("contribution"),
+    pl.col("contribution_abs").mean().alias("contribution_abs"),
+    _weighted("contribution", "contribution_weighted"),
+    _weighted("contribution_abs", "contribution_weighted_abs"),
+    pl.col("frequency").sum().alias("frequency"),
+    pl.col("contribution_min").min().alias("contribution_min"),
+    pl.col("contribution_max").max().alias("contribution_max"),
+]
 
 _SELECTED_COLUMNS = [
     "context_partition",
@@ -122,7 +140,7 @@ class Aggregates(LazyNamespace):
             raise ValueError(f"Invalid top_n value: {top_n}. Must be a positive integer.")
 
         return self._predictor_contributions(
-            contexts=cast("list[dict[str, str]]", [context]) if context else None,
+            contexts=[context] if context else None,
             limit=top_n,
             sort_by=sort_by,
             descending=descending,
@@ -176,7 +194,7 @@ class Aggregates(LazyNamespace):
             raise ValueError(f"Invalid top_k value: {top_k}. Must be a positive integer.")
 
         return self._predictor_value_contributions(
-            contexts=cast("list[dict[str, str]]", [context]) if context else None,
+            contexts=[context] if context else None,
             predictors=predictors,
             limit=top_k,
             sort_by=sort_by,
@@ -394,7 +412,8 @@ class Aggregates(LazyNamespace):
         df_out = df_top_predictor_values.unique()
         df_out = df_out.sort(
             by=[
-                *self._get_sort_over_columns(predictors=None),
+                "predictor_name",
+                "context_partition",
                 "sort_value",
                 "bin_contents",
             ],
@@ -493,14 +512,6 @@ class Aggregates(LazyNamespace):
             how="inner",
         )
 
-    def _get_sort_over_columns(
-        self,
-        predictors: list[str] | None = None,
-    ) -> list[str]:
-        if predictors is None or len(predictors) == 0:
-            return ["predictor_name", "context_partition"]
-        return ["context_partition"]
-
     def _calculate_remaining_aggregates(
         self,
         df_all: pl.LazyFrame,
@@ -538,24 +549,10 @@ class Aggregates(LazyNamespace):
         return self._agg_over_columns_in_df(data, aggregate_over)
 
     @staticmethod
-    @overload
-    def _add_total_frequency_to_df(df: pl.DataFrame, group_by: list[str]) -> pl.DataFrame: ...
-
-    @staticmethod
-    @overload
-    def _add_total_frequency_to_df(df: pl.LazyFrame, group_by: list[str]) -> pl.LazyFrame: ...
-
-    @staticmethod
-    def _add_total_frequency_to_df(
-        df: pl.DataFrame | pl.LazyFrame,
-        group_by: list[str],
-    ) -> pl.DataFrame | pl.LazyFrame:
-        if isinstance(df, pl.DataFrame):
-            grouped_df = df.group_by(group_by).agg(pl.sum("frequency").alias(TOTAL_FREQUENCY))
-            return grouped_df.join(df, on=group_by, how="left")
-
-        grouped_lf = df.group_by(group_by).agg(pl.sum("frequency").alias(TOTAL_FREQUENCY))
-        return grouped_lf.join(df, on=group_by, how="left")
+    def _add_total_frequency_to_df(df: FrameT, group_by: list[str]) -> FrameT:
+        """Join a per-group ``total_frequency`` column onto *df*."""
+        grouped = df.group_by(group_by).agg(pl.sum("frequency").alias(TOTAL_FREQUENCY))
+        return grouped.join(df, on=group_by, how="left")
 
     def _add_frequency_pct(self, df: pl.DataFrame, group_by: list[str]) -> pl.DataFrame:
         """Add a frequency percentage column to the dataframe based on the total frequency per group."""
@@ -606,51 +603,9 @@ class Aggregates(LazyNamespace):
         )
 
     @staticmethod
-    def _get_mean_aggregates():
-        """Get mean contribution aggregates."""
-
-        def _apply(col):
-            return pl.col(col).mean().alias(col)
-
-        return [
-            _apply("contribution"),
-            _apply("contribution_abs"),
-        ]
-
-    @staticmethod
-    def _get_weighted_aggregates():
-        """Get frequency-weighted contribution aggregates normalized by total frequency."""
-
-        def _apply(col, alias):
-            return ((pl.col(col) * pl.col("frequency")).sum() / pl.col(TOTAL_FREQUENCY).first()).alias(alias)
-
-        return [
-            _apply("contribution", "contribution_weighted"),
-            _apply("contribution_abs", "contribution_weighted_abs"),
-        ]
-
-    @staticmethod
-    def _get_frequency_aggregate():
-        """Get frequency sum aggregate."""
-        return [pl.col("frequency").sum().alias("frequency")]
-
-    @staticmethod
-    def _get_bounds_aggregates():
-        """Get min and max contribution bounds."""
-        return [
-            pl.col("contribution_min").min().alias("contribution_min"),
-            pl.col("contribution_max").max().alias("contribution_max"),
-        ]
-
-    def _agg_over_columns_in_df(self, df, group_by):
-        """Aggregates contribution metrics over specified columns."""
-        aggregate_by_list = [
-            *self._get_mean_aggregates(),
-            *self._get_weighted_aggregates(),
-            *self._get_frequency_aggregate(),
-            *self._get_bounds_aggregates(),
-        ]
-        return df.group_by(group_by).agg(aggregate_by_list)
+    def _agg_over_columns_in_df(df: FrameT, group_by: list[str]) -> FrameT:
+        """Aggregate contribution metrics over *group_by*."""
+        return df.group_by(group_by).agg(_CONTRIBUTION_AGGREGATIONS)
 
     @staticmethod
     def _filter_single_bin_numeric_predictors(df: pl.LazyFrame) -> pl.LazyFrame:

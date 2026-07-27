@@ -271,9 +271,6 @@ class TestAggregateAndContextOperationHelpers:
         """Without a context filter, the base frame is the overall frame."""
         assert aggregates._get_base_df() is aggregates.overall
 
-    def test_get_sort_over_columns_with_predictors(self, aggregates):
-        assert aggregates._get_sort_over_columns(["Age"]) == ["context_partition"]
-
     def test_context_operations_context_keys(self, aggregates):
         keys = aggregates.context_operations.context_keys
         assert keys

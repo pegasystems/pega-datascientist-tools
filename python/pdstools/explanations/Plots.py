@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ["Plots"]
 
 import logging
-from typing import ClassVar, Literal, TYPE_CHECKING, cast, overload
+from typing import ClassVar, Literal, TYPE_CHECKING, overload
 
 import polars as pl
 
@@ -28,9 +28,6 @@ class Plots(LazyNamespace):
 
     dependencies: ClassVar[list[str]] = ["numpy", "plotly"]
     dependency_group = "explanations"
-
-    X_AXIS_TITLE_DEFAULT = "Contribution"
-    Y_AXIS_TITLE_DEFAULT = "Predictor"
 
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
@@ -188,9 +185,10 @@ class Plots(LazyNamespace):
         )
 
         # filter out the context rows for plotting by context
-        contexts = list(context.keys())
+        # is_in yields null for null predictor_name, and ~null is null, which
+        # filter drops — fill_null keeps those rows instead.
         df_context = df_context.filter(
-            ~pl.col("predictor_name").is_in(contexts),
+            ~pl.col("predictor_name").is_in(list(context.keys())).fill_null(False),
         )
 
         predictors = (
@@ -217,14 +215,14 @@ class Plots(LazyNamespace):
         if return_df:
             return df_context, df
 
-        header_fig = self._context_table_figure(cast("dict[str, str]", context))
+        header_fig = self._context_table_figure(context)
 
         overall_fig = self._overall_figure(
             df_context,
             x_col=display_by,
             y_col="predictor_name",
             x_title=display_by_label,
-            context=cast("dict[str, str]", context),
+            context=context,
         )
 
         predictors_figs = self._predictor_figures(
@@ -284,8 +282,8 @@ class Plots(LazyNamespace):
         df: pl.DataFrame,
         x_col: str,
         y_col: str,
-        x_title: str = X_AXIS_TITLE_DEFAULT,
-        y_title: str = Y_AXIS_TITLE_DEFAULT,
+        x_title: str,
+        y_title: str = "Predictor",
         context: dict[str, str] | None = None,
     ) -> go.Figure:
         import plotly.graph_objects as go
@@ -334,8 +332,8 @@ class Plots(LazyNamespace):
         df: pl.DataFrame,
         x_col: str,
         y_col: str,
-        x_title: str = X_AXIS_TITLE_DEFAULT,
-        y_title: str = Y_AXIS_TITLE_DEFAULT,
+        x_title: str,
+        y_title: str = "Predictor",
     ) -> list[go.Figure]:
         import plotly.graph_objects as go
 
