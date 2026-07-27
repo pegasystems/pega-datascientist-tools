@@ -14,7 +14,7 @@ _SAMPLE_TREES_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascie
 if TYPE_CHECKING:
     from ..adm.trees import ADMTreesModel
     from ..data_quality._topic_data_quality import TopicDataQuality
-    from ..explanations import Explanations
+    from ..explanations.Explanations import Explanations
     from ..utils.types import QUERY
 else:
     ADMTreesModel = None
