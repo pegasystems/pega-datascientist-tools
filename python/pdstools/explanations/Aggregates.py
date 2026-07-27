@@ -4,7 +4,7 @@ __all__ = ["Aggregates"]
 
 import logging
 from functools import cached_property
-from typing import ClassVar, TYPE_CHECKING, TypeVar
+from typing import ClassVar, TYPE_CHECKING
 
 import polars as pl
 
@@ -24,8 +24,6 @@ from .Schema import apply_schema
 
 logger = logging.getLogger(__name__)
 
-FrameT = TypeVar("FrameT", pl.DataFrame, pl.LazyFrame)
-
 
 def _weighted(col: str, alias: str) -> pl.Expr:
     """Frequency-weighted mean of *col*, normalised by the group total frequency."""
@@ -44,6 +42,8 @@ _CONTRIBUTION_AGGREGATIONS = [
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from ..utils.cdh_utils._common import F
 
     from .Explanations import Explanations
 
@@ -536,9 +536,15 @@ class Aggregates(LazyNamespace):
         return self._agg_over_columns_in_df(data, aggregate_over)
 
     @staticmethod
-    def _add_total_frequency_to_df(df: FrameT, group_by: list[str]) -> FrameT:
+    def _add_total_frequency_to_df(df: F, group_by: list[str]) -> F:
         """Join a per-group ``total_frequency`` column onto *df*."""
         grouped = df.group_by(group_by).agg(pl.sum("frequency").alias(TOTAL_FREQUENCY))
+        # pyrefly bug: when expanding a constrained TypeVar it fails to narrow the
+        # argument to the branch's concrete type, so `df` stays `F` and no overload
+        # of `join` matches. pyright accepts this. Minimal repro:
+        #     F = TypeVar("F", pl.DataFrame, pl.LazyFrame)
+        #     def f(df: F) -> F: return df.head(1).join(df, on="x", how="left")
+        # pyrefly: ignore[bad-argument-type, bad-return]
         return grouped.join(df, on=group_by, how="left")
 
     def _add_frequency_pct(self, df: pl.DataFrame, group_by: list[str]) -> pl.DataFrame:
@@ -590,7 +596,7 @@ class Aggregates(LazyNamespace):
         )
 
     @staticmethod
-    def _agg_over_columns_in_df(df: FrameT, group_by: list[str]) -> FrameT:
+    def _agg_over_columns_in_df(df: pl.LazyFrame, group_by: list[str]) -> pl.LazyFrame:
         """Aggregate contribution metrics over *group_by*."""
         return df.group_by(group_by).agg(_CONTRIBUTION_AGGREGATIONS)
 
