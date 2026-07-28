@@ -28,6 +28,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Excel, and individual model-report generation default to the import ``HC``
   folder when processed parquet output was kept.
 
+### Fixed
+
+- Full-embed HealthCheck and Model Report HTML output no longer duplicates the
+  embedded Plotly.js bundle once per chart. Because the Quarto renderer wasn't
+  told which resource mode to use before figures were drawn, ``full_embed=True``
+  reports could balloon to 100+ MB per report (multiple GB across a batch
+  run) as each chart inlined its own ~5 MB copy of the Plotly library; embed
+  output now contains a single shared copy, as intended. See
+  [#909](https://github.com/pegasystems/pega-datascientist-tools/issues/909)
+  for the postmortem write-up and manual validation steps.
+
 ## [5.0.0] — 2026-06-25
 
 Major release. **Breaking changes** — see
