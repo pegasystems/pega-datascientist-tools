@@ -40,6 +40,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `str.json_decode(infer_schema_length=None)`.
 - `pega_io.scan_parquet_path` now raises `FileNotFoundError` for a missing
   non-glob path instead of deferring the failure to a later `collect()`.
+- Explanations: the default `report.generate(output_dir=".tmp/reports")` wrote
+  a relative `data_folder` into `params.yml`. The Quarto pre-render script runs
+  with the report folder as its cwd and resolves a relative `data_folder`
+  against that folder's parent, so the report looked for its data in
+  `<cwd>/.tmp/.tmp/reports/data` and found nothing. `output_dir` is now
+  resolved to an absolute path.
+- Explanations: `from_aggregates` mishandled a URL `base_path` combined with an
+  absolute local filename, producing `https://host/agg//abs/f.parquet`. A full
+  path in either filename now wins in all cases, as documented.
+- Explanations: re-running `report.generate()` into a directory used by an
+  earlier run left orphaned `batches/BATCH_<n>.parquet` files and by-context
+  `.qmd` pages behind, contradicting the documented "rewritten on every call"
+  behaviour. Both are now cleared before being regenerated.
+- Explanations: an empty contextual dataset raised `StructFieldNotFoundError`
+  instead of simply yielding no contexts.
+- Explanations: the article notebook loaded its aggregates from a relative
+  repository path. `data/` is not shipped in PyPI releases, so the notebook
+  could not run from an installed package; it now uses
+  `pdstools.sample_explanations()`.
 
 ### Changed
 
