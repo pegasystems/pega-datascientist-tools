@@ -953,6 +953,7 @@ def test_plot_gain_per_tree_figure(rich_model: ADMTreesModel):
 
     fig = rich_model.plot.gain_per_tree()
     assert isinstance(fig, go.Figure)
+    assert fig.layout.margin.r == 100
 
 
 # ---------------------------------------------------------------------------
@@ -987,13 +988,13 @@ def test_plot_cumulative_gain_share_figure(rich_model: ADMTreesModel):
 
 def test_plot_feature_importance_by_gain_return_df(rich_model: ADMTreesModel):
     df = rich_model.plot.feature_importance_by_gain(return_df=True)
-    assert df.columns == ["predictor", "total_gain", "Predictor Group"]
+    assert df.columns == ["predictor", "total_gain", "PredictorCategory"]
     assert df.height == 15
     # Top predictor must be pyGroup.
     assert df["predictor"][0] == "pyGroup"
     assert df["total_gain"][0] == pytest.approx(48305.23435, rel=1e-4)
-    # py* predictors are grouped under "Context Keys".
-    assert df["Predictor Group"][0] == "Context Keys"
+    # Undotted py* context fields follow ADM's default Primary category.
+    assert df["PredictorCategory"][0] == "Primary"
     # All rows are sorted descending by total_gain.
     gains = df["total_gain"].to_list()
     assert gains == sorted(gains, reverse=True)
@@ -1009,6 +1010,10 @@ def test_plot_feature_importance_by_gain_figure(rich_model: ADMTreesModel):
 
     fig = rich_model.plot.feature_importance_by_gain()
     assert isinstance(fig, go.Figure)
+    colors_by_category = {trace.name: trace.marker.color for trace in fig.data}
+    assert colors_by_category["Customer"] == "#001F5F"
+    assert colors_by_category["IH"] == "#10A5AC"
+    assert colors_by_category["Primary"] == "#63666F"
 
 
 # ---------------------------------------------------------------------------
@@ -1018,7 +1023,7 @@ def test_plot_feature_importance_by_gain_figure(rich_model: ADMTreesModel):
 
 def test_plot_early_vs_late_gain_return_df(rich_model: ADMTreesModel):
     df = rich_model.plot.early_vs_late_gain(return_df=True)
-    assert df.columns == ["predictor", "early_gain", "late_gain", "total_gain", "Predictor Group"]
+    assert df.columns == ["predictor", "early_gain", "late_gain", "total_gain", "PredictorCategory"]
     assert df.height == 179
     # Every predictor that appears has non-negative gains in each bucket.
     assert (df["early_gain"] >= 0).all()
@@ -1031,8 +1036,8 @@ def test_plot_early_vs_late_gain_return_df(rich_model: ADMTreesModel):
     row = df.filter(df["predictor"] == "pyGroup").row(0, named=True)
     assert row["early_gain"] == pytest.approx(15286.858930, rel=1e-4)
     assert row["late_gain"] == pytest.approx(6791.741500, rel=1e-4)
-    # py* predictors are grouped under "Context Keys".
-    assert row["Predictor Group"] == "Context Keys"
+    # Undotted py* context fields follow ADM's default Primary category.
+    assert row["PredictorCategory"] == "Primary"
 
 
 def test_plot_early_vs_late_gain_figure(rich_model: ADMTreesModel):
@@ -1049,14 +1054,14 @@ def test_plot_early_vs_late_gain_figure(rich_model: ADMTreesModel):
 
 def test_plot_gain_by_namespace_return_df(rich_model: ADMTreesModel):
     df = rich_model.plot.gain_by_namespace(return_df=True)
-    assert df.columns == ["Predictor Group", "total_gain", "gain_share"]
-    # 4 distinct predictor groups (IH, Context Keys, Customer, Param).
+    assert df.columns == ["PredictorCategory", "total_gain", "gain_share"]
+    # 4 distinct predictor categories (IH, Primary, Customer, Param).
     assert df.height == 4
     # gain_share must sum to 1.
     assert df["gain_share"].sum() == pytest.approx(1.0, abs=1e-9)
-    # IH is the dominant predictor group.
+    # IH is the dominant predictor category.
     top = df.sort("total_gain", descending=True).row(0, named=True)
-    assert top["Predictor Group"] == "IH"
+    assert top["PredictorCategory"] == "IH"
     assert top["gain_share"] == pytest.approx(0.45146, abs=1e-4)
 
 
@@ -1065,6 +1070,10 @@ def test_plot_gain_by_namespace_figure(rich_model: ADMTreesModel):
 
     fig = rich_model.plot.gain_by_namespace()
     assert isinstance(fig, go.Figure)
+    expected_order = rich_model.plot.gain_by_namespace(return_df=True)["PredictorCategory"].to_list()
+    assert list(fig.layout.yaxis.categoryarray) == expected_order
+    assert fig.layout.yaxis.autorange == "reversed"
+    assert fig.layout.yaxis.automargin is True
 
 
 # ---------------------------------------------------------------------------
@@ -1074,17 +1083,17 @@ def test_plot_gain_by_namespace_figure(rich_model: ADMTreesModel):
 
 def test_plot_feature_role_map_return_df(rich_model: ADMTreesModel):
     df = rich_model.plot.feature_role_map(return_df=True)
-    assert df.columns == ["predictor", "mean_depth", "tree_coverage", "total_gain", "Predictor Group"]
+    assert df.columns == ["predictor", "mean_depth", "tree_coverage", "total_gain", "PredictorCategory"]
     assert df.height == 194
     # pyGroup is used in 63 distinct trees.
     row = df.filter(df["predictor"] == "pyGroup").row(0, named=True)
     assert row["tree_coverage"] == 63
     assert row["total_gain"] == pytest.approx(48305.23435, rel=1e-4)
     assert row["mean_depth"] == pytest.approx(4.3161, abs=1e-3)
-    # py* predictors are grouped under "Context Keys".
-    assert row["Predictor Group"] == "Context Keys"
-    # Exactly 4 predictor groups present.
-    assert df["Predictor Group"].n_unique() == 4
+    # Undotted py* context fields follow ADM's default Primary category.
+    assert row["PredictorCategory"] == "Primary"
+    # Exactly 4 predictor categories present.
+    assert df["PredictorCategory"].n_unique() == 4
 
 
 def test_plot_feature_role_map_figure(rich_model: ADMTreesModel):

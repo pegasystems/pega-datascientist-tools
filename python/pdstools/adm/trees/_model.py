@@ -380,6 +380,71 @@ class ADMTreesModel:
         """
         return self._compute_metrics()
 
+    def sanity_check(self) -> dict[str, Any]:
+        """Flag common signs that this model has not learned anything useful yet.
+
+        Runs a handful of heuristic checks against :attr:`metrics` — very
+        few trees, mostly-stump trees, near-random AUC, an inverted or very
+        low response volume, or a narrow active-predictor set — that
+        together indicate a model is too early in its training lifecycle
+        for its plots and metrics to be a reliable read on real-world
+        performance.
+
+        Returns
+        -------
+        dict
+            Dictionary with keys ``n_trees``, ``pooled_auc``,
+            ``positive_count``, ``negative_count``, and ``flags`` (a list
+            of human-readable warning strings; empty when no red flags
+            apply).
+        """
+        m = self.metrics
+        n_trees = m["number_of_trees"]
+        n_stumps = m["number_of_stump_trees"]
+        total_splits = m["number_of_numeric_splits"] + m["number_of_symbolic_splits"]
+        avg_splits_per_tree = total_splits / n_trees if n_trees else 0
+        pos, neg = m["response_positive_count"], m["response_negative_count"]
+        active_predictors = m["total_number_of_active_predictors"]
+        pooled_auc = m["auc"]
+
+        checks = [
+            (
+                n_trees < 10,
+                f"Only {n_trees} tree(s) — model has barely started learning.",
+            ),
+            (
+                n_trees > 0 and n_stumps / n_trees > 0.5,
+                f"{n_stumps}/{n_trees} trees are stumps (no split) — mostly non-informative trees.",
+            ),
+            (
+                avg_splits_per_tree <= 1,
+                f"Avg splits/tree = {avg_splits_per_tree:.2f} — model is not developing structure (SOP-ADM009).",
+            ),
+            (
+                abs(pooled_auc - 0.5) < 0.02,
+                f"Pooled AUC = {pooled_auc:.4f} — statistically indistinguishable from random.",
+            ),
+            (
+                neg < pos,
+                f"Negatives ({neg:,}) < positives ({pos:,}) — inverted response ratio; unusual for an NBA response model.",
+            ),
+            (
+                min(pos, neg) < 200,
+                f"Very low response volume (positives={pos:,}, negatives={neg:,}) — metrics are not yet statistically stable.",
+            ),
+            (
+                active_predictors < 5,
+                f"Only {active_predictors} active predictor(s) — model is deciding on a very narrow feature set.",
+            ),
+        ]
+        return {
+            "n_trees": n_trees,
+            "pooled_auc": pooled_auc,
+            "positive_count": pos,
+            "negative_count": neg,
+            "flags": [msg for is_flag, msg in checks if is_flag],
+        }
+
     @staticmethod
     def metric_descriptions() -> dict[str, str]:
         """Return a dictionary mapping metric names to human-readable descriptions."""
@@ -869,6 +934,7 @@ class ADMTreesModel:
 
         gains_per_split = pl.DataFrame(
             {"split": all_splits, "gains": all_gains, "predictor": all_predictors},
+            schema={"split": pl.String, "gains": pl.Float64, "predictor": pl.String},
         )
         return splits_per_tree, gains_per_tree, gains_per_split
 
@@ -923,7 +989,11 @@ class ADMTreesModel:
                     "meangains": mean(gains) if gains else 0,
                 },
             )
-        return pl.from_dicts(rows)
+        # Without an explicit schema, polars infers "gains" as List(Null) when
+        # every tree has an empty gains list (e.g. a single-tree, zero-split
+        # cold-start candidate), which breaks numeric ops like `list.sum()`
+        # and `cum_sum()` downstream. Pin the element type explicitly.
+        return pl.from_dicts(rows, schema_overrides={"gains": pl.List(pl.Float64)})
 
     def get_all_values_per_split(self) -> dict[str, set]:
         """All distinct split values seen for each predictor."""
