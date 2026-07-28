@@ -1,0 +1,77 @@
+pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio
+=====================================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.PredictionStudio
+   pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio.AsyncPredictionStudio
+
+
+Module Contents
+---------------
+
+.. py:class:: PredictionStudio(client: pdstools.infinity.internal._base_client.SyncAPIClient)
+
+   Bases: :py:obj:`_PredictionStudioV24_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.PredictionStudioBase`
+
+
+   v24.1 PredictionStudio business logic — shared parts.
+
+
+   .. py:property:: predictions
+      :type: pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction]
+
+
+      All predictions, addressable by label or id.
+
+      :returns: A lazily-fetched, mapping-style collection. Supports
+                ``ps.predictions['My Prediction']`` (by label or id),
+                ``'My Prediction' in ps.predictions``, ``ps.predictions.keys()``
+                and iteration.
+      :rtype: PaginatedList[Prediction]
+
+
+   .. py:method:: list_predictions(return_df: Literal[False] = False) -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction]
+                  list_predictions(return_df: Literal[True]) -> polars.DataFrame
+
+
+   .. py:method:: repository() -> pdstools.infinity.resources.prediction_studio.v24_1.repository.Repository
+
+
+.. py:class:: AsyncPredictionStudio(client: pdstools.infinity.internal._base_client.AsyncAPIClient)
+
+   Bases: :py:obj:`_PredictionStudioV24_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncPredictionStudioBase`
+
+
+   v24.1 PredictionStudio business logic — shared parts.
+
+
+   .. py:property:: predictions
+      :type: pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction]
+
+
+      All predictions, addressable by label or id.
+
+      :returns: A lazily-fetched, mapping-style collection. Supports
+                ``await ps.predictions.get(label='My Prediction')`` and
+                ``async for p in ps.predictions``.
+      :rtype: AsyncPaginatedList[AsyncPrediction]
+
+
+   .. py:method:: list_predictions(return_df: Literal[False] = False) -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction]
+                  list_predictions(return_df: Literal[True]) -> polars.DataFrame
+      :async:
+
+
+
+   .. py:method:: repository() -> pdstools.infinity.resources.prediction_studio.v24_1.repository.AsyncRepository
+      :async:
+
+
+

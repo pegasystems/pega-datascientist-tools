@@ -1,0 +1,51 @@
+pdstools.cli
+============
+
+.. py:module:: pdstools.cli
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.cli.APPS
+   pdstools.cli.ALIASES
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.cli.create_parser
+   pdstools.cli.check_for_typos
+   pdstools.cli.main
+   pdstools.cli.run
+
+
+Module Contents
+---------------
+
+.. py:data:: APPS
+
+.. py:data:: ALIASES
+
+.. py:function:: create_parser()
+
+.. py:function:: check_for_typos(unknown_args, known_args)
+
+   Check if unknown arguments might be typos of known pdstools arguments.
+
+   Args:
+       unknown_args: List of unknown arguments from parse_known_args
+       known_args: List of known pdstools argument names (with --)
+
+   Returns:
+       List of (typo, suggestion, similarity) tuples for likely typos
+
+
+.. py:function:: main()
+
+.. py:function:: run(args, unknown)
+

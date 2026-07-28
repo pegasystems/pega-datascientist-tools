@@ -1,0 +1,97 @@
+pdstools.decision_analyzer.stage_grouping
+=========================================
+
+.. py:module:: pdstools.decision_analyzer.stage_grouping
+
+.. autoapi-nested-parse::
+
+   Canonical NBAD pipeline hierarchy with user-friendly display names.
+
+   Maps internal stage group names (``Stage_pyStageGroup``) and stage names
+   (``Stage_pyName``) to the display names shown in the Pega application.
+
+   If a value from the data has no entry here, ``get_display_name`` falls back
+   to the raw value so future pipeline stages are handled gracefully.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.decision_analyzer.stage_grouping.NBAD_PIPELINE
+   pdstools.decision_analyzer.stage_grouping.DISPLAY_NAME_LOOKUP
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.decision_analyzer.stage_grouping.StageGroupDef
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.decision_analyzer.stage_grouping.get_stage_group_display_name
+   pdstools.decision_analyzer.stage_grouping.get_stage_display_name
+   pdstools.decision_analyzer.stage_grouping.get_display_name
+   pdstools.decision_analyzer.stage_grouping.get_stage_group_for_stage
+
+
+Module Contents
+---------------
+
+.. py:class:: StageGroupDef
+
+   Bases: :py:obj:`TypedDict`
+
+
+   Stage group def.
+
+
+   .. py:attribute:: display_name
+      :type:  str
+
+
+   .. py:attribute:: stages
+      :type:  dict[str, str]
+
+
+.. py:data:: NBAD_PIPELINE
+   :type:  dict[str, StageGroupDef]
+
+.. py:data:: DISPLAY_NAME_LOOKUP
+   :type:  dict[str, str]
+
+.. py:function:: get_stage_group_display_name(internal_name: str) -> str
+
+   Return the display name for a stage group, or ``internal_name`` if not found.
+
+
+.. py:function:: get_stage_display_name(internal_name: str) -> str
+
+   Return the display name for a stage, or ``internal_name`` if not found.
+
+
+.. py:function:: get_display_name(internal_name: str) -> str
+
+   Return the display name for a stage group or stage.
+
+   Checks stage groups first, then stages. Returns ``internal_name`` if
+   no mapping exists — ensuring forward compatibility with new pipeline stages.
+
+
+.. py:function:: get_stage_group_for_stage(stage_name: str) -> str | None
+
+   Return the internal stage group name for a given internal stage name.
+
+   Returns ``None`` if the stage is not found. Both the input and the return
+   value are internal names (pre-transformation). After data transformation
+   the stage-to-group relationship is read directly from the data.
+
+

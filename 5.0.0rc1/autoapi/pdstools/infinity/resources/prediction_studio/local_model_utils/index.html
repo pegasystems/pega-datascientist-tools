@@ -1,0 +1,1287 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../../../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../../../../../genindex.html"><link rel="search" title="Search" href="../../../../../../search.html"><link rel="next" title="pdstools.infinity.resources.prediction_studio.model_security" href="../model_security/index.html"><link rel="prev" title="pdstools.infinity.resources.prediction_studio.base" href="../base/index.html">
+        <link rel="prefetch" href="../../../../../../_static/pegasystems-inc-vector-logo.svg" as="image">
+
+    <link rel="shortcut icon" href="../../../../../../_static/pegasystems-inc-vector-logo.svg"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>pdstools.infinity.resources.prediction_studio.local_model_utils - pdstools</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../../../../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../../../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="../../../../../../_static/version-switcher.css?v=6293ef20" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+
+</head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../../../../index.html"><div class="brand">pdstools</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><div class="sidebar-scroll"><a class="sidebar-brand" href="../../../../../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../../../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">pdstools</span>
+  
+</a><div class="version-switcher" data-current-version="5.0.0rc1">
+  <label for="pdstools-version-select">Version</label>
+  <select id="pdstools-version-select" aria-label="Select documentation version">
+    <option value="">5.0.0rc1</option>
+  </select>
+</div><form class="sidebar-search-container" method="get" action="../../../../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../GettingStarted.html">Getting Started for Data Scientists</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../GettingStartedWithTheStandAloneApplication.html">Getting Started with the ADM Health Check Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../GettingStartedWithDecisionAnalyzer.html">Getting Started with the Decision Analyzer Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../logging.html">Logging and Debugging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/Example_ADM_Analysis.html">Example ADM analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/Example_IH_Analysis.html">Example IH (Interaction History) Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/Predictions.html">Example Prediction Studio Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/vf_analysis.html">Value Finder Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/explainability_extract.html">Explainability Extract Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/decision_analyzer.html">Decision Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Articles</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/AGBExplained.html">Adaptive Gradient Boosting (AGB) Explained</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/thompsonsampling.html">Thompson Sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/ADMExplained.html">ADM NB Explained</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../articles/agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference Information</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../../../reference.html">Additional References</a><input aria-label="Toggle navigation of Additional References" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/releases">Changelog</a></li>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools">GitHub Repository</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../cli.html">Command Line Interface</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../../../../index.html">API Reference</a><input aria-label="Toggle navigation of API Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../../../../index.html">pdstools</a><input aria-label="Toggle navigation of pdstools" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../adm/index.html">pdstools.adm</a><input aria-label="Toggle navigation of pdstools.adm" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../adm/ADMDatamart/index.html">pdstools.adm.ADMDatamart</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../adm/Aggregates/index.html">pdstools.adm.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../adm/Analysis/index.html">pdstools.adm.Analysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../adm/BinAggregator/index.html">pdstools.adm.BinAggregator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../adm/HealthCheckMarkdown/index.html">pdstools.adm.HealthCheckMarkdown</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../adm/Plots/index.html">pdstools.adm.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../adm/Reports/index.html">pdstools.adm.Reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../adm/Schema/index.html">pdstools.adm.Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../adm/trees/index.html">pdstools.adm.trees</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../cli/index.html">pdstools.cli</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../data_quality/index.html">pdstools.data_quality</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../decision_analyzer/index.html">pdstools.decision_analyzer</a><input aria-label="Toggle navigation of pdstools.decision_analyzer" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../decision_analyzer/DecisionAnalyzer/index.html">pdstools.decision_analyzer.DecisionAnalyzer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../decision_analyzer/column_schema/index.html">pdstools.decision_analyzer.column_schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../decision_analyzer/data_read_utils/index.html">pdstools.decision_analyzer.data_read_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../decision_analyzer/plots/index.html">pdstools.decision_analyzer.plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../decision_analyzer/stage_grouping/index.html">pdstools.decision_analyzer.stage_grouping</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../decision_analyzer/utils/index.html">pdstools.decision_analyzer.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../explanations/index.html">pdstools.explanations</a><input aria-label="Toggle navigation of pdstools.explanations" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../explanations/Aggregate/index.html">pdstools.explanations.Aggregate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../explanations/Explanations/index.html">pdstools.explanations.Explanations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../explanations/ExplanationsUtils/index.html">pdstools.explanations.ExplanationsUtils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../explanations/FilterWidget/index.html">pdstools.explanations.FilterWidget</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../explanations/Plots/index.html">pdstools.explanations.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../explanations/Preprocess/index.html">pdstools.explanations.Preprocess</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../explanations/Reports/index.html">pdstools.explanations.Reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../explanations/Schema/index.html">pdstools.explanations.Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../explanations/resources/index.html">pdstools.explanations.resources</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../ih/index.html">pdstools.ih</a><input aria-label="Toggle navigation of pdstools.ih" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../ih/Aggregates/index.html">pdstools.ih.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../ih/IH/index.html">pdstools.ih.IH</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../ih/Plots/index.html">pdstools.ih.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../ih/Schema/index.html">pdstools.ih.Schema</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../impactanalyzer/index.html">pdstools.impactanalyzer</a><input aria-label="Toggle navigation of pdstools.impactanalyzer" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../impactanalyzer/ImpactAnalyzer/index.html">pdstools.impactanalyzer.ImpactAnalyzer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../impactanalyzer/Plots/index.html">pdstools.impactanalyzer.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../impactanalyzer/Schema/index.html">pdstools.impactanalyzer.Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../impactanalyzer/statistics/index.html">pdstools.impactanalyzer.statistics</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current has-children"><a class="reference internal" href="../../../index.html">pdstools.infinity</a><input aria-label="Toggle navigation of pdstools.infinity" checked="" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../../../client/index.html">pdstools.infinity.client</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../internal/index.html">pdstools.infinity.internal</a></li>
+<li class="toctree-l4 current has-children"><a class="reference internal" href="../../index.html">pdstools.infinity.resources</a><input aria-label="Toggle navigation of pdstools.infinity.resources" checked="" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy</a><input aria-label="Toggle navigation of pdstools.infinity.resources.knowledge_buddy" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../knowledge_buddy/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy.knowledge_buddy</a></li>
+</ul>
+</li>
+<li class="toctree-l5 current has-children"><a class="reference internal" href="../index.html">pdstools.infinity.resources.prediction_studio</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio" checked="" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l6"><a class="reference internal" href="../base/index.html">pdstools.infinity.resources.prediction_studio.base</a></li>
+<li class="toctree-l6 current current-page"><a class="current reference internal" href="#">pdstools.infinity.resources.prediction_studio.local_model_utils</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../model_security/index.html">pdstools.infinity.resources.prediction_studio.model_security</a></li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../schemas/index.html">pdstools.infinity.resources.prediction_studio.schemas</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.schemas" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../schemas/model/index.html">pdstools.infinity.resources.prediction_studio.schemas.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas/model_instance/index.html">pdstools.infinity.resources.prediction_studio.schemas.model_instance</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas/notification/index.html">pdstools.infinity.resources.prediction_studio.schemas.notification</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas/prediction/index.html">pdstools.infinity.resources.prediction_studio.schemas.prediction</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="../types/index.html">pdstools.infinity.resources.prediction_studio.types</a></li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../v24_1/index.html">pdstools.infinity.resources.prediction_studio.v24_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_1" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../v24_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v24_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v24_1/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_1.repository</a></li>
+</ul>
+</li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../v24_2/index.html">pdstools.infinity.resources.prediction_studio.v24_2</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_2" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../v24_2/champion_challenger/index.html">pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v24_2/datamart_export/index.html">pdstools.infinity.resources.prediction_studio.v24_2.datamart_export</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v24_2/model/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v24_2/model_upload/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model_upload</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v24_2/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_2.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v24_2/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_2.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v24_2/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_2.repository</a></li>
+</ul>
+</li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../v25_1/index.html">pdstools.infinity.resources.prediction_studio.v25_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v25_1" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../v25_1/model/index.html">pdstools.infinity.resources.prediction_studio.v25_1.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v25_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v25_1.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v25_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio</a></li>
+</ul>
+</li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../v26_1/index.html">pdstools.infinity.resources.prediction_studio.v26_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v26_1" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../v26_1/champion_challenger/index.html">pdstools.infinity.resources.prediction_studio.v26_1.champion_challenger</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v26_1/datamart_export/index.html">pdstools.infinity.resources.prediction_studio.v26_1.datamart_export</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v26_1/model/index.html">pdstools.infinity.resources.prediction_studio.v26_1.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v26_1/model_upload/index.html">pdstools.infinity.resources.prediction_studio.v26_1.model_upload</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v26_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v26_1.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v26_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v26_1.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../v26_1/repository/index.html">pdstools.infinity.resources.prediction_studio.v26_1.repository</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../pega_io/index.html">pdstools.pega_io</a><input aria-label="Toggle navigation of pdstools.pega_io" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../pega_io/API/index.html">pdstools.pega_io.API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../pega_io/Anonymization/index.html">pdstools.pega_io.Anonymization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../pega_io/File/index.html">pdstools.pega_io.File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../pega_io/S3/index.html">pdstools.pega_io.S3</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../pega_io/action_analysis/index.html">pdstools.pega_io.action_analysis</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../prediction/index.html">pdstools.prediction</a><input aria-label="Toggle navigation of pdstools.prediction" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../prediction/Plots/index.html">pdstools.prediction.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../prediction/Prediction/index.html">pdstools.prediction.Prediction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../prediction/Schema/index.html">pdstools.prediction.Schema</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../reports/index.html">pdstools.reports</a><input aria-label="Toggle navigation of pdstools.reports" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../../reports/GlobalExplanations/index.html">pdstools.reports.GlobalExplanations</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../../reports/GlobalExplanations/scripts/index.html">pdstools.reports.GlobalExplanations.scripts</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations.scripts" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../../../reports/GlobalExplanations/scripts/generate_report/index.html">pdstools.reports.GlobalExplanations.scripts.generate_report</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../resources/index.html">pdstools.resources</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../utils/index.html">pdstools.utils</a><input aria-label="Toggle navigation of pdstools.utils" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/cdh_utils/index.html">pdstools.utils.cdh_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/color_mapping/index.html">pdstools.utils.color_mapping</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/datasets/index.html">pdstools.utils.datasets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/errors/index.html">pdstools.utils.errors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/metric_limits/index.html">pdstools.utils.metric_limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/namespaces/index.html">pdstools.utils.namespaces</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/number_format/index.html">pdstools.utils.number_format</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/pega_outcomes/index.html">pdstools.utils.pega_outcomes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/pega_template/index.html">pdstools.utils.pega_template</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/plot_utils/index.html">pdstools.utils.plot_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/polars_ext/index.html">pdstools.utils.polars_ext</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/progress_utils/index.html">pdstools.utils.progress_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/report_utils/index.html">pdstools.utils.report_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/show_versions/index.html">pdstools.utils.show_versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/streamlit_utils/index.html">pdstools.utils.streamlit_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/table_definitions/index.html">pdstools.utils.table_definitions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../utils/types/index.html">pdstools.utils.types</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../valuefinder/index.html">pdstools.valuefinder</a><input aria-label="Toggle navigation of pdstools.valuefinder" class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../valuefinder/Aggregates/index.html">pdstools.valuefinder.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../valuefinder/Plots/index.html">pdstools.valuefinder.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../valuefinder/Schema/index.html">pdstools.valuefinder.Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../valuefinder/ValueFinder/index.html">pdstools.valuefinder.ValueFinder</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../../../../../_sources/autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="module-pdstools.infinity.resources.prediction_studio.local_model_utils">
+<span id="pdstools-infinity-resources-prediction-studio-local-model-utils"></span><h1>pdstools.infinity.resources.prediction_studio.local_model_utils<a class="headerlink" href="#module-pdstools.infinity.resources.prediction_studio.local_model_utils" title="Link to this heading">¶</a></h1>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.logger" title="pdstools.infinity.resources.prediction_studio.local_model_utils.logger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logger</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.PEGA_METADATA" title="pdstools.infinity.resources.prediction_studio.local_model_utils.PEGA_METADATA"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PEGA_METADATA</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="exceptions">
+<h2>Exceptions<a class="headerlink" href="#exceptions" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelCreationError" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelCreationError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ONNXModelCreationError</span></code></a></p></td>
+<td><p>Exception for errors during ONNX conversion and save.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelValidationError" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelValidationError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ONNXModelValidationError</span></code></a></p></td>
+<td><p>Exception for errors during ONNX validation.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType" title="pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OutcomeType</span></code></a></p></td>
+<td><p>Supported outcome types for local Prediction Studio model metadata.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Predictor</span></code></a></p></td>
+<td><p>A single predictor (feature) in an ONNX model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Output"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Output</span></code></a></p></td>
+<td><p>Model output metadata stored in the embedded Pega metadata block.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Metadata</span></code></a></p></td>
+<td><p>Top-level Pega metadata embedded in an ONNX model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel" title="pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PMMLModel</span></code></a></p></td>
+<td><p>Wrapper around a PMML file path.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel" title="pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">H2OModel</span></code></a></p></td>
+<td><p>Wrapper around an H2O model file path.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ONNXModel</span></code></a></p></td>
+<td><p>Wrapper around an in-memory ONNX model plus Pega metadata helpers.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.logger">
+<span class="sig-name descname"><span class="pre">logger</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.logger" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.PEGA_METADATA">
+<span class="sig-name descname"><span class="pre">PEGA_METADATA</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pegaMetadata'</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.PEGA_METADATA" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">OutcomeType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
+<p>Supported outcome types for local Prediction Studio model metadata.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType.BINARY">
+<span class="sig-name descname"><span class="pre">BINARY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'binary'</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType.BINARY" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType.CATEGORICAL">
+<span class="sig-name descname"><span class="pre">CATEGORICAL</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'categorical'</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType.CATEGORICAL" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType.CONTINUOUS">
+<span class="sig-name descname"><span class="pre">CONTINUOUS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'continuous'</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType.CONTINUOUS" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Predictor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p>
+<p>A single predictor (feature) in an ONNX model.</p>
+<p><strong>Automatic name derivation</strong> — When <em>pega_property</em> is supplied
+(e.g. <code class="docutils literal notranslate"><span class="pre">&quot;.Customer.Age&quot;</span></code>) and <em>name</em> is omitted, the predictor
+<code class="docutils literal notranslate"><span class="pre">name</span></code> is automatically set to the leaf segment of the property
+path (<code class="docutils literal notranslate"><span class="pre">&quot;Age&quot;</span></code>).  Pega Prediction Studio auto‑maps predictors by
+matching <code class="docutils literal notranslate"><span class="pre">name</span></code> against its data‑model properties, so this
+guarantees correct field mapping on upload without any manual work.</p>
+<p>If <em>name</em> is provided explicitly it is always used as‑is.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.build_predictor_list" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.build_predictor_list"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Metadata.build_predictor_list</span></code></a></dt><dd><p>Batch‑build predictors from a list of Pega property paths or plain feature names.</p>
+</dd>
+</dl>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>Any</em>)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.name">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.name" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.index">
+<span class="sig-name descname"><span class="pre">index</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.index" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.input_name">
+<span class="sig-name descname"><span class="pre">input_name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.input_name" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.data_type">
+<span class="sig-name descname"><span class="pre">data_type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.data_type" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.pega_property">
+<span class="sig-name descname"><span class="pre">pega_property</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.pega_property" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.validate_input_name">
+<span class="sig-name descname"><span class="pre">validate_input_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.validate_input_name" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.validate_name">
+<span class="sig-name descname"><span class="pre">validate_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.validate_name" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.validate_index">
+<span class="sig-name descname"><span class="pre">validate_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.validate_index" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.validate_data_type">
+<span class="sig-name descname"><span class="pre">validate_data_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.validate_data_type" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Output">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p>
+<p>Model output metadata stored in the embedded Pega metadata block.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>Any</em>)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Output.possible_values">
+<span class="sig-name descname"><span class="pre">possible_values</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output.possible_values" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Output.label_name">
+<span class="sig-name descname"><span class="pre">label_name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output.label_name" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Output.score_name">
+<span class="sig-name descname"><span class="pre">score_name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output.score_name" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Output.min_value">
+<span class="sig-name descname"><span class="pre">min_value</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output.min_value" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Output.max_value">
+<span class="sig-name descname"><span class="pre">max_value</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output.max_value" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Output.validate_label_name">
+<span class="sig-name descname"><span class="pre">validate_label_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output.validate_label_name" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p>
+<p>Top-level Pega metadata embedded in an ONNX model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>Any</em>)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.type">
+<span class="sig-name descname"><span class="pre">type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType" title="pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType"><span class="pre">OutcomeType</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.type" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.predictor_list">
+<span class="sig-name descname"><span class="pre">predictor_list</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor"><span class="pre">Predictor</span></a><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.predictor_list" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.output">
+<span class="sig-name descname"><span class="pre">output</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Output"><span class="pre">Output</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.output" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.modeling_technique">
+<span class="sig-name descname"><span class="pre">modeling_technique</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.modeling_technique" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.internal">
+<span class="sig-name descname"><span class="pre">internal</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.internal" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.file_source">
+<span class="sig-name descname"><span class="pre">file_source</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.file_source" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.objective">
+<span class="sig-name descname"><span class="pre">objective</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.objective" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.rule_set">
+<span class="sig-name descname"><span class="pre">rule_set</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.rule_set" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.rule_set_version">
+<span class="sig-name descname"><span class="pre">rule_set_version</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.rule_set_version" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.predict_method_uses_name_value_pair">
+<span class="sig-name descname"><span class="pre">predict_method_uses_name_value_pair</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.predict_method_uses_name_value_pair" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.model_version">
+<span class="sig-name descname"><span class="pre">model_version</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.model_version" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.created_by">
+<span class="sig-name descname"><span class="pre">created_by</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.created_by" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.created_date">
+<span class="sig-name descname"><span class="pre">created_date</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.created_date" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.last_modified_date">
+<span class="sig-name descname"><span class="pre">last_modified_date</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.last_modified_date" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.training_dataset">
+<span class="sig-name descname"><span class="pre">training_dataset</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.training_dataset" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.experiment_id">
+<span class="sig-name descname"><span class="pre">experiment_id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.experiment_id" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.parent_model_id">
+<span class="sig-name descname"><span class="pre">parent_model_id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.parent_model_id" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.baseline_auc">
+<span class="sig-name descname"><span class="pre">baseline_auc</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.baseline_auc" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.baseline_accuracy">
+<span class="sig-name descname"><span class="pre">baseline_accuracy</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.baseline_accuracy" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.performance_threshold">
+<span class="sig-name descname"><span class="pre">performance_threshold</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.performance_threshold" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.validate_type">
+<span class="sig-name descname"><span class="pre">validate_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.validate_type" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.validate_output">
+<span class="sig-name descname"><span class="pre">validate_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.validate_output" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.to_json" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.from_json">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">json_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata"><span class="pre">Metadata</span></a></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.from_json" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>json_str</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata">Metadata</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.build_predictor_list">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">build_predictor_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'features'</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor"><span class="pre">Predictor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.build_predictor_list" title="Link to this definition">¶</a></dt>
+<dd><p>Build a predictor list from feature names or Pega property paths.</p>
+<p>This is the <strong>recommended</strong> one‑liner for constructing
+predictors.</p>
+<p>Each entry in <code class="docutils literal notranslate"><span class="pre">features</span></code> can be a <strong>Pega property path</strong> starting
+with <code class="docutils literal notranslate"><span class="pre">&quot;.&quot;</span></code> (for example <code class="docutils literal notranslate"><span class="pre">&quot;.Customer.Age&quot;</span></code>). The leaf segment
+becomes the predictor <code class="docutils literal notranslate"><span class="pre">name</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;Age&quot;</span></code>) and the full path is
+stored as <code class="docutils literal notranslate"><span class="pre">pega_property</span></code> so Pega Prediction Studio auto-maps the
+field on upload.</p>
+<p>Each entry can also be a <strong>plain feature name</strong> (for example
+<code class="docutils literal notranslate"><span class="pre">&quot;Age&quot;</span></code>). In that case the value is used as-is for <code class="docutils literal notranslate"><span class="pre">name</span></code> and
+<code class="docutils literal notranslate"><span class="pre">pega_property</span></code> is left unset.</p>
+<p>Indices are assigned automatically (1‑based) in the order the
+features appear.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>features</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em>) – Ordered list of feature identifiers.  The order <strong>must</strong>
+match the column order in the ONNX input tensor.  Accepts
+any mix of plain names and Pega property paths.</p></li>
+<li><p><strong>input_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Name of the ONNX input node.  Default <code class="docutils literal notranslate"><span class="pre">&quot;features&quot;</span></code>.</p></li>
+<li><p><strong>data_types</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>] </em><em>| </em><em>None</em>) – <p>Optional type annotations for features.</p>
+<p>Accepts either a <strong>list</strong> of <code class="docutils literal notranslate"><span class="pre">&quot;Numeric&quot;</span></code> / <code class="docutils literal notranslate"><span class="pre">&quot;Symbolic&quot;</span></code>
+values, one per feature and matching <code class="docutils literal notranslate"><span class="pre">features</span></code> length, or a
+<strong>dict</strong> mapping feature <em>names</em> (the leaf segment for Pega
+paths) to <code class="docutils literal notranslate"><span class="pre">&quot;Numeric&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;Symbolic&quot;</span></code>. Only the features
+present in the dict are overridden; the rest default to
+<code class="docutils literal notranslate"><span class="pre">&quot;Numeric&quot;</span></code>.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">None</span></code> every feature defaults to <code class="docutils literal notranslate"><span class="pre">&quot;Numeric&quot;</span></code>.</p>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor">Predictor</a>]</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Using Pega property paths (recommended for auto-mapping):</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Metadata</span><span class="o">.</span><span class="n">build_predictor_list</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="s2">&quot;.Customer.Age&quot;</span><span class="p">,</span> <span class="s2">&quot;.Customer.Tenure&quot;</span><span class="p">,</span> <span class="s2">&quot;.Customer.MonthlyCharges&quot;</span><span class="p">],</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Using plain feature names:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Metadata</span><span class="o">.</span><span class="n">build_predictor_list</span><span class="p">([</span><span class="s2">&quot;Age&quot;</span><span class="p">,</span> <span class="s2">&quot;Tenure&quot;</span><span class="p">,</span> <span class="s2">&quot;MonthlyCharges&quot;</span><span class="p">])</span>
+<span class="gp">...</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Sparse overrides via dict:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Metadata</span><span class="o">.</span><span class="n">build_predictor_list</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="s2">&quot;.Customer.Age&quot;</span><span class="p">,</span> <span class="s2">&quot;.Customer.ContractType&quot;</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="n">data_types</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;ContractType&quot;</span><span class="p">:</span> <span class="s2">&quot;Symbolic&quot;</span><span class="p">},</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelCreationError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">ONNXModelCreationError</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelCreationError" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+<p>Exception for errors during ONNX conversion and save.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelValidationError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">ONNXModelValidationError</span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelValidationError" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.resources.prediction_studio.base.ModelValidationError</span></code></p>
+<p>Exception for errors during ONNX validation.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">PMMLModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.resources.prediction_studio.base.LocalModel</span></code></p>
+<p>Wrapper around a PMML file path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel.file_path">
+<span class="sig-name descname"><span class="pre">file_path</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel.file_path" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel.get_file_path">
+<span class="sig-name descname"><span class="pre">get_file_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel.get_file_path" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the file path of the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>str</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>The file path of the model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">H2OModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.resources.prediction_studio.base.LocalModel</span></code></p>
+<p>Wrapper around an H2O model file path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel.file_path">
+<span class="sig-name descname"><span class="pre">file_path</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel.file_path" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel.get_file_path">
+<span class="sig-name descname"><span class="pre">get_file_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel.get_file_path" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the file path of the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>str</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>The file path of the model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">ONNXModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">onnx.ModelProto</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">pdstools.infinity.resources.prediction_studio.base.LocalModel</span></code></p>
+<p>Wrapper around an in-memory ONNX model plus Pega metadata helpers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model</strong> (<em>onnx.ModelProto</em>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.from_onnx_proto">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_onnx_proto</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">onnx.ModelProto</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel"><span class="pre">ONNXModel</span></a></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.from_onnx_proto" title="Link to this definition">¶</a></dt>
+<dd><p>Creates an ONNXModel object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model</strong> (<em>ModelProto</em>) – An onnx ModelProto object</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of the ONNXModel class.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel">ONNXModel</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.14)"><strong>ImportError</strong></a> – If the optional dependencies for ONNX Conversion are not installed.</p></li>
+<li><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelCreationError" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelCreationError"><strong>ONNXModelCreationError</strong></a> – If the ONNXModel object cannot be created.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.from_sklearn_pipeline">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_sklearn_pipeline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">sklearn.pipeline.Pipeline</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel"><span class="pre">ONNXModel</span></a></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.from_sklearn_pipeline" title="Link to this definition">¶</a></dt>
+<dd><p>Creates an ONNXModel object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>Pipeline</em>) – A sklearn Pipeline object</p></li>
+<li><p><strong>initial_types</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a>) – A list of initial types for the model’s input variables if the model is a Sklearn Pipeline object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of the ONNXModel class.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel">ONNXModel</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.14)"><strong>ImportError</strong></a> – If the optional dependencies for ONNX Conversion are not installed.</p></li>
+<li><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelCreationError" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelCreationError"><strong>ONNXModelCreationError</strong></a> – If the ONNXModel object cannot be created.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.from_pytorch">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_pytorch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dummy_input</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opset_version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">17</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed_batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel"><span class="pre">ONNXModel</span></a></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.from_pytorch" title="Link to this definition">¶</a></dt>
+<dd><p>Create an ONNXModel from a PyTorch <code class="docutils literal notranslate"><span class="pre">nn.Module</span></code>.</p>
+<p>The model is exported via <code class="docutils literal notranslate"><span class="pre">torch.onnx.export</span></code> with static shapes.
+When <em>fixed_batch_size</em> is <code class="docutils literal notranslate"><span class="pre">True</span></code> (the default), any remaining
+dynamic dimensions are replaced with a batch size of 1 so that the
+resulting ONNX file is accepted by Pega Prediction Studio.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> – A PyTorch <code class="docutils literal notranslate"><span class="pre">nn.Module</span></code> (already in eval mode is recommended).</p></li>
+<li><p><strong>dummy_input</strong> – Example input tensor(s) matching the model’s forward signature.</p></li>
+<li><p><strong>input_names</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>] </em><em>| </em><em>None</em>) – Optional list of ONNX input node names.  Defaults to <code class="docutils literal notranslate"><span class="pre">[&quot;input&quot;]</span></code>.</p></li>
+<li><p><strong>output_names</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>] </em><em>| </em><em>None</em>) – Optional list of ONNX output node names.  Defaults to <code class="docutils literal notranslate"><span class="pre">[&quot;output&quot;]</span></code>.</p></li>
+<li><p><strong>opset_version</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – ONNX opset version.  Default <code class="docutils literal notranslate"><span class="pre">17</span></code>.</p></li>
+<li><p><strong>fixed_batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Replace dynamic dimensions with batch size 1.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel">ONNXModel</a></p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelCreationError" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelCreationError"><strong>ONNXModelCreationError</strong></a> – If PyTorch is not installed or the export fails.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.get_metadata">
+<span class="sig-name descname"><span class="pre">get_metadata</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata"><span class="pre">Metadata</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.get_metadata" title="Link to this definition">¶</a></dt>
+<dd><p>Return the embedded <code class="docutils literal notranslate"><span class="pre">Metadata</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code> if absent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata">Metadata</a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.add_metadata">
+<span class="sig-name descname"><span class="pre">add_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata" title="pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata"><span class="pre">Metadata</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel"><span class="pre">ONNXModel</span></a></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.add_metadata" title="Link to this definition">¶</a></dt>
+<dd><p>Adds metadata to the ONNX model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>metadata</strong> (<em>Meta</em>) – The metadata to be added.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The ONNXModel object with the added metadata.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel">ONNXModel</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.14)"><strong>ImportError</strong></a> – If the optional dependencies for ONNX Metadata addition are not installed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.validate">
+<span class="sig-name descname"><span class="pre">validate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.validate" title="Link to this definition">¶</a></dt>
+<dd><p>Validates an ONNX model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.14)"><strong>ImportError</strong></a> – If the optional dependencies for ONNX Validation are not installed.</p></li>
+<li><p><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelValidationError" title="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelValidationError"><strong>ONNXModelValidationError</strong></a> – If the model is invalid or if the validation process fails.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.run" title="Link to this definition">¶</a></dt>
+<dd><p>Run the prediction using the provided test data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>test_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – The test data to be used for prediction. It is a dictionary where
+each key is a column name from the dataset, and each value is a
+NumPy array representing the column data as a vector.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The prediction result.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Any</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p><code class="docutils literal notranslate"><span class="pre">test_data</span></code> should look like:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;column1&quot;</span><span class="p">:</span> <span class="n">array</span><span class="p">([[</span><span class="n">value1</span><span class="p">],</span> <span class="p">[</span><span class="n">value2</span><span class="p">],</span> <span class="p">[</span><span class="n">value3</span><span class="p">]]),</span>
+    <span class="s2">&quot;column2&quot;</span><span class="p">:</span> <span class="n">array</span><span class="p">([[</span><span class="n">value4</span><span class="p">],</span> <span class="p">[</span><span class="n">value5</span><span class="p">],</span> <span class="p">[</span><span class="n">value6</span><span class="p">]]),</span>
+    <span class="s2">&quot;column3&quot;</span><span class="p">:</span> <span class="n">array</span><span class="p">([[</span><span class="n">value7</span><span class="p">],</span> <span class="p">[</span><span class="n">value8</span><span class="p">],</span> <span class="p">[</span><span class="n">value9</span><span class="p">]]),</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">onnx_file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.save" title="Link to this definition">¶</a></dt>
+<dd><p>Saves the ONNX model to the specified file path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>onnx_file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The file path where the ONNX model should be saved.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.14)"><strong>ImportError</strong></a> – If the optional dependencies for ONNX Conversion are not installed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="../model_security/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">pdstools.infinity.resources.prediction_studio.model_security</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../base/index.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">pdstools.infinity.resources.prediction_studio.base</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Pegasystems
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/pegasystems/pega-datascientist-tools" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">pdstools.infinity.resources.prediction_studio.local_model_utils</a><ul>
+<li><a class="reference internal" href="#attributes">Attributes</a></li>
+<li><a class="reference internal" href="#exceptions">Exceptions</a></li>
+<li><a class="reference internal" href="#classes">Classes</a></li>
+<li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.logger"><code class="docutils literal notranslate"><span class="pre">logger</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.PEGA_METADATA"><code class="docutils literal notranslate"><span class="pre">PEGA_METADATA</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType"><code class="docutils literal notranslate"><span class="pre">OutcomeType</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType.BINARY"><code class="docutils literal notranslate"><span class="pre">BINARY</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType.CATEGORICAL"><code class="docutils literal notranslate"><span class="pre">CATEGORICAL</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.OutcomeType.CONTINUOUS"><code class="docutils literal notranslate"><span class="pre">CONTINUOUS</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor"><code class="docutils literal notranslate"><span class="pre">Predictor</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.name"><code class="docutils literal notranslate"><span class="pre">name</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.index"><code class="docutils literal notranslate"><span class="pre">index</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.input_name"><code class="docutils literal notranslate"><span class="pre">input_name</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.data_type"><code class="docutils literal notranslate"><span class="pre">data_type</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.pega_property"><code class="docutils literal notranslate"><span class="pre">pega_property</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.validate_input_name"><code class="docutils literal notranslate"><span class="pre">validate_input_name()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.validate_name"><code class="docutils literal notranslate"><span class="pre">validate_name()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.validate_index"><code class="docutils literal notranslate"><span class="pre">validate_index()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Predictor.validate_data_type"><code class="docutils literal notranslate"><span class="pre">validate_data_type()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output"><code class="docutils literal notranslate"><span class="pre">Output</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output.possible_values"><code class="docutils literal notranslate"><span class="pre">possible_values</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output.label_name"><code class="docutils literal notranslate"><span class="pre">label_name</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output.score_name"><code class="docutils literal notranslate"><span class="pre">score_name</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output.min_value"><code class="docutils literal notranslate"><span class="pre">min_value</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output.max_value"><code class="docutils literal notranslate"><span class="pre">max_value</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Output.validate_label_name"><code class="docutils literal notranslate"><span class="pre">validate_label_name()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata"><code class="docutils literal notranslate"><span class="pre">Metadata</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.type"><code class="docutils literal notranslate"><span class="pre">type</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.predictor_list"><code class="docutils literal notranslate"><span class="pre">predictor_list</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.output"><code class="docutils literal notranslate"><span class="pre">output</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.modeling_technique"><code class="docutils literal notranslate"><span class="pre">modeling_technique</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.internal"><code class="docutils literal notranslate"><span class="pre">internal</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.file_source"><code class="docutils literal notranslate"><span class="pre">file_source</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.objective"><code class="docutils literal notranslate"><span class="pre">objective</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.rule_set"><code class="docutils literal notranslate"><span class="pre">rule_set</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.rule_set_version"><code class="docutils literal notranslate"><span class="pre">rule_set_version</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.predict_method_uses_name_value_pair"><code class="docutils literal notranslate"><span class="pre">predict_method_uses_name_value_pair</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.model_version"><code class="docutils literal notranslate"><span class="pre">model_version</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.created_by"><code class="docutils literal notranslate"><span class="pre">created_by</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.created_date"><code class="docutils literal notranslate"><span class="pre">created_date</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.last_modified_date"><code class="docutils literal notranslate"><span class="pre">last_modified_date</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.training_dataset"><code class="docutils literal notranslate"><span class="pre">training_dataset</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.experiment_id"><code class="docutils literal notranslate"><span class="pre">experiment_id</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.parent_model_id"><code class="docutils literal notranslate"><span class="pre">parent_model_id</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.baseline_auc"><code class="docutils literal notranslate"><span class="pre">baseline_auc</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.baseline_accuracy"><code class="docutils literal notranslate"><span class="pre">baseline_accuracy</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.performance_threshold"><code class="docutils literal notranslate"><span class="pre">performance_threshold</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.validate_type"><code class="docutils literal notranslate"><span class="pre">validate_type()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.validate_output"><code class="docutils literal notranslate"><span class="pre">validate_output()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.to_json"><code class="docutils literal notranslate"><span class="pre">to_json()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.from_json"><code class="docutils literal notranslate"><span class="pre">from_json()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.Metadata.build_predictor_list"><code class="docutils literal notranslate"><span class="pre">build_predictor_list()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelCreationError"><code class="docutils literal notranslate"><span class="pre">ONNXModelCreationError</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModelValidationError"><code class="docutils literal notranslate"><span class="pre">ONNXModelValidationError</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel"><code class="docutils literal notranslate"><span class="pre">PMMLModel</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel.file_path"><code class="docutils literal notranslate"><span class="pre">file_path</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.PMMLModel.get_file_path"><code class="docutils literal notranslate"><span class="pre">get_file_path()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel"><code class="docutils literal notranslate"><span class="pre">H2OModel</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel.file_path"><code class="docutils literal notranslate"><span class="pre">file_path</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.H2OModel.get_file_path"><code class="docutils literal notranslate"><span class="pre">get_file_path()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel"><code class="docutils literal notranslate"><span class="pre">ONNXModel</span></code></a><ul>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.from_onnx_proto"><code class="docutils literal notranslate"><span class="pre">from_onnx_proto()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.from_sklearn_pipeline"><code class="docutils literal notranslate"><span class="pre">from_sklearn_pipeline()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.from_pytorch"><code class="docutils literal notranslate"><span class="pre">from_pytorch()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.get_metadata"><code class="docutils literal notranslate"><span class="pre">get_metadata()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.add_metadata"><code class="docutils literal notranslate"><span class="pre">add_metadata()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.validate"><code class="docutils literal notranslate"><span class="pre">validate()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.infinity.resources.prediction_studio.local_model_utils.ONNXModel.save"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../../../../_static/documentation_options.js?v=5f826911"></script>
+    <script src="../../../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../../../_static/copybutton.js?v=f281be69"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../../../../_static/version-switcher.js?v=108131f4"></script>
+    </body>
+</html>

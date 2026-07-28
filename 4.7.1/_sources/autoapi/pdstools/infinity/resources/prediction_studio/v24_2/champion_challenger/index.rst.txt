@@ -1,0 +1,203 @@
+pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger
+=======================================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger.logger
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger.ChampionChallenger
+   pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger.AsyncChampionChallenger
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:class:: ChampionChallenger(client, prediction_id: str, active_model, cc_id: str | None = None, context: str | None = None, category: str | None = None, challenger_model=None, champion_percentage: float | None = None, model_objective: str | None = None)
+
+   Bases: :py:obj:`_ChampionChallengerV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.ChampionChallenger`
+
+
+   The ``ChampionChallenger`` class manages champion and challenger models
+   within a prediction context. It provides functionalities for:
+
+   - Refreshing champion challenger data
+   - Deleting challenger models
+   - Promoting challenger models
+   - Updating challenger response percentages
+   - Adding new models
+   - Cloning an ADM active model
+   - Adding/removing predictors
+
+   .. attribute:: client
+
+      The client used to interact with the API.
+
+      :type: Client
+
+   .. attribute:: prediction_id
+
+      The ID of the prediction.
+
+      :type: str
+
+   .. attribute:: active_model
+
+      The active model in the prediction.
+
+      :type: Model
+
+   .. attribute:: cc_id
+
+      The ID of the champion challenger.
+
+      :type: str | None
+
+   .. attribute:: context
+
+      The context of the prediction.
+
+      :type: str | None
+
+   .. attribute:: category
+
+      The category of the prediction.
+
+      :type: str | None
+
+   .. attribute:: challenger_model
+
+      The challenger model.
+
+      :type: Model | None
+
+   .. attribute:: champion_percentage
+
+      The percentage of responses attributed to the champion model.
+
+      :type: float | None
+
+   .. attribute:: model_objective
+
+      The objective of the model.
+
+      :type: str | None
+
+
+   .. py:method:: list_available_models_to_add(return_df: bool = False) -> pdstools.infinity.internal._pagination.PaginatedList | polars.DataFrame
+
+      Fetches a list of models eligible to be challengers.
+
+      Queries for models that can be added as challengers to the current
+      prediction for the current active model. Offers the option to return
+      the results in a DataFrame format for easier data handling.
+
+      :param return_df: Determines the format of the returned data: a DataFrame if True,
+                        otherwise a list of model instances. Defaults to False.
+      :type return_df: bool, optional
+
+      :returns: A list of model instances or a DataFrame of models, based on the
+                ``return_df`` parameter choice.
+      :rtype: PaginatedList[Model] or pl.DataFrame
+
+
+
+.. py:class:: AsyncChampionChallenger(client, prediction_id: str, active_model, cc_id: str | None = None, context: str | None = None, category: str | None = None, challenger_model=None, champion_percentage: float | None = None, model_objective: str | None = None)
+
+   Bases: :py:obj:`_ChampionChallengerV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncChampionChallenger`
+
+
+   The ``ChampionChallenger`` class manages champion and challenger models
+   within a prediction context. It provides functionalities for:
+
+   - Refreshing champion challenger data
+   - Deleting challenger models
+   - Promoting challenger models
+   - Updating challenger response percentages
+   - Adding new models
+   - Cloning an ADM active model
+   - Adding/removing predictors
+
+   .. attribute:: client
+
+      The client used to interact with the API.
+
+      :type: Client
+
+   .. attribute:: prediction_id
+
+      The ID of the prediction.
+
+      :type: str
+
+   .. attribute:: active_model
+
+      The active model in the prediction.
+
+      :type: Model
+
+   .. attribute:: cc_id
+
+      The ID of the champion challenger.
+
+      :type: str | None
+
+   .. attribute:: context
+
+      The context of the prediction.
+
+      :type: str | None
+
+   .. attribute:: category
+
+      The category of the prediction.
+
+      :type: str | None
+
+   .. attribute:: challenger_model
+
+      The challenger model.
+
+      :type: Model | None
+
+   .. attribute:: champion_percentage
+
+      The percentage of responses attributed to the champion model.
+
+      :type: float | None
+
+   .. attribute:: model_objective
+
+      The objective of the model.
+
+      :type: str | None
+
+
+   .. py:method:: list_available_models_to_add(return_df: bool = False) -> pdstools.infinity.internal._pagination.AsyncPaginatedList | polars.DataFrame
+      :async:
+
+
+      Fetches a list of models eligible to be challengers.
+
+      :param return_df: Determines the format of the returned data: a DataFrame if True,
+                        otherwise an async list of model instances. Defaults to False.
+      :type return_df: bool, optional
+
+      :returns: An async list of model instances or a DataFrame of models.
+      :rtype: AsyncPaginatedList[AsyncModel] or pl.DataFrame
+
+
+

@@ -1,0 +1,365 @@
+pdstools.utils.metric_limits
+============================
+
+.. py:module:: pdstools.utils.metric_limits
+
+.. autoapi-nested-parse::
+
+   Metric limits and NBAD configuration utilities.
+
+   The MetricLimits.csv in resources defines min/max and best practice values
+   for CDH/DSM metrics. The CSV contains numeric values directly:
+   - Boolean metrics use 1.0 for True requirements (in Minimum or Best Practice Min)
+   - Percentages/ratios are stored as rates (0-1), not as percentages (0-100)
+
+   This module provides access methods to this data and validation functions
+   that turn metric values into "RAG" indicators that can be used to highlight
+   values in tables.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.metric_limits.RAGValue
+   pdstools.utils.metric_limits.ValueMapping
+   pdstools.utils.metric_limits.MetricSpec
+   pdstools.utils.metric_limits.SINGLE_CHANNEL_NBAD_CONFIGURATIONS
+   pdstools.utils.metric_limits.POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS
+   pdstools.utils.metric_limits.ALL_NBAD_CONFIGURATIONS
+   pdstools.utils.metric_limits.STANDARD_NBAD_CHANNELS
+   pdstools.utils.metric_limits.SINGLE_CHANNEL_NBAD_PREDICTIONS
+   pdstools.utils.metric_limits.MULTI_CHANNEL_NBAD_PREDICTIONS
+   pdstools.utils.metric_limits.ALL_NBAD_PREDICTIONS
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.utils.metric_limits.MetricLimits
+   pdstools.utils.metric_limits.MetricFormats
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.utils.metric_limits.is_standard_NBAD_configuration
+   pdstools.utils.metric_limits.standard_NBAD_configurations_rag
+   pdstools.utils.metric_limits.get_standard_NBAD_channels
+   pdstools.utils.metric_limits.standard_NBAD_channels_rag
+   pdstools.utils.metric_limits.standard_NBAD_directions_rag
+   pdstools.utils.metric_limits.get_predictions_channel_mapping
+   pdstools.utils.metric_limits.is_standard_NBAD_prediction
+   pdstools.utils.metric_limits.standard_NBAD_predictions_rag
+   pdstools.utils.metric_limits.exclusive_0_1_range_rag
+   pdstools.utils.metric_limits.positive_values
+   pdstools.utils.metric_limits.strict_positive_values
+   pdstools.utils.metric_limits.add_rag_columns
+
+
+Module Contents
+---------------
+
+.. py:data:: RAGValue
+
+.. py:data:: ValueMapping
+
+.. py:data:: MetricSpec
+
+.. py:class:: MetricLimits
+
+   Singleton for accessing metric limits from MetricLimits.csv.
+
+
+   .. py:method:: get_limits() -> polars.DataFrame
+      :classmethod:
+
+
+      Get all metric limits as a DataFrame.
+
+      Cached on the singleton instance via ``__new__``; the first call
+      loads + builds the DataFrame, subsequent calls reuse the cached
+      attribute.
+
+      The CSV contains numeric values directly. Boolean metrics are detected
+      by checking if all defined limit values are either 0.0 or 1.0.
+
+
+
+   .. py:method:: get_limit_for_metric(metric_id: str) -> dict
+      :classmethod:
+
+
+      Get limits for a specific metric. Returns empty dict if not found.
+
+
+
+   .. py:method:: minimum(metric_id: str) -> float | None
+      :classmethod:
+
+
+      Get the minimum (hard limit) for a metric.
+
+      Raises KeyError if metric_id is not found in MetricLimits.csv.
+
+
+
+   .. py:method:: maximum(metric_id: str) -> float | None
+      :classmethod:
+
+
+      Get the maximum (hard limit) for a metric.
+
+      Raises KeyError if metric_id is not found in MetricLimits.csv.
+
+
+
+   .. py:method:: best_practice_min(metric_id: str) -> float | bool | None
+      :classmethod:
+
+
+      Get the best practice minimum for a metric.
+
+      Raises KeyError if metric_id is not found in MetricLimits.csv.
+
+
+
+   .. py:method:: best_practice_max(metric_id: str) -> float | bool | None
+      :classmethod:
+
+
+      Get the best practice maximum for a metric.
+
+      Raises KeyError if metric_id is not found in MetricLimits.csv.
+
+
+
+   .. py:method:: evaluate_metric_rag(metric_id: str, value) -> RAGValue | None
+      :classmethod:
+
+
+      Evaluate RAG status for a metric value.
+
+      :param metric_id: The metric identifier from MetricLimits.csv.
+      :type metric_id: str
+      :param value: The value to evaluate (numeric or boolean).
+      :type value: Any
+
+      :returns: "RED", "AMBER", "GREEN", or None if metric not found or value is None.
+      :rtype: RAGValue | None
+
+      :raises TypeError: If the value is not a valid type for the metric (e.g., string instead of numeric).
+
+      .. rubric:: Notes
+
+      For boolean metrics:
+      - If TRUE is in Minimum or Maximum (hard limit): TRUE → GREEN, FALSE → RED
+      - If TRUE is in Best Practice Min or Max (soft limit): TRUE → GREEN, FALSE → AMBER
+
+
+
+   .. py:method:: get_metric_RAG_code(column: str, metric_id: str) -> polars.Expr
+      :classmethod:
+
+
+      Generate a Polars expression that evaluates metric status as RED/AMBER/GREEN.
+
+      Uses evaluate_metric_rag internally via map_elements to ensure consistent
+      RAG logic between Python and Polars approaches.
+
+
+
+.. py:data:: SINGLE_CHANNEL_NBAD_CONFIGURATIONS
+   :value: ['Web_Click_Through_Rate', 'WebTreatmentClickModel', 'Mobile_Click_Through_Rate',...
+
+
+.. py:data:: POTENTIALLY_MULTI_CHANNEL_NBAD_CONFIGURATIONS
+   :value: ['Default_Inbound_Model', 'Default_Outbound_Model', 'Default_Click_Through_Rate',...
+
+
+.. py:data:: ALL_NBAD_CONFIGURATIONS
+   :value: ['Web_Click_Through_Rate', 'WebTreatmentClickModel', 'Mobile_Click_Through_Rate',...
+
+
+.. py:function:: is_standard_NBAD_configuration(field: str = 'Configuration') -> polars.Expr
+
+   Polars expression to check if a configuration is a known NBAD config.
+
+
+.. py:function:: standard_NBAD_configurations_rag(value: str) -> RAGValue | None
+
+   RAG status for NBAD configuration names.
+
+   Returns AMBER if any is a default/other/multi-channel or a non-standard configuration,
+   GREEN if all are standard single-channel configurations.
+
+
+.. py:data:: STANDARD_NBAD_CHANNELS
+   :value: ['Web', 'Mobile', 'E-mail', 'Push', 'SMS', 'Retail', 'Call Center', 'Assisted']
+
+
+.. py:function:: get_standard_NBAD_channels() -> list[str]
+
+   Get the list of standard NBAD channel names.
+
+
+.. py:function:: standard_NBAD_channels_rag(value: str) -> RAGValue | None
+
+   RAG status for NBAD channel names.
+
+   Returns GREEN for standard channels, YELLOW for Other, AMBER for multi-channel/unknown.
+
+
+.. py:function:: standard_NBAD_directions_rag(value: str) -> RAGValue | None
+
+   RAG status for NBAD direction names. GREEN for Inbound/Outbound, AMBER otherwise.
+
+
+.. py:data:: SINGLE_CHANNEL_NBAD_PREDICTIONS
+
+.. py:data:: MULTI_CHANNEL_NBAD_PREDICTIONS
+
+.. py:data:: ALL_NBAD_PREDICTIONS
+
+.. py:function:: get_predictions_channel_mapping(custom_predictions: list[list[str | bool]] | None = None) -> polars.DataFrame
+
+   Get prediction to channel/direction mapping as a DataFrame.
+
+
+.. py:function:: is_standard_NBAD_prediction(field: str = 'Prediction') -> polars.Expr
+
+   Polars expression to check if a prediction is a known NBAD prediction.
+
+
+.. py:function:: standard_NBAD_predictions_rag(value: str) -> RAGValue | None
+
+   RAG status for NBAD prediction names.
+
+   Returns GREEN for single-channel, YELLOW for multi-channel, AMBER for unknown.
+
+
+.. py:function:: exclusive_0_1_range_rag(value: float) -> RAGValue | None
+
+   RAG for percentage values. GREEN if 0 < value < 1, RED otherwise.
+
+
+.. py:function:: positive_values(value: float) -> RAGValue | None
+
+   Positive values.
+
+
+.. py:function:: strict_positive_values(value: float) -> RAGValue | None
+
+   Strict positive values.
+
+
+.. py:function:: add_rag_columns(df: polars.DataFrame, column_to_metric: dict[str, MetricSpec] | None = None, strict_metric_validation: bool = True) -> polars.DataFrame
+
+   Add RAG status columns to a DataFrame.
+
+   For each column, adds a new column with suffix ``_RAG`` containing the
+   RAG status (RED/AMBER/YELLOW/GREEN or None).
+
+   :param df: The source DataFrame.
+   :type df: pl.DataFrame
+   :param column_to_metric: Mapping from column names (or tuples of column names) to one of:
+
+                            - **str**: metric ID to look up in MetricLimits.csv
+                            - **callable**: ``function(value) -> "RED"|"AMBER"|"YELLOW"|"GREEN"|None``
+                            - **tuple**: (metric_id, value_mapping) where value_mapping is a dict
+                              that maps column values to metric values before evaluation.
+                              Supports tuple keys such as ``{("Yes", "yes"): True, "No": False}``.
+
+                            If a column is not in this dict, its name is used as the metric ID.
+   :type column_to_metric: dict, optional
+   :param strict_metric_validation: If True, raises ValueError if a metric ID is not found in MetricLimits.csv.
+   :type strict_metric_validation: bool, default True
+
+   :returns: DataFrame with additional _RAG columns.
+   :rtype: pl.DataFrame
+
+   .. rubric:: Examples
+
+   >>> from pdstools.utils.metric_limits import add_rag_columns
+   >>> df_with_rag = add_rag_columns(
+   ...     df,
+   ...     column_to_metric={
+   ...         "Performance": "ModelPerformance",
+   ...         "AGB": ("UsingAGB", {"Yes": True, "No": False}),
+   ...     }
+   ... )
+
+
+.. py:class:: MetricFormats
+
+   Registry of predefined number formats for common metrics.
+
+   Provides centralized format definitions for use across table rendering
+   backends (great_tables, itables, etc.).
+
+   .. rubric:: Examples
+
+   >>> MetricFormats.get("ModelPerformance").format_value(0.875)
+   '0.88'
+   >>> MetricFormats.has_format("CTR")
+   True
+   >>> MetricFormats.register("Custom", NumberFormat(decimals=4))
+
+
+   .. py:attribute:: DEFAULT_FORMAT
+
+
+   .. py:method:: get(metric_id: str) -> pdstools.utils.number_format.NumberFormat | None
+      :classmethod:
+
+
+      Get format for a metric, or None if not defined.
+
+
+
+   .. py:method:: get_or_default(metric_id: str) -> pdstools.utils.number_format.NumberFormat
+      :classmethod:
+
+
+      Get format for a metric, falling back to DEFAULT_FORMAT.
+
+
+
+   .. py:method:: has_format(metric_id: str) -> bool
+      :classmethod:
+
+
+      Check if a metric has a defined format.
+
+
+
+   .. py:method:: list_metrics() -> list[str]
+      :classmethod:
+
+
+      List all metric IDs with defined formats.
+
+
+
+   .. py:method:: register(metric_id: str, format_spec: pdstools.utils.number_format.NumberFormat) -> None
+      :classmethod:
+
+
+      Register a custom format for a metric.
+
+
+
+   .. py:method:: all_formats() -> dict[str, pdstools.utils.number_format.NumberFormat]
+      :classmethod:
+
+
+      Get a copy of all defined metric formats.
+
+
+

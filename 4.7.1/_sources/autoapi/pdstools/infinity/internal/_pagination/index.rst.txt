@@ -1,0 +1,258 @@
+pdstools.infinity.internal._pagination
+======================================
+
+.. py:module:: pdstools.infinity.internal._pagination
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.internal._pagination.T
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.internal._pagination._Slice
+   pdstools.infinity.internal._pagination.PaginatedList
+   pdstools.infinity.internal._pagination.AsyncPaginatedList
+
+
+Module Contents
+---------------
+
+.. py:data:: T
+
+.. py:class:: _Slice(the_list: PaginatedList[T], the_slice: slice)
+
+   Bases: :py:obj:`Generic`\ [\ :py:obj:`T`\ ]
+
+
+   A lazy slice view over a :class:`PaginatedList`.
+
+
+   .. py:attribute:: _list
+
+
+   .. py:attribute:: _start
+
+
+   .. py:attribute:: _stop
+
+
+   .. py:attribute:: _step
+
+
+   .. py:method:: __iter__() -> collections.abc.Iterator[T]
+
+
+   .. py:method:: __getitem__(index: int) -> T | None
+
+
+   .. py:method:: _finished(index: int) -> bool
+
+
+   .. py:method:: as_df() -> polars.DataFrame
+
+
+.. py:class:: PaginatedList(content_class: Any, client: Any, request_method: str, url: str, extra_attribs: dict[str, Any] | None = None, _root: str | None = None, **kwargs: Any)
+
+   Bases: :py:obj:`Generic`\ [\ :py:obj:`T`\ ]
+
+
+   Abstracts pagination of Pega API
+
+   Currently supports format where a 'nextToken' is supplied
+   and the next page is retrieved by supplying that token as the
+   'pageToken' of the next call to the same URL.
+
+   Can be iterated, indexed or sliced.
+
+
+   .. py:attribute:: _elements
+      :type:  list[T]
+      :value: []
+
+
+
+   .. py:attribute:: _client
+
+
+   .. py:attribute:: _content_class
+
+
+   .. py:attribute:: _url
+
+
+   .. py:attribute:: _first_params
+
+
+   .. py:attribute:: _next_token
+      :type:  str | bool | None
+      :value: True
+
+
+
+   .. py:attribute:: _next_params
+
+
+   .. py:attribute:: _extra_attribs
+
+
+   .. py:attribute:: _request_method
+
+
+   .. py:attribute:: _root
+      :value: None
+
+
+
+   .. py:method:: __getitem__(key: str | int) -> T
+                  __getitem__(index: slice) -> _Slice[T]
+
+
+   .. py:method:: get(__key: int | str, __default: str | None) -> T
+                  get(__key: slice, __default: str | None) -> _Slice[T]
+
+      Returns the specified key or default.
+
+      If string type provided as key, the content_class needs to be a Pydantic class,
+      with an attribute called 'id'.
+
+      :param __key: Can be a int (index), slice (start:end), or string (id attribute)
+      :type __key: int | slice | str
+      :param __default: The value to return if none found, by default None
+      :type __default: str | None, optional
+
+      :returns: The element, or slice of elements. If not found, returns default
+      :rtype: Any
+
+
+
+   .. py:method:: __iter__() -> collections.abc.Iterator[T]
+
+
+   .. py:method:: __repr__() -> str
+
+
+   .. py:method:: _get_next_page() -> list[T]
+
+
+   .. py:method:: _get_up_to_index(index: int) -> None
+
+
+   .. py:method:: _grow() -> list[T]
+
+
+   .. py:method:: _has_next() -> bool
+
+
+   .. py:method:: _is_larger_than(index: int) -> bool
+
+
+.. py:class:: AsyncPaginatedList(content_class: Any, client: Any, request_method: str, url: str, extra_attribs: dict[str, Any] | None = None, _root: str | None = None, **kwargs: Any)
+
+   Bases: :py:obj:`Generic`\ [\ :py:obj:`T`\ ]
+
+
+   Async variant of :class:`PaginatedList`.
+
+   Same constructor interface.  Uses ``await client.request(...)`` and
+   exposes ``async for`` iteration via ``__aiter__``.
+
+
+   .. py:attribute:: _elements
+      :type:  list[T]
+      :value: []
+
+
+
+   .. py:attribute:: _client
+
+
+   .. py:attribute:: _content_class
+
+
+   .. py:attribute:: _url
+
+
+   .. py:attribute:: _first_params
+
+
+   .. py:attribute:: _next_token
+      :type:  str | bool | None
+      :value: True
+
+
+
+   .. py:attribute:: _next_params
+
+
+   .. py:attribute:: _extra_attribs
+
+
+   .. py:attribute:: _request_method
+
+
+   .. py:attribute:: _root
+      :value: None
+
+
+
+   .. py:method:: __aiter__() -> collections.abc.AsyncIterator[T]
+      :async:
+
+
+
+   .. py:method:: __repr__() -> str
+
+
+   .. py:method:: _get_next_page() -> list[T]
+      :async:
+
+
+
+   .. py:method:: _get_up_to_index(index: int) -> None
+      :async:
+
+
+
+   .. py:method:: _grow() -> list[T]
+      :async:
+
+
+
+   .. py:method:: _has_next() -> bool
+
+
+   .. py:method:: _is_larger_than(index: int) -> bool
+
+
+   .. py:method:: collect() -> list[T]
+      :async:
+
+
+      Eagerly fetch all pages and return as a plain list.
+
+
+
+   .. py:method:: get(__key: int | slice | str | None = None, __default: str | None = None, **kwargs: Any) -> T | None
+      :async:
+
+
+      Async version of PaginatedList.get().
+
+
+
+   .. py:method:: as_df() -> polars.DataFrame
+      :async:
+
+
+      Collect all pages into a polars DataFrame.
+
+
+

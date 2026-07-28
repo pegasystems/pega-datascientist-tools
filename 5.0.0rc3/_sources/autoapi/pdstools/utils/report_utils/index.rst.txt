@@ -1,0 +1,32 @@
+pdstools.utils.report_utils
+===========================
+
+.. py:module:: pdstools.utils.report_utils
+
+.. autoapi-nested-parse::
+
+   Helpers for generating Quarto-based pdstools reports.
+
+   This package preserves the public surface of the previous ``report_utils``
+   module while splitting the implementation across several focused private
+   submodules:
+
+   * ``_common`` — shared module-level state (logger).
+   * ``_filenames`` — output filename composition and report-resource copying.
+   * ``_quarto`` — Quarto execution: rendering, command-line wrappers,
+     Quarto/Pandoc version detection, callouts, and the ``show_credits`` block.
+   * ``_html`` — HTML post-processing: CSS inlining, zip bundling of Quarto
+     resource folders, and report error scanning.
+   * ``_tables`` — RAG-coloured metric tables (``itables`` and ``great_tables``).
+   * ``_polars_helpers`` — small Polars helpers and aggregations used by
+     Quarto report templates (gains table, hierarchy summarisations, etc.).
+   * ``_query`` — serialise/deserialise pdstools ``QUERY`` objects so they can
+     travel through Quarto YAML parameters.
+
+   Submodule names are underscore-prefixed; only this ``__init__`` is the
+   supported import surface. Imports such as
+   ``from pdstools.utils.report_utils import quarto_render_to_html`` continue
+   to resolve unchanged.
+
+
+

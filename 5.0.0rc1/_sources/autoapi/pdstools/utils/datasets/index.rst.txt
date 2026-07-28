@@ -1,0 +1,69 @@
+pdstools.utils.datasets
+=======================
+
+.. py:module:: pdstools.utils.datasets
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.utils.datasets.cdh_sample
+   pdstools.utils.datasets.sample_trees
+   pdstools.utils.datasets.sample_value_finder
+   pdstools.utils.datasets.dq_sample
+
+
+Module Contents
+---------------
+
+.. py:function:: cdh_sample(query: pdstools.utils.types.QUERY | None = None) -> pdstools.adm.ADMDatamart.ADMDatamart
+
+   Import a sample dataset from the CDH Sample application
+
+   :param query: An optional query to apply to the data, by default None
+   :type query: QUERY | None, optional
+
+   :returns: The ADM Datamart class populated with CDH Sample data
+   :rtype: ADMDatamart
+
+
+.. py:function:: sample_trees()
+
+   Load the anonymized AGB sample model (100 trees, with sampleCount).
+
+   :returns: An :class:`~pdstools.adm.trees.ADMTreesModel` loaded from the
+             bundled ``data/agb/ModelExportWithSampleCount.json`` file (dev
+             environment) or from the canonical GitHub raw URL (installed
+             package).
+   :rtype: ADMTreesModel
+
+
+.. py:function:: sample_value_finder(threshold: float | None = None) -> pdstools.valuefinder.ValueFinder.ValueFinder
+
+   Import a sample dataset of a Value Finder simulation
+
+   This simulation was ran on a stock CDH Sample system.
+
+   :param threshold: Optional override of the propensity threshold in the system, by default None
+   :type threshold: float | None, optional
+
+   :returns: The Value Finder class populated with the Value Finder simulation data
+   :rtype: ValueFinder
+
+
+.. py:function:: dq_sample(*, similarity_threshold: float = 0.8) -> pdstools.data_quality.TopicDataQuality
+
+   Load the built-in smalltalk sample dataset for Topic Data Quality.
+
+   Returns a ready-to-use ``TopicDataQuality`` instance with embeddings,
+   UMAP, and similarity already computed.
+
+   :param similarity_threshold: Topic pairs above this TF-IDF cosine similarity are flagged.
+   :type similarity_threshold: float, default 0.8
+
+   :returns: A fully-initialized instance with precomputed results.
+   :rtype: TopicDataQuality
+
+

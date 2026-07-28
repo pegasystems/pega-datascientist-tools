@@ -1,0 +1,53 @@
+pdstools.utils.plot_utils
+=========================
+
+.. py:module:: pdstools.utils.plot_utils
+
+.. autoapi-nested-parse::
+
+   Plot utilities for pdstools visualizations.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.plot_utils.COLORSCALES
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.utils.plot_utils.get_colorscale
+
+
+Module Contents
+---------------
+
+.. py:data:: COLORSCALES
+   :type:  dict[str, Any]
+
+.. py:function:: get_colorscale(metric: str, default: str = 'other') -> list[tuple[float, str]] | list[str]
+
+   Get the colorscale for a metric.
+
+   :param metric: The metric name to look up (e.g., "Performance", "SuccessRate").
+   :type metric: str
+   :param default: The default colorscale key to use if metric not found, by default "other".
+   :type default: str, optional
+
+   :returns: A Plotly-compatible colorscale (list of (position, color) tuples or list of colors).
+   :rtype: Union[list[tuple[float, str]], list[str]]
+
+   .. rubric:: Examples
+
+   >>> get_colorscale("Performance")
+   [(0, '#d91c29'), (0.01, '#F76923'), (0.3, '#20aa50'), (0.8, '#20aa50'), (1, '#0000FF')]
+   >>> get_colorscale("UnknownMetric")
+   ['#d91c29', '#F76923', '#20aa50']
+
+

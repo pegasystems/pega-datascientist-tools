@@ -1,0 +1,306 @@
+pdstools.pega_io.File
+=====================
+
+.. py:module:: pdstools.pega_io.File
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.pega_io.File.logger
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.pega_io.File.scan_parquet_path
+   pdstools.pega_io.File.read_data
+   pdstools.pega_io.File.read_ds_export
+   pdstools.pega_io.File.read_zipped_file
+   pdstools.pega_io.File.read_multi_zip
+   pdstools.pega_io.File.get_latest_file
+   pdstools.pega_io.File.find_files
+   pdstools.pega_io.File.cache_to_file
+   pdstools.pega_io.File.read_dataflow_output
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:function:: scan_parquet_path(source: str | pathlib.Path | list[str] | list[pathlib.Path]) -> polars.LazyFrame
+
+   Scan one or more parquet files from a user-supplied path, glob, or list.
+
+   Lives in ``pega_io`` so all user-facing parquet scans flow through a
+   single, inspectable surface — the funnel CodeQL's
+   ``py/path-injection`` rule is scoped to. Single-path / glob inputs are
+   routed through :func:`_scan_by_extension` so there is one place inside
+   ``pega_io`` where ``pl.scan_parquet`` is actually invoked for a leaf
+   path. Lists of paths are forwarded directly to
+   :func:`polars.scan_parquet` (it accepts that shape natively).
+
+   :param source: Path to a parquet file, a glob pattern (e.g. ``"folder/*_BATCH_*.parquet"``),
+                  or a list of file paths.
+   :type source: str or Path or list of str/Path
+
+   :returns: LazyFrame over the matched parquet file(s).
+   :rtype: pl.LazyFrame
+
+
+.. py:function:: read_data(path: str | pathlib.Path | io.BytesIO) -> polars.LazyFrame
+
+   Read data from various file formats and sources.
+
+   Supports multiple formats: parquet, csv, arrow, feather, ndjson, json, xlsx, xls, zip, tar, tar.gz, tgz, gz.
+   Handles both individual files and directories (including Hive-partitioned structures).
+   Archives (zip, tar) are automatically extracted to temporary directories.
+   Gzip files (.gz) are automatically decompressed.
+
+   :param path: Path to a data file, archive, directory, or BytesIO object.
+                When using BytesIO (e.g., from Streamlit file uploads), the object must have
+                a 'name' attribute indicating the file extension.
+
+                Supported formats:
+
+                - Parquet files or directories
+                - CSV files
+                - Arrow/IPC/Feather files
+                - NDJSON/JSONL files
+                - Excel files (.xlsx, .xls — requires the optional ``fastexcel`` package)
+                - GZIP compressed files (.gz, .json.gz, .csv.gz, etc.)
+                - ZIP archives including Pega Dataset Export format (extracted automatically)
+                - TAR archives including .tar.gz and .tgz (extracted automatically)
+                - Hive-partitioned directories (scanned recursively)
+                - Glob patterns (e.g. ``"data/**/*.parquet"``) — dispatched
+                  directly to the matching polars lazy scanner.
+   :type path: str, Path, or BytesIO
+
+   :returns: Lazy DataFrame ready for processing. Use `.collect()` to materialize.
+   :rtype: pl.LazyFrame
+
+   :raises ValueError: If no supported data files are found in a directory, or if the file
+       type is not supported.
+
+   .. rubric:: Examples
+
+   Read a parquet file:
+
+   >>> df = read_data("data.parquet")
+
+   Read from a ZIP archive:
+
+   >>> df = read_data("export.zip")
+
+   Read from a TAR archive:
+
+   >>> df = read_data("export.tar.gz")
+
+   Read from a Hive-partitioned directory:
+
+   >>> df = read_data("pxDecisionTime_day=08/")
+
+   Read a Pega Dataset Export file:
+
+   >>> df = read_data("Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip")
+
+   Read a gzip-compressed file:
+
+   >>> df = read_data("export.json.gz")
+   >>> df = read_data("data.csv.gz")
+
+   Read from a BytesIO object (e.g., Streamlit upload):
+
+   >>> from io import BytesIO
+   >>> uploaded_file = ...  # BytesIO with 'name' attribute
+   >>> df = read_data(uploaded_file)
+
+   Read a Feather file:
+
+   >>> df = read_data("data.feather")
+
+   .. rubric:: Notes
+
+   **Pega Dataset Export Support:**
+   This function fully supports Pega Dataset Export format (e.g., Data-Decision-ADM-*.zip,
+   Data-DM-*.zip). These are zip archives containing a data.json file (NDJSON format) and
+   optionally a META-INF/MANIFEST.mf metadata file. The function automatically extracts
+   and reads the data.json file.
+
+   **Other Notes:**
+   - Archives are extracted to temporary directories with automatic cleanup
+   - OS artifacts (__MACOSX, .DS_Store, ._* files) are automatically removed
+   - For directories, the first supported file type found determines the format
+
+
+.. py:function:: read_ds_export(filename: str | os.PathLike | io.BytesIO, path: str | os.PathLike = '.', *, infer_schema_length: int = 10000, separator: str = ',', ignore_errors: bool = False) -> polars.LazyFrame | None
+
+   Read Pega dataset exports with additional capabilities.
+
+   Extends :func:`read_data` with:
+
+   - Smart file finding: accepts ``"model_data"`` or ``"predictor_data"``
+     and searches for matching files (ADM-specific).
+   - URL downloads: fetches remote files when local paths are not found
+     (useful for demos and examples).
+   - Schema overrides: applies Pega-specific type corrections (e.g.
+     ``PYMODELID`` as string).
+
+   For simple file reading without these features, use :func:`read_data`.
+
+   :param filename: File identifier. May be a full file path, a generic name like
+                    ``"model_data"`` / ``"predictor_data"`` (triggers smart search),
+                    or a :class:`io.BytesIO` object (delegates to :func:`read_data`).
+   :type filename: str, os.PathLike, or BytesIO
+   :param path: Directory to search for files (ignored for BytesIO or full paths).
+   :type path: str or os.PathLike, default='.'
+   :param infer_schema_length: Rows to scan for schema inference (CSV/JSON).
+   :type infer_schema_length: int, keyword-only, default=10000
+   :param separator: CSV delimiter.
+   :type separator: str, keyword-only, default=","
+   :param ignore_errors: Whether to continue on parse errors (CSV).
+   :type ignore_errors: bool, keyword-only, default=False
+
+   :returns: Lazy dataframe, or ``None`` if the file could not be located.
+   :rtype: pl.LazyFrame or None
+
+   .. rubric:: Examples
+
+   >>> df = read_ds_export("model_data", path="data/ADMData")
+   >>> df = read_ds_export("ModelSnapshot_20210101.json", path="data")
+   >>> df = read_ds_export(
+   ...     "ModelSnapshot.zip", path="https://example.com/exports"
+   ... )
+   >>> df = read_ds_export("export.csv", infer_schema_length=200000)
+
+
+.. py:function:: read_zipped_file(file: str | io.BytesIO) -> tuple[io.BytesIO, str]
+
+   Read a Pega zipped NDJSON dataset export.
+
+   A Pega dataset export is a zip archive that contains a ``data.json``
+   file (NDJSON format) and optionally a ``META-INF/MANIFEST.mf``
+   metadata file.  This helper opens the zip, locates ``data.json``
+   (top-level or nested) and returns its bytes.
+
+   :param file: Path to the zip file, or an in-memory zip buffer.
+   :type file: str or BytesIO
+
+   :returns: A pair of ``(buffer, ".json")`` ready to be passed back into a
+             Polars reader.
+   :rtype: tuple[BytesIO, str]
+
+   :raises FileNotFoundError: If the archive does not contain a ``data.json`` entry.
+
+
+.. py:function:: read_multi_zip(files: collections.abc.Iterable[str], *, add_original_file_name: bool = False, verbose: bool = True) -> polars.LazyFrame
+
+   Read multiple gzip-compressed NDJSON files and concatenate them.
+
+   :param files: Paths to the ``.json.gz`` files to read.
+   :type files: Iterable[str]
+   :param add_original_file_name: If True, add a ``file`` column recording each source path.
+   :type add_original_file_name: bool, keyword-only, default=False
+   :param verbose: Show a tqdm progress bar (if installed) and print a completion
+                   line when done.
+   :type verbose: bool, keyword-only, default=True
+
+   :returns: Concatenated lazy frame across all input files.
+   :rtype: pl.LazyFrame
+
+
+.. py:function:: get_latest_file(path: str | os.PathLike, target: str) -> str | None
+
+   Find the most recent Pega snapshot file matching a target type.
+
+   Searches ``path`` for files whose name matches one of the well-known
+   Pega snapshot patterns for ``target``, then returns the most recent
+   one (parsed from the filename's GMT timestamp, falling back to file
+   ctime).  Supports ``.json``, ``.csv``, ``.zip``, ``.parquet``,
+   ``.feather``, ``.ipc``, ``.arrow``.
+
+   :param path: Directory to search.
+   :type path: str or os.PathLike
+   :param target: One of ``"model_data"``, ``"predictor_data"``,
+                  ``"prediction_data"``, ``"value_finder"``.
+   :type target: str
+
+   :returns: Full path to the most recent matching file, or ``None`` when no
+             matching file exists.
+   :rtype: str or None
+
+   :raises ValueError: If ``target`` is not one of the supported names.
+
+
+.. py:function:: find_files(files_dir: collections.abc.Iterable[str], target: str) -> list[str]
+
+   Filter a list of filenames down to those matching a Pega snapshot target.
+
+   :param files_dir: Filenames to scan (typically the contents of a directory).
+   :type files_dir: Iterable[str]
+   :param target: One of ``"model_data"``, ``"predictor_data"``,
+                  ``"prediction_data"``, ``"value_finder"``.
+   :type target: str
+
+   :returns: Filenames whose names match one of the known patterns for ``target``.
+   :rtype: list[str]
+
+   :raises ValueError: If ``target`` is not one of the supported names.
+
+
+.. py:function:: cache_to_file(df: polars.DataFrame | polars.LazyFrame, path: str | os.PathLike, name: str, cache_type: Literal['parquet'] = 'parquet', compression: polars._typing.ParquetCompression = 'uncompressed') -> pathlib.Path
+                 cache_to_file(df: polars.DataFrame | polars.LazyFrame, path: str | os.PathLike, name: str, cache_type: Literal['ipc'] = 'ipc', compression: polars._typing.IpcCompression = 'uncompressed') -> pathlib.Path
+
+   Very simple convenience function to cache data.
+   Caches in arrow format for very fast reading.
+
+   :param df: The dataframe to cache
+   :type df: pl.DataFrame
+   :param path: The location to cache the data
+   :type path: os.PathLike
+   :param name: The name to give to the file
+   :type name: str
+   :param cache_type: The type of file to export.
+                      Default is IPC, also supports parquet
+   :type cache_type: str
+   :param compression: The compression to apply, default is uncompressed
+   :type compression: str
+
+   :returns: The filepath to the cached file
+   :rtype: os.PathLike
+
+
+.. py:function:: read_dataflow_output(files: collections.abc.Iterable[str] | str, cache_file_name: str | None = None, *, cache_directory: str | os.PathLike = 'cache')
+
+   Read the file output of a Pega dataflow run.
+
+   By default, the Prediction Studio data export also uses dataflows,
+   so this function applies to those exports as well.
+
+   Dataflow nodes write many small ``.json.gz`` files for each
+   partition.  This helper takes a list of files (or a glob pattern)
+   and concatenates them into a single :class:`polars.LazyFrame`.
+
+   If ``cache_file_name`` is supplied, results are cached as a parquet
+   file.  Subsequent calls only read files that aren't already in the
+   cache, then update it.
+
+   :param files: File paths to read.  If a string is provided, it's expanded with
+                 :func:`glob.glob`.
+   :type files: str or Iterable[str]
+   :param cache_file_name: If given, cache results to ``<cache_directory>/<cache_file_name>.parquet``.
+   :type cache_file_name: str, optional
+   :param cache_directory: Directory to store the parquet cache.
+   :type cache_directory: str or os.PathLike, keyword-only, default="cache"
+
+   .. rubric:: Examples
+
+   >>> from glob import glob
+   >>> read_dataflow_output(files=glob("model_snapshots_*.json"))
+
+

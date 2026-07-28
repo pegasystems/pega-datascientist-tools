@@ -1,0 +1,296 @@
+pdstools.adm.Analysis
+=====================
+
+.. py:module:: pdstools.adm.Analysis
+
+.. autoapi-nested-parse::
+
+   Programmatic ADM health findings built on top of ``ADMDatamart``.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.adm.Analysis.Finding
+   pdstools.adm.Analysis.HealthCheckPreAggregates
+   pdstools.adm.Analysis.Analysis
+
+
+Module Contents
+---------------
+
+.. py:class:: Finding
+
+   A single diagnostic finding from ADM health analysis.
+
+   :param severity: One of "critical", "warning", or "info".
+   :type severity: Severity
+   :param category: The area of the analysis this finding relates to.
+   :type category: Category
+   :param title: A short, one-line summary of the finding.
+   :type title: str
+   :param detail: A longer explanation with context and recommended action.
+   :type detail: str
+   :param data: Structured data for programmatic consumption.
+   :type data: dict
+
+
+   .. py:attribute:: severity
+      :type:  Severity
+
+
+   .. py:attribute:: category
+      :type:  Category
+
+
+   .. py:attribute:: title
+      :type:  str
+
+
+   .. py:attribute:: detail
+      :type:  str
+
+
+   .. py:attribute:: data
+      :type:  dict
+
+
+   .. py:method:: __str__() -> str
+
+
+.. py:class:: HealthCheckPreAggregates
+
+   Precomputed summaries reused across health-check outputs.
+
+
+   .. py:attribute:: last_data
+      :type:  polars.DataFrame
+
+
+   .. py:attribute:: date_start
+      :type:  object | None
+      :value: None
+
+
+
+   .. py:attribute:: date_end
+      :type:  object | None
+      :value: None
+
+
+
+   .. py:attribute:: total_models
+      :type:  int | None
+      :value: None
+
+
+
+   .. py:attribute:: active_models
+      :type:  int | None
+      :value: None
+
+
+
+   .. py:attribute:: channel_count
+      :type:  int | None
+      :value: None
+
+
+
+   .. py:attribute:: configuration_count
+      :type:  int | None
+      :value: None
+
+
+
+   .. py:attribute:: action_count
+      :type:  int | None
+      :value: None
+
+
+
+   .. py:attribute:: treatment_count
+      :type:  int | None
+      :value: None
+
+
+
+   .. py:attribute:: response_count
+      :type:  int | None
+      :value: None
+
+
+
+   .. py:attribute:: positive_count
+      :type:  int | None
+      :value: None
+
+
+
+   .. py:attribute:: overall_avg_auc
+      :type:  float | None
+      :value: None
+
+
+
+   .. py:attribute:: active_avg_auc
+      :type:  float | None
+      :value: None
+
+
+
+   .. py:attribute:: predictor_count
+      :type:  int | None
+      :value: None
+
+
+
+   .. py:attribute:: channel_overview
+      :type:  polars.DataFrame | None
+      :value: None
+
+
+
+   .. py:attribute:: channel_summary
+      :type:  polars.DataFrame | None
+      :value: None
+
+
+
+   .. py:attribute:: configuration_summary
+      :type:  polars.DataFrame | None
+      :value: None
+
+
+
+   .. py:attribute:: predictor_overview
+      :type:  polars.DataFrame | None
+      :value: None
+
+
+
+   .. py:attribute:: predictor_categories
+      :type:  polars.DataFrame | None
+      :value: None
+
+
+
+   .. py:attribute:: prediction_summary
+      :type:  polars.DataFrame | None
+      :value: None
+
+
+
+   .. py:attribute:: taxonomy_counts
+      :type:  dict[str, int]
+
+
+.. py:class:: Analysis(datamart: pdstools.adm.ADMDatamart.ADMDatamart)
+
+   Automated diagnostic analysis for ADM model data.
+
+   Accessed as ``datamart.analysis``. Provides programmatic health findings
+   that would otherwise require a human to scan through charts and tables.
+
+   .. rubric:: Examples
+
+   >>> from pdstools import datasets
+   >>> dm = datasets.cdh_sample()
+   >>> for f in dm.analysis.findings():
+   ...     print(f)
+
+
+   .. py:attribute:: datamart
+
+
+   .. py:method:: health_check_active_filter(*, active_threshold_days: int = 30) -> polars.Expr
+
+      Return the shared active-model filter used by health checks.
+
+
+
+   .. py:method:: health_check_active_threshold_date_string(*, active_threshold_days: int = 30) -> str
+
+      Return the shared cutoff-date string for the active-model filter.
+
+
+
+   .. py:method:: health_check_maturity_criteria() -> list[tuple[str, str, polars.Expr]]
+
+      Return the shared maturity bucket definitions for health checks.
+
+
+
+   .. py:method:: health_check_maturity_overview(*, last_data: polars.DataFrame | None = None, active_filter: polars.Expr | None = None, active_threshold_days: int = 30) -> polars.DataFrame
+
+      Return the shared maturity-overview table used by health checks.
+
+
+
+   .. py:method:: compute_health_check_preaggregates(*, active_filter: polars.Expr | None = None, active_threshold_days: int = 30, prediction: Prediction | None = None, include_markdown_sections: bool = True) -> HealthCheckPreAggregates
+
+      Compute reusable summaries for health-check generation.
+
+      :param active_filter: Custom Polars expression defining which models count as active.
+                            If not provided, a default filter based on ``active_threshold_days``
+                            is constructed.
+      :type active_filter: pl.Expr, optional
+      :param active_threshold_days: Default recency window used when ``active_filter`` is not provided.
+      :type active_threshold_days: int, default 30
+      :param prediction: Optional prediction data to summarize alongside ADM data.
+      :type prediction: Prediction, optional
+      :param include_markdown_sections: Whether to also precompute the compact tables currently used by the
+                                        Markdown health check (for example configuration summaries).
+      :type include_markdown_sections: bool, default True
+
+      :returns: Materialized summaries that can be reused across multiple report
+                outputs within one run.
+      :rtype: HealthCheckPreAggregates
+
+
+
+   .. py:method:: findings(*, active_filter: polars.Expr | None = None, active_threshold_days: int = 30, prediction: Prediction | None = None, preaggregates: HealthCheckPreAggregates | None = None) -> list[Finding]
+
+      Run all diagnostic checks and return a list of findings.
+
+      :param active_filter: A Polars expression that filters to "active" models.
+                            If not provided, a default filter based on
+                            ``active_threshold_days`` is constructed.
+      :type active_filter: pl.Expr, optional
+      :param active_threshold_days: If ``active_filter`` is not given, models not updated in this
+                                    many days are considered inactive.
+      :type active_threshold_days: int, default 30
+      :param prediction: A :class:`~pdstools.prediction.Prediction` instance. If
+                         provided, prediction-level findings are included.
+      :type prediction: Prediction, optional
+
+      :returns: Sorted by severity (critical first, then warning, then info).
+      :rtype: list[Finding]
+
+
+
+   .. py:method:: markdown(*, title: str = 'ADM Health Check', subtitle: str = '', disclaimer: str = '', active_filter: polars.Expr | None = None, active_threshold_days: int = 30, prediction: Prediction | None = None, preaggregates: HealthCheckPreAggregates | None = None) -> str
+
+      Render findings as agent-friendly GitHub-flavored Markdown.
+
+      :param title: Report title shown at the top of the markdown document.
+      :type title: str, default "ADM Health Check"
+      :param subtitle: Optional subtitle shown below the title.
+      :type subtitle: str, default ""
+      :param disclaimer: Optional disclaimer shown as a blockquote near the top.
+      :type disclaimer: str, default ""
+      :param active_filter: Custom Polars expression defining which models count as active.
+      :type active_filter: pl.Expr, optional
+      :param active_threshold_days: Default recency window used when ``active_filter`` is not provided.
+      :type active_threshold_days: int, default 30
+      :param prediction: Optional prediction data for prediction-level findings.
+      :type prediction: Prediction, optional
+
+      :returns: Markdown document summarizing the findings.
+      :rtype: str
+
+
+

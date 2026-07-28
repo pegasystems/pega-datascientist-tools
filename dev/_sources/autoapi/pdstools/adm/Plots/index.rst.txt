@@ -1,0 +1,71 @@
+pdstools.adm.Plots
+==================
+
+.. py:module:: pdstools.adm.Plots
+
+.. autoapi-nested-parse::
+
+   Plot methods for :class:`pdstools.adm.ADMDatamart`.
+
+   This package decomposes the legacy ``Plots`` god-class into mixins
+   grouped by concern. The public ``Plots`` class composes those mixins
+   so that ``dm.plot.<method>`` continues to expose the same surface as
+   before — no public method names, signatures or return types change.
+
+   Layout
+   ------
+   - ``_helpers``    – ``requires`` decorator, ``MetricLimits`` annotation
+     helper, and small plotly building blocks reused by multiple mixins.
+   - ``_overview``   – :meth:`bubble_chart`, :meth:`tree_map`,
+     :meth:`action_overlap`, :meth:`partitioned_plot`.
+   - ``_performance`` – :meth:`over_time`, :meth:`gains_chart`,
+     :meth:`performance_volume_distribution`,
+     :meth:`proposition_success_rates`.
+   - ``_score``      – :meth:`score_distribution`,
+     :meth:`multiple_score_distributions`.
+   - ``_predictors`` – :meth:`predictor_performance`,
+     :meth:`predictor_category_performance`, :meth:`predictor_contribution`,
+     :meth:`predictor_performance_heatmap`, :meth:`predictor_count`.
+   - ``_binning``    – :meth:`predictor_binning`,
+     :meth:`multiple_predictor_binning`, :meth:`binning_lift`.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.adm.Plots.Plots
+
+
+Package Contents
+----------------
+
+.. py:class:: Plots(datamart: pdstools.adm.ADMDatamart.ADMDatamart)
+
+   Bases: :py:obj:`_overview._OverviewPlotsMixin`, :py:obj:`_performance._PerformancePlotsMixin`, :py:obj:`_score._ScorePlotsMixin`, :py:obj:`_predictors._PredictorPlotsMixin`, :py:obj:`_binning._BinningPlotsMixin`, :py:obj:`_base._PlotsBase`, :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Namespace exposing all out-of-the-box ADM datamart plots.
+
+   Methods are defined across the ``_overview``, ``_performance``,
+   ``_score``, ``_predictors`` and ``_binning`` submodules and composed
+   here. The class is consumed via ``dm.plot.<method>`` on an
+   :class:`~pdstools.adm.ADMDatamart` instance.
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['plotly']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'adm'
+
+
+
+   .. py:attribute:: datamart
+
+

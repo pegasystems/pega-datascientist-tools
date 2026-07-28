@@ -1,0 +1,120 @@
+pdstools.explanations.Explanations
+==================================
+
+.. py:module:: pdstools.explanations.Explanations
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.Explanations.Explanations
+
+
+Module Contents
+---------------
+
+.. py:class:: Explanations(*, root_dir: str = _DEFAULT_ROOT_DIR, data_folder: str | pathlib.Path = _DEFAULT_DATA_FOLDER, model_name: str | None = None, from_date: datetime.datetime | None = None, to_date: datetime.datetime | None = None)
+
+   Process and explore explanation data for Adaptive Gradient Boost models.
+
+   The class is a thin orchestrator over three sub-namespaces (``aggregate``,
+   ``plot``, ``report``) that operate on pre-aggregated parquet files.
+
+   The constructor is **pure configuration** — it accepts optional filesystem
+   path settings (``root_dir`` / ``data_folder``) but performs no I/O.
+   Use the ``from_aggregates`` classmethod to point at pre-aggregated data
+   (typically ``.tmp/aggregated_data/``) with validation.
+   After initialization, ``aggregate``, ``plot`` and ``report`` can be used
+   freely.
+
+   :param root_dir: Working directory under which the pre-aggregated parquet files
+                    (and report scratch space) are written. Ignored if a custom ``data_folder`` is provided,
+                    in which case the parent of ``data_folder`` is used as the root.
+   :type root_dir: str, optional, default ".tmp"
+   :param data_folder: Path to the folder containing pre-aggregated parquet files.
+                       Can be a relative path (combined with ``root_dir``) or an absolute path.
+                       Note: validation (FileNotFoundError) only occurs via ``from_aggregates``;
+                       direct ``__init__`` calls skip validation.
+   :type data_folder: str | Path, optional, default "aggregated_data"
+   :param model_name: Name of the model rule. Used for report metadata only.
+   :type model_name: str, optional
+   :param from_date: Start date of the period over which aggregates are computed.
+                     Defaults to ``to_date - 7 days`` if only ``to_date`` is given,
+                     or to ``today() - 7 days`` if both are omitted.
+   :type from_date: datetime, optional
+   :param to_date: End date of the period over which aggregates are computed.
+                   Defaults to ``today()`` if only ``from_date`` is given, or to
+                   ``today()`` if both are omitted.
+   :type to_date: datetime, optional
+
+   .. seealso::
+
+      :py:obj:`Explanations.from_aggregates`
+          Load pre-aggregated parquet files.
+
+   .. rubric:: Notes
+
+   Environment variable that influence the batch parquet file generation:
+
+   ``FILE_BATCH_LIMIT``
+       Number of context partitions per batch. Default: ``100``.
+
+   .. rubric:: Examples
+
+   Load pre-aggregated explanation data:
+
+   >>> from pathlib import Path
+   >>> exp = Explanations.from_aggregates(
+   ...     data_folder=Path(".tmp/aggregated_data"),
+   ...     model_name="AdaptiveBoostCT",
+   ...     from_date=datetime(2025, 3, 28),
+   ...     to_date=datetime(2025, 3, 28),
+   ... )
+   >>> df = exp.aggregate.get_df_overall().collect()  # doctest: +SKIP
+
+   Construct with a custom aggregates path:
+
+   >>> exp = Explanations(data_folder="/path/to/my/aggregates")
+   >>> df = exp.aggregate.get_df_overall().collect()  # doctest: +SKIP
+
+
+   .. py:method:: from_aggregates(*, root_dir: str = _DEFAULT_ROOT_DIR, data_folder: str | pathlib.Path = _DEFAULT_DATA_FOLDER, model_name: str | None = None, from_date: datetime.datetime | None = None, to_date: datetime.datetime | None = None) -> Explanations
+      :classmethod:
+
+
+      Construct an ``Explanations`` from pre-aggregated parquet files.
+
+      This is the standard entry point: it points to a folder containing
+      pre-aggregated parquet files and returns a ready-to-query instance.
+
+      :param root_dir: Working directory under which the pre-aggregated parquet files
+                       (and report scratch space) are written.
+      :type root_dir: str, default ".tmp"
+      :param data_folder: Path to the folder containing pre-aggregated parquet files.
+                          Can be a relative path (combined with ``root_dir``) or an absolute path.
+                          Must exist and be non-empty; raises FileNotFoundError otherwise.
+      :type data_folder: str | Path, default "aggregated_data"
+      :param model_name: Name of the model rule. Used for report metadata only.
+      :type model_name: str, optional
+      :param from_date: Start date of the period over which aggregates are computed.
+                        See :class:`Explanations` for default behaviour.
+      :type from_date: datetime, optional
+      :param to_date: End date of the period over which aggregates are computed.
+                      See :class:`Explanations` for default behaviour.
+      :type to_date: datetime, optional
+
+      :returns: A fully initialised instance pointing at the aggregated data.
+      :rtype: Explanations
+
+      :raises FileNotFoundError: If ``root_dir`` or ``data_folder`` does not exist or is empty.
+
+
+
+   .. py:method:: validate_data_folder() -> None
+
+      Validate that data_folder exists and contains parquet files.
+
+
+

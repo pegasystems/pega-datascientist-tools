@@ -1,0 +1,123 @@
+pdstools.decision_analyzer.plots
+================================
+
+.. py:module:: pdstools.decision_analyzer.plots
+
+.. autoapi-nested-parse::
+
+   Decision-analyzer plotting helpers.
+
+   This package preserves the public surface of the previous
+   ``decision_analyzer.plots`` module while splitting the implementation
+   across several focused private submodules:
+
+   * ``_sensitivity`` — sensitivity, threshold deciles, prio-factor boxplots.
+   * ``_winloss`` — global win/loss distribution and win-distribution bar chart.
+   * ``_optionality`` — propensity-vs-optionality, optionality per stage / trend.
+   * ``_funnel`` — optionality funnel, decision funnel, decisions-without-actions.
+   * ``_distribution`` — treemap, action variation, histograms, rank/parameter boxplots.
+   * ``_components`` — filter-component plots and prioritization-component distributions.
+   * ``_trend`` — generic trend chart.
+   * ``_offer_quality`` — offer-quality pie charts and trend.
+
+   Submodule names are underscore-prefixed; only this ``__init__`` is the
+   supported import surface. Imports such as
+   ``from pdstools.decision_analyzer.plots import Plot`` continue to resolve
+   unchanged.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.decision_analyzer.plots.Plot
+
+
+Package Contents
+----------------
+
+.. py:class:: Plot(decision_data)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Plotting facade attached to a :class:`DecisionAnalyzer` instance.
+
+   Method implementations live in the underscore-prefixed submodules
+   (``_sensitivity``, ``_funnel``, …) and are bound onto this class
+   below so the public surface and call sites remain unchanged.
+
+   Extends :class:`~pdstools.utils.namespaces.LazyNamespace` so that
+   missing optional dependencies (currently ``plotly``) surface as a
+   standard :class:`~pdstools.utils.namespaces.MissingDependenciesException`
+   on first method call, matching the pattern used by other ``Plots``
+   classes across pdstools.
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['plotly']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'adm'
+
+
+
+   .. py:attribute:: threshold_deciles
+
+
+   .. py:attribute:: sensitivity
+
+
+   .. py:attribute:: prio_factor_boxplots
+
+
+   .. py:attribute:: global_winloss_distribution
+
+
+   .. py:attribute:: propensity_vs_optionality
+
+
+   .. py:attribute:: optionality_per_stage
+
+
+   .. py:attribute:: optionality_trend
+
+
+   .. py:attribute:: optionality_funnel
+
+
+   .. py:attribute:: decision_funnel
+
+
+   .. py:attribute:: decisions_without_actions_plot
+
+
+   .. py:attribute:: distribution_as_treemap
+
+
+   .. py:attribute:: action_variation
+
+
+   .. py:attribute:: distribution
+
+
+   .. py:attribute:: rank_boxplot
+
+
+   .. py:attribute:: filtering_components
+
+
+   .. py:attribute:: component_action_impact
+
+
+   .. py:attribute:: component_drilldown
+
+
+   .. py:attribute:: trend_chart
+
+

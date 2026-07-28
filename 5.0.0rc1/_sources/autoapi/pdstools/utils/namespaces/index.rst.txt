@@ -1,0 +1,121 @@
+pdstools.utils.namespaces
+=========================
+
+.. py:module:: pdstools.utils.namespaces
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.namespaces.logger
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.namespaces.MissingDependenciesException
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.utils.namespaces.LazyNamespaceMeta
+   pdstools.utils.namespaces.LazyNamespace
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.utils.namespaces.require_dependencies
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:function:: require_dependencies(func)
+
+   Decorator that triggers dependency checking before invoking ``func``.
+
+
+.. py:class:: LazyNamespaceMeta
+
+   Bases: :py:obj:`type`
+
+
+   Lazy namespace meta.
+
+
+.. py:class:: LazyNamespace
+
+   Lazy namespace.
+
+   Subclasses declare ``dependencies`` (a list of import names) and
+   optionally ``dependency_group`` (the matching ``pdstools[<extra>]``
+   extras group). Method calls trigger a lazy dependency check that
+   raises :class:`MissingDependenciesException` with a friendly install
+   hint when a required package is missing.
+
+   Attribute access on missing methods (e.g. ``ns.some_method`` without
+   calling) also triggers the dependency check, so introspection
+   (``hasattr``, ``dir``) surfaces missing-dep errors uniformly instead
+   of returning a confusing ``AttributeError``.
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str] | None]
+      :value: None
+
+
+
+   .. py:attribute:: dependency_group
+      :type:  ClassVar[str | None]
+      :value: None
+
+
+
+   .. py:method:: check_dependencies()
+
+      Check dependencies.
+
+
+
+   .. py:method:: __getattr__(name: str)
+
+
+   .. py:method:: __repr__() -> str
+
+
+.. py:exception:: MissingDependenciesException(deps: list[str], namespace: str | None = None, deps_group: str | None = None)
+
+   Bases: :py:obj:`Exception`
+
+
+   Missing dependencies exception.
+
+
+   .. py:attribute:: message
+
+
+   .. py:attribute:: deps
+
+
+   .. py:attribute:: namespace
+      :value: None
+
+
+
+   .. py:attribute:: deps_group
+      :value: None
+
+
+

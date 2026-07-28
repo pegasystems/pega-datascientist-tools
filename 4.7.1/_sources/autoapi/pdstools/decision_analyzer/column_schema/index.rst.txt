@@ -1,0 +1,67 @@
+pdstools.decision_analyzer.column_schema
+========================================
+
+.. py:module:: pdstools.decision_analyzer.column_schema
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.decision_analyzer.column_schema.DecisionAnalyzer
+   pdstools.decision_analyzer.column_schema.ExplainabilityExtract
+   pdstools.decision_analyzer.column_schema.audit_tag_mapping
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.decision_analyzer.column_schema.TableConfig
+
+
+Module Contents
+---------------
+
+.. py:class:: TableConfig
+
+   Bases: :py:obj:`TypedDict`
+
+
+   dict() -> new empty dictionary
+   dict(mapping) -> new dictionary initialized from a mapping object's
+       (key, value) pairs
+   dict(iterable) -> new dictionary initialized as if via:
+       d = {}
+       for k, v in iterable:
+           d[k] = v
+   dict(**kwargs) -> new dictionary initialized with the name=value pairs
+       in the keyword argument list.  For example:  dict(one=1, two=2)
+
+
+   .. py:attribute:: display_name
+      :type:  str
+
+
+   .. py:attribute:: default
+      :type:  bool
+
+
+   .. py:attribute:: type
+      :type:  TableConfig.type[polars.DataType]
+
+
+   .. py:attribute:: aliases
+      :type:  NotRequired[list[str]]
+
+
+.. py:data:: DecisionAnalyzer
+   :type:  dict[str, TableConfig]
+
+.. py:data:: ExplainabilityExtract
+   :type:  dict[str, TableConfig]
+
+.. py:data:: audit_tag_mapping
+
