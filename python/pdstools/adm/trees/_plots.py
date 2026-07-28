@@ -19,35 +19,35 @@ from typing import TYPE_CHECKING, ClassVar, Literal, SupportsFloat, cast, overlo
 
 import polars as pl
 
+from ...utils import cdh_utils
 from ...utils.namespaces import LazyNamespace, MissingDependenciesException
-from ...utils.pega_template import colorway as _colorway
+from ...utils.plot_utils import abbreviate_label
+from ..ADMDatamart import _STANDARD_PREDICTOR_CATEGORY_COLORS
 from ._nodes import _iter_nodes
 
-# Fixed color assignments for well-known predictor groups.
-# Keyed alphabetically to match the Pega colorway order so the same group
-# always gets the same colour across every plot in the notebook.
-_PREDICTOR_GROUP_COLORMAP: dict[str, str] = {
-    grp: _colorway[i % len(_colorway)]
-    for i, grp in enumerate(sorted(["Context Keys", "Customer", "External Models", "IH", "Param"]))
-}
+# Fixed color assignments for well-known predictor categories, shared with
+# ADMDatamart predictor-category plots.
+_PREDICTOR_CATEGORY_COLORMAP: dict[str, str] = dict(_STANDARD_PREDICTOR_CATEGORY_COLORS)
 
 # Un-aliased value expression — import and extend this in notebooks to add
-# custom predictor groups before calling plot methods.
+# custom predictor categories before calling plot methods.
 # Example (in a notebook cell):
-#   from pdstools.adm.trees._plots import _PREDICTOR_GROUP_VALUE
-#   AGBModel.plot.predictor_group_expr = (
+#   from pdstools.adm.trees._plots import _PREDICTOR_CATEGORY_VALUE
+#   AGBModel.plot.predictor_category_expr = (
 #       pl.when(pl.col("predictor").str.starts_with("MyPrefix"))
-#       .then(pl.lit("External Models"))
-#       .otherwise(_PREDICTOR_GROUP_VALUE)
-#       .alias("Predictor Group")
+#       .then(pl.lit("External Model"))
+#       .otherwise(_PREDICTOR_CATEGORY_VALUE)
+#       .alias("PredictorCategory")
 #   )
-_PREDICTOR_GROUP_VALUE: pl.Expr = (
-    pl.when(pl.col("predictor").str.splitn(".", 2).struct.field("field_0").str.starts_with("py"))
-    .then(pl.lit("Context Keys"))
-    .otherwise(pl.col("predictor").str.splitn(".", 2).struct.field("field_0"))
-)
+_PREDICTOR_CATEGORY_VALUE: pl.Expr = cdh_utils.default_predictor_categorization("predictor").meta.undo_aliases()
 
-_PREDICTOR_GROUP_EXPR: pl.Expr = _PREDICTOR_GROUP_VALUE.alias("Predictor Group")
+_PREDICTOR_CATEGORY_EXPR: pl.Expr = _PREDICTOR_CATEGORY_VALUE.alias("PredictorCategory")
+
+# Backwards-compatible aliases for notebooks written before the AGB plots were
+# aligned with ADM's PredictorCategory terminology.
+_PREDICTOR_GROUP_COLORMAP = _PREDICTOR_CATEGORY_COLORMAP
+_PREDICTOR_GROUP_VALUE = _PREDICTOR_CATEGORY_VALUE
+_PREDICTOR_GROUP_EXPR = _PREDICTOR_CATEGORY_EXPR
 
 logger = logging.getLogger(__name__)
 
@@ -72,26 +72,30 @@ class Plots(LazyNamespace):
 
     def __init__(self, trees_model: "ADMTreesModel") -> None:
         self.trees_model = trees_model
-        self.predictor_group_expr: pl.Expr = _PREDICTOR_GROUP_EXPR
-        """Polars expression producing the ``"Predictor Group"`` column.
+        self.predictor_category_expr: pl.Expr = _PREDICTOR_CATEGORY_EXPR
+        """Polars expression producing the ``"PredictorCategory"`` column.
 
         Set this attribute to a custom expression to override the default
-        grouping (e.g., to map external-score predictors to their own group).
-        See :data:`_PREDICTOR_GROUP_VALUE` for a composable base expression.
+        categorization (e.g., to map external-score predictors to their own
+        category). See :data:`_PREDICTOR_CATEGORY_VALUE` for a composable base
+        expression.
         """
-        self.predictor_group_colormap: dict[str, str] = _PREDICTOR_GROUP_COLORMAP
-        """Color map from predictor group name to hex color string.
+        self.predictor_category_colormap: dict[str, str] = _PREDICTOR_CATEGORY_COLORMAP
+        """Color map from predictor category name to hex color string.
 
-        Extend this dict when you introduce a custom predictor group so the new
-        group always gets a consistent color across all plots.
+        Extend this dict when you introduce a custom predictor category so the
+        new category always gets a consistent color across all plots.
         """
-        self.predictor_group_order: list[str] = list(_PREDICTOR_GROUP_COLORMAP)
-        """Fixed display order of predictor groups in plot legends and axes.
+        self.predictor_category_order: list[str] = list(_PREDICTOR_CATEGORY_COLORMAP)
+        """Fixed display order of predictor categories in plot legends and axes.
 
         Defaults to alphabetical order (the key order of
-        :data:`_PREDICTOR_GROUP_COLORMAP`).  Extend or reorder this list when
-        you add custom groups so legends remain consistent across all plots.
+        :data:`_PREDICTOR_CATEGORY_COLORMAP`).  Extend or reorder this list when
+        you add custom categories so legends remain consistent across all plots.
         """
+        self.predictor_group_expr = self.predictor_category_expr
+        self.predictor_group_colormap = self.predictor_category_colormap
+        self.predictor_group_order = self.predictor_category_order
         super().__init__()
 
     # ------------------------------------------------------------------
@@ -138,6 +142,8 @@ class Plots(LazyNamespace):
         figlist = []
         for (name,), data in self.trees_model.gains_per_split.group_by("predictor"):
             if subset is None or name in subset:
+                split_values = data.get_column("split").unique(maintain_order=True).to_list()
+                split_tick_text = [abbreviate_label(value, max_length=48) for value in split_values]
                 fig = make_subplots()
                 fig.add_trace(
                     go.Box(
@@ -160,6 +166,15 @@ class Plots(LazyNamespace):
                     title=f"Splits on {name}",
                     xaxis_title="Split",
                     yaxis_title="Number",
+                    xaxis_automargin=True,
+                    margin=dict(b=120),
+                )
+                fig.update_xaxes(
+                    tickmode="array",
+                    tickvals=split_values,
+                    ticktext=split_tick_text,
+                    tickangle=45,
+                    automargin=True,
                 )
                 figlist.append(fig)
         return figlist
@@ -444,6 +459,7 @@ class Plots(LazyNamespace):
             title="Total gain and root score per tree",
             xaxis_title="Tree index",
             template="none",
+            margin=dict(r=100),
         )
         fig.update_yaxes(title_text="Total gain", secondary_y=False)
         fig.update_yaxes(title_text="Root score", secondary_y=True)
@@ -484,15 +500,18 @@ class Plots(LazyNamespace):
             .select(["treeID", "total_gain"])
         )
         grand_total = base["total_gain"].sum()
-        df = base.with_columns((pl.col("total_gain").cum_sum() / grand_total).alias("cumulative_gain_share")).select(
-            ["treeID", "cumulative_gain_share"]
+        # A model with no positive-gain splits yet (e.g. a single stump tree)
+        # has grand_total == 0, making the share undefined rather than 0 %.
+        share_expr = (
+            pl.lit(None, dtype=pl.Float64) if not grand_total else (pl.col("total_gain").cum_sum() / grand_total)
         )
+        df = base.with_columns(share_expr.alias("cumulative_gain_share")).select(["treeID", "cumulative_gain_share"])
         if return_df:
             return df
 
         half_idx = (
             df.filter(pl.col("cumulative_gain_share") >= 0.5)["treeID"].first()
-            if (df["cumulative_gain_share"] >= 0.5).any()
+            if grand_total and (df["cumulative_gain_share"] >= 0.5).any()
             else None
         )
         fig = go.Figure()
@@ -559,7 +578,7 @@ class Plots(LazyNamespace):
         -------
         plotly.graph_objects.Figure or pl.DataFrame
             Figure when ``return_df=False``; DataFrame with columns
-            ``predictor``, ``total_gain``, ``Predictor Group`` when
+            ``predictor``, ``total_gain``, ``PredictorCategory`` when
             ``return_df=True``.
         """
         try:
@@ -572,7 +591,7 @@ class Plots(LazyNamespace):
             .agg(pl.col("gains").sum().alias("total_gain"))
             .sort("total_gain", descending=True)
             .head(top_n)
-            .with_columns(self.predictor_group_expr)
+            .with_columns(self.predictor_category_expr)
         )
         if return_df:
             return df
@@ -582,16 +601,16 @@ class Plots(LazyNamespace):
             sorted_df,
             x="total_gain",
             y="predictor",
-            color="Predictor Group",
+            color="PredictorCategory",
             orientation="h",
             title=f"Top {top_n} predictors by total gain",
-            labels={"total_gain": "Total gain", "predictor": "", "Predictor Group": "Predictor Group"},
+            labels={"total_gain": "Total gain", "predictor": "", "PredictorCategory": "Predictor category"},
             template="none",
             category_orders={
                 "predictor": sorted_df["predictor"].to_list(),
-                "Predictor Group": self.predictor_group_order,
+                "PredictorCategory": self.predictor_category_order,
             },
-            color_discrete_map=self.predictor_group_colormap,
+            color_discrete_map=self.predictor_category_colormap,
         ).update_layout(yaxis_automargin=True, yaxis_autorange="reversed")
 
     @overload
@@ -620,7 +639,7 @@ class Plots(LazyNamespace):
         plotly.graph_objects.Figure or pl.DataFrame
             Figure when ``return_df=False``; DataFrame with columns
             ``predictor``, ``early_gain``, ``late_gain``, ``total_gain``,
-            ``Predictor Group`` when ``return_df=True``.
+            ``PredictorCategory`` when ``return_df=True``.
         """
         try:
             import plotly.express as px
@@ -645,10 +664,10 @@ class Plots(LazyNamespace):
                 if node.split is not None and node.gain > 0:
                     rows.append({"predictor": node.split.variable, "gain": node.gain, "bucket": bucket})
 
-        if not rows:
-            raise ValueError("No gain data found in tree splits.")
-
-        raw = pl.DataFrame(rows)
+        raw = pl.DataFrame(
+            rows,
+            schema={"predictor": pl.String, "gain": pl.Float64, "bucket": pl.String},
+        )
         early = (
             raw.filter(pl.col("bucket") == "early").group_by("predictor").agg(pl.col("gain").sum().alias("early_gain"))
         )
@@ -661,18 +680,23 @@ class Plots(LazyNamespace):
             )
             .with_columns(
                 (pl.col("early_gain") + pl.col("late_gain")).alias("total_gain"),
-                self.predictor_group_expr,
+                self.predictor_category_expr,
             )
         )
         if return_df:
             return df
 
-        max_val = max(df["early_gain"].max() or 0.0, df["late_gain"].max() or 0.0)
+        if df.is_empty():
+            import plotly.graph_objects as go
+
+            return go.Figure().update_layout(title="Early vs late tree gain per predictor")
+
+        max_val = max(df["early_gain"].max() or 0.0, df["late_gain"].max() or 0.0) or 1.0
         fig = px.scatter(
             df,
             x="early_gain",
             y="late_gain",
-            color="Predictor Group",
+            color="PredictorCategory",
             size="total_gain",
             hover_name="predictor",
             log_x=True,
@@ -681,11 +705,11 @@ class Plots(LazyNamespace):
             labels={
                 "early_gain": f"Gain in first {quarter} trees",
                 "late_gain": f"Gain in last {quarter} trees",
-                "Predictor Group": "Predictor Group",
+                "PredictorCategory": "Predictor category",
             },
             template="none",
-            category_orders={"Predictor Group": self.predictor_group_order},
-            color_discrete_map=self.predictor_group_colormap,
+            category_orders={"PredictorCategory": self.predictor_category_order},
+            color_discrete_map=self.predictor_category_colormap,
         )
         fig.add_shape(
             type="line",
@@ -708,12 +732,13 @@ class Plots(LazyNamespace):
         *,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
-        """Plot total information gain broken down by predictor group.
+        """Plot total information gain broken down by predictor category.
 
-        The predictor group is the first dot-separated segment of the predictor
-        name (e.g. ``IH``, ``Customer``, ``Param``), with Pega context-key
-        predictors (``py*``) collapsed into ``Context Keys``.  Override
-        ``AGBModel.plot.predictor_group_expr`` to define custom groups.
+        The predictor category follows ADM's default categorisation: dotted
+        names use their first segment (for example, ``IH``, ``Customer``,
+        ``Param``), while undotted names such as ``pyGroup`` are ``Primary``.
+        Override ``AGBModel.plot.predictor_category_expr`` to define custom
+        categories.
 
         Parameters
         ----------
@@ -724,7 +749,7 @@ class Plots(LazyNamespace):
         -------
         plotly.graph_objects.Figure or pl.DataFrame
             Figure when ``return_df=False``; DataFrame with columns
-            ``Predictor Group``, ``total_gain``, ``gain_share`` when
+            ``PredictorCategory``, ``total_gain``, ``gain_share`` when
             ``return_df=True``.
         """
         try:
@@ -733,8 +758,8 @@ class Plots(LazyNamespace):
             raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm") from None
 
         df = (
-            self.trees_model.gains_per_split.with_columns(self.predictor_group_expr)
-            .group_by("Predictor Group")
+            self.trees_model.gains_per_split.with_columns(self.predictor_category_expr)
+            .group_by("PredictorCategory")
             .agg(pl.col("gains").sum().alias("total_gain"))
             .sort("total_gain", descending=True)
         )
@@ -747,16 +772,16 @@ class Plots(LazyNamespace):
         fig = px.bar(
             sorted_df,
             x="total_gain",
-            y="Predictor Group",
-            color="Predictor Group",
+            y="PredictorCategory",
+            color="PredictorCategory",
             orientation="h",
-            title="Total gain by predictor group",
-            labels={"total_gain": "Total gain", "Predictor Group": ""},
+            title="Total gain by predictor category",
+            labels={"total_gain": "Total gain", "PredictorCategory": ""},
             template="none",
-            category_orders={"Predictor Group": self.predictor_group_order},
-            color_discrete_map=self.predictor_group_colormap,
+            category_orders={"PredictorCategory": sorted_df["PredictorCategory"].to_list()},
+            color_discrete_map=self.predictor_category_colormap,
         )
-        fig.update_layout(showlegend=False, yaxis_autorange="reversed")
+        fig.update_layout(showlegend=False, yaxis_automargin=True, yaxis_autorange="reversed")
         return fig
 
     @overload
@@ -786,7 +811,7 @@ class Plots(LazyNamespace):
         plotly.graph_objects.Figure or pl.DataFrame
             Figure when ``return_df=False``; DataFrame with columns
             ``predictor``, ``mean_depth``, ``tree_coverage``, ``total_gain``,
-            ``Predictor Group`` when ``return_df=True``.
+            ``PredictorCategory`` when ``return_df=True``.
         """
         try:
             import plotly.express as px
@@ -806,10 +831,10 @@ class Plots(LazyNamespace):
                         }
                     )
 
-        if not rows:
-            raise ValueError("No split data found in trees.")
-
-        raw = pl.DataFrame(rows)
+        raw = pl.DataFrame(
+            rows,
+            schema={"predictor": pl.String, "depth": pl.Int64, "gain": pl.Float64, "treeID": pl.Int64},
+        )
         df = (
             raw.group_by("predictor")
             .agg(
@@ -817,27 +842,32 @@ class Plots(LazyNamespace):
                 pl.col("treeID").n_unique().alias("tree_coverage"),
                 pl.col("gain").sum().alias("total_gain"),
             )
-            .with_columns(self.predictor_group_expr)
+            .with_columns(self.predictor_category_expr)
         )
         if return_df:
             return df
+
+        if df.is_empty():
+            import plotly.graph_objects as go
+
+            return go.Figure().update_layout(title="Feature role map (router vs refiner)")
 
         return px.scatter(
             df,
             x="mean_depth",
             y="tree_coverage",
             size="total_gain",
-            color="Predictor Group",
+            color="PredictorCategory",
             hover_name="predictor",
             title="Feature role map (router vs refiner)",
             labels={
                 "mean_depth": "Mean split depth",
                 "tree_coverage": "Tree coverage (# trees)",
-                "Predictor Group": "Predictor Group",
+                "PredictorCategory": "Predictor category",
             },
             template="none",
-            category_orders={"Predictor Group": self.predictor_group_order},
-            color_discrete_map=self.predictor_group_colormap,
+            category_orders={"PredictorCategory": self.predictor_category_order},
+            color_discrete_map=self.predictor_category_colormap,
         )
 
     @overload
@@ -1147,9 +1177,9 @@ class Plots(LazyNamespace):
         fig = px.area(
             df,
             title="Variable types per tree",
-            labels={"index": "Tree number", "value": "Number of splits", "variable": "Predictor Group"},
+            labels={"index": "Tree number", "value": "Number of splits", "variable": "Predictor category"},
             template="none",
-            color_discrete_map=self.predictor_group_colormap,
+            color_discrete_map=self.predictor_category_colormap,
             **kwargs,
         )
         fig.layout["updatemenus"] += (
