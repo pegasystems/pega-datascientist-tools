@@ -13,7 +13,6 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-
 from pdstools.app.health_check import hc_streamlit_utils as hc_utils
 
 DATA_DIR = Path(__file__).resolve().parents[4] / "data"

@@ -806,7 +806,6 @@ class TestAsyncPrediction:
     ):
         """When _a_post raises PegaException, wrap in PegaMLopsError."""
         from httpx import Response
-
         from pdstools.infinity.internal._exceptions import PegaException, PegaMLopsError
 
         async def _raise(*args, **kwargs):

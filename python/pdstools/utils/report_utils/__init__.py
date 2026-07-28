@@ -45,8 +45,6 @@ from typing import Any
 
 import polars as pl
 
-from ..types import QUERY
-
 # Re-export RAG functions from metric_limits for convenience in Quarto reports.
 from ..metric_limits import (
     MetricFormats,
@@ -62,7 +60,7 @@ from ..metric_limits import (
 
 # Re-export NumberFormat for external use
 from ..number_format import NumberFormat
-
+from ..types import QUERY
 from ._common import logger
 from ._filenames import (
     copy_quarto_file,

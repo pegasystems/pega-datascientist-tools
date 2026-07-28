@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__version__ = "5.0.0rc3"
+__version__ = "5.0.0rc4"
 
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -14,7 +14,7 @@ from .pega_io import Anonymization, read_ds_export
 from .prediction.Prediction import Prediction
 from .utils import datasets
 from .utils.cdh_utils import default_predictor_categorization
-from .utils.datasets import cdh_sample, sample_value_finder
+from .utils.datasets import cdh_sample, sample_explanations, sample_value_finder
 from .utils.show_versions import show_versions
 from .valuefinder.ValueFinder import ValueFinder
 
@@ -36,6 +36,7 @@ __all__ = [
     "datasets",
     "default_predictor_categorization",
     "read_ds_export",
+    "sample_explanations",
     "sample_value_finder",
     "show_versions",
 ]

@@ -10,13 +10,14 @@ branch falls through with no data.
 
 from __future__ import annotations
 
-
-from streamlit.testing.v1 import AppTest
 from typing import TYPE_CHECKING
 
+from streamlit.testing.v1 import AppTest
+
 if TYPE_CHECKING:
-    import pytest
     from pathlib import Path
+
+    import pytest
 
 
 def test_da_home_renders_when_sample_missing(

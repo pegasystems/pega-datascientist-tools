@@ -1,8 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Literal, overload
 from urllib.parse import quote as _quote
-from typing import Literal, overload, TYPE_CHECKING
-
 
 from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._pagination import PaginatedList
@@ -12,6 +11,7 @@ from ._mixin import _PredictionV24_2Mixin
 
 if TYPE_CHECKING:
     import polars as pl
+
     from ...types import NotificationCategory
 
 

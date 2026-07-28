@@ -10,8 +10,8 @@ from __future__ import annotations
 import logging
 from functools import wraps
 from typing import (
-    Any,
     TYPE_CHECKING,
+    Any,
 )
 
 import polars as pl
@@ -20,6 +20,7 @@ from ...utils.metric_limits import MetricLimits
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
+
     from ...utils.plot_utils import Figure
     from ._base import _PlotsBase
 
@@ -99,7 +100,7 @@ def add_bottom_left_text_to_bubble_plot(
                 if len(fig.data) > i:
                     fig.data[i].marker.size *= bubble_size
                 else:
-                    print(fig.data, i)
+                    logger.debug("No trace at index %s for %s facets", i, len(fig.data))
         return fig
     num_models = df.select(pl.first().len()).collect().item()
     bottomleft = get_nonperforming_models(df)

@@ -2,9 +2,8 @@
 
 from unittest.mock import patch
 
-import pytest
-
 import pdstools
+import pytest
 from pdstools.utils import show_versions as sv_module
 
 

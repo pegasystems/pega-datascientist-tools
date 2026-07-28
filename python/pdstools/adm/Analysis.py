@@ -12,9 +12,9 @@ from typing import TYPE_CHECKING, Literal, cast
 
 import polars as pl
 
-from .HealthCheckMarkdown import HealthCheckMarkdownRenderer, _format_markdown_value
 from ..utils import cdh_utils, report_utils
 from ..utils.metric_limits import MetricLimits
+from .HealthCheckMarkdown import HealthCheckMarkdownRenderer, _format_markdown_value
 
 if TYPE_CHECKING:  # pragma: no cover
     from ..adm.ADMDatamart import ADMDatamart
@@ -441,6 +441,10 @@ class Analysis:
         prediction : Prediction, optional
             A :class:`~pdstools.prediction.Prediction` instance. If
             provided, prediction-level findings are included.
+        preaggregates : HealthCheckPreAggregates, optional
+            Pre-computed aggregates to reuse. When omitted they are
+            computed from the datamart. Pass an existing set to avoid
+            recomputing them across several calls.
 
         Returns
         -------
@@ -522,6 +526,9 @@ class Analysis:
             Default recency window used when ``active_filter`` is not provided.
         prediction : Prediction, optional
             Optional prediction data for prediction-level findings.
+        preaggregates : HealthCheckPreAggregates, optional
+            Pre-computed aggregates to reuse. When omitted they are
+            computed from the datamart.
 
         Returns
         -------

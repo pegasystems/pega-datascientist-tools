@@ -4,7 +4,7 @@
 from pdstools.utils import report_utils
 
 try:
-    header_tbl, overall_fig, predictor_figs = explanations.plot.plot_contributions_by_context(
+    header_tbl, overall_fig, predictor_figs = explanations.plot.contributions_by_context(
         {CONTEXT_DICT},
         top_n = {TOP_N},
         top_k = {TOP_K},

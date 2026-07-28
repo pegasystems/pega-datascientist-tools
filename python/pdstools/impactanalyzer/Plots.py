@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, ClassVar, Literal, SupportsFloat, TYPE_CHECKING, cast, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, SupportsFloat, cast, overload
 
 import polars as pl
 
@@ -13,8 +13,8 @@ from ..utils.namespaces import LazyNamespace
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
     from ..utils.plot_utils import Figure
+    from ..utils.types import QUERY
     from .ImpactAnalyzer import ImpactAnalyzer as ImpactAnalyzer_Class
 
 

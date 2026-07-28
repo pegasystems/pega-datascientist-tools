@@ -4,7 +4,6 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from pdstools.infinity.internal._pagination import AsyncPaginatedList, PaginatedList
 from pdstools.infinity.resources.prediction_studio.v26_1.model import AsyncModel, Model
 

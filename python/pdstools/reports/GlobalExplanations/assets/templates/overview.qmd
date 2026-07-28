@@ -25,11 +25,11 @@ The top-{TOP_N} predictors over the entire model, selected by their {SORT_BY_TEX
 
 ```{{python}}
 explanations = Explanations.from_aggregates(
-    data_folder="{DATA_FOLDER}",
+    base_path="{DATA_FOLDER}",
 )
 
 try:
-    overall_plot, predictor_plots = explanations.plot.plot_contributions_for_overall(
+    overall_plot, predictor_plots = explanations.plot.contributions_overall(
         top_n={TOP_N},
         top_k={TOP_K},
         sort_by="{SORT_BY}",

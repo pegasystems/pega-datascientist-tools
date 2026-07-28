@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 import polars as pl
 import pytest
-from polars.testing import assert_frame_equal
 from pdstools import ADMDatamart, datasets
 from pdstools.adm.Analysis import (
     Analysis,
@@ -17,6 +16,7 @@ from pdstools.adm.Analysis import (
 )
 from pdstools.utils import cdh_utils
 from pdstools.utils.metric_limits import MetricLimits
+from polars.testing import assert_frame_equal
 
 
 def _make_dm(rows: list[dict]) -> ADMDatamart:

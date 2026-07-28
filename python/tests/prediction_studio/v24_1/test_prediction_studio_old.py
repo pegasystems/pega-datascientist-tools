@@ -1,5 +1,4 @@
 import pytest
-
 from pdstools.infinity.internal._pagination import PaginatedList
 from pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio import (
     PredictionStudio,

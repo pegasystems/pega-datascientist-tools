@@ -16,16 +16,15 @@ both session-state keys reflect the new selection.
 
 from __future__ import annotations
 
-
-import polars as pl
-
-from streamlit.testing.v1 import AppTest
-
 from typing import TYPE_CHECKING
 
+import polars as pl
+from streamlit.testing.v1 import AppTest
+
 if TYPE_CHECKING:
-    from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
     from pathlib import Path
+
+    from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 
 
 def _find_selectbox(at: AppTest, key: str):

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, cast
 
 from .....internal._exceptions import NoMonitoringExportError, PegaException
 from .....internal._pagination import AsyncPaginatedList
@@ -10,7 +11,6 @@ from ..model import AsyncModel
 from ..prediction import AsyncPrediction
 from ..repository import AsyncRepository
 from ._mixin import _PredictionStudioV24_2Mixin
-from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     import polars as pl
@@ -111,6 +111,8 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
             The unique ID of the prediction.
         label : str, optional
             The label of the prediction.
+        **kwargs : Any
+            Additional attribute name/value pairs to match the prediction on.
 
         Returns
         -------
@@ -143,6 +145,8 @@ class AsyncPredictionStudio(_PredictionStudioV24_2Mixin, AsyncPredictionStudioPr
             The unique ID of the model.
         label : str, optional
             The label of the model.
+        **kwargs : Any
+            Additional attribute name/value pairs to match the model on.
 
         Returns
         -------

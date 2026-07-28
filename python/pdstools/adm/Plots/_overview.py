@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import polars as pl
 
@@ -17,6 +17,7 @@ from ._helpers import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
     from ...utils.types import QUERY
 
 
@@ -45,6 +46,8 @@ class _OverviewPlotsMixin(_PlotsBase):
             The query to apply to the data, by default None
         facet : Optional[Union[str, pl.Expr]], optional
             Column name or Polars expression to facet the plot into subplots, by default None
+        color : str, optional
+            Column name used to colour the bubbles, by default "Performance"
         show_metric_limits : bool, optional
             Whether to show dashed vertical lines at the ModelPerformance
             metric limit thresholds (from MetricLimits.csv), by default False
