@@ -255,6 +255,45 @@ def test_metrics_stump_count_exported(exported_model: ADMTreesModel):
     assert m["tree_depth_std"] == 2.11
 
 
+def test_sanity_check_flags_immature_stump_model():
+    model = ADMTreesModel(
+        trees={"model": [{"score": 0.0}]},
+        model=[{"score": 0.0}],
+        properties={
+            "auc": 0.5,
+            "trainingStats": {"positiveCount": 25, "negativeCount": 10},
+        },
+    )
+
+    result = model.sanity_check()
+
+    assert result == {
+        "n_trees": 1,
+        "pooled_auc": 0.5,
+        "positive_count": 25,
+        "negative_count": 10,
+        "flags": [
+            "Only 1 tree(s) — model has barely started learning.",
+            "1/1 trees are stumps (no split) — mostly non-informative trees.",
+            "Avg splits/tree = 0.00 — model is not developing structure (SOP-ADM009).",
+            "Pooled AUC = 0.5000 — statistically indistinguishable from random.",
+            "Negatives (10) < positives (25) — inverted response ratio; unusual for an NBA response model.",
+            "Very low response volume (positives=25, negatives=10) — metrics are not yet statistically stable.",
+            "Only 0 active predictor(s) — model is deciding on a very narrow feature set.",
+        ],
+    }
+
+
+def test_sanity_check_handles_missing_response_counts():
+    model = ADMTreesModel(trees={"model": [{"score": 0.0}]}, model=[{"score": 0.0}], properties={"auc": 0.7})
+
+    result = model.sanity_check()
+
+    assert result["positive_count"] is None
+    assert result["negative_count"] is None
+    assert "Response counts are unavailable — volume-based stability checks were skipped." in result["flags"]
+
+
 # --- split type tests -------------------------------------------------------
 
 
@@ -929,6 +968,40 @@ def rich_model() -> ADMTreesModel:
     return ADMTreesModel.from_file(f"{basePath}/data/agb/ModelExportWithSampleCount.json")
 
 
+@pytest.fixture
+def stump_model() -> ADMTreesModel:
+    """Minimal model with one tree and no splits."""
+    return ADMTreesModel(
+        trees={"model": [{"score": 0.0}]},
+        model=[{"score": 0.0}],
+        properties={
+            "auc": 0.7,
+            "trainingStats": {"positiveCount": 500, "negativeCount": 500},
+        },
+    )
+
+
+def test_stump_model_empty_gain_tables_keep_numeric_schema(stump_model: ADMTreesModel):
+    import polars as pl
+
+    assert stump_model.gains_per_split.schema == {
+        "split": pl.String,
+        "gains": pl.Float64,
+        "predictor": pl.String,
+    }
+
+    tree_stats = stump_model.tree_stats
+    assert tree_stats.schema["gains"] == pl.List(pl.Float64)
+    assert tree_stats.row(0, named=True) == {
+        "treeID": 0,
+        "score": 0.0,
+        "depth": 0,
+        "nsplits": 0,
+        "gains": [],
+        "meangains": 0,
+    }
+
+
 # ---------------------------------------------------------------------------
 # plot.gain_per_tree
 # ---------------------------------------------------------------------------
@@ -979,6 +1052,17 @@ def test_plot_cumulative_gain_share_figure(rich_model: ADMTreesModel):
 
     fig = rich_model.plot.cumulative_gain_share()
     assert isinstance(fig, go.Figure)
+
+
+def test_plot_cumulative_gain_share_stump_model(stump_model: ADMTreesModel):
+    import plotly.graph_objects as go
+
+    df = stump_model.plot.cumulative_gain_share(return_df=True)
+    assert df.to_dict(as_series=False) == {"treeID": [0], "cumulative_gain_share": [None]}
+
+    fig = stump_model.plot.cumulative_gain_share()
+    assert isinstance(fig, go.Figure)
+    assert fig.data[0].y == (None,)
 
 
 # ---------------------------------------------------------------------------
@@ -1047,6 +1131,18 @@ def test_plot_early_vs_late_gain_figure(rich_model: ADMTreesModel):
     assert isinstance(fig, go.Figure)
 
 
+def test_plot_early_vs_late_gain_stump_model_returns_empty_figure(stump_model: ADMTreesModel):
+    import plotly.graph_objects as go
+
+    df = stump_model.plot.early_vs_late_gain(return_df=True)
+    assert df.columns == ["predictor", "early_gain", "late_gain", "total_gain", "PredictorCategory"]
+    assert df.is_empty()
+
+    fig = stump_model.plot.early_vs_late_gain()
+    assert isinstance(fig, go.Figure)
+    assert fig.layout.title.text == "Early vs late tree gain per predictor"
+
+
 # ---------------------------------------------------------------------------
 # plot.gain_by_namespace
 # ---------------------------------------------------------------------------
@@ -1101,6 +1197,18 @@ def test_plot_feature_role_map_figure(rich_model: ADMTreesModel):
 
     fig = rich_model.plot.feature_role_map()
     assert isinstance(fig, go.Figure)
+
+
+def test_plot_feature_role_map_stump_model_returns_empty_figure(stump_model: ADMTreesModel):
+    import plotly.graph_objects as go
+
+    df = stump_model.plot.feature_role_map(return_df=True)
+    assert df.columns == ["predictor", "mean_depth", "tree_coverage", "total_gain", "PredictorCategory"]
+    assert df.is_empty()
+
+    fig = stump_model.plot.feature_role_map()
+    assert isinstance(fig, go.Figure)
+    assert fig.layout.title.text == "Feature role map (router vs refiner)"
 
 
 # ---------------------------------------------------------------------------

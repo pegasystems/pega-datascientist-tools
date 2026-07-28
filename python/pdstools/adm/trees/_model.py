@@ -403,9 +403,31 @@ class ADMTreesModel:
         n_stumps = m["number_of_stump_trees"]
         total_splits = m["number_of_numeric_splits"] + m["number_of_symbolic_splits"]
         avg_splits_per_tree = total_splits / n_trees if n_trees else 0
-        pos, neg = m["response_positive_count"], m["response_negative_count"]
+        pos = cast("int | None", m["response_positive_count"])
+        neg = cast("int | None", m["response_negative_count"])
         active_predictors = m["total_number_of_active_predictors"]
         pooled_auc = m["auc"]
+        has_response_counts = pos is not None and neg is not None
+        inverted_response = False
+        low_response_volume = False
+        if pos is not None and neg is not None:
+            inverted_response = neg < pos
+            low_response_volume = min(pos, neg) < 200
+        pooled_auc_msg = (
+            f"Pooled AUC = {pooled_auc:.4f} — statistically indistinguishable from random."
+            if pooled_auc is not None
+            else ""
+        )
+        inverted_response_msg = (
+            f"Negatives ({neg:,}) < positives ({pos:,}) — inverted response ratio; unusual for an NBA response model."
+            if has_response_counts
+            else ""
+        )
+        low_volume_msg = (
+            f"Very low response volume (positives={pos:,}, negatives={neg:,}) — metrics are not yet statistically stable."
+            if has_response_counts
+            else ""
+        )
 
         checks = [
             (
@@ -421,16 +443,20 @@ class ADMTreesModel:
                 f"Avg splits/tree = {avg_splits_per_tree:.2f} — model is not developing structure (SOP-ADM009).",
             ),
             (
-                abs(pooled_auc - 0.5) < 0.02,
-                f"Pooled AUC = {pooled_auc:.4f} — statistically indistinguishable from random.",
+                pooled_auc is not None and abs(pooled_auc - 0.5) < 0.02,
+                pooled_auc_msg,
             ),
             (
-                neg < pos,
-                f"Negatives ({neg:,}) < positives ({pos:,}) — inverted response ratio; unusual for an NBA response model.",
+                not has_response_counts,
+                "Response counts are unavailable — volume-based stability checks were skipped.",
             ),
             (
-                min(pos, neg) < 200,
-                f"Very low response volume (positives={pos:,}, negatives={neg:,}) — metrics are not yet statistically stable.",
+                inverted_response,
+                inverted_response_msg,
+            ),
+            (
+                low_response_volume,
+                low_volume_msg,
             ),
             (
                 active_predictors < 5,
