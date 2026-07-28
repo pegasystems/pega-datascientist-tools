@@ -1,7 +1,6 @@
 """Tests for stage_grouping utility."""
 
 import polars as pl
-
 from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 from pdstools.decision_analyzer.stage_grouping import (
     NBAD_PIPELINE,

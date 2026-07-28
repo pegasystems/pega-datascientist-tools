@@ -5,7 +5,6 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-
 MODULE_PATH = Path(__file__).resolve().parents[2] / "docs" / "versioned_docs.py"
 MODULE_SPEC = importlib.util.spec_from_file_location("versioned_docs", MODULE_PATH)
 if MODULE_SPEC is None or MODULE_SPEC.loader is None:

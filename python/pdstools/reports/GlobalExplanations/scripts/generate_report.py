@@ -10,11 +10,13 @@ Generated .qmd files are written to the project root for Quarto to render.
 
 from __future__ import annotations
 
-import logging
 import json
+import logging
 import os
+import shutil
 from pathlib import Path
 from typing import cast
+
 import yaml
 
 logger = logging.getLogger(__name__)
@@ -82,8 +84,12 @@ class ReportGenerator:
         self.full_embed = None
 
         self.by_context_folder = f"{self.report_folder}/{CONTEXT_FOLDER}"
-        if not os.path.exists(self.by_context_folder):
-            os.makedirs(self.by_context_folder, exist_ok=True)
+        # Rebuilt from scratch: every file in here is generated from the current
+        # params and context batches, so leftovers from a previous run into the same
+        # output directory would be rendered into the site as orphan pages.
+        if os.path.exists(self.by_context_folder):
+            shutil.rmtree(self.by_context_folder)
+        os.makedirs(self.by_context_folder, exist_ok=True)
 
         self.plots_for_batch_filepath = f"{self.by_context_folder}/{PLOTS_FOR_BATCH}"
         self.contexts = None

@@ -14,12 +14,11 @@ import pathlib
 
 import polars as pl
 import pytest
-from plotly.graph_objs import Figure
-
 from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 from pdstools.decision_analyzer.plots import (
     Plot,
 )
+from plotly.graph_objs import Figure
 
 pytestmark = pytest.mark.filterwarnings("ignore:The following default columns are missing:UserWarning")
 

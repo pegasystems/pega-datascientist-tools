@@ -12,13 +12,11 @@ import zipfile
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
     _DECISION_STATE_KEYS,
     _is_upload_noise,
     clear_decision_state,
 )
-
 
 # ---------------------------------------------------------------------------
 # _is_upload_noise

@@ -15,14 +15,14 @@ state-transition: change the radio value, verify the analyzer's
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
 from streamlit.testing.v1 import AppTest
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
     from pathlib import Path
+
+    from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 
 
 def _find_radio(at: AppTest, key: str):

@@ -11,12 +11,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from streamlit.testing.v1 import AppTest
-
-from pdstools.app.health_check._navigation import pages as hc_pages
-from pdstools.app.decision_analyzer._navigation import pages as da_pages
-from pdstools.app.impact_analyzer._navigation import pages as ia_pages
 from pdstools.app.data_quality._navigation import pages as dq_pages
+from pdstools.app.decision_analyzer._navigation import pages as da_pages
+from pdstools.app.health_check._navigation import pages as hc_pages
+from pdstools.app.impact_analyzer._navigation import pages as ia_pages
+from streamlit.testing.v1 import AppTest
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 LAUNCHER_HOME = REPO_ROOT / "python" / "pdstools" / "app" / "launcher" / "Home.py"

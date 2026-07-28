@@ -7,7 +7,6 @@ from io import BytesIO
 
 import polars as pl
 import pytest
-
 from pdstools.decision_analyzer.column_schema import (
     DecisionAnalyzer,
     ExplainabilityExtract,
@@ -18,7 +17,6 @@ from pdstools.decision_analyzer.data_read_utils import (
     validate_columns,
 )
 from pdstools.pega_io.File import read_data
-
 
 # ---------------------------------------------------------------------------
 # Helpers

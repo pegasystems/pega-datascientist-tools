@@ -14,6 +14,8 @@ def home_page() -> None:
 
     from pdstools.utils.streamlit_utils import (
         set_active_app as _set_active_app,
+    )
+    from pdstools.utils.streamlit_utils import (
         show_sidebar_branding,
         show_version_header,
         standard_page_config,

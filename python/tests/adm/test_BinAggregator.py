@@ -1,6 +1,7 @@
 """Testing the functionality of the BinAggregator"""
 
 import logging
+
 import polars as pl
 import pytest
 from pdstools import datasets

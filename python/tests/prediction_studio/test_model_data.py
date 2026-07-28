@@ -11,7 +11,6 @@ from __future__ import annotations
 import datetime
 
 import pytest
-
 from pdstools.infinity.resources.prediction_studio.schemas import (
     ModelData,
     ModelDataV26_1,
@@ -235,7 +234,6 @@ def test_list_models_empty_keeps_locked_schema(mocker):
 
 def test_list_models_all_null_optionals_have_typed_columns(mocker):
     import polars as pl
-
     from pdstools.infinity.resources.prediction_studio.v24_2.prediction_studio._sync import (
         PredictionStudio,
     )

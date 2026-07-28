@@ -15,8 +15,9 @@ from ..utils.metric_limits import (
 )
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
     import datetime
+
+    from ..utils.types import QUERY
     from .ADMDatamart import ADMDatamart
 
 logger = logging.getLogger(__name__)
@@ -124,6 +125,10 @@ class Aggregates:
         ----------
         query : Optional[QUERY], optional
             A query to apply to the data before creating the pivot, by default None
+        active_only : bool, optional
+            Whether to only include predictors with EntryType "Active".
+            When False, all non-classifier predictors are included,
+            by default False
         by : str, optional
             A group by which to 'facet', by default "Name".
             If, for instance, the 'by' argument is set to 'Configuration',

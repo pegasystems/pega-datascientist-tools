@@ -8,8 +8,9 @@ Run with:
 from __future__ import annotations
 
 import json
-import pytest
 from typing import TYPE_CHECKING
+
+import pytest
 
 # Skip the entire module when torch is unavailable (e.g. Python 3.14
 # where torch has no wheels yet).

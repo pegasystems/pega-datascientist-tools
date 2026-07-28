@@ -7,6 +7,7 @@ import logging
 import tempfile
 import urllib.request
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import streamlit as st
 
@@ -15,7 +16,6 @@ from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
     get_data_path,
 )
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -645,8 +645,9 @@ def prepare_and_save_random(
     tuple[pl.LazyFrame, str | None]
         (sampled_data, output_path) where output_path is None if no sampling occurred
     """
-    import polars as pl
     from datetime import datetime
+
+    import polars as pl
 
     total_rows = data.select(pl.len()).collect().item()
 

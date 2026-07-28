@@ -15,6 +15,7 @@ import zipfile
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
 
 import streamlit as st
 
@@ -37,7 +38,6 @@ from pdstools.utils.streamlit_utils import (
     cached_sample_prediction,
     get_data_path,
 )
-from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from pdstools.adm.ADMDatamart import ADMDatamart

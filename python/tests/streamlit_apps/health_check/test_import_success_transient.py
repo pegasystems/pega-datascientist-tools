@@ -15,7 +15,6 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
-
 REPO_ROOT = Path(__file__).resolve().parents[4]
 DATA_DIR = REPO_ROOT / "data"
 MODEL_ZIP = DATA_DIR / "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip"

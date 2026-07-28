@@ -15,11 +15,11 @@ class _DatamartExportV24_2Mixin:
         ----------
         client : Client
             The client used to interact with the API.
-        reference_id : str
+        referenceId : str
             The reference ID for the data mart export.
         location : str
             The location of the data mart export.
-        repository_name : str
+        repositoryName : str
             The name of the repository for the data mart export.
 
         """

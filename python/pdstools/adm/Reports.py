@@ -11,7 +11,7 @@ __all__ = ["ReportOptions", "Reports"]
 import logging
 import shutil
 from pathlib import Path
-from typing import ClassVar, Literal, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 import polars as pl
 from typing_extensions import TypedDict, Unpack
@@ -27,10 +27,11 @@ from ..utils.report_utils import (
 )
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
-    from os import PathLike
     from collections.abc import Callable
+    from os import PathLike
+
     from ..prediction.Prediction import Prediction
+    from ..utils.types import QUERY
     from .ADMDatamart import ADMDatamart
     from .Analysis import HealthCheckPreAggregates
 
@@ -278,9 +279,6 @@ class Reports(LazyNamespace):
             logger.info("Data exported to %s", final_path)
             return final_path
 
-        except Exception as e:
-            logger.error(e)
-            raise
         finally:
             if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
                 shutil.rmtree(temp_dir, ignore_errors=True)

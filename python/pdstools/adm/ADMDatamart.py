@@ -8,6 +8,7 @@ import logging
 import os
 from functools import cached_property
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import polars as pl
 import polars.selectors as cs
@@ -18,18 +19,17 @@ from ..utils import cdh_utils
 from ..utils.cdh_utils import _polars_capitalize
 from ..utils.cdh_utils._io import _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS
 from . import Schema
-from .trees import AGB
 from .Aggregates import Aggregates
 from .Analysis import Analysis
 from .BinAggregator import BinAggregator
 from .Plots import Plots
 from .Reports import Reports
-from typing import TYPE_CHECKING
+from .trees import AGB
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
+
     from ..utils.types import QUERY
-    from collections.abc import Callable
-    from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 

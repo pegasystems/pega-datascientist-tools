@@ -12,8 +12,9 @@ from ._dates import parse_pega_date_time_formats
 from ._namespacing import _capitalize
 
 if TYPE_CHECKING:
-    from ..types import QUERY
     from collections.abc import Iterable
+
+    from ..types import QUERY
 
 
 # Pattern for validating Polars duration strings (e.g., "1d", "2w", "1h30m")
@@ -313,6 +314,9 @@ def overlap_matrix(
         The name of the column containing the lists. Each element in this column should be a list.
     by : str
         The name of the column to use for grouping and labeling the rows in the result matrix.
+    show_fraction : bool, default True
+        When True the cells hold the overlap as a fraction of the row's list
+        size; when False they hold the raw intersection counts.
 
     Returns
     -------

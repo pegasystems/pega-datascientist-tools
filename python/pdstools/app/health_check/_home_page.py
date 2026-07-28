@@ -20,10 +20,12 @@ def home_page() -> None:
     from pdstools.utils.cdh_utils import setup_logger
     from pdstools.utils.streamlit_utils import (
         get_data_path,
-        set_active_app as _set_active_app,
         show_sidebar_branding,
         show_version_header,
         standard_page_config,
+    )
+    from pdstools.utils.streamlit_utils import (
+        set_active_app as _set_active_app,
     )
 
     standard_page_config(page_title="Adaptive Model Health Check")

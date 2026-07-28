@@ -15,25 +15,23 @@ Note: Scenario Planner Actuals validation is pending.
 import math
 
 import pytest
-
 from pdstools.impactanalyzer.statistics import (
-    LiftResult,
-    Z_95,
     FORMULAS,
+    Z_95,
+    LiftResult,
     accept_rate,
     binomial_ci,
     binomial_se,
     calculate_engagement_lift,
     calculate_lift,
     calculate_value_lift,
-    lift_se,
     is_significant,
     lift_pl,
+    lift_se,
     required_sample_size,
     value_se,
     value_variance,
 )
-
 
 # ====================================================================
 # 1. Pure formula tests — hand-calculable known values

@@ -2,14 +2,13 @@
 
 import datetime
 import math
+from zoneinfo import ZoneInfo as timezone
 
 import numpy as np
 import polars as pl
 import pytest
 from pdstools import datasets
 from pdstools.utils import cdh_utils
-from zoneinfo import ZoneInfo as timezone
-
 from pdstools.utils.cdh_utils._io import (
     _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS,
     _DATABRICKS_PREDICTION_COLUMNS,

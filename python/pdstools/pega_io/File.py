@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from glob import glob
 from io import BytesIO
 from pathlib import Path
-from typing import Literal, cast, overload, TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, cast, overload
 
 import polars as pl
 import polars.selectors as cs
@@ -80,6 +80,15 @@ def _local_repo_data_path(path: str) -> str | None:
     relative_path = normalized_path.removeprefix(_RAW_GITHUB_DATA_PREFIX).strip("/")
     local_path = _REPO_DATA_DIR / relative_path if relative_path else _REPO_DATA_DIR
     return str(local_path) if local_path.is_dir() else None
+
+
+def is_url(source: str | Path) -> bool:
+    """Return True when ``source`` is an ``http(s)://`` URL rather than a local path.
+
+    ``pathlib`` mangles URLs (it collapses ``//`` and resolves them against the
+    working directory), so any path-like handling has to branch on this first.
+    """
+    return str(source).startswith(("http://", "https://"))
 
 
 def _is_artifact(name: str) -> bool:
@@ -263,6 +272,9 @@ def _read_from_bytesio(
         The BytesIO object containing file data.
     extension : str
         The file extension (e.g., '.csv', '.json', '.zip', '.gz').
+    read_options : dict, optional
+        Extra keyword arguments forwarded to the polars reader for the
+        resolved leaf format, by default None.
 
     Returns
     -------
@@ -323,13 +335,21 @@ def scan_parquet_path(source: str | Path | list[str] | list[Path]) -> pl.LazyFra
     Parameters
     ----------
     source : str or Path or list of str/Path
-        Path to a parquet file, a glob pattern (e.g. ``"folder/*_BATCH_*.parquet"``),
-        or a list of file paths.
+        Path to a parquet file, an ``http(s)://`` URL, a glob pattern (e.g.
+        ``"folder/*_BATCH_*.parquet"``), or a list of file paths.
 
     Returns
     -------
     pl.LazyFrame
         LazyFrame over the matched parquet file(s).
+
+    Raises
+    ------
+    FileNotFoundError
+        If a plain (non-glob) local path does not exist. ``pl.scan_parquet``
+        is lazy, so without this the failure would surface much later from an
+        unrelated ``collect()``, pointing at the wrong operation. URLs are
+        exempt: only the remote server can answer whether they exist.
 
     """
     # lgtm [py/path-injection]
@@ -338,6 +358,8 @@ def scan_parquet_path(source: str | Path | list[str] | list[Path]) -> pl.LazyFra
     # intended functionality, not a vulnerability.
     if isinstance(source, list):
         return pl.scan_parquet(source)
+    if not is_url(source) and not any(c in str(source) for c in "*?[") and not Path(source).exists():
+        raise FileNotFoundError(f"No parquet file found at {source}")
     return _scan_by_extension(source, ".parquet")
 
 
@@ -864,7 +886,7 @@ def read_multi_zip(
                 UserWarning,
                 stacklevel=2,
             )
-            print("Reading files...")
+            print("Reading files...")  # noqa: T201 - progress fallback when tqdm is missing
         files_iterator = file_list
 
     table = []
@@ -876,7 +898,7 @@ def read_multi_zip(
 
     df = pl.concat(table, how="diagonal")
     if verbose:
-        print("Combining completed")
+        print("Combining completed")  # noqa: T201 - user-facing progress
     return df.lazy()
 
 

@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import ClassVar, TYPE_CHECKING
 import datetime
 import logging
 import math
 import os
 import random
 from collections import defaultdict
+from typing import TYPE_CHECKING, ClassVar
 
 import polars as pl
 import polars.selectors as cs
@@ -27,8 +27,9 @@ from .Plots import Plots
 from .Schema import REQUIRED_IH_COLUMNS
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
     import os
+
+    from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
