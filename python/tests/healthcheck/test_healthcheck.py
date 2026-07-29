@@ -87,6 +87,33 @@ def test_GenerateHealthCheck(sample: ADMDatamart, tmp_path):
     assert len(errors) == 0, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
 
 
+def test_GenerateHealthCheck_cdn_returns_single_html(sample: ADMDatamart, tmp_path):
+    """CDN-backed Health Check renders as one HTML file, not a resources zip."""
+    hc = sample.generate.health_check(output_dir=tmp_path, full_embed=False)
+
+    assert hc == tmp_path / "HealthCheck.html"
+    html = hc.read_text(encoding="utf-8")
+    assert PLOTLY_CDN_LOAD_RE.search(html)
+    assert "HealthCheck_files/" not in html
+    assert not (tmp_path / "HealthCheck.zip").exists()
+
+
+def test_GenerateHealthCheck_named_cdn_drops_qmd_resources(sample: ADMDatamart, tmp_path):
+    """CDN cleanup removes the QMD-stem resources folder for named outputs."""
+    hc = sample.generate.health_check(
+        output_dir=tmp_path,
+        name="cdn_named",
+        full_embed=False,
+        keep_temp_files=True,
+    )
+
+    assert hc == tmp_path / "HealthCheck_cdn_named.html"
+    temp_dirs = list(tmp_path.glob("tmp_cdn_named_*"))
+    assert len(temp_dirs) == 1
+    assert not (temp_dirs[0] / "HealthCheck_files").exists()
+    assert "HealthCheck_files/" not in (temp_dirs[0] / "HealthCheck_cdn_named.html").read_text(encoding="utf-8")
+
+
 def test_GenerateHealthCheck_custom_categorization_with_unmatched_predictors(sample: ADMDatamart, tmp_path):
     sample.apply_predictor_categorization({"External Model": "Propensity"})
 

@@ -186,8 +186,8 @@ def inline_local_assets(html_path: Path, base_dir: Path) -> tuple[int, int]:
     return _inline_css(html_path, base_dir), _inline_js(html_path, base_dir)
 
 
-def drop_inlined_resources(html_path: Path) -> bool:
-    """Delete a Quarto ``<stem>_files`` folder once nothing references it.
+def drop_inlined_resources(html_path: Path, *resource_stems: str) -> int:
+    """Delete Quarto resources folders once nothing references them.
 
     Called after :func:`inline_local_assets`. If the HTML still mentions the
     resources folder — an asset type we do not inline, or a file that failed to
@@ -196,29 +196,42 @@ def drop_inlined_resources(html_path: Path) -> bool:
     Parameters
     ----------
     html_path : Path
-        The rendered HTML file whose companion resources folder to consider.
+        The rendered HTML file whose companion resources folders to consider.
+    *resource_stems : str
+        Optional additional stems for resources folders. Quarto usually names
+        the folder after the source ``.qmd`` file, which can differ from the
+        output HTML stem when the report filename includes a suffix.
 
     Returns
     -------
-    bool
-        True if the resources folder was removed.
+    int
+        Number of resources folders removed.
     """
     html_path = Path(html_path)
-    resources_dir = html_path.with_name(f"{html_path.stem}_files")
-    if not (html_path.is_file() and resources_dir.is_dir()):
-        return False
+    if not html_path.is_file():
+        return 0
 
-    if resources_dir.name in html_path.read_text(encoding="utf-8"):
-        logger.info(
-            "%s still references %s; keeping the resources folder.",
-            html_path.name,
-            resources_dir.name,
-        )
-        return False
+    stems = dict.fromkeys((html_path.stem, *resource_stems))
+    content = html_path.read_text(encoding="utf-8")
+    removed = 0
+    for stem in stems:
+        if not stem:
+            continue
+        resources_dir = html_path.with_name(f"{stem}_files")
+        if not resources_dir.is_dir():
+            continue
+        if resources_dir.name in content:
+            logger.info(
+                "%s still references %s; keeping the resources folder.",
+                html_path.name,
+                resources_dir.name,
+            )
+            continue
 
-    shutil.rmtree(resources_dir, ignore_errors=True)
-    logger.debug("Removed fully inlined resources folder %s", resources_dir.name)
-    return True
+        shutil.rmtree(resources_dir, ignore_errors=True)
+        logger.debug("Removed fully inlined resources folder %s", resources_dir.name)
+        removed += 1
+    return removed
 
 
 def generate_zipped_report(output_filename: str, folder_to_zip: Path):

@@ -1421,7 +1421,19 @@ class TestDropInlinedResources:
 
         report_utils.inline_local_assets(html_file, tmp_path)
 
-        assert report_utils.drop_inlined_resources(html_file) is True
+        assert report_utils.drop_inlined_resources(html_file) == 1
+        assert not resources.exists()
+
+    def test_removes_qmd_stem_folder_when_output_stem_differs(self, tmp_path):
+        html_file = tmp_path / "HealthCheck_customer.html"
+        resources = tmp_path / "HealthCheck_files"
+        resources.mkdir()
+        (resources / "quarto.js").write_text("var q = 1;", encoding="utf-8")
+        html_file.write_text('<script src="HealthCheck_files/quarto.js"></script>', encoding="utf-8")
+
+        report_utils.inline_local_assets(html_file, tmp_path)
+
+        assert report_utils.drop_inlined_resources(html_file, "HealthCheck") == 1
         assert not resources.exists()
 
     def test_keeps_folder_when_still_referenced(self, tmp_path):
@@ -1431,15 +1443,15 @@ class TestDropInlinedResources:
         (resources / "fig.png").write_bytes(b"png")
         html_file.write_text('<img src="report_files/fig.png">', encoding="utf-8")
 
-        assert report_utils.drop_inlined_resources(html_file) is False
+        assert report_utils.drop_inlined_resources(html_file) == 0
         assert resources.exists()
 
     def test_no_resources_folder_is_noop(self, tmp_path):
         html_file = tmp_path / "solo.html"
         html_file.write_text("<html></html>", encoding="utf-8")
 
-        assert report_utils.drop_inlined_resources(html_file) is False
+        assert report_utils.drop_inlined_resources(html_file) == 0
 
     def test_missing_html_is_noop(self, tmp_path):
         (tmp_path / "ghost_files").mkdir()
-        assert report_utils.drop_inlined_resources(tmp_path / "ghost.html") is False
+        assert report_utils.drop_inlined_resources(tmp_path / "ghost.html") == 0

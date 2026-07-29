@@ -234,7 +234,8 @@ def run_quarto(
             )
             # With every local asset inlined the companion folder is dead weight;
             # dropping it keeps the report a single distributable HTML file.
-            if drop_inlined_resources(html_path):
+            n_removed = drop_inlined_resources(html_path, Path(qmd_file).stem if qmd_file else "")
+            if n_removed:
                 logger.info("%s is self-contained; dropped its resources folder.", output_filename)
 
     return return_code
