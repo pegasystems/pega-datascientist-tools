@@ -1188,7 +1188,7 @@ class TestInlineCss:
         result = html_file.read_text(encoding="utf-8")
         assert n == 1
         assert css in result
-        assert "<style>" in result
+        assert "<style" in result
         assert 'href="style.css"' not in result
 
     def test_href_before_rel_is_inlined(self, tmp_path):
@@ -1204,7 +1204,7 @@ class TestInlineCss:
         result = html_file.read_text(encoding="utf-8")
         assert n == 1
         assert css in result
-        assert "<style>" in result
+        assert "<style" in result
 
     def test_absolute_url_is_left_alone(self, tmp_path):
         html = '<html><head><link rel="stylesheet" href="https://cdn.example.com/bootstrap.css"></head></html>'
@@ -1270,6 +1270,21 @@ class TestInlineCss:
         result = html_file.read_text(encoding="utf-8")
         assert n == 1
         assert css in result
+
+    def test_inlined_style_preserves_safe_attributes(self, tmp_path):
+        (tmp_path / "print.css").write_text("body { color: black; }", encoding="utf-8")
+        html_file = tmp_path / "report.html"
+        html_file.write_text(
+            '<link rel="stylesheet" href="print.css" media="print" nonce="abc" data-owner="quarto">',
+            encoding="utf-8",
+        )
+
+        assert report_utils._inline_css(html_file, tmp_path) == 1
+
+        result = html_file.read_text(encoding="utf-8")
+        assert '<style media="print" nonce="abc" data-owner="quarto">' in result
+        assert "href=" not in result
+        assert "rel=" not in result
 
 
 # ---------------------------------------------------------------------------
@@ -1342,6 +1357,48 @@ class TestInlineJs:
 
         assert report_utils._inline_js(html_file, tmp_path) == 1
         assert "window.q = 1;" in html_file.read_text(encoding="utf-8")
+
+    def test_inlined_script_preserves_non_resource_attributes(self, tmp_path):
+        (tmp_path / "module.js").write_text("window.moduleLoaded = true;", encoding="utf-8")
+        html_file = tmp_path / "report.html"
+        html_file.write_text(
+            '<script type="module" src="module.js" data-owner="quarto" crossorigin="anonymous"></script>',
+            encoding="utf-8",
+        )
+
+        assert report_utils._inline_js(html_file, tmp_path) == 1
+
+        result = html_file.read_text(encoding="utf-8")
+        assert '<script type="module" data-owner="quarto">' in result
+        assert "window.moduleLoaded = true;" in result
+        assert "src=" not in result
+        assert "crossorigin=" not in result
+
+    def test_inlined_module_script_folds_local_namespace_imports(self, tmp_path):
+        modules = tmp_path / "libs" / "quarto-html"
+        (modules / "tabsets").mkdir(parents=True)
+        (modules / "tabsets" / "tabsets.js").write_text(
+            "export function init() { window.tabsLoaded = true; }",
+            encoding="utf-8",
+        )
+        (modules / "quarto.js").write_text(
+            'import * as tabsets from "./tabsets/tabsets.js";\ntabsets.init();',
+            encoding="utf-8",
+        )
+        html_file = tmp_path / "report.html"
+        html_file.write_text(
+            '<script type="module" src="libs/quarto-html/quarto.js"></script>',
+            encoding="utf-8",
+        )
+
+        assert report_utils._inline_js(html_file, tmp_path) == 1
+
+        result = html_file.read_text(encoding="utf-8")
+        assert "import * as tabsets" not in result
+        assert "const tabsets = (() =>" in result
+        assert "function init() { window.tabsLoaded = true; }" in result
+        assert "return {init};" in result
+        assert "tabsets.init();" in result
 
 
 class TestInlineCssUrls:

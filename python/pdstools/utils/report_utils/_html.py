@@ -20,10 +20,24 @@ _SCRIPT_SRC_RE = re.compile(
     r"<script\b[^>]*\bsrc=[\"']([^\"']+)[\"'][^>]*>\s*</script>",
     re.IGNORECASE,
 )
+_SCRIPT_OPEN_TAG_RE = re.compile(r"<script\b[^>]*>", re.IGNORECASE)
 _CSS_URL_RE = re.compile(r"url\(\s*([\"']?)([^\"')]+)\1\s*\)", re.IGNORECASE)
+_HTML_ATTR_RE = re.compile(r"\s+([^\s=/>]+)(?:\s*=\s*(\"[^\"]*\"|'[^']*'|[^\s>]+))?")
+_MODULE_NAMESPACE_IMPORT_RE = re.compile(
+    r"^\s*import\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from\s+[\"']([^\"']+)[\"'];\s*$",
+    re.MULTILINE,
+)
+_JS_EXPORT_DECL_RE = re.compile(
+    r"(^\s*)export\s+(async\s+function|function|class|const|let|var)\s+([A-Za-z_$][\w$]*)",
+    re.MULTILINE,
+)
+_JS_EXPORT_LIST_RE = re.compile(r"^\s*export\s*\{([^}]+)\};?\s*$", re.MULTILINE)
 
 # References we never try to localise: they are already remote or self-contained.
 _REMOTE_PREFIXES = ("http://", "https://", "//", "data:", "#", "about:")
+_STYLE_ATTR_ALLOWLIST = {"id", "class", "media", "nonce", "title", "type"}
+_STYLE_DROP_ATTRS = {"href", "rel", "integrity", "crossorigin", "referrerpolicy"}
+_SCRIPT_DROP_ATTRS = {"src", "integrity", "crossorigin", "referrerpolicy"}
 
 
 def _is_remote(reference: str) -> bool:
@@ -35,6 +49,67 @@ def _as_data_uri(path: Path) -> str:
     """Encode a binary asset (font, image) as a base64 ``data:`` URI."""
     mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
     return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"
+
+
+def _preserved_attrs(
+    tag: str,
+    *,
+    drop_attrs: set[str],
+    allow_attrs: set[str] | None = None,
+) -> str:
+    """Return attributes safe to carry onto an inlined replacement tag."""
+    attrs: list[str] = []
+    for match in _HTML_ATTR_RE.finditer(tag):
+        name = match.group(1)
+        attr_name = name.lower()
+        if attr_name in drop_attrs:
+            continue
+        if allow_attrs is not None and attr_name not in allow_attrs and not attr_name.startswith("data-"):
+            continue
+        value = match.group(2)
+        attrs.append(name if value is None else f"{name}={value}")
+    return f" {' '.join(attrs)}" if attrs else ""
+
+
+def _strip_module_exports(js_content: str) -> tuple[str, list[str]]:
+    """Strip named exports from a local ES module and return their names."""
+    exports: list[str] = []
+
+    def _replace_declaration(match: re.Match) -> str:
+        exports.append(match.group(3))
+        return f"{match.group(1)}{match.group(2)} {match.group(3)}"
+
+    def _replace_export_list(match: re.Match) -> str:
+        for item in match.group(1).split(","):
+            parts = item.strip().split()
+            if len(parts) == 3 and parts[1] == "as":
+                exports.append(f"{parts[2]}: {parts[0]}")
+            elif len(parts) == 1 and parts[0]:
+                exports.append(parts[0])
+        return ""
+
+    js_content = _JS_EXPORT_DECL_RE.sub(_replace_declaration, js_content)
+    js_content = _JS_EXPORT_LIST_RE.sub(_replace_export_list, js_content)
+    return js_content, exports
+
+
+def _inline_local_module_imports(js_content: str, js_dir: Path) -> str:
+    """Inline local ``import * as name from './module.js'`` dependencies."""
+
+    def _replace(match: re.Match) -> str:
+        namespace = match.group(1)
+        reference = match.group(2)
+        if _is_remote(reference):
+            return match.group(0)
+        module_path = (js_dir / reference).resolve()
+        if not module_path.is_file():
+            logger.warning("JS module file not found, leaving import intact: %s", module_path)
+            return match.group(0)
+        module_content = _inline_local_module_imports(module_path.read_text(encoding="utf-8"), module_path.parent)
+        module_content, exports = _strip_module_exports(module_content)
+        return f"const {namespace} = (() => {{\n{module_content}\nreturn {{{', '.join(exports)}}};\n}})();"
+
+    return _MODULE_NAMESPACE_IMPORT_RE.sub(_replace, js_content)
 
 
 def _inline_css_urls(css: str, css_dir: Path) -> str:
@@ -109,8 +184,13 @@ def _inline_css(html_path: Path, base_dir: Path) -> int:
             logger.warning("CSS file not found, leaving <link> tag intact: %s", css_path)
             return tag
         css_content = _inline_css_urls(css_path.read_text(encoding="utf-8"), css_path.parent)
+        style_attrs = _preserved_attrs(
+            tag,
+            drop_attrs=_STYLE_DROP_ATTRS,
+            allow_attrs=_STYLE_ATTR_ALLOWLIST,
+        )
         inlined += 1
-        return f"<style>\n{css_content}\n</style>"
+        return f"<style{style_attrs}>\n{css_content}\n</style>"
 
     patched = _LINK_STYLESHEET_RE.sub(_replace, content)
     if inlined:
@@ -151,11 +231,15 @@ def _inline_js(html_path: Path, base_dir: Path) -> int:
         if not js_path.is_file():
             logger.warning("JS file not found, leaving <script> tag intact: %s", js_path)
             return match.group(0)
-        js_content = js_path.read_text(encoding="utf-8")
+        js_content = _inline_local_module_imports(js_path.read_text(encoding="utf-8"), js_path.parent)
         # A literal "</script>" inside the source would close the tag early.
         js_content = js_content.replace("</script>", "<\\/script>")
+        open_tag_match = _SCRIPT_OPEN_TAG_RE.search(match.group(0))
+        script_attrs = (
+            _preserved_attrs(open_tag_match.group(0), drop_attrs=_SCRIPT_DROP_ATTRS) if open_tag_match else ""
+        )
         inlined += 1
-        return f"<script>\n{js_content}\n</script>"
+        return f"<script{script_attrs}>\n{js_content}\n</script>"
 
     patched = _SCRIPT_SRC_RE.sub(_replace, content)
     if inlined:
