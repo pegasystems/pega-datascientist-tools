@@ -15,9 +15,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and in-memory Excel uploads.
 - `explanations.Schema` narrows and casts the aggregated parquet files on
   read, so downstream aggregations see stable dtypes.
+- `ADMTreesModel.sanity_check()` flags underdeveloped or suspicious AGB
+  exports, so a model that never grew past stumps is caught before its
+  statistics are read as meaningful.
 
 ### Fixed
 
+- Full-embed HealthCheck and Model Report HTML output no longer duplicates the
+  embedded Plotly.js bundle once per chart. Because the Quarto renderer wasn't
+  told which resource mode to use before figures were drawn, ``full_embed=True``
+  reports could balloon to 100+ MB per report (multiple GB across a batch
+  run) as each chart inlined its own ~5 MB copy of the Plotly library; embed
+  output now contains a single shared copy, as intended. See
+  [#909](https://github.com/pegasystems/pega-datascientist-tools/issues/909)
+  for the postmortem write-up and manual validation steps.
+- AGB: tree statistics and plot data paths no longer fail on stump models
+  (a single leaf, no split) or otherwise empty exports.
 - CDN-mode HTML reports (``full_embed=False``) are now genuinely
   self-contained single files. Quarto's local JavaScript assets are inlined
   alongside the CSS that #679 already handled, and fonts/images referenced
@@ -129,17 +142,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Table exports so late-arriving prediction fields are recognized, and report,
   Excel, and individual model-report generation default to the import ``HC``
   folder when processed parquet output was kept.
-
-### Fixed
-
-- Full-embed HealthCheck and Model Report HTML output no longer duplicates the
-  embedded Plotly.js bundle once per chart. Because the Quarto renderer wasn't
-  told which resource mode to use before figures were drawn, ``full_embed=True``
-  reports could balloon to 100+ MB per report (multiple GB across a batch
-  run) as each chart inlined its own ~5 MB copy of the Plotly library; embed
-  output now contains a single shared copy, as intended. See
-  [#909](https://github.com/pegasystems/pega-datascientist-tools/issues/909)
-  for the postmortem write-up and manual validation steps.
+- AGB plots now use the ADM `PredictorCategory` terminology and default
+  colours, matching the rest of the ADM tooling, and lay out long labels and
+  horizontal category charts more readably.
+- AGB weighted AUC and coverage are documented more explicitly, including the
+  caveats on interpreting them.
 
 ## [5.0.0] — 2026-06-25
 
