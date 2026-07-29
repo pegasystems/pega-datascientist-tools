@@ -312,6 +312,7 @@ def drop_inlined_resources(html_path: Path, *resource_stems: str) -> int:
             )
             continue
 
+        # Only delete the folder after every reference to it has been inlined.
         shutil.rmtree(resources_dir, ignore_errors=True)
         logger.debug("Removed fully inlined resources folder %s", resources_dir.name)
         removed += 1
@@ -396,6 +397,7 @@ def bundle_quarto_resources(output_path: Path) -> Path:
     if not resources_dir.is_dir():
         return output_path
 
+    # Fallback: if local resources remain, ship a complete ZIP rather than broken HTML.
     zip_path = output_path.with_suffix(".zip")
     logger.info(
         f"Bundling {output_path.name} with resources folder {resources_dir.name} into {zip_path.name}",
