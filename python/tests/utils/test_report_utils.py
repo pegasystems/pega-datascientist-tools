@@ -469,6 +469,56 @@ def test_run_quarto_sets_plotly_renderer_env(tmp_path, monkeypatch):
     assert captured_renderers == ["notebook", "notebook_connected"]
 
 
+def test_run_quarto_inlines_and_drops_cdn_html_resources(tmp_path, monkeypatch):
+    """CDN HTML post-processing inlines local assets before resource cleanup."""
+
+    class FakeStdout:
+        def readline(self):
+            return ""
+
+    class FakeProcess:
+        stdout = FakeStdout()
+
+        def wait(self):
+            return 0
+
+    html_path = tmp_path / "HealthCheck_customer.html"
+    html_path.write_text("<html></html>", encoding="utf-8")
+    calls = []
+
+    monkeypatch.setattr(
+        report_utils._quarto,
+        "get_quarto_with_version",
+        lambda: ("quarto", "1.4.0"),
+    )
+    monkeypatch.setattr(report_utils._quarto.subprocess, "Popen", lambda *_args, **_kwargs: FakeProcess())
+    monkeypatch.setattr(
+        report_utils._quarto,
+        "inline_local_assets",
+        lambda path, base_dir: calls.append(("inline", path, base_dir)) or (2, 3),
+    )
+    monkeypatch.setattr(
+        report_utils._quarto,
+        "drop_inlined_resources",
+        lambda path, stem: calls.append(("drop", path, stem)) or 1,
+    )
+
+    assert (
+        report_utils.run_quarto(
+            qmd_file="HealthCheck.qmd",
+            output_filename="HealthCheck_customer.html",
+            output_type="html",
+            temp_dir=tmp_path,
+            full_embed=False,
+        )
+        == 0
+    )
+    assert calls == [
+        ("inline", html_path, tmp_path),
+        ("drop", html_path, "HealthCheck"),
+    ]
+
+
 def test_create_metric_gttable_callable_rag_with_metric_format():
     """Test that columns with callable RAG functions still get formatting from MetricFormats.
 
@@ -1362,14 +1412,14 @@ class TestInlineJs:
         (tmp_path / "module.js").write_text("window.moduleLoaded = true;", encoding="utf-8")
         html_file = tmp_path / "report.html"
         html_file.write_text(
-            '<script type="module" src="module.js" data-owner="quarto" crossorigin="anonymous"></script>',
+            '<script type="module" src="module.js" data-owner="quarto" crossorigin="anonymous" defer></script>',
             encoding="utf-8",
         )
 
         assert report_utils._inline_js(html_file, tmp_path) == 1
 
         result = html_file.read_text(encoding="utf-8")
-        assert '<script type="module" data-owner="quarto">' in result
+        assert '<script type="module" data-owner="quarto" defer>' in result
         assert "window.moduleLoaded = true;" in result
         assert "src=" not in result
         assert "crossorigin=" not in result
@@ -1399,6 +1449,55 @@ class TestInlineJs:
         assert "function init() { window.tabsLoaded = true; }" in result
         assert "return {init};" in result
         assert "tabsets.init();" in result
+
+    def test_inlined_module_script_handles_export_lists(self, tmp_path):
+        modules = tmp_path / "libs"
+        modules.mkdir()
+        (modules / "helpers.js").write_text(
+            "const raw = 1;\nconst direct = 2;\nexport { raw as exposed, direct };",
+            encoding="utf-8",
+        )
+        (modules / "main.js").write_text(
+            'import * as helpers from "./helpers.js";\nwindow.answer = helpers.exposed + helpers.direct;',
+            encoding="utf-8",
+        )
+        html_file = tmp_path / "report.html"
+        html_file.write_text('<script type="module" src="libs/main.js"></script>', encoding="utf-8")
+
+        assert report_utils._inline_js(html_file, tmp_path) == 1
+
+        result = html_file.read_text(encoding="utf-8")
+        assert "export {" not in result
+        assert "return {exposed: raw, direct};" in result
+        assert "window.answer = helpers.exposed + helpers.direct;" in result
+
+    def test_inlined_module_script_leaves_remote_imports(self, tmp_path):
+        (tmp_path / "main.js").write_text(
+            'import * as remote from "https://cdn.example.com/remote.js";\nremote.init();',
+            encoding="utf-8",
+        )
+        html_file = tmp_path / "report.html"
+        html_file.write_text('<script type="module" src="main.js"></script>', encoding="utf-8")
+
+        assert report_utils._inline_js(html_file, tmp_path) == 1
+        assert 'import * as remote from "https://cdn.example.com/remote.js";' in html_file.read_text(encoding="utf-8")
+
+    def test_inlined_module_script_leaves_missing_local_imports(self, tmp_path, caplog):
+        import logging
+
+        (tmp_path / "main.js").write_text(
+            'import * as missing from "./missing.js";\nmissing.init();',
+            encoding="utf-8",
+        )
+        html_file = tmp_path / "report.html"
+        html_file.write_text('<script type="module" src="main.js"></script>', encoding="utf-8")
+
+        with caplog.at_level(logging.WARNING):
+            assert report_utils._inline_js(html_file, tmp_path) == 1
+
+        result = html_file.read_text(encoding="utf-8")
+        assert 'import * as missing from "./missing.js";' in result
+        assert "missing.js" in caplog.text
 
 
 class TestInlineCssUrls:
