@@ -1,6 +1,7 @@
 import pathlib
 import re
 import zipfile
+from html.parser import HTMLParser
 
 import pytest
 from openpyxl import load_workbook
@@ -10,6 +11,54 @@ from pdstools.utils.report_utils import check_report_for_errors
 basePath = pathlib.Path(__file__).parent.parent.parent.parent
 
 PLOTLY_CDN_LOAD_RE = re.compile(r"(?:src=|import\s+)[\"']https://cdn\.plot\.ly/")
+CSS_URL_RE = re.compile(r"url\(\s*([\"']?)([^\"')]+)\1\s*\)", re.IGNORECASE)
+REMOTE_REFERENCE_PREFIXES = ("http://", "https://", "//", "data:", "#", "about:", "javascript:", "mailto:", "tel:")
+
+
+class ResourceReferenceParser(HTMLParser):
+    """Collect live HTML resource references from generated reports."""
+
+    def __init__(self):
+        super().__init__()
+        self.references: list[tuple[str, str, str]] = []
+        self.style_chunks: list[str] = []
+        self._in_style = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "style":
+            self._in_style = True
+        for attr, value in attrs:
+            if attr in {"href", "src"} and value:
+                self.references.append((tag, attr, value))
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "style":
+            self._in_style = False
+
+    def handle_data(self, data: str) -> None:
+        if self._in_style:
+            self.style_chunks.append(data)
+
+
+def _is_local_file_reference(reference: str) -> bool:
+    return bool(reference.strip()) and not reference.strip().startswith(REMOTE_REFERENCE_PREFIXES)
+
+
+def _local_file_references(html: str) -> list[str]:
+    parser = ResourceReferenceParser()
+    parser.feed(html)
+    references = [
+        f"{tag}[{attr}]={reference}"
+        for tag, attr, reference in parser.references
+        if _is_local_file_reference(reference)
+    ]
+    references.extend(
+        f"style[url]={reference.strip()}"
+        for style in parser.style_chunks
+        for reference in (match.group(2) for match in CSS_URL_RE.finditer(style))
+        if _is_local_file_reference(reference)
+    )
+    return references
 
 
 def _assert_report_path(actual: pathlib.Path, parent: pathlib.Path, expected_stem: str) -> None:
@@ -87,15 +136,23 @@ def test_GenerateHealthCheck(sample: ADMDatamart, tmp_path):
     assert len(errors) == 0, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
 
 
-def test_GenerateHealthCheck_cdn_returns_single_html(sample: ADMDatamart, tmp_path):
-    """CDN-backed Health Check renders as one HTML file, not a resources zip."""
-    hc = sample.generate.health_check(output_dir=tmp_path, full_embed=False)
+def test_GenerateHealthCheck_default_cdn_is_djs_copy_safe(sample: ADMDatamart, tmp_path, monkeypatch):
+    """Default CDN Health Check can be copied as one standalone HTML file."""
+    monkeypatch.chdir(tmp_path)
+
+    hc = sample.generate.health_check(output_type="html")
 
     assert hc == tmp_path / "HealthCheck.html"
     html = hc.read_text(encoding="utf-8")
     assert PLOTLY_CDN_LOAD_RE.search(html)
     assert "HealthCheck_files/" not in html
     assert not (tmp_path / "HealthCheck.zip").exists()
+
+    upload_dir = tmp_path / "upload"
+    upload_dir.mkdir()
+    copied_html = upload_dir / "HealthCheck.html"
+    copied_html.write_bytes(hc.read_bytes())
+    assert _local_file_references(copied_html.read_text(encoding="utf-8")) == []
 
 
 def test_GenerateHealthCheck_named_cdn_drops_qmd_resources(sample: ADMDatamart, tmp_path):
