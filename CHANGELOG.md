@@ -18,6 +18,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- CDN-mode HTML reports (``full_embed=False``) are now genuinely
+  self-contained single files. Quarto's local JavaScript assets are inlined
+  alongside the CSS that #679 already handled, and fonts/images referenced
+  from within that CSS are embedded as data URIs. The now-unreferenced
+  ``<basename>_files/`` folder is dropped, so ``bundle_quarto_resources``
+  no longer has a resources folder to zip and the Health Check returns
+  ``HealthCheck.html`` rather than ``HealthCheck.zip``. This gives an
+  esbuild-free path to a standalone report, which matters for hardened
+  images that strip the esbuild binary for CVE reasons. Remote CDN
+  references (Plotly, MathJax) are deliberately left untouched.
 - Explanations: `missing=False` had no effect on
   `predictor_contributions` (the exclusion filter compared two literals) and
   was never applied at all on the value-level path.
