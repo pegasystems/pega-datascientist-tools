@@ -1270,3 +1270,176 @@ class TestInlineCss:
         result = html_file.read_text(encoding="utf-8")
         assert n == 1
         assert css in result
+
+
+# ---------------------------------------------------------------------------
+# _inline_js / inline_local_assets / drop_inlined_resources tests
+# ---------------------------------------------------------------------------
+
+
+class TestInlineJs:
+    def test_relative_script_is_inlined(self, tmp_path):
+        js = "console.log('hi');"
+        (tmp_path / "app.js").write_text(js, encoding="utf-8")
+
+        html_file = tmp_path / "report.html"
+        html_file.write_text('<html><body><script src="app.js"></script></body></html>', encoding="utf-8")
+
+        n = report_utils._inline_js(html_file, tmp_path)
+
+        result = html_file.read_text(encoding="utf-8")
+        assert n == 1
+        assert js in result
+        assert 'src="app.js"' not in result
+
+    def test_absolute_url_is_left_alone(self, tmp_path):
+        html = '<html><body><script src="https://cdn.plot.ly/plotly.min.js"></script></body></html>'
+        html_file = tmp_path / "report.html"
+        html_file.write_text(html, encoding="utf-8")
+
+        n = report_utils._inline_js(html_file, tmp_path)
+
+        assert n == 0
+        assert html_file.read_text(encoding="utf-8") == html
+
+    def test_protocol_relative_url_is_left_alone(self, tmp_path):
+        html_file = tmp_path / "report.html"
+        html_file.write_text('<script src="//cdn.example.com/a.js"></script>', encoding="utf-8")
+
+        assert report_utils._inline_js(html_file, tmp_path) == 0
+
+    def test_closing_script_tag_in_source_is_escaped(self, tmp_path):
+        (tmp_path / "tricky.js").write_text('var s = "</script>";', encoding="utf-8")
+        html_file = tmp_path / "report.html"
+        html_file.write_text('<script src="tricky.js"></script>', encoding="utf-8")
+
+        report_utils._inline_js(html_file, tmp_path)
+
+        result = html_file.read_text(encoding="utf-8")
+        assert "<\\/script>" in result
+        assert result.count("</script>") == 1
+
+    def test_missing_file_logs_warning_and_leaves_tag(self, tmp_path, caplog):
+        import logging
+
+        html_file = tmp_path / "report.html"
+        html_file.write_text('<script src="missing.js"></script>', encoding="utf-8")
+
+        with caplog.at_level(logging.WARNING):
+            n = report_utils._inline_js(html_file, tmp_path)
+
+        assert n == 0
+        assert 'src="missing.js"' in html_file.read_text(encoding="utf-8")
+        assert "missing.js" in caplog.text
+
+    def test_subdirectory_src_resolved(self, tmp_path):
+        libs = tmp_path / "report_files" / "libs"
+        libs.mkdir(parents=True)
+        (libs / "quarto.js").write_text("window.q = 1;", encoding="utf-8")
+
+        html_file = tmp_path / "report.html"
+        html_file.write_text('<script src="report_files/libs/quarto.js"></script>', encoding="utf-8")
+
+        assert report_utils._inline_js(html_file, tmp_path) == 1
+        assert "window.q = 1;" in html_file.read_text(encoding="utf-8")
+
+
+class TestInlineCssUrls:
+    """Assets referenced from within an inlined stylesheet become data URIs."""
+
+    def test_relative_font_is_embedded(self, tmp_path):
+        libs = tmp_path / "report_files" / "libs"
+        libs.mkdir(parents=True)
+        (libs / "font.woff").write_bytes(b"\x00font-bytes")
+        (libs / "icons.css").write_text('@font-face { src: url("./font.woff"); }', encoding="utf-8")
+
+        html_file = tmp_path / "report.html"
+        html_file.write_text(
+            '<link rel="stylesheet" href="report_files/libs/icons.css">',
+            encoding="utf-8",
+        )
+
+        assert report_utils._inline_css(html_file, tmp_path) == 1
+
+        result = html_file.read_text(encoding="utf-8")
+        assert 'url("data:font/woff;base64,' in result
+        assert "./font.woff" not in result
+
+    def test_query_string_and_fragment_are_stripped_when_resolving(self, tmp_path):
+        (tmp_path / "font.woff").write_bytes(b"bytes")
+        (tmp_path / "icons.css").write_text(
+            "@font-face { src: url(font.woff?v=2#iefix); }",
+            encoding="utf-8",
+        )
+        html_file = tmp_path / "report.html"
+        html_file.write_text('<link rel="stylesheet" href="icons.css">', encoding="utf-8")
+
+        report_utils._inline_css(html_file, tmp_path)
+
+        assert "data:font/woff;base64," in html_file.read_text(encoding="utf-8")
+
+    def test_remote_and_unresolvable_urls_are_left_alone(self, tmp_path):
+        (tmp_path / "a.css").write_text(
+            "a { background: url(https://cdn.example.com/x.png); } b { background: url(gone.png); }",
+            encoding="utf-8",
+        )
+        html_file = tmp_path / "report.html"
+        html_file.write_text('<link rel="stylesheet" href="a.css">', encoding="utf-8")
+
+        report_utils._inline_css(html_file, tmp_path)
+
+        result = html_file.read_text(encoding="utf-8")
+        assert "url(https://cdn.example.com/x.png)" in result
+        assert "url(gone.png)" in result
+
+
+class TestInlineLocalAssets:
+    def test_inlines_css_and_js_and_reports_counts(self, tmp_path):
+        (tmp_path / "a.css").write_text("body { color: red; }", encoding="utf-8")
+        (tmp_path / "a.js").write_text("var a = 1;", encoding="utf-8")
+
+        html_file = tmp_path / "report.html"
+        html_file.write_text(
+            '<link rel="stylesheet" href="a.css"><script src="a.js"></script>',
+            encoding="utf-8",
+        )
+
+        assert report_utils.inline_local_assets(html_file, tmp_path) == (1, 1)
+
+        result = html_file.read_text(encoding="utf-8")
+        assert "body { color: red; }" in result
+        assert "var a = 1;" in result
+
+
+class TestDropInlinedResources:
+    def test_removes_folder_once_unreferenced(self, tmp_path):
+        html_file = tmp_path / "report.html"
+        resources = tmp_path / "report_files"
+        resources.mkdir()
+        (resources / "quarto.js").write_text("var q = 1;", encoding="utf-8")
+        html_file.write_text('<script src="report_files/quarto.js"></script>', encoding="utf-8")
+
+        report_utils.inline_local_assets(html_file, tmp_path)
+
+        assert report_utils.drop_inlined_resources(html_file) is True
+        assert not resources.exists()
+
+    def test_keeps_folder_when_still_referenced(self, tmp_path):
+        html_file = tmp_path / "report.html"
+        resources = tmp_path / "report_files"
+        resources.mkdir()
+        (resources / "fig.png").write_bytes(b"png")
+        html_file.write_text('<img src="report_files/fig.png">', encoding="utf-8")
+
+        assert report_utils.drop_inlined_resources(html_file) is False
+        assert resources.exists()
+
+    def test_no_resources_folder_is_noop(self, tmp_path):
+        html_file = tmp_path / "solo.html"
+        html_file.write_text("<html></html>", encoding="utf-8")
+
+        assert report_utils.drop_inlined_resources(html_file) is False
+
+    def test_missing_html_is_noop(self, tmp_path):
+        (tmp_path / "ghost_files").mkdir()
+        assert report_utils.drop_inlined_resources(tmp_path / "ghost.html") is False

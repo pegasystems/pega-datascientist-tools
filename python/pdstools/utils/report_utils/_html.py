@@ -1,7 +1,9 @@
-"""HTML post-processing: CSS inlining, zip bundling, error scanning."""
+"""HTML post-processing: local asset inlining, zip bundling, error scanning."""
 
 from __future__ import annotations
 
+import base64
+import mimetypes
 import re
 import shutil
 import zipfile
@@ -14,6 +16,59 @@ _LINK_STYLESHEET_RE = re.compile(
     re.IGNORECASE,
 )
 _HREF_ATTR_RE = re.compile(r"\bhref=[\"']([^\"']+)[\"']", re.IGNORECASE)
+_SCRIPT_SRC_RE = re.compile(
+    r"<script\b[^>]*\bsrc=[\"']([^\"']+)[\"'][^>]*>\s*</script>",
+    re.IGNORECASE,
+)
+_CSS_URL_RE = re.compile(r"url\(\s*([\"']?)([^\"')]+)\1\s*\)", re.IGNORECASE)
+
+# References we never try to localise: they are already remote or self-contained.
+_REMOTE_PREFIXES = ("http://", "https://", "//", "data:", "#", "about:")
+
+
+def _is_remote(reference: str) -> bool:
+    """Whether a URL reference points somewhere other than the local filesystem."""
+    return reference.strip().startswith(_REMOTE_PREFIXES)
+
+
+def _as_data_uri(path: Path) -> str:
+    """Encode a binary asset (font, image) as a base64 ``data:`` URI."""
+    mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+    return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"
+
+
+def _inline_css_urls(css: str, css_dir: Path) -> str:
+    """Rewrite relative ``url(...)`` references in a stylesheet to data URIs.
+
+    Stylesheets pull in fonts and images by relative path. Once the CSS text is
+    lifted into a ``<style>`` block those paths break, so the referenced assets
+    are embedded directly. Remote and already-inline references are untouched,
+    as are references that do not resolve to a file on disk.
+
+    Parameters
+    ----------
+    css : str
+        Stylesheet text.
+    css_dir : Path
+        Directory of the stylesheet, used to resolve relative references.
+
+    Returns
+    -------
+    str
+        The stylesheet with resolvable local references replaced by data URIs.
+    """
+
+    def _replace(match: re.Match) -> str:
+        reference = match.group(2).strip()
+        if _is_remote(reference):
+            return match.group(0)
+        # Strip cache-busting query strings and fragments: "font.woff?v=2#iefix".
+        asset_path = (css_dir / reference.split("?")[0].split("#")[0]).resolve()
+        if not asset_path.is_file():
+            return match.group(0)
+        return f'url("{_as_data_uri(asset_path)}")'
+
+    return _CSS_URL_RE.sub(_replace, css)
 
 
 def _inline_css(html_path: Path, base_dir: Path) -> int:
@@ -21,6 +76,7 @@ def _inline_css(html_path: Path, base_dir: Path) -> int:
 
     Replaces each ``<link rel="stylesheet" href="...">`` whose ``href`` is a
     relative path with an inline ``<style>`` block containing the CSS text.
+    Fonts and images referenced from within that CSS are embedded as data URIs.
     Absolute URLs (``http://``, ``https://``, ``//``) are left untouched.
     Missing files are logged as warnings and left alone.
 
@@ -46,13 +102,13 @@ def _inline_css(html_path: Path, base_dir: Path) -> int:
         if not href_match:
             return tag
         href = str(href_match.group(1))
-        if href.startswith(("http://", "https://", "//")):
+        if _is_remote(href):
             return tag
         css_path = (base_dir / href).resolve()
         if not css_path.is_file():
             logger.warning("CSS file not found, leaving <link> tag intact: %s", css_path)
             return tag
-        css_content = css_path.read_text(encoding="utf-8")
+        css_content = _inline_css_urls(css_path.read_text(encoding="utf-8"), css_path.parent)
         inlined += 1
         return f"<style>\n{css_content}\n</style>"
 
@@ -61,6 +117,108 @@ def _inline_css(html_path: Path, base_dir: Path) -> int:
         html_path.write_text(patched, encoding="utf-8")
         logger.debug("Inlined %d CSS file(s) into %s", inlined, html_path.name)
     return inlined
+
+
+def _inline_js(html_path: Path, base_dir: Path) -> int:
+    """Inline relative ``<script src="...">`` tags in an HTML file.
+
+    Replaces each script tag whose ``src`` is a relative path with an inline
+    ``<script>`` block containing the JavaScript source. Absolute URLs are left
+    untouched, so CDN-hosted libraries keep loading from the CDN. Missing files
+    are logged as warnings and left alone.
+
+    Parameters
+    ----------
+    html_path : Path
+        HTML file to patch in-place.
+    base_dir : Path
+        Directory used to resolve relative ``src`` values.
+
+    Returns
+    -------
+    int
+        Number of JavaScript files successfully inlined.
+    """
+    content = html_path.read_text(encoding="utf-8")
+    inlined = 0
+
+    def _replace(match: re.Match) -> str:
+        nonlocal inlined
+        src = str(match.group(1))
+        if _is_remote(src):
+            return match.group(0)
+        js_path = (base_dir / src).resolve()
+        if not js_path.is_file():
+            logger.warning("JS file not found, leaving <script> tag intact: %s", js_path)
+            return match.group(0)
+        js_content = js_path.read_text(encoding="utf-8")
+        # A literal "</script>" inside the source would close the tag early.
+        js_content = js_content.replace("</script>", "<\\/script>")
+        inlined += 1
+        return f"<script>\n{js_content}\n</script>"
+
+    patched = _SCRIPT_SRC_RE.sub(_replace, content)
+    if inlined:
+        html_path.write_text(patched, encoding="utf-8")
+        logger.debug("Inlined %d JS file(s) into %s", inlined, html_path.name)
+    return inlined
+
+
+def inline_local_assets(html_path: Path, base_dir: Path) -> tuple[int, int]:
+    """Inline every locally-hosted CSS and JS asset an HTML report depends on.
+
+    This is the CDN-mode counterpart to Quarto's ``embed-resources``: it makes
+    the HTML self-contained without invoking esbuild, which is unavailable in
+    hardened environments. Remote (CDN) references are deliberately preserved.
+
+    Parameters
+    ----------
+    html_path : Path
+        HTML file to patch in-place.
+    base_dir : Path
+        Directory used to resolve relative references.
+
+    Returns
+    -------
+    tuple[int, int]
+        Number of CSS and JS files inlined, respectively.
+    """
+    return _inline_css(html_path, base_dir), _inline_js(html_path, base_dir)
+
+
+def drop_inlined_resources(html_path: Path) -> bool:
+    """Delete a Quarto ``<stem>_files`` folder once nothing references it.
+
+    Called after :func:`inline_local_assets`. If the HTML still mentions the
+    resources folder — an asset type we do not inline, or a file that failed to
+    resolve — the folder is kept so the report is not broken.
+
+    Parameters
+    ----------
+    html_path : Path
+        The rendered HTML file whose companion resources folder to consider.
+
+    Returns
+    -------
+    bool
+        True if the resources folder was removed.
+    """
+    html_path = Path(html_path)
+    resources_dir = html_path.with_name(f"{html_path.stem}_files")
+    if not (html_path.is_file() and resources_dir.is_dir()):
+        return False
+
+    if resources_dir.name in html_path.read_text(encoding="utf-8"):
+        logger.info(
+            "%s still references %s; keeping the resources folder.",
+            html_path.name,
+            resources_dir.name,
+        )
+        return False
+
+    shutil.rmtree(resources_dir, ignore_errors=True)
+    logger.debug("Removed fully inlined resources folder %s", resources_dir.name)
+    return True
 
 
 def generate_zipped_report(output_filename: str, folder_to_zip: Path):
