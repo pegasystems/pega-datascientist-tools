@@ -1,0 +1,35 @@
+pdstools.infinity.resources.prediction_studio.v24_2.model_upload
+================================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_2.model_upload
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v24_2.model_upload.UploadedModel
+
+
+Module Contents
+---------------
+
+.. py:class:: UploadedModel(repository_name: str, file_path: str)
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.base.UploadedModel`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:attribute:: repository_name
+
+
+   .. py:attribute:: file_path
+
+
+   .. py:method:: __repr__()
+
+

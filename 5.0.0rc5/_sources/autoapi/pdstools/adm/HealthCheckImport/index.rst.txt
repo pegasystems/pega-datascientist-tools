@@ -1,0 +1,445 @@
+pdstools.adm.HealthCheckImport
+==============================
+
+.. py:module:: pdstools.adm.HealthCheckImport
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.adm.HealthCheckImport.HealthCheckSource
+   pdstools.adm.HealthCheckImport.ConfiguredDtype
+   pdstools.adm.HealthCheckImport.logger
+   pdstools.adm.HealthCheckImport.MODEL_CACHE_FILENAME
+   pdstools.adm.HealthCheckImport.PREDICTOR_CACHE_FILENAME
+   pdstools.adm.HealthCheckImport.PREDICTION_CACHE_FILENAME
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.adm.HealthCheckImport.HealthCheckReadOptions
+   pdstools.adm.HealthCheckImport.HealthCheckRowFilter
+   pdstools.adm.HealthCheckImport.SourceNormalizationOptions
+   pdstools.adm.HealthCheckImport.SourceImportOptions
+   pdstools.adm.HealthCheckImport.HealthCheckSourceMetadata
+   pdstools.adm.HealthCheckImport.HealthCheckImportResult
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.adm.HealthCheckImport.normalize_health_check_data
+   pdstools.adm.HealthCheckImport.preview_health_check_columns
+   pdstools.adm.HealthCheckImport.import_health_check_data
+   pdstools.adm.HealthCheckImport.resolve_health_check_output_dir
+   pdstools.adm.HealthCheckImport.save_health_check_parquet
+
+
+Module Contents
+---------------
+
+.. py:data:: HealthCheckSource
+
+.. py:data:: ConfiguredDtype
+
+.. py:data:: logger
+
+.. py:data:: MODEL_CACHE_FILENAME
+   :value: 'PR_DATA_DM_ADMMART_MDL_FACT.parquet'
+
+
+.. py:data:: PREDICTOR_CACHE_FILENAME
+   :value: 'PR_DATA_DM_ADMMART_PRED.parquet'
+
+
+.. py:data:: PREDICTION_CACHE_FILENAME
+   :value: 'PR_DATA_DM_SNAPSHOTS.parquet'
+
+
+.. py:class:: HealthCheckReadOptions
+
+   Structured reader options for one Health Check input source.
+
+   :param delimiter: Field delimiter for CSV, TSV, or TXT input.
+   :type delimiter: str, optional
+   :param quote_char: Quote character for CSV, TSV, or TXT input. Set to None to disable
+                      quote handling.
+   :type quote_char: str, optional
+   :param encoding: Text encoding forwarded to Polars.
+   :type encoding: str, default "utf8"
+   :param has_header: Whether the first input row contains column names.
+   :type has_header: bool, default True
+   :param skip_rows: Number of rows to skip before reading delimited text.
+   :type skip_rows: int, default 0
+   :param infer_schema_length: Number of rows used for schema inference. Use zero to read all columns
+                               as strings before applying normalization overrides.
+   :type infer_schema_length: int, optional
+   :param ignore_errors: Continue parsing rows that contain values incompatible with the inferred
+                         delimited-text schema.
+   :type ignore_errors: bool, default False
+   :param null_values: Values interpreted as null for delimited text.
+   :type null_values: tuple[str, ...], optional
+   :param schema_overrides: Reader-level column type overrides.
+   :type schema_overrides: Mapping[str, ConfiguredDtype]
+   :param excel_sheet_name: Excel sheet name to read.
+   :type excel_sheet_name: str, optional
+   :param excel_sheet_id: One-based Excel sheet index to read.
+   :type excel_sheet_id: int, optional
+   :param excel_header_row: Zero-based Excel row containing column names.
+   :type excel_header_row: int, optional
+
+
+   .. py:attribute:: delimiter
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: quote_char
+      :type:  str | None
+      :value: '"'
+
+
+
+   .. py:attribute:: encoding
+      :type:  str
+      :value: 'utf8'
+
+
+
+   .. py:attribute:: has_header
+      :type:  bool
+      :value: True
+
+
+
+   .. py:attribute:: skip_rows
+      :type:  int
+      :value: 0
+
+
+
+   .. py:attribute:: infer_schema_length
+      :type:  int | None
+      :value: None
+
+
+
+   .. py:attribute:: ignore_errors
+      :type:  bool
+      :value: False
+
+
+
+   .. py:attribute:: null_values
+      :type:  tuple[str, Ellipsis] | None
+      :value: None
+
+
+
+   .. py:attribute:: schema_overrides
+      :type:  collections.abc.Mapping[str, ConfiguredDtype]
+
+
+   .. py:attribute:: excel_sheet_name
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: excel_sheet_id
+      :type:  int | None
+      :value: None
+
+
+
+   .. py:attribute:: excel_header_row
+      :type:  int | None
+      :value: None
+
+
+
+   .. py:method:: __post_init__() -> None
+
+
+.. py:class:: HealthCheckRowFilter
+
+   Simple row predicate applied during Health Check source normalization.
+
+   :param column: Column to evaluate, matched case-insensitively.
+   :type column: str
+   :param operator: Predicate operator. Supported values are ``==``, ``!=``, ``contains``,
+                    ``not_contains``, ``starts_with``, ``not_starts_with``, ``ends_with``,
+                    ``not_ends_with``, ``is_null``, and ``is_not_null``.
+   :type operator: str
+   :param value: Predicate value. Required for all operators except ``is_null`` and
+                 ``is_not_null``.
+   :type value: str, optional
+
+
+   .. py:attribute:: column
+      :type:  str
+
+
+   .. py:attribute:: operator
+      :type:  Literal['==', '!=', 'contains', 'not_contains', 'starts_with', 'not_starts_with', 'ends_with', 'not_ends_with', 'is_null', 'is_not_null']
+
+
+   .. py:attribute:: value
+      :type:  str | None
+      :value: None
+
+
+
+.. py:class:: SourceNormalizationOptions
+
+   Declarative repairs applied to one input before pdstools validation.
+
+   :param rename_columns: Existing columns to rename, matched case-insensitively.
+   :type rename_columns: Mapping[str, str]
+   :param row_filters: Simple row predicates to apply before column cleanup.
+   :type row_filters: tuple[HealthCheckRowFilter, ...]
+   :param text_replacements: Literal text replacements by column, matched case-insensitively.
+   :type text_replacements: Mapping[str, Mapping[str, str]]
+   :param fill_null_values: Existing columns whose null values should be filled with a constant,
+                            matched case-insensitively.
+   :type fill_null_values: Mapping[str, object]
+   :param derived_columns: Columns to create or replace from a source column (``target=source``) or
+                           numeric subtraction (``target=left-right``), matched case-insensitively.
+                           String concatenation is supported as
+                           ``target=concat(column, "literal", other)``.
+   :type derived_columns: Mapping[str, str]
+   :param drop_columns: Existing columns to remove, matched case-insensitively.
+   :type drop_columns: tuple[str, ...]
+   :param type_overrides: Non-strict casts to apply, matched case-insensitively.
+   :type type_overrides: Mapping[str, ConfiguredDtype]
+   :param timestamp_column: Existing timestamp column to parse, or a new column to create when a
+                            fallback is configured.
+   :type timestamp_column: str, optional
+   :param timestamp_format: Explicit ``strptime`` format for a string timestamp column.
+   :type timestamp_format: str, optional
+   :param timestamp_fallback: Value used for missing or unparseable timestamps.
+   :type timestamp_fallback: datetime or date, optional
+   :param constant_columns: New columns and their constant values.
+   :type constant_columns: Mapping[str, object]
+
+
+   .. py:attribute:: rename_columns
+      :type:  collections.abc.Mapping[str, str]
+
+
+   .. py:attribute:: row_filters
+      :type:  tuple[HealthCheckRowFilter, Ellipsis]
+      :value: ()
+
+
+
+   .. py:attribute:: text_replacements
+      :type:  collections.abc.Mapping[str, collections.abc.Mapping[str, str]]
+
+
+   .. py:attribute:: fill_null_values
+      :type:  collections.abc.Mapping[str, object]
+
+
+   .. py:attribute:: derived_columns
+      :type:  collections.abc.Mapping[str, str]
+
+
+   .. py:attribute:: drop_columns
+      :type:  tuple[str, Ellipsis]
+      :value: ()
+
+
+
+   .. py:attribute:: type_overrides
+      :type:  collections.abc.Mapping[str, ConfiguredDtype]
+
+
+   .. py:attribute:: timestamp_column
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: timestamp_format
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: timestamp_fallback
+      :type:  datetime.datetime | datetime.date | None
+      :value: None
+
+
+
+   .. py:attribute:: constant_columns
+      :type:  collections.abc.Mapping[str, object]
+
+
+.. py:class:: SourceImportOptions
+
+   Read and normalization options for one Health Check source.
+
+
+   .. py:attribute:: read
+      :type:  HealthCheckReadOptions
+
+
+   .. py:attribute:: normalize
+      :type:  SourceNormalizationOptions
+
+
+.. py:class:: HealthCheckSourceMetadata
+
+   Non-content metadata describing an imported source.
+
+
+   .. py:attribute:: name
+      :type:  str
+
+
+   .. py:attribute:: extension
+      :type:  str
+
+
+.. py:class:: HealthCheckImportResult
+
+   Imported objects and constructor-ready normalized source data.
+
+
+   .. py:attribute:: datamart
+      :type:  pdstools.adm.ADMDatamart.ADMDatamart
+
+
+   .. py:attribute:: prediction
+      :type:  pdstools.prediction.Prediction.Prediction | None
+
+
+   .. py:attribute:: model_data
+      :type:  polars.LazyFrame
+
+
+   .. py:attribute:: predictor_data
+      :type:  polars.LazyFrame | None
+
+
+   .. py:attribute:: prediction_data
+      :type:  polars.LazyFrame | None
+
+
+   .. py:attribute:: sources
+      :type:  collections.abc.Mapping[str, HealthCheckSourceMetadata]
+
+
+   .. py:attribute:: warnings
+      :type:  tuple[str, Ellipsis]
+
+
+.. py:function:: normalize_health_check_data(df: polars.LazyFrame, options: SourceNormalizationOptions | None = None) -> tuple[polars.LazyFrame, tuple[str, Ellipsis]]
+
+   Apply safe, declarative repairs to one Health Check input.
+
+   :param df: Raw input data.
+   :type df: pl.LazyFrame
+   :param options: Repairs to apply. Column names are matched case-insensitively.
+   :type options: SourceNormalizationOptions, optional
+
+   :returns: Normalized data and data-safe descriptions of applied repairs.
+   :rtype: tuple[pl.LazyFrame, tuple[str, ...]]
+
+   :raises ValueError: If configured columns do not exist, settings conflict, or a configured
+       data type is unsupported.
+
+
+.. py:function:: preview_health_check_columns(source: HealthCheckSource, options: HealthCheckReadOptions | None = None) -> tuple[str, Ellipsis]
+
+   Return column names read from a Health Check source.
+
+   :param source: Input source to inspect.
+   :type source: str, path-like, or BytesIO
+   :param options: Reader options to apply while inspecting the source.
+   :type options: HealthCheckReadOptions, optional
+
+   :returns: Column names found in the source.
+   :rtype: tuple[str, ...]
+
+
+.. py:function:: import_health_check_data(model_source: HealthCheckSource, predictor_source: HealthCheckSource | None = None, prediction_source: HealthCheckSource | None = None, *, model_options: SourceImportOptions | None = None, predictor_options: SourceImportOptions | None = None, prediction_options: SourceImportOptions | None = None, extract_pyname_keys: bool = True, predictor_categorization: collections.abc.Mapping[str, str | list[str]] | None = None, predictor_categorization_uses_regex: bool = False) -> HealthCheckImportResult
+
+   Import model, optional predictor, and optional prediction data.
+
+   The returned source frames are normalized but remain constructor-ready.
+   This allows canonical parquet files to be loaded later by the normal
+   :class:`ADMDatamart` and :class:`Prediction` validation paths.
+
+   :param model_source: Required model snapshot input.
+   :type model_source: HealthCheckSource
+   :param predictor_source: Predictor-binning snapshot input.
+   :type predictor_source: HealthCheckSource, optional
+   :param prediction_source: Prediction snapshot input.
+   :type prediction_source: HealthCheckSource, optional
+   :param model_options: Independent read and normalization options for each source.
+   :type model_options: SourceImportOptions, optional
+   :param predictor_options: Independent read and normalization options for each source.
+   :type predictor_options: SourceImportOptions, optional
+   :param prediction_options: Independent read and normalization options for each source.
+   :type prediction_options: SourceImportOptions, optional
+   :param extract_pyname_keys: Whether to extract context keys embedded in the model Name field.
+   :type extract_pyname_keys: bool, default True
+   :param predictor_categorization: Category names mapped to PredictorName substring patterns.
+   :type predictor_categorization: Mapping[str, str or list[str]], optional
+   :param predictor_categorization_uses_regex: Interpret predictor categorization patterns as regular expressions.
+   :type predictor_categorization_uses_regex: bool, default False
+
+   :returns: Validated analysis objects, constructor-ready source data, metadata,
+             and data-safe descriptions of applied repairs.
+   :rtype: HealthCheckImportResult
+
+
+.. py:function:: resolve_health_check_output_dir(model_source: HealthCheckSource | None = None, predictor_source: HealthCheckSource | None = None, prediction_source: HealthCheckSource | None = None, *, output_parent: str | os.PathLike[str] | None = None) -> pathlib.Path
+
+   Resolve the ``HC`` output directory for processed parquet files.
+
+   An explicit output parent takes precedence. Otherwise, the first filesystem
+   source is selected in model, predictor, prediction order. In-memory-only
+   imports fall back to the current working directory.
+
+   :param model_source: Input sources used to select a filesystem parent.
+   :type model_source: HealthCheckSource, optional
+   :param predictor_source: Input sources used to select a filesystem parent.
+   :type predictor_source: HealthCheckSource, optional
+   :param prediction_source: Input sources used to select a filesystem parent.
+   :type prediction_source: HealthCheckSource, optional
+   :param output_parent: Explicit directory under which the ``HC`` directory is created.
+   :type output_parent: str or path-like, optional
+
+   :returns: Resolved output directory ending in ``HC``.
+   :rtype: pathlib.Path
+
+
+.. py:function:: save_health_check_parquet(result: HealthCheckImportResult, output_parent: str | os.PathLike[str]) -> dict[str, pathlib.Path]
+
+   Atomically persist canonical Health Check cache parquet files.
+
+   All requested frames are written to temporary files before any canonical
+   file is replaced. Optional canonical files from an earlier import are
+   removed after a successful write when the corresponding source is absent.
+
+   :param result: Imported source frames and validated analysis objects.
+   :type result: HealthCheckImportResult
+   :param output_parent: Parent directory under which an ``HC`` directory is created.
+   :type output_parent: str or path-like
+
+   :returns: Canonical paths keyed by ``model``, ``predictor``, and ``prediction``.
+   :rtype: dict[str, pathlib.Path]
+
+
