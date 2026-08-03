@@ -347,13 +347,28 @@ try:
 
     # TODO some of the formatting could be done in GT instead of in polars
 
-    gt = report_utils.create_metric_gttable(
-        human_friendly_scoredistribution, title="Score Distribution"
-    ).tab_style(
-        # this won't happen now - we could consider adding
-        # that info to the list
-        style=style.text(color="grey"),
-        locations=loc.body(rows=~active_range_filter_expr),
+    gt = (
+        report_utils.create_metric_gttable(
+            human_friendly_scoredistribution, title="Score Distribution"
+        )
+        .fmt_number(
+            columns=["Propensity (%)", "Adjusted Propensity (%)"],
+            decimals=3,
+        )
+        .fmt_number(
+            columns=["Z Ratio", "Lift (%)"],
+            decimals=1,
+        )
+        .fmt_number(
+            columns=["Cum. Positives (%)", "Cum. Total (%)"],
+            decimals=2,
+        )
+        .tab_style(
+            # this won't happen now - we could consider adding
+            # that info to the list
+            style=style.text(color="grey"),
+            locations=loc.body(rows=~active_range_filter_expr),
+        )
     )
 
     display(gt)
@@ -677,15 +692,25 @@ def show_single_predictor(pred):
     except Exception:
         pass
 
+    auc_display = f"{univariate_auc * 100:.2f}"
+    if (
+        univariate_ci_payload.get("ci_available")
+        and univariate_ci_payload.get("ci_lower") is not None
+        and univariate_ci_payload.get("ci_upper") is not None
+    ):
+        ci_half_width = (
+            (univariate_ci_payload["ci_upper"] - univariate_ci_payload["ci_lower"]) / 2
+        ) * 100
+        auc_display = f"{univariate_auc * 100:.2f} +/- {ci_half_width:.2f}"
+
+    predictor_summary_table = predictor_properties.collect().with_columns(
+        pl.lit(auc_display).alias("Univariate AUC (+/- CI)")
+    )
+
     # Predictor summary
 
     display(
-        report_utils.create_metric_gttable(predictor_properties.collect())
-        .fmt_number(
-            decimals=2,
-            scale_by=100.0,
-            columns=["Univariate Performance"],
-        )
+        report_utils.create_metric_gttable(predictor_summary_table)
         .fmt_number(
             decimals=2,
             columns=["Missing %", "Residual %"],
@@ -694,28 +719,18 @@ def show_single_predictor(pred):
             decimals=0,
             columns=["Positives", "Responses"],
         )
-        .cols_hide(["PredictorName", "isActive", "GroupIndex", "AnyActiveInGroup", "Indentation", "Binning", "PredictorLink"])
+        .cols_hide([
+            "PredictorName",
+            "isActive",
+            "GroupIndex",
+            "AnyActiveInGroup",
+            "Indentation",
+            "Binning",
+            "PredictorLink",
+            "Univariate Performance",
+        ])
         .cols_label(EntryType="Status")
     )
-
-    ci_percent = round(confidence_level * 100, 1)
-    if (
-        univariate_ci_payload.get("ci_available")
-        and univariate_ci_payload.get("ci_lower") is not None
-        and univariate_ci_payload.get("ci_upper") is not None
-    ):
-        report_utils.quarto_print(
-            f"Univariate performance is **{round(univariate_auc * 100, 2)}** "
-            f"with a **{ci_percent}% confidence interval** of "
-            f"**[{round(univariate_ci_payload['ci_lower'] * 100, 2)}, {round(univariate_ci_payload['ci_upper'] * 100, 2)}]**."
-        )
-    else:
-        reason = univariate_ci_payload.get("ci_reason")
-        reason_text = f" ({reason})" if reason else ""
-        report_utils.quarto_print(
-            f"Univariate performance is **{round(univariate_auc * 100, 2)}**. "
-            f"The **{ci_percent}% confidence interval** is unavailable{reason_text}."
-        )
 
     # Predictor binning
 
@@ -740,11 +755,11 @@ def show_single_predictor(pred):
         fig.update_layout(
             width=700,
             height=250,
-            margin=dict(r=140),
+            margin=dict(r=210),
             yaxis2=dict(automargin=True),
             legend=dict(
                 orientation="v",
-                x=1.02,
+                x=1.14,
                 xanchor="left",
                 y=1.0,
                 yanchor="top",
@@ -781,6 +796,8 @@ def show_single_predictor(pred):
 
     display(
         report_utils.create_metric_gttable(human_friendly_binning_table)
+        .fmt_number(columns=["Propensity (%)"], decimals=3)
+        .fmt_number(columns=["Z Ratio", "Lift (%)"], decimals=1)
         .fmt_nanoplot(columns="Z Ratio", plot_type="bar", autoscale=False)
     )
 
