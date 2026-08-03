@@ -156,8 +156,8 @@ def test_active_ranges_empty_classifier_slice_returns_unavailable_ci(sample, mon
 
     def scores_below_classifier_bounds(cls, data):
         return original_min_max_scores(data).with_columns(
-            pl.lit(0.0).alias("score_min"),
-            pl.lit(-8.0).alias("score_max"),
+            pl.lit(1e9).alias("score_min"),
+            pl.lit(-1e9).alias("score_max"),
         )
 
     monkeypatch.setattr(
