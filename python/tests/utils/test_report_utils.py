@@ -614,6 +614,32 @@ class TestGetVersionOnlyEdgeCases:
         assert report_utils._get_version_only("tool 10.20.30.40") == "10.20.30.40"
 
 
+class TestDocsLinkVersionRouting:
+    """Tests for docs-link routing used by report templates."""
+
+    def test_stable_version_uses_base_version(self):
+        assert report_utils.docs_version_for_links("5.0.0") == "5.0.0"
+
+    def test_prerelease_uses_latest(self):
+        assert report_utils.docs_version_for_links("5.0.0rc5") == "latest"
+
+    def test_devrelease_uses_latest(self):
+        assert report_utils.docs_version_for_links("5.1.0.dev2") == "latest"
+
+    def test_invalid_version_uses_latest(self):
+        assert report_utils.docs_version_for_links("not-a-version") == "latest"
+
+    def test_docs_article_url_uses_resolved_version_segment(self):
+        assert (
+            report_utils.docs_article_url("ADMExplained", "5.0.0")
+            == "https://pegasystems.github.io/pega-datascientist-tools/5.0.0/articles/ADMExplained.html"
+        )
+        assert (
+            report_utils.docs_article_url("ADMExplained", "5.0.0rc5")
+            == "https://pegasystems.github.io/pega-datascientist-tools/latest/articles/ADMExplained.html"
+        )
+
+
 class TestGenerateZippedReport:
     """Tests for generate_zipped_report."""
 

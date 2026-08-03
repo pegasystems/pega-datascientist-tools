@@ -30,8 +30,8 @@ import os.path
 from pathlib import Path
 import traceback
 
-from pdstools import datasets, ADMDatamart, read_ds_export
-from pdstools.utils.cdh_utils import z_ratio, lift
+from pdstools import __version__ as pdstools_version, datasets, ADMDatamart, read_ds_export
+from pdstools.utils.cdh_utils import auc_ci_from_bincounts, z_ratio, lift
 import polars as pl
 from IPython.display import display, Markdown
 from great_tables import GT, style, md, html, loc
@@ -252,6 +252,8 @@ try:
             "In Pega, AUC is always scaled to a number 50-100."
         )
 
+    adm_nb_explained_url = report_utils.docs_article_url("ADMExplained", pdstools_version)
+
     report_utils.quarto_print(
         auc_text
     )
@@ -261,7 +263,11 @@ except Exception as e:
 
 The classifier maps the model scores (average of the log odds of the active predictors) to a propensity value. The “active” bins are the ones that can be reached from the current binning of the active predictors.
 
-See the [ADM NB Explained](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/ADMExplained.html) article for more information on how ADM exactly works.
+```{python}
+report_utils.quarto_print(
+    f"See the [ADM NB Explained]({adm_nb_explained_url}) article for more information on how ADM exactly works."
+)
+```
 
 ```{python}
 gt = (
@@ -283,6 +289,7 @@ gt = (
     ).cols_label(
         ResponseCount="Responses",
     )
+    .fmt_number(columns=["Base Propensity"], decimals=3)
 )
 
 display(gt)
@@ -653,6 +660,23 @@ def show_single_predictor(pred):
         .item()
     )
 
+    predictor_binning_df = predictor_binning_data.collect()
+    univariate_auc = predictor_properties.select(pl.col("Univariate Performance")).collect().item()
+    univariate_ci_payload = {
+        "ci_lower": None,
+        "ci_upper": None,
+        "ci_available": False,
+        "ci_reason": "unavailable",
+    }
+    try:
+        univariate_ci_payload = auc_ci_from_bincounts(
+            predictor_binning_df.get_column("BinPositives").to_list(),
+            predictor_binning_df.get_column("BinNegatives").to_list(),
+            confidence_level=confidence_level,
+        )
+    except Exception:
+        pass
+
     # Predictor summary
 
     display(
@@ -674,6 +698,25 @@ def show_single_predictor(pred):
         .cols_label(EntryType="Status")
     )
 
+    ci_percent = round(confidence_level * 100, 1)
+    if (
+        univariate_ci_payload.get("ci_available")
+        and univariate_ci_payload.get("ci_lower") is not None
+        and univariate_ci_payload.get("ci_upper") is not None
+    ):
+        report_utils.quarto_print(
+            f"Univariate performance is **{round(univariate_auc * 100, 2)}** "
+            f"with a **{ci_percent}% confidence interval** of "
+            f"**[{round(univariate_ci_payload['ci_lower'] * 100, 2)}, {round(univariate_ci_payload['ci_upper'] * 100, 2)}]**."
+        )
+    else:
+        reason = univariate_ci_payload.get("ci_reason")
+        reason_text = f" ({reason})" if reason else ""
+        report_utils.quarto_print(
+            f"Univariate performance is **{round(univariate_auc * 100, 2)}**. "
+            f"The **{ci_percent}% confidence interval** is unavailable{reason_text}."
+        )
+
     # Predictor binning
 
     try:
@@ -694,7 +737,19 @@ def show_single_predictor(pred):
         fig.add_hline(y=base_propensity, line_dash="dash", line_color="grey", yref="y2")
         # fig.update_xaxes(type='category') # prevent plotly from trying to guess
 
-        fig.update_layout(width=700, height=250)
+        fig.update_layout(
+            width=700,
+            height=250,
+            margin=dict(r=140),
+            yaxis2=dict(automargin=True),
+            legend=dict(
+                orientation="v",
+                x=1.02,
+                xanchor="left",
+                y=1.0,
+                yanchor="top",
+            ),
+        )
         fig.show()
 
         # Alternative view in the binning Lift plot
@@ -710,7 +765,7 @@ def show_single_predictor(pred):
 
     # Table with binning details
 
-    human_friendly_binning_table = predictor_binning_data.select(
+    human_friendly_binning_table = predictor_binning_df.select(
         pl.col("BinIndex").alias("Index"),
         pl.col("BinSymbol").alias("Bin"),
         pl.col("BinResponseCount").alias("Responses"),
@@ -722,7 +777,7 @@ def show_single_predictor(pred):
         .round(2)
         .alias("Lift (%)"),
         (pl.col("BinPropensity") * 100).round(3).alias("Propensity (%)"),
-    ).collect()
+    )
 
     display(
         report_utils.create_metric_gttable(human_friendly_binning_table)
