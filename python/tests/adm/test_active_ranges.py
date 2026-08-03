@@ -147,3 +147,29 @@ def test_active_ranges_pega7():
         ar["AUC_FullRange"].item(),
         6,
     )
+
+
+def test_active_ranges_empty_classifier_slice_returns_unavailable_ci(sample, monkeypatch):
+    """Return unavailable CI metadata when no classifier bin is active."""
+    model_id = sample._require_predictor_data().select("ModelID").unique().collect()["ModelID"][0]
+    original_min_max_scores = ADMDatamart._minMaxScoresPerModel
+
+    def scores_below_classifier_bounds(cls, data):
+        return original_min_max_scores(data).with_columns(
+            pl.lit(0.0).alias("score_min"),
+            pl.lit(-8.0).alias("score_max"),
+        )
+
+    monkeypatch.setattr(
+        ADMDatamart,
+        "_minMaxScoresPerModel",
+        classmethod(scores_below_classifier_bounds),
+    )
+
+    result = sample.active_ranges(model_id).collect()
+
+    assert result["AUC_ActiveRange"].item() is None
+    assert result["AUC_ActiveRange_CI_Lower"].item() is None
+    assert result["AUC_ActiveRange_CI_Upper"].item() is None
+    assert result["AUC_ActiveRange_CI_Available"].item() is False
+    assert result["AUC_ActiveRange_CI_Reason"].item() == "empty_active_range"
