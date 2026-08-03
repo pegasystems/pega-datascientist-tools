@@ -71,6 +71,68 @@ def test_auc_from_bincounts():
     assert abs(cdh_utils.auc_from_bincounts(positives, negatives) - 0.6871) < 1e-6
 
 
+def test_auc_variance_delong_grouped_returns_positive_value():
+    positives = [50, 70, 75, 80, 85, 90, 110, 130, 150, 160]
+    negatives = [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450]
+    variance = cdh_utils.auc_variance_delong_grouped(positives, negatives)
+
+    assert abs(variance - 7.62652860183219e-05) < 1e-12
+
+
+def test_auc_ci_from_bincounts_includes_auc_and_bounds():
+    positives = [50, 70, 75, 80, 85, 90, 110, 130, 150, 160]
+    negatives = [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450]
+
+    payload = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert payload["ci_available"] is True
+    assert abs(payload["auc"] - 0.6871) < 1e-12
+    assert abs(payload["variance"] - 7.62652860183219e-05) < 1e-12
+    assert abs(payload["ci_lower"] - 0.6699836348576035) < 1e-12
+    assert abs(payload["ci_upper"] - 0.7042163651423964) < 1e-12
+
+
+def test_auc_ci_from_bincounts_insufficient_data_returns_unavailable():
+    payload = cdh_utils.auc_ci_from_bincounts([0, 0, 1], [0, 0, 0])
+
+    assert payload["ci_available"] is False
+    assert payload["ci_reason"] == "insufficient_class_volume"
+    assert payload["ci_lower"] is None
+    assert payload["ci_upper"] is None
+
+
+def test_auc_ci_from_bincounts_confidence_level_changes_width_not_auc():
+    positives = [50, 70, 75, 80, 85, 90, 110, 130, 150, 160]
+    negatives = [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450]
+
+    ci_90 = cdh_utils.auc_ci_from_bincounts(positives, negatives, confidence_level=0.90)
+    ci_99 = cdh_utils.auc_ci_from_bincounts(positives, negatives, confidence_level=0.99)
+
+    assert abs(ci_90["auc"] - ci_99["auc"]) < 1e-12
+    width_90 = ci_90["ci_upper"] - ci_90["ci_lower"]
+    width_99 = ci_99["ci_upper"] - ci_99["ci_lower"]
+    assert width_99 >= width_90
+
+
+def test_auc_ci_from_bincounts_is_deterministic():
+    positives = [10, 15, 22, 30, 44]
+    negatives = [90, 80, 70, 50, 30]
+
+    first = cdh_utils.auc_ci_from_bincounts(positives, negatives, confidence_level=0.95)
+    second = cdh_utils.auc_ci_from_bincounts(positives, negatives, confidence_level=0.95)
+
+    assert first == second
+
+
+def test_validate_confidence_level_rejects_out_of_range_values():
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(0.0)
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(1.0)
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(-0.1)
+
+
 def test_aucpr_from_probs():
     assert abs(cdh_utils.aucpr_from_probs([1, 1, 0], [0.6, 0.2, 0.2]) - 0.4166667) < 1e-6
     assert cdh_utils.aucpr_from_probs([1, 1, 1], [0.6, 0.2, 0.2]) == 0.0

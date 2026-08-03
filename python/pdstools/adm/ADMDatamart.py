@@ -1103,6 +1103,8 @@ class ADMDatamart:
     def active_ranges(
         self,
         model_ids: str | list[str] | None = None,
+        *,
+        confidence_level: float = 0.95,
     ) -> pl.LazyFrame:
         """Calculate the active, reachable bins in classifiers.
 
@@ -1123,6 +1125,9 @@ class ADMDatamart:
         model_ids : Optional[Union[str, list[str]]], optional
             An optional list of model id's, or just a single one, to report on. When
             not given, the information is returned for all models.
+        confidence_level : float, default=0.95
+            Two-sided confidence level used to compute the active-range AUC
+            confidence interval.
 
         Returns
         -------
@@ -1136,6 +1141,10 @@ class ADMDatamart:
             - AUC_Datamart - The AUC value as reported in the datamart
             - AUC_FullRange - The AUC calculated from the full range of bins in the classifier
             - AUC_ActiveRange - The AUC calculated from only the active/reachable bins
+            - AUC_ActiveRange_CI_Lower - Lower CI bound for active-range AUC
+            - AUC_ActiveRange_CI_Upper - Upper CI bound for active-range AUC
+            - AUC_ActiveRange_CI_Available - Whether CI could be estimated
+            - AUC_ActiveRange_CI_Reason - Unavailable reason when CI is missing
 
             Classifier Information:
             - Bins - The total number of bins in the classifier
@@ -1155,6 +1164,8 @@ class ADMDatamart:
         """
         import numpy as np
 
+        cdh_utils.validate_confidence_level(confidence_level)
+
         def find_binindex(bounds, score):
             if len(bounds) == 1:
                 return 0
@@ -1171,6 +1182,14 @@ class ADMDatamart:
                 pos[idx_min:idx_max],
                 neg[idx_min:idx_max],
             )
+
+        def auc_ci_payload_field(pos, neg, idx_min, idx_max, field):
+            payload = cdh_utils.auc_ci_from_bincounts(
+                pos[idx_min:idx_max],
+                neg[idx_min:idx_max],
+                confidence_level=confidence_level,
+            )
+            return payload[field]
 
         if isinstance(model_ids, str):
             query = pl.col("ModelID") == model_ids
@@ -1269,6 +1288,74 @@ class ADMDatamart:
                         data[3].item(),
                     ),
                     return_dtype=pl.Float64,
+                    returns_scalar=True,
+                ).over("ModelID"),
+                AUC_ActiveRange_CI_Lower=pl.map_groups(
+                    exprs=[
+                        pl.col("classifierPos"),
+                        pl.col("classifierNeg"),
+                        pl.col("idx_min"),
+                        pl.col("idx_max"),
+                    ],
+                    function=lambda data: auc_ci_payload_field(
+                        data[0].to_list()[0],
+                        data[1].to_list()[0],
+                        data[2].item(),
+                        data[3].item(),
+                        "ci_lower",
+                    ),
+                    return_dtype=pl.Float64,
+                    returns_scalar=True,
+                ).over("ModelID"),
+                AUC_ActiveRange_CI_Upper=pl.map_groups(
+                    exprs=[
+                        pl.col("classifierPos"),
+                        pl.col("classifierNeg"),
+                        pl.col("idx_min"),
+                        pl.col("idx_max"),
+                    ],
+                    function=lambda data: auc_ci_payload_field(
+                        data[0].to_list()[0],
+                        data[1].to_list()[0],
+                        data[2].item(),
+                        data[3].item(),
+                        "ci_upper",
+                    ),
+                    return_dtype=pl.Float64,
+                    returns_scalar=True,
+                ).over("ModelID"),
+                AUC_ActiveRange_CI_Available=pl.map_groups(
+                    exprs=[
+                        pl.col("classifierPos"),
+                        pl.col("classifierNeg"),
+                        pl.col("idx_min"),
+                        pl.col("idx_max"),
+                    ],
+                    function=lambda data: auc_ci_payload_field(
+                        data[0].to_list()[0],
+                        data[1].to_list()[0],
+                        data[2].item(),
+                        data[3].item(),
+                        "ci_available",
+                    ),
+                    return_dtype=pl.Boolean,
+                    returns_scalar=True,
+                ).over("ModelID"),
+                AUC_ActiveRange_CI_Reason=pl.map_groups(
+                    exprs=[
+                        pl.col("classifierPos"),
+                        pl.col("classifierNeg"),
+                        pl.col("idx_min"),
+                        pl.col("idx_max"),
+                    ],
+                    function=lambda data: auc_ci_payload_field(
+                        data[0].to_list()[0],
+                        data[1].to_list()[0],
+                        data[2].item(),
+                        data[3].item(),
+                        "ci_reason",
+                    ),
+                    return_dtype=pl.Utf8,
                     returns_scalar=True,
                 ).over("ModelID"),
             )

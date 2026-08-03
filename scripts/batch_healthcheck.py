@@ -44,7 +44,7 @@ import sys
 import tempfile
 import traceback
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import polars as pl
@@ -239,6 +239,209 @@ def select_interesting_models(datamart: ADMDatamart, max_n: int = 3) -> list[str
     return selected
 
 
+def _active_nb_model_ids(datamart: ADMDatamart) -> set[str]:
+    """Return model IDs that have NB predictor bins and classifier rows."""
+    if datamart.predictor_data is None:
+        return set()
+
+    predictor_data = datamart.predictor_data
+    nb_model_ids = set(
+        predictor_data.filter((pl.col("BinType") != "NONE") & (pl.col("EntryType") != "Classifier"))
+        .select(pl.col("ModelID").unique())
+        .collect()["ModelID"]
+        .to_list()
+    )
+    classifier_model_ids = set(
+        predictor_data.filter(pl.col("EntryType") == "Classifier")
+        .select(pl.col("ModelID").unique())
+        .collect()["ModelID"]
+        .to_list()
+    )
+    return nb_model_ids & classifier_model_ids
+
+
+def _compute_ci_maturity_analysis(
+    datamart: ADMDatamart,
+    *,
+    active_window_days: int,
+    positives_maturity_threshold: int,
+) -> tuple[dict[str, float | int | str | None], pl.DataFrame]:
+    """Compute optional maturity-versus-CI analysis for active NB models."""
+    import numpy as np
+
+    def _float_or_none(value: object) -> float | None:
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+        return float(str(value))
+
+    if datamart.model_data is None:
+        metrics = {
+            "Active_NB_Models": 0,
+            "Active_NB_Models_With_CI": 0,
+            "Maturity_Pct_Above_Threshold": None,
+            "CI_Width_Mean": None,
+            "CI_Width_Median": None,
+            "CI_Width_P90": None,
+            "CI_Width_Mean_AboveThreshold": None,
+            "CI_Width_Mean_AtOrBelowThreshold": None,
+            "CI_Width_Ratio_AtOrBelow_over_Above": None,
+            "Positives_vs_CI_Width_Spearman": None,
+        }
+        return metrics, pl.DataFrame()
+
+    nb_model_ids = _active_nb_model_ids(datamart)
+    if not nb_model_ids:
+        metrics = {
+            "Active_NB_Models": 0,
+            "Active_NB_Models_With_CI": 0,
+            "Maturity_Pct_Above_Threshold": None,
+            "CI_Width_Mean": None,
+            "CI_Width_Median": None,
+            "CI_Width_P90": None,
+            "CI_Width_Mean_AboveThreshold": None,
+            "CI_Width_Mean_AtOrBelowThreshold": None,
+            "CI_Width_Ratio_AtOrBelow_over_Above": None,
+            "Positives_vs_CI_Width_Spearman": None,
+        }
+        return metrics, pl.DataFrame()
+
+    model_columns = datamart.model_data.collect_schema().names()
+    select_exprs = [pl.col("ModelID")]
+    if "Positives" in model_columns:
+        select_exprs.append(pl.col("Positives").cast(pl.Float64))
+    else:
+        select_exprs.append(pl.lit(0.0).alias("Positives"))
+    if "ResponseCount" in model_columns:
+        select_exprs.append(pl.col("ResponseCount").cast(pl.Float64))
+    else:
+        select_exprs.append(pl.lit(0.0).alias("ResponseCount"))
+    if "SnapshotTime" in model_columns:
+        snapshot_expr = pl.col("SnapshotTime")
+        if datamart.model_data.collect_schema().get("SnapshotTime") == pl.Utf8:
+            snapshot_expr = snapshot_expr.str.strptime(pl.Datetime, strict=False)
+        select_exprs.append(snapshot_expr.alias("SnapshotTime"))
+    else:
+        select_exprs.append(pl.lit(None).alias("SnapshotTime"))
+
+    model_rows = datamart.model_data.filter(pl.col("ModelID").is_in(list(nb_model_ids))).select(select_exprs).collect()
+
+    if model_rows.height == 0:
+        metrics = {
+            "Active_NB_Models": 0,
+            "Active_NB_Models_With_CI": 0,
+            "Maturity_Pct_Above_Threshold": None,
+            "CI_Width_Mean": None,
+            "CI_Width_Median": None,
+            "CI_Width_P90": None,
+            "CI_Width_Mean_AboveThreshold": None,
+            "CI_Width_Mean_AtOrBelowThreshold": None,
+            "CI_Width_Ratio_AtOrBelow_over_Above": None,
+            "Positives_vs_CI_Width_Spearman": None,
+        }
+        return metrics, pl.DataFrame()
+
+    reference_timestamp = model_rows.get_column("SnapshotTime").drop_nulls().max()
+    if isinstance(reference_timestamp, datetime):
+        cutoff = reference_timestamp - timedelta(days=active_window_days)
+        active_candidates = model_rows.filter(
+            (pl.col("SnapshotTime") >= cutoff)
+            & (pl.col("SnapshotTime") <= reference_timestamp)
+            & (pl.col("ResponseCount") > 0)
+        )
+    else:
+        active_candidates = model_rows.filter(pl.col("ResponseCount") > 0)
+
+    active_agg = active_candidates.group_by("ModelID").agg(
+        Positives=pl.col("Positives").sum(),
+        ResponseCount=pl.col("ResponseCount").sum(),
+    )
+
+    if active_agg.height == 0:
+        metrics = {
+            "Active_NB_Models": 0,
+            "Active_NB_Models_With_CI": 0,
+            "Maturity_Pct_Above_Threshold": 0.0,
+            "CI_Width_Mean": None,
+            "CI_Width_Median": None,
+            "CI_Width_P90": None,
+            "CI_Width_Mean_AboveThreshold": None,
+            "CI_Width_Mean_AtOrBelowThreshold": None,
+            "CI_Width_Ratio_AtOrBelow_over_Above": None,
+            "Positives_vs_CI_Width_Spearman": None,
+        }
+        return metrics, pl.DataFrame()
+
+    active_ids = active_agg.get_column("ModelID").to_list()
+    active_ranges = (
+        datamart.active_ranges(active_ids)
+        .collect()
+        .select(
+            "ModelID",
+            "AUC_ActiveRange",
+            "AUC_ActiveRange_CI_Lower",
+            "AUC_ActiveRange_CI_Upper",
+            "AUC_ActiveRange_CI_Available",
+            "AUC_ActiveRange_CI_Reason",
+        )
+    )
+
+    model_level = active_agg.join(active_ranges, on="ModelID", how="left").with_columns(
+        IsActiveLast30Days=pl.lit(True),
+        CI_Width=(pl.col("AUC_ActiveRange_CI_Upper") - pl.col("AUC_ActiveRange_CI_Lower")),
+        PositivesSegment=pl.when(pl.col("Positives") > positives_maturity_threshold)
+        .then(pl.lit(f">{positives_maturity_threshold}"))
+        .otherwise(pl.lit(f"<={positives_maturity_threshold}")),
+        MaturitySegmentAboveThreshold=pl.col("Positives") > positives_maturity_threshold,
+    )
+
+    active_count = model_level.height
+    with_ci_count = model_level.filter(pl.col("CI_Width").is_not_null()).height
+    above_threshold_count = model_level.filter(pl.col("Positives") > positives_maturity_threshold).height
+
+    ci_non_null = model_level.filter(pl.col("CI_Width").is_not_null())
+    mean_above = _float_or_none(
+        ci_non_null.filter(pl.col("Positives") > positives_maturity_threshold).get_column("CI_Width").mean()
+    )
+    mean_at_or_below = _float_or_none(
+        ci_non_null.filter(pl.col("Positives") <= positives_maturity_threshold).get_column("CI_Width").mean()
+    )
+    ratio = (
+        (mean_at_or_below / mean_above)
+        if mean_above is not None and mean_above > 0 and mean_at_or_below is not None
+        else None
+    )
+
+    corr_df = ci_non_null.select("Positives", "CI_Width")
+    spearman = None
+    if corr_df.height >= 2:
+        positives_rank = corr_df.get_column("Positives").rank().to_numpy()
+        ci_rank = corr_df.get_column("CI_Width").rank().to_numpy()
+        corr = np.corrcoef(positives_rank, ci_rank)[0, 1]
+        if np.isfinite(corr):
+            spearman = float(corr)
+
+    metrics = {
+        "Active_NB_Models": active_count,
+        "Active_NB_Models_With_CI": with_ci_count,
+        "Maturity_Pct_Above_Threshold": (100.0 * above_threshold_count / active_count) if active_count > 0 else 0.0,
+        "CI_Width_Mean": _float_or_none(ci_non_null.get_column("CI_Width").mean()) if ci_non_null.height > 0 else None,
+        "CI_Width_Median": _float_or_none(ci_non_null.get_column("CI_Width").median())
+        if ci_non_null.height > 0
+        else None,
+        "CI_Width_P90": _float_or_none(ci_non_null.get_column("CI_Width").quantile(0.9))
+        if ci_non_null.height > 0
+        else None,
+        "CI_Width_Mean_AboveThreshold": mean_above,
+        "CI_Width_Mean_AtOrBelowThreshold": mean_at_or_below,
+        "CI_Width_Ratio_AtOrBelow_over_Above": ratio,
+        "Positives_vs_CI_Width_Spearman": spearman,
+    }
+
+    return metrics, model_level
+
+
 def _check_output_for_errors(output_file: Path) -> list[str]:
     """Check report output for HTML rendering errors.
 
@@ -319,6 +522,11 @@ def process_dataset(
     output_dir: Path | None,
     *,
     max_models: int = 3,
+    ci_maturity_analysis_enabled: bool = False,
+    active_window_days: int = 30,
+    positives_maturity_threshold: int = 200,
+    ci_maturity_dataset_rows: list[dict] | None = None,
+    ci_maturity_model_rows: list[dict] | None = None,
 ) -> dict:
     """Process a single dataset and generate all reports.
 
@@ -334,6 +542,16 @@ def process_dataset(
         Directory for output reports. If None, writes to the dataset data directory.
     max_models : int
         Maximum number of model reports to generate
+    ci_maturity_analysis_enabled : bool, default=False
+        Whether to compute and return optional maturity-versus-CI metrics.
+    active_window_days : int, default=30
+        Trailing-day window used to classify active NB models.
+    positives_maturity_threshold : int, default=200
+        Positives threshold used for maturity segmentation.
+    ci_maturity_dataset_rows : list[dict] | None, optional
+        Optional collector receiving one dataset-level maturity metrics row.
+    ci_maturity_model_rows : list[dict] | None, optional
+        Optional collector receiving per-model maturity analysis rows.
 
     Returns
     -------
@@ -397,7 +615,7 @@ def process_dataset(
             predictor_filename=str(predictor_file) if predictor_file else None,
         )
         prediction = Prediction.from_ds_export(str(prediction_file)) if prediction_file else None
-        n_models = len(datamart.model_data.collect())
+        n_models = len(datamart.model_data.collect()) if datamart.model_data is not None else 0
         print(f"  ✓ Datamart loaded: {n_models} models")
 
         output_dir = Path(dataset["data_dir"]) if output_dir is None else output_dir
@@ -475,6 +693,20 @@ def process_dataset(
                 result["ModelReport_Embed_MB"],
             )
 
+        if ci_maturity_analysis_enabled:
+            print("  → Computing CI maturity analysis...")
+            ci_metrics, ci_model_df = _compute_ci_maturity_analysis(
+                datamart,
+                active_window_days=active_window_days,
+                positives_maturity_threshold=positives_maturity_threshold,
+            )
+            result.update(ci_metrics)
+            if ci_maturity_dataset_rows is not None:
+                dataset_row = {"Dataset": name, **ci_metrics}
+                ci_maturity_dataset_rows.append(dataset_row)
+            if ci_maturity_model_rows is not None and ci_model_df.height > 0:
+                ci_maturity_model_rows.extend(ci_model_df.with_columns(Dataset=pl.lit(name)).to_dicts())
+
         # ── Excel export ────────────────────────────────────────────
         print("  → Generating Excel export...")
         try:
@@ -548,6 +780,23 @@ For more information, see:
         default=3,
         help="Maximum number of model reports to generate per dataset (default: 3)",
     )
+    parser.add_argument(
+        "--ci-maturity-analysis",
+        action="store_true",
+        help="Enable optional maturity-versus-CI batch analysis outputs",
+    )
+    parser.add_argument(
+        "--active-window-days",
+        type=int,
+        default=30,
+        help="Trailing active window in days for active NB model definition (default: 30)",
+    )
+    parser.add_argument(
+        "--positives-maturity-threshold",
+        type=int,
+        default=200,
+        help="Positives threshold for maturity segmentation (default: 200)",
+    )
 
     args = parser.parse_args()
 
@@ -613,9 +862,12 @@ For more information, see:
         print(f"Output directory: {args.output.absolute()}")
     print(f"Datasets to process: {len(datasets_to_process)}")
     print(f"Max model reports per dataset: {args.max_models}")
+    print(f"CI maturity analysis: {'enabled' if args.ci_maturity_analysis else 'disabled'}")
 
     # Process all datasets
     results = []
+    ci_maturity_dataset_rows: list[dict] | None = [] if args.ci_maturity_analysis else None
+    ci_maturity_model_rows: list[dict] | None = [] if args.ci_maturity_analysis else None
     summary_dir = args.output if args.output is not None else args.data_path
     summary_dir.mkdir(parents=True, exist_ok=True)
     summary_file = summary_dir / "summary.csv"
@@ -625,6 +877,11 @@ For more information, see:
             dataset,
             args.output,
             max_models=args.max_models,
+            ci_maturity_analysis_enabled=args.ci_maturity_analysis,
+            active_window_days=args.active_window_days,
+            positives_maturity_threshold=args.positives_maturity_threshold,
+            ci_maturity_dataset_rows=ci_maturity_dataset_rows,
+            ci_maturity_model_rows=ci_maturity_model_rows,
         )
         results.append(result)
 
@@ -675,6 +932,16 @@ For more information, see:
                     print(f"  - {error}")
 
     print(f"\n✓ Final summary: {summary_file}")
+
+    if args.ci_maturity_analysis:
+        dataset_summary_file = summary_dir / "ci_maturity_dataset_summary.csv"
+        model_level_file = summary_dir / "ci_maturity_model_level.csv"
+        if ci_maturity_dataset_rows:
+            pl.DataFrame(ci_maturity_dataset_rows).write_csv(dataset_summary_file)
+            print(f"✓ CI maturity dataset summary: {dataset_summary_file}")
+        if ci_maturity_model_rows:
+            pl.DataFrame(ci_maturity_model_rows).write_csv(model_level_file)
+            print(f"✓ CI maturity model-level output: {model_level_file}")
 
     # Print statistics
     print(f"\n{'=' * 60}")

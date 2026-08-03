@@ -141,6 +141,7 @@ class Reports(LazyNamespace):
         *,
         name: str | None = None,
         only_active_predictors: bool = True,
+        confidence_level: float = 0.95,
         progress_callback: Callable[[int, int], None] | None = None,
         model_file_path: str | PathLike[str] | None = None,
         predictor_file_path: str | PathLike[str] | None = None,
@@ -156,6 +157,8 @@ class Reports(LazyNamespace):
             Base file name of the report.
         only_active_predictors : bool, default=True
             Whether to only include active predictor details.
+        confidence_level : float, default=0.95
+            Two-sided confidence level for AUC confidence intervals.
         progress_callback : callable, optional
             Function called as ``progress_callback(current, total)`` after each model
             report is rendered. Used by the Streamlit app.
@@ -198,6 +201,7 @@ class Reports(LazyNamespace):
             model_ids = [model_ids]
         if not model_ids or not all(isinstance(i, str) for i in model_ids):
             raise ValueError("No valid model IDs")
+        cdh_utils.validate_confidence_level(confidence_level)
 
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
 
@@ -237,6 +241,7 @@ class Reports(LazyNamespace):
                         "predictor_file_path": str(predictor_file_path),
                         "model_id": model_id,
                         "only_active_predictors": only_active_predictors,
+                        "confidence_level": confidence_level,
                         "full_embed": full_embed,
                         "title": title,
                         "subtitle": subtitle,

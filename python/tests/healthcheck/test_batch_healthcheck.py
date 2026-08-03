@@ -7,6 +7,7 @@ produces valid HTML healthcheck reports, model reports, and Excel exports.
 import importlib.util
 import subprocess
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -311,6 +312,131 @@ def test_process_dataset_skips_full_embed_when_esbuild_unavailable(tmp_path):
     assert result["HC_Embed_Status"] == "Skipped"
     assert result["ModelReport_CDN_Status"] == "Success"
     assert result["ModelReport_Embed_Status"] == "Skipped"
+
+
+def test_compute_ci_maturity_analysis_returns_expected_metrics():
+    now = datetime(2026, 8, 3, 12, 0, 0)
+    datamart = MagicMock()
+    datamart.predictor_data = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m1", "m2", "m2"],
+            "EntryType": ["Active", "Classifier", "Active", "Classifier"],
+            "BinType": ["SYMBOLIC", "NONE", "SYMBOLIC", "NONE"],
+        }
+    )
+    datamart.model_data = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m1", "m2", "m2"],
+            "Positives": [250, 100, 50, 25],
+            "ResponseCount": [1200, 800, 300, 200],
+            "SnapshotTime": [now - timedelta(days=2), now - timedelta(days=10), now - timedelta(days=1), now],
+        }
+    )
+    datamart.active_ranges.return_value = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m2"],
+            "AUC_ActiveRange": [0.72, 0.68],
+            "AUC_ActiveRange_CI_Lower": [0.69, 0.63],
+            "AUC_ActiveRange_CI_Upper": [0.75, 0.73],
+            "AUC_ActiveRange_CI_Available": [True, True],
+            "AUC_ActiveRange_CI_Reason": [None, None],
+        }
+    )
+
+    metrics, model_level = batch._compute_ci_maturity_analysis(
+        datamart,
+        active_window_days=30,
+        positives_maturity_threshold=200,
+    )
+
+    assert metrics["Active_NB_Models"] == 2
+    assert metrics["Active_NB_Models_With_CI"] == 2
+    assert metrics["Maturity_Pct_Above_Threshold"] == 50.0
+    assert model_level.height == 2
+    assert "CI_Width" in model_level.columns
+    assert "PositivesSegment" in model_level.columns
+
+
+def test_main_writes_ci_maturity_outputs_when_enabled(tmp_path, monkeypatch):
+    dataset = {
+        "name": "Dataset",
+        "data_dir": tmp_path / "Dataset" / "HC",
+        "model_file": tmp_path / "Dataset" / "HC" / "PR_DATA_DM_ADMMART_MDL_FACT.parquet",
+        "predictor_file": None,
+        "prediction_file": None,
+    }
+    result = {
+        "Dataset": "Dataset",
+        "Model_File_MB": 1.0,
+        "Predictor_File_MB": 0.0,
+        "Prediction_File_MB": 0.0,
+        "HC_CDN_MB": 1.0,
+        "HC_CDN_Status": "Success",
+        "HC_CDN_Errors": None,
+        "HC_Embed_MB": 0.0,
+        "HC_Embed_Status": "Skipped",
+        "HC_Embed_Errors": None,
+        "ModelReport_Models": 0,
+        "ModelReport_CDN_MB": 0.0,
+        "ModelReport_CDN_Status": "Skipped",
+        "ModelReport_CDN_Errors": None,
+        "ModelReport_Embed_MB": 0.0,
+        "ModelReport_Embed_Status": "Skipped",
+        "ModelReport_Embed_Errors": None,
+        "Excel_MB": 1.0,
+        "Excel_Status": "Success",
+        "Active_NB_Models": 1,
+        "Active_NB_Models_With_CI": 1,
+        "Maturity_Pct_Above_Threshold": 100.0,
+        "CI_Width_Mean": 0.05,
+        "CI_Width_Median": 0.05,
+        "CI_Width_P90": 0.05,
+        "CI_Width_Mean_AboveThreshold": 0.05,
+        "CI_Width_Mean_AtOrBelowThreshold": None,
+        "CI_Width_Ratio_AtOrBelow_over_Above": None,
+        "Positives_vs_CI_Width_Spearman": None,
+    }
+
+    def fake_process_dataset(*args, **kwargs):
+        kwargs["ci_maturity_dataset_rows"].append(
+            {
+                "Dataset": "Dataset",
+                "Active_NB_Models": 1,
+                "Active_NB_Models_With_CI": 1,
+                "Maturity_Pct_Above_Threshold": 100.0,
+            }
+        )
+        kwargs["ci_maturity_model_rows"].append(
+            {
+                "Dataset": "Dataset",
+                "ModelID": "m1",
+                "Positives": 250,
+                "ResponseCount": 1200,
+                "CI_Width": 0.05,
+            }
+        )
+        return result
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "batch_healthcheck.py",
+            str(tmp_path),
+            "--ci-maturity-analysis",
+            "--output",
+            str(tmp_path / "reports"),
+        ],
+    )
+
+    with (
+        patch.object(batch, "find_data_directories", return_value=[dataset]),
+        patch.object(batch, "process_dataset", side_effect=fake_process_dataset),
+    ):
+        batch.main()
+
+    assert (tmp_path / "reports" / "ci_maturity_dataset_summary.csv").exists()
+    assert (tmp_path / "reports" / "ci_maturity_model_level.csv").exists()
 
 
 def test_generate_quarto_report_fails_when_rendered_html_contains_errors(tmp_path):

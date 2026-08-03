@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from statistics import NormalDist
 from typing import TYPE_CHECKING
 
 import polars as pl
@@ -11,6 +12,221 @@ from ._polars import weighted_average_polars
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+
+def validate_confidence_level(confidence_level: float) -> float:
+    """Validate a two-sided confidence level.
+
+    Parameters
+    ----------
+    confidence_level : float
+        Confidence level as a fraction in the open interval ``(0, 1)``.
+
+    Returns
+    -------
+    float
+        The validated confidence level.
+
+    Raises
+    ------
+    ValueError
+        If the confidence level is not finite or not strictly between 0 and 1.
+    """
+    if not math.isfinite(confidence_level) or confidence_level <= 0 or confidence_level >= 1:
+        raise ValueError("confidence_level must be a finite float strictly between 0 and 1")
+    return confidence_level
+
+
+def _validate_grouped_auc_inputs(
+    pos: Sequence[int] | pl.Series,
+    neg: Sequence[int] | pl.Series,
+    probs: Sequence[float] | pl.Series | None = None,
+) -> tuple[pl.Series, pl.Series, pl.Series]:
+    """Validate grouped-bin counts and return aligned float series.
+
+    Parameters
+    ----------
+    pos : Sequence[int] | pl.Series
+        Positive class counts per score bin.
+    neg : Sequence[int] | pl.Series
+        Negative class counts per score bin.
+    probs : Sequence[float] | pl.Series | None, optional
+        Optional per-bin scores for sorting. When omitted, the bin rate
+        ``pos/(pos+neg)`` is used.
+
+    Returns
+    -------
+    tuple[pl.Series, pl.Series, pl.Series]
+        Validated and aligned ``(pos, neg, probs)`` series.
+
+    Raises
+    ------
+    ValueError
+        If lengths do not match, counts are negative, or bins are empty.
+    """
+    pos_series = pl.Series("pos", pos, strict=False).cast(pl.Float64)
+    neg_series = pl.Series("neg", neg, strict=False).cast(pl.Float64)
+
+    if len(pos_series) == 0 or len(neg_series) == 0:
+        raise ValueError("pos and neg must be non-empty")
+    if len(pos_series) != len(neg_series):
+        raise ValueError("pos and neg must have the same length")
+    if (pos_series < 0).any() or (neg_series < 0).any():
+        raise ValueError("pos and neg must contain non-negative counts")
+
+    if probs is None:
+        denom = pos_series + neg_series
+        probs_series = (pos_series / denom).fill_nan(0.0).fill_null(0.0)
+    else:
+        probs_series = pl.Series("probs", probs, strict=False).cast(pl.Float64)
+        if len(probs_series) != len(pos_series):
+            raise ValueError("probs must have the same length as pos and neg")
+
+    return pos_series, neg_series, probs_series
+
+
+def _weighted_sample_variance(values: pl.Series, weights: pl.Series) -> float | None:
+    """Compute weighted sample variance for grouped repeated values."""
+    total_weight = float(weights.sum())
+    if total_weight <= 1:
+        return None
+
+    mean_value = float((values * weights).sum() / total_weight)
+    numerator = float((((values - mean_value) ** 2) * weights).sum())
+    return numerator / (total_weight - 1.0)
+
+
+def auc_variance_delong_grouped(
+    pos: Sequence[int] | pl.Series,
+    neg: Sequence[int] | pl.Series,
+    probs: Sequence[float] | pl.Series | None = None,
+) -> float | None:
+    """Estimate AUC variance using DeLong-style grouped-bin formulation.
+
+    Parameters
+    ----------
+    pos : Sequence[int] | pl.Series
+        Positive class counts per score bin.
+    neg : Sequence[int] | pl.Series
+        Negative class counts per score bin.
+    probs : Sequence[float] | pl.Series | None, optional
+        Optional per-bin scores for sorting descending. When omitted, the bin
+        event rate ``pos/(pos+neg)`` is used.
+
+    Returns
+    -------
+    float | None
+        Estimated AUC variance, or ``None`` when there is insufficient class
+        volume to estimate variance.
+    """
+    pos_series, neg_series, probs_series = _validate_grouped_auc_inputs(pos, neg, probs)
+
+    n_pos = float(pos_series.sum())
+    n_neg = float(neg_series.sum())
+    if n_pos <= 1 or n_neg <= 1:
+        return None
+
+    order_df = (
+        pl.DataFrame({"pos": pos_series, "neg": neg_series, "probs": probs_series})
+        .sort("probs", descending=True)
+        .with_columns(
+            cum_neg_before=pl.col("neg").cum_sum().shift(1).fill_null(0.0),
+            cum_pos_before=pl.col("pos").cum_sum().shift(1).fill_null(0.0),
+        )
+    )
+
+    v10 = ((pl.col("cum_neg_before") + 0.5 * pl.col("neg")) / n_neg).alias("v10")
+    v01 = ((pl.col("cum_pos_before") + 0.5 * pl.col("pos")) / n_pos).alias("v01")
+    scored = order_df.with_columns(v10, v01)
+
+    var_v10 = _weighted_sample_variance(scored.get_column("v10"), scored.get_column("pos"))
+    var_v01 = _weighted_sample_variance(scored.get_column("v01"), scored.get_column("neg"))
+    if var_v10 is None or var_v01 is None:
+        return None
+
+    variance = (var_v10 / n_pos) + (var_v01 / n_neg)
+    return variance if variance >= 0 else 0.0
+
+
+def auc_ci_from_bincounts(
+    pos: Sequence[int] | pl.Series,
+    neg: Sequence[int] | pl.Series,
+    probs: Sequence[float] | pl.Series | None = None,
+    *,
+    confidence_level: float = 0.95,
+) -> dict[str, float | bool | str | None]:
+    """Compute grouped-bin AUC confidence interval payload.
+
+    Parameters
+    ----------
+    pos : Sequence[int] | pl.Series
+        Positive class counts per score bin.
+    neg : Sequence[int] | pl.Series
+        Negative class counts per score bin.
+    probs : Sequence[float] | pl.Series | None, optional
+        Optional per-bin scores for sorting descending.
+    confidence_level : float, default 0.95
+        Two-sided confidence level used to derive the interval.
+
+    Returns
+    -------
+    dict[str, float | bool | str | None]
+        Payload with keys ``auc``, ``variance``, ``ci_lower``, ``ci_upper``,
+        ``ci_available``, and ``ci_reason``.
+    """
+    validate_confidence_level(confidence_level)
+    pos_series, neg_series, probs_series = _validate_grouped_auc_inputs(pos, neg, probs)
+
+    n_pos = float(pos_series.sum())
+    n_neg = float(neg_series.sum())
+    auc = auc_from_bincounts(pos_series, neg_series, probs_series)
+
+    if n_pos <= 1 or n_neg <= 1:
+        return {
+            "auc": auc,
+            "variance": None,
+            "ci_lower": None,
+            "ci_upper": None,
+            "ci_available": False,
+            "ci_reason": "insufficient_class_volume",
+        }
+
+    variance = auc_variance_delong_grouped(pos_series, neg_series, probs_series)
+    if variance is None:
+        return {
+            "auc": auc,
+            "variance": None,
+            "ci_lower": None,
+            "ci_upper": None,
+            "ci_available": False,
+            "ci_reason": "variance_unavailable",
+        }
+
+    std_err = math.sqrt(max(variance, 0.0))
+    if std_err == 0.0:
+        clipped = min(max(auc, 0.0), 1.0)
+        return {
+            "auc": auc,
+            "variance": variance,
+            "ci_lower": clipped,
+            "ci_upper": clipped,
+            "ci_available": True,
+            "ci_reason": None,
+        }
+
+    alpha = 1.0 - confidence_level
+    z_score = NormalDist().inv_cdf(1.0 - alpha / 2.0)
+    ci_lower = min(max(auc - z_score * std_err, 0.0), 1.0)
+    ci_upper = min(max(auc + z_score * std_err, 0.0), 1.0)
+
+    return {
+        "auc": auc,
+        "variance": variance,
+        "ci_lower": ci_lower,
+        "ci_upper": ci_upper,
+        "ci_available": True,
+        "ci_reason": None,
+    }
 
 
 def safe_range_auc(auc: float) -> float:
