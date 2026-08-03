@@ -214,6 +214,10 @@ The charts are built with [Plotly](https://plotly.com/python/) and have [user co
 ```{python}
 
 # unfortunately and TODO return_df on the previous plot doesnt give all the columns we'd need so we have to fetch the data separately
+adm_nb_explained_url = report_utils.docs_article_url("ADMExplained", pdstools_version)
+classifier = None
+active_range_info = None
+auc_roc = None
 
 try:
     classifier = (
@@ -252,13 +256,24 @@ try:
             "In Pega, AUC is always scaled to a number 50-100."
         )
 
-    adm_nb_explained_url = report_utils.docs_article_url("ADMExplained", pdstools_version)
-
     report_utils.quarto_print(
         auc_text
     )
 except Exception as e:
     report_utils.quarto_plot_exception("Model Performance", e)
+    if classifier is not None:
+        fallback_range = (
+            classifier.select(
+                pl.col("BinIndex").min().alias("idx_min"),
+                pl.col("BinIndex").max().alias("idx_max"),
+            )
+            .collect()
+            .to_dicts()[0]
+        )
+        active_range_info = {
+            "idx_min": fallback_range["idx_min"],
+            "idx_max": fallback_range["idx_max"],
+        }
 ```
 
 The classifier maps the model scores (average of the log odds of the active predictors) to a propensity value. The “active” bins are the ones that can be reached from the current binning of the active predictors.
