@@ -522,7 +522,6 @@ def process_dataset(
     output_dir: Path | None,
     *,
     max_models: int = 3,
-    ci_maturity_analysis_enabled: bool = False,
     active_window_days: int = 30,
     positives_maturity_threshold: int = 200,
     ci_maturity_dataset_rows: list[dict] | None = None,
@@ -542,8 +541,6 @@ def process_dataset(
         Directory for output reports. If None, writes to the dataset data directory.
     max_models : int
         Maximum number of model reports to generate
-    ci_maturity_analysis_enabled : bool, default=False
-        Whether to compute and return optional maturity-versus-CI metrics.
     active_window_days : int, default=30
         Trailing-day window used to classify active NB models.
     positives_maturity_threshold : int, default=200
@@ -693,19 +690,18 @@ def process_dataset(
                 result["ModelReport_Embed_MB"],
             )
 
-        if ci_maturity_analysis_enabled:
-            print("  → Computing CI maturity analysis...")
-            ci_metrics, ci_model_df = _compute_ci_maturity_analysis(
-                datamart,
-                active_window_days=active_window_days,
-                positives_maturity_threshold=positives_maturity_threshold,
-            )
-            result.update(ci_metrics)
-            if ci_maturity_dataset_rows is not None:
-                dataset_row = {"Dataset": name, **ci_metrics}
-                ci_maturity_dataset_rows.append(dataset_row)
-            if ci_maturity_model_rows is not None and ci_model_df.height > 0:
-                ci_maturity_model_rows.extend(ci_model_df.with_columns(Dataset=pl.lit(name)).to_dicts())
+        print("  → Computing CI maturity analysis...")
+        ci_metrics, ci_model_df = _compute_ci_maturity_analysis(
+            datamart,
+            active_window_days=active_window_days,
+            positives_maturity_threshold=positives_maturity_threshold,
+        )
+        result.update(ci_metrics)
+        if ci_maturity_dataset_rows is not None:
+            dataset_row = {"Dataset": name, **ci_metrics}
+            ci_maturity_dataset_rows.append(dataset_row)
+        if ci_maturity_model_rows is not None and ci_model_df.height > 0:
+            ci_maturity_model_rows.extend(ci_model_df.with_columns(Dataset=pl.lit(name)).to_dicts())
 
         # ── Excel export ────────────────────────────────────────────
         print("  → Generating Excel export...")
@@ -779,11 +775,6 @@ For more information, see:
         type=int,
         default=3,
         help="Maximum number of model reports to generate per dataset (default: 3)",
-    )
-    parser.add_argument(
-        "--ci-maturity-analysis",
-        action="store_true",
-        help="Enable optional maturity-versus-CI batch analysis outputs",
     )
     parser.add_argument(
         "--active-window-days",
@@ -862,33 +853,25 @@ For more information, see:
         print(f"Output directory: {args.output.absolute()}")
     print(f"Datasets to process: {len(datasets_to_process)}")
     print(f"Max model reports per dataset: {args.max_models}")
-    print(f"CI maturity analysis: {'enabled' if args.ci_maturity_analysis else 'disabled'}")
+    print("CI maturity analysis: enabled")
 
     # Process all datasets
     results = []
-    ci_maturity_dataset_rows: list[dict] | None = [] if args.ci_maturity_analysis else None
-    ci_maturity_model_rows: list[dict] | None = [] if args.ci_maturity_analysis else None
+    ci_maturity_dataset_rows: list[dict] | None = []
+    ci_maturity_model_rows: list[dict] | None = []
     summary_dir = args.output if args.output is not None else args.data_path
     summary_dir.mkdir(parents=True, exist_ok=True)
     summary_file = summary_dir / "summary.csv"
     for i, dataset in enumerate(datasets_to_process, 1):
         print(f"\n[{i}/{len(datasets_to_process)}]")
-        ci_kwargs = (
-            {
-                "ci_maturity_analysis_enabled": True,
-                "active_window_days": args.active_window_days,
-                "positives_maturity_threshold": args.positives_maturity_threshold,
-                "ci_maturity_dataset_rows": ci_maturity_dataset_rows,
-                "ci_maturity_model_rows": ci_maturity_model_rows,
-            }
-            if args.ci_maturity_analysis
-            else {}
-        )
         result = process_dataset(
             dataset,
             args.output,
             max_models=args.max_models,
-            **ci_kwargs,
+            active_window_days=args.active_window_days,
+            positives_maturity_threshold=args.positives_maturity_threshold,
+            ci_maturity_dataset_rows=ci_maturity_dataset_rows,
+            ci_maturity_model_rows=ci_maturity_model_rows,
         )
         results.append(result)
 
@@ -940,15 +923,14 @@ For more information, see:
 
     print(f"\n✓ Final summary: {summary_file}")
 
-    if args.ci_maturity_analysis:
-        dataset_summary_file = summary_dir / "ci_maturity_dataset_summary.csv"
-        model_level_file = summary_dir / "ci_maturity_model_level.csv"
-        if ci_maturity_dataset_rows:
-            pl.DataFrame(ci_maturity_dataset_rows).write_csv(dataset_summary_file)
-            print(f"✓ CI maturity dataset summary: {dataset_summary_file}")
-        if ci_maturity_model_rows:
-            pl.DataFrame(ci_maturity_model_rows).write_csv(model_level_file)
-            print(f"✓ CI maturity model-level output: {model_level_file}")
+    dataset_summary_file = summary_dir / "ci_maturity_dataset_summary.csv"
+    model_level_file = summary_dir / "ci_maturity_model_level.csv"
+    if ci_maturity_dataset_rows:
+        pl.DataFrame(ci_maturity_dataset_rows).write_csv(dataset_summary_file)
+        print(f"✓ CI maturity dataset summary: {dataset_summary_file}")
+    if ci_maturity_model_rows:
+        pl.DataFrame(ci_maturity_model_rows).write_csv(model_level_file)
+        print(f"✓ CI maturity model-level output: {model_level_file}")
 
     # Print statistics
     print(f"\n{'=' * 60}")

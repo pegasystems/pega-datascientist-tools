@@ -182,6 +182,10 @@ def test_main_defaults_to_per_dataset_output(tmp_path, monkeypatch):
         dataset,
         None,
         max_models=3,
+        active_window_days=30,
+        positives_maturity_threshold=200,
+        ci_maturity_dataset_rows=[],
+        ci_maturity_model_rows=[],
     )
     assert (tmp_path / "summary.csv").exists()
 
@@ -423,7 +427,6 @@ def test_main_writes_ci_maturity_outputs_when_enabled(tmp_path, monkeypatch):
         [
             "batch_healthcheck.py",
             str(tmp_path),
-            "--ci-maturity-analysis",
             "--output",
             str(tmp_path / "reports"),
         ],
