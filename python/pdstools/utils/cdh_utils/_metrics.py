@@ -91,7 +91,8 @@ def _weighted_sample_variance(values: pl.Series, weights: pl.Series) -> float | 
     if total_weight <= 1:
         return None
 
-    mean_value = float((values * weights).sum() / total_weight)
+    weighted_sum = float((values * weights).sum())
+    mean_value = weighted_sum / total_weight
     numerator = float((((values - mean_value) ** 2) * weights).sum())
     return numerator / (total_weight - 1.0)
 

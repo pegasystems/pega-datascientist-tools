@@ -3,6 +3,7 @@ from __future__ import annotations
 # python/pdstools/app/decision_analyzer/pages/8_Offer_Quality_Analysis.py
 import polars as pl
 import streamlit as st
+from plotly.graph_objects import Figure
 
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
@@ -115,14 +116,16 @@ with st.container(border=True):
 
     vf = st.session_state.decision_data.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
 
-    st.plotly_chart(
-        offer_quality_piecharts(
-            vf,
-            propensity_th=propensity_th,
-            AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
-            level=st.session_state.decision_data.level,
-        ),
+    pie_figure = offer_quality_piecharts(
+        vf,
+        propensity_th=propensity_th,
+        AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
+        level=st.session_state.decision_data.level,
     )
+    if not isinstance(pie_figure, Figure):
+        st.error("Offer quality chart data could not be rendered as a figure.")
+        st.stop()
+    st.plotly_chart(pie_figure)
 
 with st.container(border=True):
     "## Offer Quality Over Time"
@@ -134,9 +137,15 @@ with st.container(border=True):
 
     vf = st.session_state.decision_data.aggregates.get_offer_quality(action_counts, group_by=["Interaction ID", "day"])
 
-    st.plotly_chart(
-        getTrendChart(vf, stage=st.session_state.stage, level=st.session_state.decision_data.level),
+    trend_figure = getTrendChart(
+        vf,
+        stage=st.session_state.stage,
+        level=st.session_state.decision_data.level,
     )
+    if not isinstance(trend_figure, Figure):
+        st.error("Offer quality trend data could not be rendered as a figure.")
+        st.stop()
+    st.plotly_chart(trend_figure)
 
 with st.container(border=True):
     "## Offer Variation"
