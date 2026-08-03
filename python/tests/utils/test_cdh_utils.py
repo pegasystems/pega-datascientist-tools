@@ -2,6 +2,7 @@
 
 import datetime
 import math
+from unittest.mock import patch
 from zoneinfo import ZoneInfo as timezone
 
 import numpy as np
@@ -124,6 +125,33 @@ def test_auc_ci_from_bincounts_is_deterministic():
     assert first == second
 
 
+def test_auc_ci_from_bincounts_handles_variance_unavailable():
+    positives = [10, 15, 22, 30, 44]
+    negatives = [90, 80, 70, 50, 30]
+
+    with patch("pdstools.utils.cdh_utils._metrics.auc_variance_delong_grouped", return_value=None):
+        payload = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert payload["ci_available"] is False
+    assert payload["ci_reason"] == "variance_unavailable"
+    assert payload["ci_lower"] is None
+    assert payload["ci_upper"] is None
+
+
+def test_auc_ci_from_bincounts_zero_variance_collapses_interval():
+    positives = [10, 15, 22, 30, 44]
+    negatives = [90, 80, 70, 50, 30]
+
+    with patch("pdstools.utils.cdh_utils._metrics.auc_variance_delong_grouped", return_value=0.0):
+        payload = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert payload["ci_available"] is True
+    assert payload["ci_reason"] is None
+    assert payload["variance"] == 0.0
+    assert payload["ci_lower"] == payload["ci_upper"]
+    assert payload["ci_lower"] == payload["auc"]
+
+
 def test_validate_confidence_level_rejects_out_of_range_values():
     with pytest.raises(ValueError, match="strictly between 0 and 1"):
         cdh_utils.validate_confidence_level(0.0)
@@ -131,6 +159,13 @@ def test_validate_confidence_level_rejects_out_of_range_values():
         cdh_utils.validate_confidence_level(1.0)
     with pytest.raises(ValueError, match="strictly between 0 and 1"):
         cdh_utils.validate_confidence_level(-0.1)
+
+
+def test_validate_confidence_level_rejects_non_finite_values():
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(float("nan"))
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(float("inf"))
 
 
 def test_aucpr_from_probs():
