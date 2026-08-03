@@ -492,6 +492,79 @@ def test_main_writes_ci_maturity_outputs_when_enabled(tmp_path, monkeypatch):
     assert (tmp_path / "reports" / "ci_maturity_model_level.csv").exists()
 
 
+def test_generate_ci_maturity_plots_returns_empty_for_no_ci_rows(tmp_path):
+    empty_plot_df = pl.DataFrame(
+        {
+            "ModelID": ["m1"],
+            "Positives": [250],
+            "ResponseCount": [1200],
+            "CI_Width": [None],
+        }
+    )
+
+    outputs = batch._generate_ci_maturity_plots(
+        empty_plot_df,
+        output_dir=tmp_path,
+        positives_maturity_threshold=200,
+    )
+
+    assert outputs == []
+
+
+def test_process_dataset_writes_ci_plots_to_dataset_data_dir(tmp_path):
+    data_dir = tmp_path / "Dataset" / "HC"
+    data_dir.mkdir(parents=True)
+    model = data_dir / "PR_DATA_DM_ADMMART_MDL_FACT.parquet"
+    model.write_bytes(b"data")
+    dataset = {
+        "name": "Dataset",
+        "data_dir": data_dir,
+        "model_file": model,
+        "predictor_file": None,
+        "prediction_file": None,
+    }
+    datamart = MagicMock()
+    datamart.model_data = pl.LazyFrame({"ModelID": ["model-1"]})
+    datamart.generate.excel_report.return_value = (None, [])
+
+    ci_metrics = {
+        "Active_NB_Models": 1,
+        "Active_NB_Models_With_CI": 1,
+        "Maturity_Pct_Above_Threshold": 100.0,
+        "CI_Width_Mean": 0.05,
+        "CI_Width_Median": 0.05,
+        "CI_Width_P90": 0.05,
+        "CI_Width_Mean_AboveThreshold": 0.05,
+        "CI_Width_Mean_AtOrBelowThreshold": None,
+        "CI_Width_Ratio_AtOrBelow_over_Above": None,
+        "Positives_vs_CI_Width_Spearman": None,
+    }
+    ci_model_df = pl.DataFrame(
+        {
+            "ModelID": ["model-1"],
+            "Positives": [250.0],
+            "ResponseCount": [1200.0],
+            "CI_Width": [0.05],
+        }
+    )
+
+    with (
+        patch.object(batch.ADMDatamart, "from_ds_export", return_value=datamart),
+        patch.object(batch, "select_interesting_models", return_value=[]),
+        patch.object(batch, "is_esbuild_available", return_value=True),
+        patch.object(batch, "_generate_quarto_report", return_value=(1.0, "Success", None)),
+        patch.object(batch, "_compute_ci_maturity_analysis", return_value=(ci_metrics, ci_model_df)),
+        patch.object(
+            batch, "_generate_ci_maturity_plots", return_value=[data_dir / "ci_maturity_vs_confidence_intervals.png"]
+        ) as plot_gen,
+    ):
+        batch.process_dataset(dataset, tmp_path / "reports")
+
+    plot_gen.assert_called_once()
+    assert plot_gen.call_args.kwargs["output_dir"] == data_dir
+    assert plot_gen.call_args.kwargs["positives_maturity_threshold"] == 200
+
+
 def test_generate_quarto_report_fails_when_rendered_html_contains_errors(tmp_path):
     def generate_error_report(output_dir, full_embed):
         report = Path(output_dir) / "HealthCheck.html"

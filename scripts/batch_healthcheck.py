@@ -471,6 +471,141 @@ def _compute_ci_maturity_analysis(
     return metrics, model_level
 
 
+def _generate_ci_maturity_plots(
+    model_level_df: pl.DataFrame,
+    *,
+    output_dir: Path,
+    positives_maturity_threshold: int,
+) -> list[Path]:
+    """Generate CI maturity scatter plots from model-level analysis rows.
+
+    Writes a linear-x, log-x, and capped-x(<=10k positives) variant when
+    enough data is available.
+    """
+    if model_level_df.is_empty() or "CI_Width" not in model_level_df.columns:
+        return []
+
+    plot_df = model_level_df.filter(
+        pl.col("CI_Width").is_not_null() & pl.col("Positives").is_not_null() & (pl.col("Positives") > 0)
+    ).with_columns((pl.col("Positives") > positives_maturity_threshold).alias("gt_threshold"))
+
+    if plot_df.height == 0:
+        return []
+
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("  ℹ matplotlib not installed — skipping CI maturity PNG generation")
+        return []
+
+    segment_summary = (
+        plot_df.group_by("gt_threshold")
+        .agg(
+            pl.len().alias("n_models"),
+            pl.col("CI_Width").mean().alias("mean_ci_width"),
+        )
+        .sort("gt_threshold", descending=True)
+    )
+
+    mean_above = None
+    n_above = 0
+    mean_below_or_equal = None
+    n_below_or_equal = 0
+
+    row_above = segment_summary.filter(pl.col("gt_threshold"))
+    if row_above.height > 0:
+        mean_above = float(row_above["mean_ci_width"][0])
+        n_above = int(row_above["n_models"][0])
+
+    row_below_or_equal = segment_summary.filter(~pl.col("gt_threshold"))
+    if row_below_or_equal.height > 0:
+        mean_below_or_equal = float(row_below_or_equal["mean_ci_width"][0])
+        n_below_or_equal = int(row_below_or_equal["n_models"][0])
+
+    def _render_scatter_with_means(
+        frame: pl.DataFrame,
+        out_path: Path,
+        *,
+        title: str,
+        x_label: str,
+        use_log_x: bool = False,
+    ) -> None:
+        fig, ax = plt.subplots(figsize=(10, 5))
+        colors = ["#1f77b4" if value else "#ff7f0e" for value in frame["gt_threshold"].to_list()]
+        ax.scatter(frame["Positives"].to_list(), frame["CI_Width"].to_list(), c=colors, alpha=0.8)
+        ax.axvline(positives_maturity_threshold, color="red", linestyle="--", linewidth=1.5)
+
+        if mean_above is not None:
+            ax.axhline(mean_above, color="#1f77b4", linestyle="--", linewidth=2)
+            ax.text(
+                0.99,
+                mean_above,
+                f"blue mean (>{positives_maturity_threshold}, n={n_above}): {mean_above:.4f}",
+                transform=ax.get_yaxis_transform(),
+                ha="right",
+                va="bottom",
+                color="#1f77b4",
+            )
+
+        if mean_below_or_equal is not None:
+            ax.axhline(mean_below_or_equal, color="#ff7f0e", linestyle="--", linewidth=2)
+            ax.text(
+                0.99,
+                mean_below_or_equal,
+                f"orange mean (<={positives_maturity_threshold}, n={n_below_or_equal}): {mean_below_or_equal:.4f}",
+                transform=ax.get_yaxis_transform(),
+                ha="right",
+                va="bottom",
+                color="#ff7f0e",
+            )
+
+        if use_log_x:
+            ax.set_xscale("log")
+
+        ax.set_xlabel(x_label)
+        ax.set_ylabel("CI Width")
+        ax.set_title(title)
+        ax.grid(alpha=0.25)
+        plt.tight_layout()
+        fig.savefig(out_path, dpi=160)
+        plt.close(fig)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_files: list[Path] = []
+
+    linear_path = output_dir / "ci_maturity_vs_confidence_intervals.png"
+    _render_scatter_with_means(
+        plot_df,
+        linear_path,
+        title="Model CI Width vs Positives",
+        x_label="Positives",
+    )
+    output_files.append(linear_path)
+
+    logx_path = output_dir / "ci_maturity_vs_confidence_intervals_logx.png"
+    _render_scatter_with_means(
+        plot_df,
+        logx_path,
+        title="Model CI Width vs Positives (Log X)",
+        x_label="Positives (log scale)",
+        use_log_x=True,
+    )
+    output_files.append(logx_path)
+
+    capped_df = plot_df.filter(pl.col("Positives") <= 10000)
+    if capped_df.height > 0:
+        capped_path = output_dir / "ci_maturity_vs_confidence_intervals_cap10k.png"
+        _render_scatter_with_means(
+            capped_df,
+            capped_path,
+            title="Model CI Width vs Positives (Capped at 10k)",
+            x_label="Positives (<=10,000)",
+        )
+        output_files.append(capped_path)
+
+    return output_files
+
+
 def _check_output_for_errors(output_file: Path) -> list[str]:
     """Check report output for HTML rendering errors.
 
@@ -732,6 +867,16 @@ def process_dataset(
         if ci_maturity_model_rows is not None and ci_model_df.height > 0:
             ci_maturity_model_rows.extend(ci_model_df.with_columns(Dataset=pl.lit(name)).to_dicts())
 
+        # Write per-dataset CI maturity plots directly into the dataset HC/data
+        # directory so they live next to that dataset's report artifacts.
+        dataset_plot_paths = _generate_ci_maturity_plots(
+            ci_model_df,
+            output_dir=Path(dataset["data_dir"]),
+            positives_maturity_threshold=positives_maturity_threshold,
+        )
+        for plot_path in dataset_plot_paths:
+            print(f"  ✓ CI maturity plot: {plot_path}")
+
         # ── Excel export ────────────────────────────────────────────
         print("  → Generating Excel export...")
         try:
@@ -958,7 +1103,8 @@ For more information, see:
         pl.DataFrame(ci_maturity_dataset_rows).write_csv(dataset_summary_file)
         print(f"✓ CI maturity dataset summary: {dataset_summary_file}")
     if ci_maturity_model_rows:
-        pl.DataFrame(ci_maturity_model_rows).write_csv(model_level_file)
+        ci_model_df = pl.DataFrame(ci_maturity_model_rows)
+        ci_model_df.write_csv(model_level_file)
         print(f"✓ CI maturity model-level output: {model_level_file}")
 
     # Print statistics
