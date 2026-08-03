@@ -54,6 +54,38 @@ def test_print_report_size_comparison_highlights_smaller_embed(capsys):
     assert "HC full-embed output is smaller than CDN output" in captured.out
 
 
+def test_select_interesting_models_excludes_empty_active_ranges():
+    datamart = MagicMock()
+    datamart.predictor_data = pl.LazyFrame(
+        {
+            "ModelID": ["invalid", "invalid", "valid", "valid"],
+            "BinType": ["SYMBOLIC", "NONE", "SYMBOLIC", "NONE"],
+            "EntryType": ["Active", "Classifier", "Active", "Classifier"],
+        }
+    )
+    datamart.combined_data = pl.LazyFrame(
+        {
+            "ModelID": ["invalid", "valid"],
+            "Channel": ["Web", "Web"],
+            "Direction": ["Inbound", "Inbound"],
+            "Issue": ["Offer", "Offer"],
+            "Positives": [300, 300],
+            "ResponseCount": [1500, 1500],
+            "Performance": [0.9, 0.8],
+        }
+    )
+    datamart.active_ranges.return_value = pl.LazyFrame(
+        {
+            "ModelID": ["invalid", "valid"],
+            "AUC_ActiveRange": [None, 0.7],
+            "idx_min": [4, 1],
+            "idx_max": [4, 3],
+        }
+    )
+
+    assert batch.select_interesting_models(datamart) == ["valid"]
+
+
 def test_print_dataset_paths_omits_missing_optional_files(capsys):
     batch._print_dataset_paths(
         {

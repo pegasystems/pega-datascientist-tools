@@ -222,6 +222,26 @@ def select_interesting_models(datamart: ADMDatamart, max_n: int = 3) -> list[str
         print("  ℹ No models with both predictor bins and Classifier data found")
         return []
 
+    # Model reports use the reachable classifier range for score distribution
+    # and AUC. Skip models whose computed range contains no classifier bins.
+    active_ranges = (
+        datamart.active_ranges(nb_model_ids)
+        .select(
+            "ModelID",
+            "AUC_ActiveRange",
+            "idx_min",
+            "idx_max",
+        )
+        .collect()
+    )
+    nb_model_ids = active_ranges.filter(
+        pl.col("AUC_ActiveRange").is_not_null() & (pl.col("idx_min") < pl.col("idx_max"))
+    )["ModelID"].to_list()
+
+    if not nb_model_ids:
+        print("  ℹ No models with a non-empty active classifier range found")
+        return []
+
     mdls = (
         datamart.combined_data.filter(pl.col("ModelID").is_in(nb_model_ids))
         .filter((pl.col("Positives") >= 200) & (pl.col("ResponseCount") >= 1000))

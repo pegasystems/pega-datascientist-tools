@@ -1178,15 +1178,19 @@ class ADMDatamart:
             )
 
         def auc_from_active_bins(pos, neg, idx_min, idx_max):
-            if idx_max <= idx_min:
+            active_pos = pos[idx_min:idx_max]
+            active_neg = neg[idx_min:idx_max]
+            if not active_pos or not active_neg:
                 return None
             return cdh_utils.auc_from_bincounts(
-                pos[idx_min:idx_max],
-                neg[idx_min:idx_max],
+                active_pos,
+                active_neg,
             )
 
         def auc_ci_payload_field(pos, neg, idx_min, idx_max, field):
-            if idx_max <= idx_min:
+            active_pos = pos[idx_min:idx_max]
+            active_neg = neg[idx_min:idx_max]
+            if not active_pos or not active_neg:
                 return {
                     "ci_lower": None,
                     "ci_upper": None,
@@ -1194,8 +1198,8 @@ class ADMDatamart:
                     "ci_reason": "empty_active_range",
                 }[field]
             payload = cdh_utils.auc_ci_from_bincounts(
-                pos[idx_min:idx_max],
-                neg[idx_min:idx_max],
+                active_pos,
+                active_neg,
                 confidence_level=confidence_level,
             )
             return payload[field]
