@@ -873,15 +873,22 @@ For more information, see:
     summary_file = summary_dir / "summary.csv"
     for i, dataset in enumerate(datasets_to_process, 1):
         print(f"\n[{i}/{len(datasets_to_process)}]")
+        ci_kwargs = (
+            {
+                "ci_maturity_analysis_enabled": True,
+                "active_window_days": args.active_window_days,
+                "positives_maturity_threshold": args.positives_maturity_threshold,
+                "ci_maturity_dataset_rows": ci_maturity_dataset_rows,
+                "ci_maturity_model_rows": ci_maturity_model_rows,
+            }
+            if args.ci_maturity_analysis
+            else {}
+        )
         result = process_dataset(
             dataset,
             args.output,
             max_models=args.max_models,
-            ci_maturity_analysis_enabled=args.ci_maturity_analysis,
-            active_window_days=args.active_window_days,
-            positives_maturity_threshold=args.positives_maturity_threshold,
-            ci_maturity_dataset_rows=ci_maturity_dataset_rows,
-            ci_maturity_model_rows=ci_maturity_model_rows,
+            **ci_kwargs,
         )
         results.append(result)
 
