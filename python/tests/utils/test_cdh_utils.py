@@ -10,6 +10,7 @@ import polars as pl
 import pytest
 from pdstools import datasets
 from pdstools.utils import cdh_utils
+from pdstools.utils.cdh_utils import _metrics
 from pdstools.utils.cdh_utils._io import (
     _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS,
     _DATABRICKS_PREDICTION_COLUMNS,
@@ -166,6 +167,54 @@ def test_validate_confidence_level_rejects_non_finite_values():
         cdh_utils.validate_confidence_level(float("nan"))
     with pytest.raises(ValueError, match="strictly between 0 and 1"):
         cdh_utils.validate_confidence_level(float("inf"))
+
+
+def test_auc_ci_from_bincounts_rejects_empty_counts():
+    with pytest.raises(ValueError, match="non-empty"):
+        cdh_utils.auc_ci_from_bincounts([], [])
+
+
+def test_auc_ci_from_bincounts_rejects_mismatched_count_lengths():
+    with pytest.raises(ValueError, match="same length"):
+        cdh_utils.auc_ci_from_bincounts([1, 2], [3])
+
+
+def test_auc_ci_from_bincounts_rejects_negative_counts():
+    with pytest.raises(ValueError, match="non-negative"):
+        cdh_utils.auc_ci_from_bincounts([1, -1], [2, 3])
+
+
+def test_auc_ci_from_bincounts_rejects_mismatched_probs_length():
+    with pytest.raises(ValueError, match="same length"):
+        cdh_utils.auc_ci_from_bincounts([1, 2], [3, 4], probs=[0.9])
+
+
+def test_weighted_sample_variance_returns_none_for_small_total_weight():
+    variance = _metrics._weighted_sample_variance(
+        values=pl.Series([0.25], dtype=pl.Float64),
+        weights=pl.Series([1.0], dtype=pl.Float64),
+    )
+
+    assert variance is None
+
+
+def test_auc_variance_delong_grouped_returns_none_for_insufficient_class_volume():
+    variance = cdh_utils.auc_variance_delong_grouped(pos=[1, 0], neg=[3, 2])
+
+    assert variance is None
+
+
+def test_auc_variance_delong_grouped_handles_weighted_variance_unavailable():
+    with patch(
+        "pdstools.utils.cdh_utils._metrics._weighted_sample_variance",
+        side_effect=[0.01, None],
+    ):
+        variance = cdh_utils.auc_variance_delong_grouped(
+            pos=[10, 15, 22, 30, 44],
+            neg=[90, 80, 70, 50, 30],
+        )
+
+    assert variance is None
 
 
 def test_aucpr_from_probs():
