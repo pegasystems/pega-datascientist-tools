@@ -361,6 +361,56 @@ def test_compute_ci_maturity_analysis_returns_expected_metrics():
     assert "PositivesSegment" in model_level.columns
 
 
+def test_compute_ci_maturity_analysis_retains_rows_when_ci_fails_for_some_models():
+    now = datetime(2026, 8, 3, 12, 0, 0)
+    datamart = MagicMock()
+    datamart.predictor_data = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m1", "m2", "m2"],
+            "EntryType": ["Active", "Classifier", "Active", "Classifier"],
+            "BinType": ["SYMBOLIC", "NONE", "SYMBOLIC", "NONE"],
+        }
+    )
+    datamart.model_data = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m2"],
+            "Positives": [250, 50],
+            "ResponseCount": [1200, 300],
+            "SnapshotTime": [now - timedelta(days=1), now],
+        }
+    )
+
+    def active_ranges_side_effect(model_id):
+        if model_id == "m1":
+            return pl.LazyFrame(
+                {
+                    "ModelID": ["m1"],
+                    "AUC_ActiveRange": [0.72],
+                    "AUC_ActiveRange_CI_Lower": [0.69],
+                    "AUC_ActiveRange_CI_Upper": [0.75],
+                    "AUC_ActiveRange_CI_Available": [True],
+                    "AUC_ActiveRange_CI_Reason": [None],
+                }
+            )
+        raise ValueError("pos and neg must be non-empty")
+
+    datamart.active_ranges.side_effect = active_ranges_side_effect
+
+    metrics, model_level = batch._compute_ci_maturity_analysis(
+        datamart,
+        active_window_days=30,
+        positives_maturity_threshold=200,
+    )
+
+    assert metrics["Active_NB_Models"] == 2
+    assert metrics["Active_NB_Models_With_CI"] == 1
+    assert model_level.height == 2
+    failing_model = model_level.filter(pl.col("ModelID") == "m2")
+    assert failing_model.height == 1
+    assert failing_model["AUC_ActiveRange_CI_Available"][0] is False
+    assert failing_model["AUC_ActiveRange_CI_Reason"][0] == "analysis_error"
+
+
 def test_main_writes_ci_maturity_outputs_when_enabled(tmp_path, monkeypatch):
     dataset = {
         "name": "Dataset",

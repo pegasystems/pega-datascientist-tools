@@ -373,22 +373,51 @@ def _compute_ci_maturity_analysis(
         }
         return metrics, pl.DataFrame()
 
-    active_ids = active_agg.get_column("ModelID").to_list()
-    active_ranges = (
-        datamart.active_ranges(active_ids)
-        .collect()
-        .select(
-            "ModelID",
-            "AUC_ActiveRange",
-            "AUC_ActiveRange_CI_Lower",
-            "AUC_ActiveRange_CI_Upper",
-            "AUC_ActiveRange_CI_Available",
-            "AUC_ActiveRange_CI_Reason",
-        )
-    )
+    analysis_rows: list[dict] = []
+    for row in active_agg.iter_rows(named=True):
+        model_id = row["ModelID"]
+        ci_data = {
+            "AUC_ActiveRange": None,
+            "AUC_ActiveRange_CI_Lower": None,
+            "AUC_ActiveRange_CI_Upper": None,
+            "AUC_ActiveRange_CI_Available": False,
+            "AUC_ActiveRange_CI_Reason": "analysis_error",
+        }
+        try:
+            ar = (
+                datamart.active_ranges(model_id)
+                .collect()
+                .select(
+                    "AUC_ActiveRange",
+                    "AUC_ActiveRange_CI_Lower",
+                    "AUC_ActiveRange_CI_Upper",
+                    "AUC_ActiveRange_CI_Available",
+                    "AUC_ActiveRange_CI_Reason",
+                )
+            )
+            if ar.height > 0:
+                ci_data = {
+                    "AUC_ActiveRange": ar["AUC_ActiveRange"][0],
+                    "AUC_ActiveRange_CI_Lower": ar["AUC_ActiveRange_CI_Lower"][0],
+                    "AUC_ActiveRange_CI_Upper": ar["AUC_ActiveRange_CI_Upper"][0],
+                    "AUC_ActiveRange_CI_Available": ar["AUC_ActiveRange_CI_Available"][0],
+                    "AUC_ActiveRange_CI_Reason": ar["AUC_ActiveRange_CI_Reason"][0],
+                }
+        except Exception:
+            # Keep model-level maturity rows even when CI cannot be computed.
+            pass
 
-    model_level = active_agg.join(active_ranges, on="ModelID", how="left").with_columns(
-        IsActiveLast30Days=pl.lit(True),
+        analysis_rows.append(
+            {
+                "ModelID": model_id,
+                "Positives": row["Positives"],
+                "ResponseCount": row["ResponseCount"],
+                "IsActiveLast30Days": True,
+                **ci_data,
+            }
+        )
+
+    model_level = pl.DataFrame(analysis_rows).with_columns(
         CI_Width=(pl.col("AUC_ActiveRange_CI_Upper") - pl.col("AUC_ActiveRange_CI_Lower")),
         PositivesSegment=pl.when(pl.col("Positives") > positives_maturity_threshold)
         .then(pl.lit(f">{positives_maturity_threshold}"))
