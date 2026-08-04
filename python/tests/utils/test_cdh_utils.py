@@ -94,6 +94,20 @@ def test_auc_ci_from_bincounts_includes_auc_and_bounds():
     assert abs(payload["ci_upper"] - 0.7042163651423964) < 1e-12
 
 
+def test_weighted_auc_ci_from_estimates_propagates_variance():
+    payload = cdh_utils.weighted_auc_ci_from_estimates(
+        [0.6, 0.8],
+        [0.01, 0.04],
+        [1, 3],
+    )
+
+    assert payload["auc"] == pytest.approx(0.75)
+    assert payload["variance"] == pytest.approx(0.023125)
+    assert payload["ci_lower"] == pytest.approx(0.4519501, abs=1e-6)
+    assert payload["ci_upper"] == pytest.approx(1.0)
+    assert payload["ci_available"] is True
+
+
 def test_auc_ci_from_bincounts_insufficient_data_returns_unavailable():
     payload = cdh_utils.auc_ci_from_bincounts([0, 0, 1], [0, 0, 0])
 

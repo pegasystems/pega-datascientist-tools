@@ -75,6 +75,7 @@ from ._metrics import (
     log_odds_polars,
     safe_range_auc,
     validate_confidence_level,
+    weighted_auc_ci_from_estimates,
     z_ratio,
 )
 from ._misc import legend_color_order, safe_flatten_list
@@ -133,6 +134,7 @@ __all__ = [
     "setup_logger",
     "to_prpc_date_time",
     "validate_confidence_level",
+    "weighted_auc_ci_from_estimates",
     "weighted_average_polars",
     "weighted_performance_polars",
     "z_ratio",

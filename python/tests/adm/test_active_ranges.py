@@ -28,6 +28,7 @@ def test_active_ranges_basic(sample):
         "AUC_Datamart",
         "AUC_FullRange",
         "AUC_ActiveRange",
+        "AUC_ActiveRange_CI_Variance",
         "AUC_ActiveRange_CI_Lower",
         "AUC_ActiveRange_CI_Upper",
         "AUC_ActiveRange_CI_Available",
@@ -52,6 +53,7 @@ def test_active_ranges_basic(sample):
     assert all(0 <= auc <= 1 for auc in ar["AUC_Datamart"])
     assert all(0 <= auc <= 1 for auc in ar["AUC_FullRange"])
     assert all(0 <= auc <= 1 for auc in ar["AUC_ActiveRange"])
+    assert all(variance is None or variance >= 0 for variance in ar["AUC_ActiveRange_CI_Variance"])
     assert all(flag in (True, False) for flag in ar["AUC_ActiveRange_CI_Available"])
     assert all(bins > 0 for bins in ar["Bins"])
     assert all(n >= 0 for n in ar["nActivePredictors"])

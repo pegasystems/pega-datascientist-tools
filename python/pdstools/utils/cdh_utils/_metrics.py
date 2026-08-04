@@ -230,6 +230,86 @@ def auc_ci_from_bincounts(
     }
 
 
+def weighted_auc_ci_from_estimates(
+    auc: Sequence[float] | pl.Series,
+    variance: Sequence[float] | pl.Series,
+    weights: Sequence[float] | pl.Series,
+    *,
+    confidence_level: float = 0.95,
+) -> dict[str, float | bool | str | None]:
+    """Combine independent model-level AUC estimates with response weights.
+
+    The returned interval describes the uncertainty of a weighted average of
+    model-level estimates. It is not a confidence interval for AUC computed
+    from pooled observations.
+
+    Parameters
+    ----------
+    auc : Sequence[float] | pl.Series
+        Model-level AUC estimates.
+    variance : Sequence[float] | pl.Series
+        Model-level AUC variance estimates corresponding to ``auc``.
+    weights : Sequence[float] | pl.Series
+        Non-negative weights for the model-level estimates.
+    confidence_level : float, default=0.95
+        Two-sided confidence level used to derive the interval.
+
+    Returns
+    -------
+    dict[str, float | bool | str | None]
+        Weighted AUC, variance, confidence bounds, and availability status.
+
+    Raises
+    ------
+    ValueError
+        If the inputs have different lengths or contain invalid values.
+    """
+    validate_confidence_level(confidence_level)
+    auc_series = pl.Series("auc", auc, strict=False).cast(pl.Float64)
+    variance_series = pl.Series("variance", variance, strict=False).cast(pl.Float64)
+    weight_series = pl.Series("weights", weights, strict=False).cast(pl.Float64)
+    if not (len(auc_series) == len(variance_series) == len(weight_series)):
+        raise ValueError("auc, variance, and weights must have the same length")
+    if len(auc_series) == 0:
+        return {
+            "auc": None,
+            "variance": None,
+            "ci_lower": None,
+            "ci_upper": None,
+            "ci_available": False,
+            "ci_reason": "no_estimates",
+        }
+    auc_values = auc_series.to_list()
+    variance_values = variance_series.to_list()
+    weight_values = weight_series.to_list()
+    if (
+        any(
+            value is None or not math.isfinite(value)
+            for values in (auc_values, variance_values, weight_values)
+            for value in values
+        )
+        or any(value < 0 for value in variance_values if value is not None)
+        or any(value <= 0 for value in weight_values if value is not None)
+    ):
+        raise ValueError("auc, variance, and weights must contain finite values; variance must be non-negative")
+
+    total_weight = float(weight_series.sum())
+    normalized_weights = weight_series / total_weight
+    weighted_auc = float((auc_series * normalized_weights).sum())
+    weighted_variance = float((normalized_weights.pow(2) * variance_series).sum())
+    standard_error = math.sqrt(max(weighted_variance, 0.0))
+    z_score = NormalDist().inv_cdf(0.5 + confidence_level / 2.0)
+
+    return {
+        "auc": weighted_auc,
+        "variance": weighted_variance,
+        "ci_lower": min(max(weighted_auc - z_score * standard_error, 0.0), 1.0),
+        "ci_upper": min(max(weighted_auc + z_score * standard_error, 0.0), 1.0),
+        "ci_available": True,
+        "ci_reason": None,
+    }
+
+
 def safe_range_auc(auc: float) -> float:
     """Internal helper to keep auc a safe number between 0.5 and 1.0 always.
 

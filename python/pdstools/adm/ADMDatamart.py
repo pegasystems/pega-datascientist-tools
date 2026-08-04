@@ -1141,6 +1141,7 @@ class ADMDatamart:
             - AUC_Datamart - The AUC value as reported in the datamart
             - AUC_FullRange - The AUC calculated from the full range of bins in the classifier
             - AUC_ActiveRange - The AUC calculated from only the active/reachable bins
+            - AUC_ActiveRange_CI_Variance - The variance of the active-range AUC estimate
             - AUC_ActiveRange_CI_Lower - Lower CI bound for active-range AUC
             - AUC_ActiveRange_CI_Upper - Upper CI bound for active-range AUC
             - AUC_ActiveRange_CI_Available - Whether CI could be estimated
@@ -1197,6 +1198,7 @@ class ADMDatamart:
         def auc_ci_payload_field(pos, neg, idx_min, idx_max, field):
             if idx_min is None or idx_max is None:
                 return {
+                    "variance": None,
                     "ci_lower": None,
                     "ci_upper": None,
                     "ci_available": False,
@@ -1206,6 +1208,7 @@ class ADMDatamart:
             active_neg = neg[idx_min:idx_max]
             if not active_pos or not active_neg:
                 return {
+                    "variance": None,
                     "ci_lower": None,
                     "ci_upper": None,
                     "ci_available": False,
@@ -1330,6 +1333,23 @@ class ADMDatamart:
                         data[2].item(),
                         data[3].item(),
                         "ci_lower",
+                    ),
+                    return_dtype=pl.Float64,
+                    returns_scalar=True,
+                ).over("ModelID"),
+                AUC_ActiveRange_CI_Variance=pl.map_groups(
+                    exprs=[
+                        pl.col("classifierPos"),
+                        pl.col("classifierNeg"),
+                        pl.col("idx_min"),
+                        pl.col("idx_max"),
+                    ],
+                    function=lambda data: auc_ci_payload_field(
+                        data[0].to_list()[0],
+                        data[1].to_list()[0],
+                        data[2].item(),
+                        data[3].item(),
+                        "variance",
                     ),
                     return_dtype=pl.Float64,
                     returns_scalar=True,
