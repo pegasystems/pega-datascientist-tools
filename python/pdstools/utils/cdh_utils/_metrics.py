@@ -173,7 +173,10 @@ def auc_ci_from_bincounts(
     -------
     dict[str, float | bool | str | None]
         Payload with keys ``auc``, ``variance``, ``ci_lower``, ``ci_upper``,
-        ``ci_available``, and ``ci_reason``.
+        ``ci_available``, and ``ci_reason``. AUC and interval bounds use the
+        conventional 0-to-1 scale; callers that display Pega's 50-to-100
+        scale should multiply them by 100. ``variance`` is on the squared
+        0-to-1 scale.
     """
     validate_confidence_level(confidence_level)
     pos_series, neg_series, probs_series = _validate_grouped_auc_inputs(pos, neg, probs)
@@ -243,6 +246,11 @@ def weighted_auc_ci_from_estimates(
     model-level estimates. It is not a confidence interval for AUC computed
     from pooled observations.
 
+    The weighted estimate uses normalized response-count-style weights. Under
+    the independence assumption, its variance is the sum of each model
+    variance multiplied by the square of its normalized weight. AUC and
+    confidence bounds are returned on the conventional 0-to-1 scale.
+
     Parameters
     ----------
     auc : Sequence[float] | pl.Series
@@ -258,6 +266,9 @@ def weighted_auc_ci_from_estimates(
     -------
     dict[str, float | bool | str | None]
         Weighted AUC, variance, confidence bounds, and availability status.
+        The ``auc``, ``ci_lower``, and ``ci_upper`` values use the 0-to-1
+        scale; ``variance`` uses the corresponding squared scale. Multiply
+        the AUC and bounds by 100 for Pega's 50-to-100 display scale.
 
     Raises
     ------

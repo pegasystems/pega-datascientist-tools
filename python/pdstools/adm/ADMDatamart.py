@@ -1120,6 +1120,11 @@ class ADMDatamart:
         This information can be used in the Health Check documents or when verifying the
         AUC numbers from the datamart.
 
+        AUC values and confidence-interval bounds are returned on the conventional
+        0-to-1 scale. To display them on Pega's 50-to-100 AUC scale, multiply the
+        AUC and bound columns by 100. The confidence-interval variance is expressed
+        on the corresponding squared 0-to-1 scale.
+
         Parameters
         ----------
         model_ids : Optional[Union[str, list[str]]], optional
@@ -1141,7 +1146,7 @@ class ADMDatamart:
             - AUC_Datamart - The AUC value as reported in the datamart
             - AUC_FullRange - The AUC calculated from the full range of bins in the classifier
             - AUC_ActiveRange - The AUC calculated from only the active/reachable bins
-            - AUC_ActiveRange_CI_Variance - The variance of the active-range AUC estimate
+            - AUC_ActiveRange_CI_Variance - The variance of the active-range AUC estimate; null when unavailable
             - AUC_ActiveRange_CI_Lower - Lower CI bound for active-range AUC
             - AUC_ActiveRange_CI_Upper - Upper CI bound for active-range AUC
             - AUC_ActiveRange_CI_Available - Whether CI could be estimated
