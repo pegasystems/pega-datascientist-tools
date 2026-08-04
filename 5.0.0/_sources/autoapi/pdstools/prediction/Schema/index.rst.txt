@@ -1,0 +1,145 @@
+pdstools.prediction.Schema
+==========================
+
+.. py:module:: pdstools.prediction.Schema
+
+.. autoapi-nested-parse::
+
+   Schema definitions for Prediction Studio data.
+
+   Mirrors the layout of :mod:`pdstools.adm.Schema` — each class is a
+   plain attribute container mapping column names to their target
+   Polars dtypes. Used by :class:`pdstools.prediction.Prediction`'s
+   internal validators to coerce raw input into a consistent shape.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.prediction.Schema.PredictionSnapshot
+   pdstools.prediction.Schema.PredictionData
+
+
+Module Contents
+---------------
+
+.. py:class:: PredictionSnapshot
+
+   Raw column dtypes for the ``PR_DATA_DM_SNAPSHOTS`` Pega export.
+
+   These are the columns produced by Pega's Prediction Studio dataset
+   export (or equivalent PDC payload) before any pdstools renaming or
+   pivoting is applied.
+
+
+   .. py:attribute:: pySnapShotTime
+
+
+   .. py:attribute:: pyModelId
+
+
+   .. py:attribute:: pyModelType
+
+
+   .. py:attribute:: pySnapshotType
+
+
+   .. py:attribute:: pyDataUsage
+
+
+   .. py:attribute:: pyPositives
+
+
+   .. py:attribute:: pyNegatives
+
+
+   .. py:attribute:: pyCount
+
+
+   .. py:attribute:: pyValue
+
+
+   .. py:attribute:: pyName
+
+
+.. py:class:: PredictionData
+
+   Processed/output column dtypes for ``Prediction.predictions``.
+
+   The shape produced after :class:`Prediction`'s validator pivots
+   raw rows into per-(``pyModelId``, ``SnapshotTime``) records with
+   Test/Control/NBA suffixes.
+
+
+   .. py:attribute:: pyModelId
+
+
+   .. py:attribute:: SnapshotTime
+
+
+   .. py:attribute:: Class
+
+
+   .. py:attribute:: ModelName
+
+
+   .. py:attribute:: Performance
+
+
+   .. py:attribute:: Positives
+
+
+   .. py:attribute:: Negatives
+
+
+   .. py:attribute:: ResponseCount
+
+
+   .. py:attribute:: Positives_Test
+
+
+   .. py:attribute:: Positives_Control
+
+
+   .. py:attribute:: Positives_NBA
+
+
+   .. py:attribute:: Negatives_Test
+
+
+   .. py:attribute:: Negatives_Control
+
+
+   .. py:attribute:: Negatives_NBA
+
+
+   .. py:attribute:: ResponseCount_Test
+
+
+   .. py:attribute:: ResponseCount_Control
+
+
+   .. py:attribute:: ResponseCount_NBA
+
+
+   .. py:attribute:: CTR
+
+
+   .. py:attribute:: CTR_Test
+
+
+   .. py:attribute:: CTR_Control
+
+
+   .. py:attribute:: CTR_NBA
+
+
+   .. py:attribute:: CTR_Lift
+
+
+   .. py:attribute:: isValidPrediction
+
+

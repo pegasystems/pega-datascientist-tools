@@ -1,0 +1,46 @@
+pdstools.infinity.resources.prediction_studio.base
+==================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.base
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.base.ModelInstance
+   pdstools.infinity.resources.prediction_studio.base.AsyncModelInstance
+
+
+Module Contents
+---------------
+
+.. py:class:: ModelInstance(client, **payload)
+
+   Bases: :py:obj:`_ModelInstanceMixin`, :py:obj:`pdstools.infinity.internal._resource.SyncAPIResource`
+
+
+   Behaviour wrapper around a :class:`ModelInstanceData` payload.
+
+   The raw API payload is validated into ``self._data`` (a Pydantic model).
+   Attribute reads fall through to ``_data`` via ``__getattr__``, so
+   ``instance.instance_id`` etc. keep working, while ``_public_dict`` /
+   ``_public_fields`` are sourced from ``_data`` so the ``return_df=True``
+   code paths (``list_instances``) produce a stable, fully-populated schema.
+
+
+.. py:class:: AsyncModelInstance(client, **payload)
+
+   Bases: :py:obj:`_ModelInstanceMixin`, :py:obj:`pdstools.infinity.internal._resource.AsyncAPIResource`
+
+
+   Behaviour wrapper around a :class:`ModelInstanceData` payload.
+
+   The raw API payload is validated into ``self._data`` (a Pydantic model).
+   Attribute reads fall through to ``_data`` via ``__getattr__``, so
+   ``instance.instance_id`` etc. keep working, while ``_public_dict`` /
+   ``_public_fields`` are sourced from ``_data`` so the ``return_df=True``
+   code paths (``list_instances``) produce a stable, fully-populated schema.
+
+

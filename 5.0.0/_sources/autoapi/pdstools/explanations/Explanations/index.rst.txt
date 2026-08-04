@@ -1,0 +1,159 @@
+pdstools.explanations.Explanations
+==================================
+
+.. py:module:: pdstools.explanations.Explanations
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.Explanations.Explanations
+
+
+Module Contents
+---------------
+
+.. py:class:: Explanations(overall: polars.LazyFrame, contextual: polars.LazyFrame, *, model_name: str | None = None, from_date: datetime.datetime | None = None, to_date: datetime.datetime | None = None)
+
+   Process and explore explanation data for Adaptive Gradient Boost models.
+
+   The class is a thin orchestrator over three sub-namespaces (``aggregates``,
+   ``plot``, ``report``) that operate on pre-aggregated parquet files.
+
+   The constructor is **pure configuration** — it accepts already-scanned
+   :class:`polars.LazyFrame`s and path settings, and performs no I/O. Use
+   :meth:`from_aggregates` to read the parquet files from disk.
+
+   :param overall: Contributions aggregated across all contexts.
+   :type overall: pl.LazyFrame
+   :param contextual: Contributions aggregated per context.
+   :type contextual: pl.LazyFrame
+   :param model_name: Name of the model rule. Used for report metadata only.
+   :type model_name: str, optional
+   :param from_date: Start date of the period over which aggregates are computed.
+                     Defaults to ``to_date - 7 days`` if only ``to_date`` is given,
+                     or to ``today() - 7 days`` if both are omitted.
+   :type from_date: datetime, optional
+   :param to_date: End date of the period over which aggregates are computed.
+                   Defaults to ``today()`` if only ``from_date`` is given, or to
+                   ``today()`` if both are omitted.
+   :type to_date: datetime, optional
+
+   .. seealso::
+
+      :py:obj:`Explanations.from_aggregates`
+          Load pre-aggregated parquet files.
+
+   .. rubric:: Notes
+
+   Environment variables that influence the batch parquet file generation:
+
+   ``PDSTOOLS_FILE_BATCH_LIMIT``
+       Number of context partitions per batch. Default: ``100``.
+
+   .. rubric:: Examples
+
+   Load pre-aggregated explanation data:
+
+   >>> from pathlib import Path
+   >>> exp = Explanations.from_aggregates(
+   ...     base_path=Path(".tmp/aggregated_data"),
+   ...     model_name="AdaptiveBoostCT",
+   ...     from_date=datetime(2025, 3, 28),
+   ...     to_date=datetime(2025, 3, 28),
+   ... )
+   >>> df = exp.overall.collect()  # doctest: +SKIP
+
+   Construct with a custom aggregates path:
+
+   >>> exp = Explanations.from_aggregates(base_path="/path/to/my/aggregates")
+   >>> df = exp.overall.collect()  # doctest: +SKIP
+
+   The aggregates may also live behind a URL:
+
+   >>> exp = Explanations.from_aggregates(base_path="https://example.com/aggregates")
+   >>> df = exp.overall.collect()  # doctest: +SKIP
+
+
+   .. py:attribute:: overall
+      :type:  polars.LazyFrame
+
+      Contributions aggregated across all contexts.
+
+
+   .. py:attribute:: contextual
+      :type:  polars.LazyFrame
+
+      Contributions aggregated per context.
+
+
+   .. py:attribute:: model_name
+      :value: None
+
+
+
+   .. py:attribute:: aggregates
+
+
+   .. py:attribute:: plot
+
+
+   .. py:attribute:: report
+
+
+   .. py:method:: from_aggregates(overall_filename: str | pathlib.Path = 'OVERVIEW.parquet', contextual_filename: str | pathlib.Path = 'BY_CONTEXT.parquet', base_path: str | pathlib.Path = '.', *, model_name: str | None = None, from_date: datetime.datetime | None = None, to_date: datetime.datetime | None = None) -> Explanations
+      :classmethod:
+
+
+      Construct an ``Explanations`` from pre-aggregated parquet files.
+
+      This is the standard entry point: it points to a folder containing
+      pre-aggregated parquet files and returns a ready-to-query instance.
+
+      :param overall_filename: Contributions aggregated across all contexts, relative to
+                               ``base_path``. A full path is used as-is, ignoring ``base_path``.
+      :type overall_filename: str | Path, default "OVERVIEW.parquet"
+      :param contextual_filename: Contributions aggregated per context, relative to ``base_path``. A
+                                  full path is used as-is, ignoring ``base_path``. The report pipeline
+                                  uses this to point a page at a single pre-computed batch (e.g.
+                                  ``"batches/BATCH_3.parquet"``) instead of the full set.
+      :type contextual_filename: str | Path, default "BY_CONTEXT.parquet"
+      :param base_path: Folder containing the pre-aggregated parquet files. May be an
+                        ``http(s)://`` URL.
+      :type base_path: str | Path, default "."
+      :param model_name: Name of the model rule. Used for report metadata only.
+      :type model_name: str, optional
+      :param from_date: Start date of the period over which aggregates are computed.
+                        See :class:`Explanations` for default behaviour.
+      :type from_date: datetime, optional
+      :param to_date: End date of the period over which aggregates are computed.
+                      See :class:`Explanations` for default behaviour.
+      :type to_date: datetime, optional
+
+      :returns: A fully initialised instance holding LazyFrames over the
+                aggregated data.
+      :rtype: Explanations
+
+      :raises FileNotFoundError: If either aggregate file does not exist.
+
+
+
+   .. py:method:: save_data(path: str | pathlib.Path = '.') -> tuple[pathlib.Path, pathlib.Path]
+
+      Cache ``overall`` and ``contextual`` to parquet files.
+
+      Mirrors :meth:`ADMDatamart.save_data`. The report pipeline uses this to
+      materialise the frames into its working directory, so that the Quarto
+      subprocess reads local files regardless of where the data came from -
+      a URL, a database, or frames built in memory.
+
+      :param path: Directory to write into. Created if it does not exist.
+      :type path: str | Path, default "."
+
+      :returns: Paths of the written overall and contextual parquet files.
+      :rtype: tuple[Path, Path]
+
+
+
