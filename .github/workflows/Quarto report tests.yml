@@ -106,7 +106,7 @@ jobs:
           echo "$HOME/pandoc/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
-        run: uv sync --extra healthcheck --extra tests
+        run: uv sync --locked --extra healthcheck --extra tests
 
       - name: Verify tools
         run: |
@@ -148,7 +148,7 @@ jobs:
           echo "$HOME/pandoc/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
-        run: uv sync --extra healthcheck --extra tests
+        run: uv sync --locked --extra healthcheck --extra tests
 
       - name: Run batch healthcheck integration test
         run: uv run pytest python/tests/healthcheck/test_batch_healthcheck.py -n auto
@@ -184,7 +184,7 @@ jobs:
           echo "$HOME/pandoc/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
-        run: uv sync --extra healthcheck --extra tests
+        run: uv sync --locked --extra healthcheck --extra tests
 
       - name: Remove esbuild to simulate DJS Docker environment
         run: |
@@ -227,7 +227,7 @@ jobs:
           echo "$HOME/pandoc/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
-        run: uv sync --extra healthcheck --extra tests
+        run: uv sync --locked --extra healthcheck --extra tests
 
       - name: Remove esbuild to simulate DJS Docker environment
         run: |
@@ -270,7 +270,7 @@ jobs:
           echo "$HOME/pandoc/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
-        run: uv sync --extra explanations --extra tests
+        run: uv sync --locked --extra explanations --extra tests
 
       - name: Verify tools
         run: |
@@ -312,7 +312,7 @@ jobs:
           echo "$HOME/pandoc/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
-        run: uv sync --extra explanations --extra tests
+        run: uv sync --locked --extra explanations --extra tests
 
       - name: Remove esbuild to simulate DJS Docker environment
         run: |

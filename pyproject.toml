@@ -226,6 +226,11 @@ extend-immutable-calls = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 addopts = "--strict-markers"
+# Surface runtime API removals in dependency-update CI jobs.
+filterwarnings = [
+    "error::DeprecationWarning",
+    "error::PendingDeprecationWarning",
+]
 markers = [
     "slow: marks tests as slow (report generation, integration tests)",
     "ui: UI tests requiring a running Streamlit app and Playwright (deselect with '-m \"not ui\"')",
