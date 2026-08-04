@@ -173,3 +173,27 @@ def test_active_ranges_empty_classifier_slice_returns_unavailable_ci(sample, mon
     assert result["AUC_ActiveRange_CI_Upper"].item() is None
     assert result["AUC_ActiveRange_CI_Available"].item() is False
     assert result["AUC_ActiveRange_CI_Reason"].item() == "empty_active_range"
+
+
+def test_active_ranges_missing_score_range_returns_unavailable_ci(sample, monkeypatch):
+    """Return unavailable CI metadata when predictor scores are missing."""
+    model_id = sample._require_predictor_data().select("ModelID").unique().collect()["ModelID"][0]
+    original_min_max_scores = ADMDatamart._minMaxScoresPerModel
+
+    def scores_with_missing_range(cls, data):
+        return original_min_max_scores(data).with_columns(
+            pl.lit(None, dtype=pl.Float64).alias("score_min"),
+            pl.lit(None, dtype=pl.Float64).alias("score_max"),
+        )
+
+    monkeypatch.setattr(
+        ADMDatamart,
+        "_minMaxScoresPerModel",
+        classmethod(scores_with_missing_range),
+    )
+
+    result = sample.active_ranges(model_id).collect()
+
+    assert result["AUC_ActiveRange"].item() is None
+    assert result["AUC_ActiveRange_CI_Available"].item() is False
+    assert result["AUC_ActiveRange_CI_Reason"].item() == "missing_score_range"

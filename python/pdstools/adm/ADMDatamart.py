@@ -1167,6 +1167,11 @@ class ADMDatamart:
         cdh_utils.validate_confidence_level(confidence_level)
 
         def find_binindex(bounds, score):
+            if score is None:
+                return None
+            bounds = [bound for bound in bounds if bound is not None]
+            if not bounds:
+                return None
             if len(bounds) == 1:
                 return 0
             # Polars has search_sorted but it seems it doesn't do
@@ -1178,6 +1183,8 @@ class ADMDatamart:
             )
 
         def auc_from_active_bins(pos, neg, idx_min, idx_max):
+            if idx_min is None or idx_max is None:
+                return None
             active_pos = pos[idx_min:idx_max]
             active_neg = neg[idx_min:idx_max]
             if not active_pos or not active_neg:
@@ -1188,6 +1195,13 @@ class ADMDatamart:
             )
 
         def auc_ci_payload_field(pos, neg, idx_min, idx_max, field):
+            if idx_min is None or idx_max is None:
+                return {
+                    "ci_lower": None,
+                    "ci_upper": None,
+                    "ci_available": False,
+                    "ci_reason": "missing_score_range",
+                }[field]
             active_pos = pos[idx_min:idx_max]
             active_neg = neg[idx_min:idx_max]
             if not active_pos or not active_neg:
