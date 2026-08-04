@@ -499,8 +499,7 @@ def _generate_ci_maturity_plots(
 ) -> list[Path]:
     """Generate CI maturity scatter plots from model-level analysis rows.
 
-    Writes a linear-x, log-x, and capped-x(<=10k positives) variant when
-    enough data is available.
+    Writes one log-log scatter plot with threshold and segment mean guides.
     """
     if model_level_df.is_empty() or "CI_Width" not in model_level_df.columns:
         return []
@@ -548,11 +547,9 @@ def _generate_ci_maturity_plots(
         *,
         title: str,
         x_label: str,
-        use_log_x: bool = False,
     ) -> None:
         fig, ax = plt.subplots(figsize=(10, 5))
-        colors = ["#1f77b4" if value else "#ff7f0e" for value in frame["gt_threshold"].to_list()]
-        ax.scatter(frame["Positives"].to_list(), frame["CI_Width"].to_list(), c=colors, alpha=0.8)
+        ax.scatter(frame["Positives"].to_list(), frame["CI_Width"].to_list(), color="#2563eb", alpha=0.55)
         ax.axvline(positives_maturity_threshold, color="red", linestyle="--", linewidth=1.5)
 
         if mean_above is not None:
@@ -579,9 +576,8 @@ def _generate_ci_maturity_plots(
                 color="#ff7f0e",
             )
 
-        if use_log_x:
-            ax.set_xscale("log")
-
+        ax.set_xscale("log")
+        ax.set_yscale("log")
         ax.set_xlabel(x_label)
         ax.set_ylabel("CI Width")
         ax.set_title(title)
@@ -593,35 +589,14 @@ def _generate_ci_maturity_plots(
     output_dir.mkdir(parents=True, exist_ok=True)
     output_files: list[Path] = []
 
-    linear_path = output_dir / "ci_maturity_vs_confidence_intervals.png"
+    output_path = output_dir / "ci_maturity_vs_confidence_intervals.png"
     _render_scatter_with_means(
         plot_df,
-        linear_path,
+        output_path,
         title="Model CI Width vs Positives",
-        x_label="Positives",
-    )
-    output_files.append(linear_path)
-
-    logx_path = output_dir / "ci_maturity_vs_confidence_intervals_logx.png"
-    _render_scatter_with_means(
-        plot_df,
-        logx_path,
-        title="Model CI Width vs Positives (Log X)",
         x_label="Positives (log scale)",
-        use_log_x=True,
     )
-    output_files.append(logx_path)
-
-    capped_df = plot_df.filter(pl.col("Positives") <= 10000)
-    if capped_df.height > 0:
-        capped_path = output_dir / "ci_maturity_vs_confidence_intervals_cap10k.png"
-        _render_scatter_with_means(
-            capped_df,
-            capped_path,
-            title="Model CI Width vs Positives (Capped at 10k)",
-            x_label="Positives (<=10,000)",
-        )
-        output_files.append(capped_path)
+    output_files.append(output_path)
 
     return output_files
 
@@ -666,23 +641,7 @@ def _generate_cross_dataset_ci_width_plot(
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / "ci_width_vs_positives_all_datasets.png"
     fig, ax = plt.subplots(figsize=(10, 6), dpi=160)
-    colors = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed"]
-    datasets = plot_df.get_column("Dataset").unique().sort().to_list() if "Dataset" in plot_df else ["All datasets"]
-    color_by_dataset = {name: colors[index % len(colors)] for index, name in enumerate(datasets)}
-
-    if "Dataset" in plot_df:
-        for dataset in datasets:
-            points = plot_df.filter(pl.col("Dataset") == dataset)
-            ax.scatter(
-                points["Positives"].to_list(),
-                points["CI_Width"].to_list(),
-                s=14,
-                alpha=0.4,
-                color=color_by_dataset[dataset],
-                label=dataset,
-            )
-    else:
-        ax.scatter(positives, ci_width, s=14, alpha=0.4, color=colors[0], label="All datasets")
+    ax.scatter(positives, ci_width, s=14, alpha=0.35, color="#2563eb", label="All datasets")
 
     fit_x = np.logspace(log_positives.min(), log_positives.max(), 200)
     fit_y = 10 ** (intercept + slope * np.log10(fit_x))
@@ -693,6 +652,14 @@ def _generate_cross_dataset_ci_width_plot(
         linewidth=2,
         label=f"Power-law fit (R²={r_squared:.2f})",
     )
+    ax.axvline(200, color="red", linestyle="--", linewidth=1.5, label="200 positives")
+    for above_threshold, color, label in [
+        (True, "#1f77b4", "Mean CI width >200"),
+        (False, "#ff7f0e", "Mean CI width <=200"),
+    ]:
+        mean_width = plot_df.filter((pl.col("Positives") > 200) == above_threshold)["CI_Width"].mean()
+        if mean_width is not None:
+            ax.axhline(mean_width, color=color, linestyle="--", linewidth=1.5, label=label)
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel("Positive outcomes per model")

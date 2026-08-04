@@ -543,6 +543,27 @@ def test_generate_ci_maturity_plots_returns_empty_for_no_ci_rows(tmp_path):
     assert outputs == []
 
 
+def test_generate_ci_maturity_plots_writes_one_log_log_plot(tmp_path):
+    model_level_df = pl.DataFrame(
+        {
+            "ModelID": ["m1", "m2", "m3"],
+            "Positives": [100.0, 250.0, 1000.0],
+            "CI_Width": [0.4, 0.25, 0.12],
+        }
+    )
+
+    outputs = batch._generate_ci_maturity_plots(
+        model_level_df,
+        output_dir=tmp_path,
+        positives_maturity_threshold=200,
+    )
+
+    assert outputs == [tmp_path / "ci_maturity_vs_confidence_intervals.png"]
+    assert outputs[0].exists()
+    assert not (tmp_path / "ci_maturity_vs_confidence_intervals_logx.png").exists()
+    assert not (tmp_path / "ci_maturity_vs_confidence_intervals_cap10k.png").exists()
+
+
 def test_generate_cross_dataset_ci_width_plot(tmp_path):
     model_level_df = pl.DataFrame(
         {
