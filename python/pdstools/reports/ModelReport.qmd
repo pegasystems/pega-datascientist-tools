@@ -510,6 +510,7 @@ else:
                 title="Model Performance Trend",
                 yaxis_title="ROC-AUC",
                 xaxis_title="",
+                yaxis=dict(range=[50, 100]),
                 showlegend=False,
                 autosize=False,
                 width=400,
