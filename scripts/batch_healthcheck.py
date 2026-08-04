@@ -497,108 +497,15 @@ def _generate_ci_maturity_plots(
     output_dir: Path,
     positives_maturity_threshold: int,
 ) -> list[Path]:
-    """Generate CI maturity scatter plots from model-level analysis rows.
-
-    Writes one log-log scatter plot with threshold and segment mean guides.
-    """
-    if model_level_df.is_empty() or "CI_Width" not in model_level_df.columns:
-        return []
-
-    plot_df = model_level_df.filter(
-        pl.col("CI_Width").is_not_null() & pl.col("Positives").is_not_null() & (pl.col("Positives") > 0)
-    ).with_columns((pl.col("Positives") > positives_maturity_threshold).alias("gt_threshold"))
-
-    if plot_df.height == 0:
-        return []
-
-    try:
-        import matplotlib.pyplot as plt
-    except ImportError:
-        print("  ℹ matplotlib not installed — skipping CI maturity PNG generation")
-        return []
-
-    segment_summary = (
-        plot_df.group_by("gt_threshold")
-        .agg(
-            pl.len().alias("n_models"),
-            pl.col("CI_Width").mean().alias("mean_ci_width"),
-        )
-        .sort("gt_threshold", descending=True)
+    """Generate one CI maturity scatter plot from model-level rows."""
+    output_path = _generate_ci_width_plot(
+        model_level_df,
+        output_dir=output_dir,
+        output_filename="ci_maturity_vs_confidence_intervals.png",
+        positives_maturity_threshold=positives_maturity_threshold,
+        title="AUC confidence interval width versus positive volume",
     )
-
-    mean_above = None
-    n_above = 0
-    mean_below_or_equal = None
-    n_below_or_equal = 0
-
-    row_above = segment_summary.filter(pl.col("gt_threshold"))
-    if row_above.height > 0:
-        mean_above = float(row_above["mean_ci_width"][0])
-        n_above = int(row_above["n_models"][0])
-
-    row_below_or_equal = segment_summary.filter(~pl.col("gt_threshold"))
-    if row_below_or_equal.height > 0:
-        mean_below_or_equal = float(row_below_or_equal["mean_ci_width"][0])
-        n_below_or_equal = int(row_below_or_equal["n_models"][0])
-
-    def _render_scatter_with_means(
-        frame: pl.DataFrame,
-        out_path: Path,
-        *,
-        title: str,
-        x_label: str,
-    ) -> None:
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.scatter(frame["Positives"].to_list(), frame["CI_Width"].to_list(), color="#2563eb", alpha=0.55)
-        ax.axvline(positives_maturity_threshold, color="red", linestyle="--", linewidth=1.5)
-
-        if mean_above is not None:
-            ax.axhline(mean_above, color="#1f77b4", linestyle="--", linewidth=2)
-            ax.text(
-                0.99,
-                mean_above,
-                f"blue mean (>{positives_maturity_threshold}, n={n_above}): {mean_above:.4f}",
-                transform=ax.get_yaxis_transform(),
-                ha="right",
-                va="bottom",
-                color="#1f77b4",
-            )
-
-        if mean_below_or_equal is not None:
-            ax.axhline(mean_below_or_equal, color="#ff7f0e", linestyle="--", linewidth=2)
-            ax.text(
-                0.99,
-                mean_below_or_equal,
-                f"orange mean (<={positives_maturity_threshold}, n={n_below_or_equal}): {mean_below_or_equal:.4f}",
-                transform=ax.get_yaxis_transform(),
-                ha="right",
-                va="bottom",
-                color="#ff7f0e",
-            )
-
-        ax.set_xscale("log")
-        ax.set_yscale("log")
-        ax.set_xlabel(x_label)
-        ax.set_ylabel("CI Width")
-        ax.set_title(title)
-        ax.grid(alpha=0.25)
-        plt.tight_layout()
-        fig.savefig(out_path, dpi=160)
-        plt.close(fig)
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_files: list[Path] = []
-
-    output_path = output_dir / "ci_maturity_vs_confidence_intervals.png"
-    _render_scatter_with_means(
-        plot_df,
-        output_path,
-        title="Model CI Width vs Positives",
-        x_label="Positives (log scale)",
-    )
-    output_files.append(output_path)
-
-    return output_files
+    return [output_path] if output_path is not None else []
 
 
 def _generate_cross_dataset_ci_width_plot(
@@ -611,6 +518,24 @@ def _generate_cross_dataset_ci_width_plot(
     Only models with positive outcomes and a positive, available CI width are
     included. The fitted relationship is reported as a power law on the plot.
     """
+    return _generate_ci_width_plot(
+        model_level_df,
+        output_dir=output_dir,
+        output_filename="ci_width_vs_positives_all_datasets.png",
+        positives_maturity_threshold=200,
+        title="AUC confidence interval width versus positive volume",
+    )
+
+
+def _generate_ci_width_plot(
+    model_level_df: pl.DataFrame,
+    *,
+    output_dir: Path,
+    output_filename: str,
+    positives_maturity_threshold: int,
+    title: str,
+) -> Path | None:
+    """Render the shared log-log CI-width versus positives visual."""
     if model_level_df.is_empty() or "CI_Width" not in model_level_df.columns:
         return None
 
@@ -639,9 +564,9 @@ def _generate_cross_dataset_ci_width_plot(
     r_squared = 1 - np.sum((log_ci_width - fitted) ** 2) / np.sum((log_ci_width - log_ci_width.mean()) ** 2)
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "ci_width_vs_positives_all_datasets.png"
+    output_path = output_dir / output_filename
     fig, ax = plt.subplots(figsize=(10, 6), dpi=160)
-    ax.scatter(positives, ci_width, s=14, alpha=0.35, color="#2563eb", label="All datasets")
+    ax.scatter(positives, ci_width, s=14, alpha=0.35, color="#2563eb", label="Models")
 
     fit_x = np.logspace(log_positives.min(), log_positives.max(), 200)
     fit_y = 10 ** (intercept + slope * np.log10(fit_x))
@@ -652,19 +577,27 @@ def _generate_cross_dataset_ci_width_plot(
         linewidth=2,
         label=f"Power-law fit (R²={r_squared:.2f})",
     )
-    ax.axvline(200, color="red", linestyle="--", linewidth=1.5, label="200 positives")
+    ax.axvline(
+        positives_maturity_threshold,
+        color="red",
+        linestyle="--",
+        linewidth=1.5,
+        label=f"{positives_maturity_threshold} positives",
+    )
     for above_threshold, color, label in [
         (True, "#1f77b4", "Mean CI width >200"),
         (False, "#ff7f0e", "Mean CI width <=200"),
     ]:
-        mean_width = plot_df.filter((pl.col("Positives") > 200) == above_threshold)["CI_Width"].mean()
+        mean_width = plot_df.filter((pl.col("Positives") > positives_maturity_threshold) == above_threshold)[
+            "CI_Width"
+        ].mean()
         if mean_width is not None:
             ax.axhline(mean_width, color=color, linestyle="--", linewidth=1.5, label=label)
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel("Positive outcomes per model")
     ax.set_ylabel("AUC CI width")
-    ax.set_title("AUC confidence interval width versus positive volume")
+    ax.set_title(title)
     ax.grid(alpha=0.2, which="both")
     ax.legend(frameon=False)
     fig.tight_layout()
