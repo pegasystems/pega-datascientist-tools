@@ -626,6 +626,87 @@ def _generate_ci_maturity_plots(
     return output_files
 
 
+def _generate_cross_dataset_ci_width_plot(
+    model_level_df: pl.DataFrame,
+    *,
+    output_dir: Path,
+) -> Path | None:
+    """Generate a pooled log-log CI-width versus positives plot.
+
+    Only models with positive outcomes and a positive, available CI width are
+    included. The fitted relationship is reported as a power law on the plot.
+    """
+    if model_level_df.is_empty() or "CI_Width" not in model_level_df.columns:
+        return None
+
+    plot_df = model_level_df.filter(
+        pl.col("CI_Width").is_not_null()
+        & (pl.col("CI_Width") > 0)
+        & pl.col("Positives").is_not_null()
+        & (pl.col("Positives") > 0)
+    )
+    if plot_df.height < 2:
+        return None
+
+    try:
+        import matplotlib.pyplot as plt
+        import numpy as np
+    except ImportError:
+        print("  ℹ matplotlib/numpy not installed — skipping pooled CI width plot")
+        return None
+
+    positives = plot_df["Positives"].to_numpy()
+    ci_width = plot_df["CI_Width"].to_numpy()
+    log_positives = np.log10(positives)
+    log_ci_width = np.log10(ci_width)
+    slope, intercept = np.polyfit(log_positives, log_ci_width, 1)
+    fitted = slope * log_positives + intercept
+    r_squared = 1 - np.sum((log_ci_width - fitted) ** 2) / np.sum((log_ci_width - log_ci_width.mean()) ** 2)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / "ci_width_vs_positives_all_datasets.png"
+    fig, ax = plt.subplots(figsize=(10, 6), dpi=160)
+    colors = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed"]
+    datasets = plot_df.get_column("Dataset").unique().sort().to_list() if "Dataset" in plot_df else ["All datasets"]
+    color_by_dataset = {name: colors[index % len(colors)] for index, name in enumerate(datasets)}
+
+    if "Dataset" in plot_df:
+        for dataset in datasets:
+            points = plot_df.filter(pl.col("Dataset") == dataset)
+            ax.scatter(
+                points["Positives"].to_list(),
+                points["CI_Width"].to_list(),
+                s=14,
+                alpha=0.4,
+                color=color_by_dataset[dataset],
+                label=dataset,
+            )
+    else:
+        ax.scatter(positives, ci_width, s=14, alpha=0.4, color=colors[0], label="All datasets")
+
+    fit_x = np.logspace(log_positives.min(), log_positives.max(), 200)
+    fit_y = 10 ** (intercept + slope * np.log10(fit_x))
+    ax.plot(
+        fit_x,
+        fit_y,
+        color="black",
+        linewidth=2,
+        label=f"Power-law fit (R²={r_squared:.2f})",
+    )
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("Positive outcomes per model")
+    ax.set_ylabel("AUC CI width")
+    ax.set_title("AUC confidence interval width versus positive volume")
+    ax.grid(alpha=0.2, which="both")
+    ax.legend(frameon=False)
+    fig.tight_layout()
+    fig.savefig(output_path)
+    plt.close(fig)
+    print(f"  ✓ Cross-dataset CI plot: {output_path} (n={plot_df.height}, slope={slope:.3f}, R²={r_squared:.2f})")
+    return output_path
+
+
 def _check_output_for_errors(output_file: Path) -> list[str]:
     """Check report output for HTML rendering errors.
 
@@ -1126,6 +1207,10 @@ For more information, see:
         ci_model_df = pl.DataFrame(ci_maturity_model_rows)
         ci_model_df.write_csv(model_level_file)
         print(f"✓ CI maturity model-level output: {model_level_file}")
+        _generate_cross_dataset_ci_width_plot(
+            ci_model_df,
+            output_dir=summary_dir,
+        )
 
     # Print statistics
     print(f"\n{'=' * 60}")

@@ -543,6 +543,37 @@ def test_generate_ci_maturity_plots_returns_empty_for_no_ci_rows(tmp_path):
     assert outputs == []
 
 
+def test_generate_cross_dataset_ci_width_plot(tmp_path):
+    model_level_df = pl.DataFrame(
+        {
+            "Dataset": ["Dataset A", "Dataset A", "Dataset B", "Dataset B"],
+            "Positives": [100.0, 1000.0, 10000.0, 100000.0],
+            "CI_Width": [0.4, 0.15, 0.05, 0.015],
+        }
+    )
+
+    output = batch._generate_cross_dataset_ci_width_plot(
+        model_level_df,
+        output_dir=tmp_path,
+    )
+
+    assert output == tmp_path / "ci_width_vs_positives_all_datasets.png"
+    assert output.exists()
+    assert output.stat().st_size > 0
+
+
+def test_generate_cross_dataset_ci_width_plot_returns_none_without_valid_rows(tmp_path):
+    model_level_df = pl.DataFrame(
+        {
+            "Dataset": ["Dataset"],
+            "Positives": [100.0],
+            "CI_Width": [None],
+        }
+    )
+
+    assert batch._generate_cross_dataset_ci_width_plot(model_level_df, output_dir=tmp_path) is None
+
+
 def test_process_dataset_writes_ci_plots_to_dataset_data_dir(tmp_path):
     data_dir = tmp_path / "Dataset" / "HC"
     data_dir.mkdir(parents=True)
