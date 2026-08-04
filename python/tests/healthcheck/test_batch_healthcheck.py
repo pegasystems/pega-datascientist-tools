@@ -443,6 +443,55 @@ def test_compute_ci_maturity_analysis_retains_rows_when_ci_fails_for_some_models
     assert failing_model["AUC_ActiveRange_CI_Reason"][0] == "analysis_error"
 
 
+def test_compute_ci_maturity_analysis_splits_agb_and_defaults_missing_technique():
+    now = datetime(2026, 8, 3, 12, 0, 0)
+    datamart = MagicMock()
+    datamart.predictor_data = pl.LazyFrame(
+        {
+            "ModelID": ["nb", "agb"],
+            "EntryType": ["Classifier", "Classifier"],
+        }
+    )
+    datamart.model_data = pl.LazyFrame(
+        {
+            "ModelID": ["nb", "agb"],
+            "ModelTechnique": [None, "GradientBoost"],
+            "Positives": [250, 500],
+            "ResponseCount": [1200, 2000],
+            "SnapshotTime": [now, now],
+        }
+    )
+
+    def active_ranges(model_id):
+        return pl.LazyFrame(
+            {
+                "ModelID": [model_id],
+                "AUC_ActiveRange": [0.7],
+                "AUC_ActiveRange_CI_Lower": [0.65],
+                "AUC_ActiveRange_CI_Upper": [0.75],
+                "AUC_ActiveRange_CI_Available": [True],
+                "AUC_ActiveRange_CI_Reason": [None],
+            }
+        )
+
+    datamart.active_ranges.side_effect = active_ranges
+
+    metrics, model_level = batch._compute_ci_maturity_analysis(
+        datamart,
+        active_window_days=30,
+        positives_maturity_threshold=200,
+    )
+
+    assert metrics["Active_NB_Models"] == 1
+    assert metrics["Active_AGB_Models"] == 1
+    assert metrics["NB_CI_Width_Mean"] == pytest.approx(0.1)
+    assert metrics["AGB_CI_Width_Mean"] == pytest.approx(0.1)
+    assert model_level.select("ModelID", "ModelTechnique").sort("ModelID").to_dicts() == [
+        {"ModelID": "agb", "ModelTechnique": "GradientBoost"},
+        {"ModelID": "nb", "ModelTechnique": "NaiveBayes"},
+    ]
+
+
 def test_main_writes_ci_maturity_outputs_when_enabled(tmp_path, monkeypatch):
     dataset = {
         "name": "Dataset",
@@ -547,6 +596,7 @@ def test_generate_ci_maturity_plots_writes_one_log_log_plot(tmp_path):
     model_level_df = pl.DataFrame(
         {
             "ModelID": ["m1", "m2", "m3"],
+            "ModelTechnique": ["NaiveBayes", "GradientBoost", "NaiveBayes"],
             "Positives": [100.0, 250.0, 1000.0],
             "CI_Width": [0.4, 0.25, 0.12],
         }
