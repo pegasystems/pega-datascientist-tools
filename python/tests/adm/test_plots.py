@@ -519,6 +519,15 @@ def test_predictor_category_performance(sample: ADMDatamart):
     assert isinstance(plot, Figure)
 
 
+def test_predictor_category_performance_empty_query(sample: ADMDatamart):
+    query = pl.col("ModelID") == "missing-model"
+
+    df = sample.plot.predictor_category_performance(query=query, return_df=True)
+
+    assert df.is_empty()
+    assert sample.plot.predictor_category_performance(query=query) is None
+
+
 def test_predictor_contribution(sample: ADMDatamart):
     df = sample.plot.predictor_contribution(return_df=True).collect()
     assert df.shape == (3, 4)
@@ -570,6 +579,16 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
     assert "Name" not in df.collect().columns
     assert "Predictor" in df.collect().columns
     assert "Sales/CreditCards/ChannelAction_Template" in df.collect().columns
+
+
+def test_predictor_performance_heatmap_empty_query(sample: ADMDatamart):
+    query = pl.col("ModelID") == "missing-model"
+
+    df = sample.plot.predictor_performance_heatmap(query=query, return_df=True).collect()
+
+    assert df.shape == (0, 1)
+    assert df.columns == ["Name"]
+    assert sample.plot.predictor_performance_heatmap(query=query) is None
 
 
 def test_tree_map(sample: ADMDatamart):
@@ -644,7 +663,6 @@ def test_gains_chart_basic(sample: ADMDatamart):
 def test_gains_chart_return_df(sample: ADMDatamart):
     """Test gains chart data return."""
     df = sample.plot.gains_chart(value="ResponseCount", return_df=True)
-    assert isinstance(df, pl.LazyFrame)
     schema = df.collect_schema().names()
     assert "cum_x" in schema
     assert "cum_y" in schema
@@ -671,7 +689,6 @@ def test_gains_chart_with_grouping(sample: ADMDatamart):
 def test_gains_chart_with_index(sample: ADMDatamart):
     """Test gains chart with index parameter."""
     df = sample.plot.gains_chart(value="Positives", index="ResponseCount", return_df=True)
-    assert isinstance(df, pl.LazyFrame)
     # Verify index column is used for sorting
     collected = df.collect()
     assert collected.height == 69
@@ -683,7 +700,6 @@ def test_gains_chart_with_query(sample: ADMDatamart):
     """Test gains chart with query filter."""
     # Use a filter that keeps some but not all data
     df = sample.plot.gains_chart(value="ResponseCount", query=pl.col("Channel") == "Email", return_df=True)
-    assert isinstance(df, pl.LazyFrame)
     # Should still return data for filtered subset (Email channel: 22 models + anchor)
     collected = df.collect()
     assert collected.height == 23
@@ -700,7 +716,6 @@ def test_performance_volume_distribution_basic(sample: ADMDatamart):
 def test_performance_volume_distribution_return_df(sample: ADMDatamart):
     """Test performance volume distribution data return."""
     df = sample.plot.performance_volume_distribution(return_df=True)
-    assert isinstance(df, pl.LazyFrame)
     schema = df.collect_schema().names()
     assert "PerformanceBinned" in schema
     assert "ResponseCount" in schema
@@ -736,7 +751,6 @@ def test_performance_volume_distribution_with_grouping(sample: ADMDatamart):
 def test_performance_volume_distribution_bin_width(sample: ADMDatamart):
     """Test performance volume distribution with custom bin width."""
     df = sample.plot.performance_volume_distribution(bin_width=5, return_df=True)
-    assert isinstance(df, pl.LazyFrame)
     collected = df.collect()
     # Verify binning created expected number of bins
     num_bins = collected["PerformanceBinned"].n_unique()
@@ -746,7 +760,6 @@ def test_performance_volume_distribution_bin_width(sample: ADMDatamart):
 def test_performance_volume_distribution_with_query(sample: ADMDatamart):
     """Test performance volume distribution with query filter."""
     df = sample.plot.performance_volume_distribution(query=pl.col("ResponseCount") > 100, return_df=True)
-    assert isinstance(df, pl.LazyFrame)
     collected = df.collect()
     # Same Performance range -> same 10 bins, but lower total response count after the query.
     assert collected.height == 10

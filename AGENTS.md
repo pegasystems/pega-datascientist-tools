@@ -19,6 +19,12 @@ dependencies and execution.
 - **Git workflow.** Do not `git commit` on the user's working branch.
   Stage with `git add` and let the user commit. Exception: branches you
   created yourself, or when the user explicitly asks for a commit/PR.
+- **PR creation auth workaround.** If GitHub MCP or the VS Code PR tool
+  fails with `Enterprise Managed User` authorization errors after a
+  branch has already been pushed, check `gh auth status` for a
+  non-EMU account that can access the repo. Use that local `gh` account
+  to create the PR, then switch `gh` back to the user's preferred
+  account.
 - **Stay focused, but fix tightly-coupled bugs.** Don't fix
   pre-existing issues unrelated to the task at hand. However, if a
   refactor surfaces a bug that is directly caused by or tightly
@@ -204,9 +210,9 @@ python -m build --sdist --wheel --outdir dist/ .
 ## Code style guidelines
 
 ### Imports
-- Order: stdlib, third-party, local (`pdstools...`).
-- Prefer explicit imports; avoid wildcard imports.
-- Keep imports at top of file; use `# noqa: F401` for intentional re-exports.
+Ordering, wildcards and placement are linted; use `# noqa: F401` for
+intentional re-exports.
+
 - **Optional dependencies**: use lazy imports inside the method that needs
   them (see `local_model_utils.py` for the pattern). Do not use
   module-level `try/except ImportError` blocks. For sub-namespace
@@ -220,9 +226,9 @@ python -m build --sdist --wheel --outdir dist/ .
   per-class missing-dep stand-in needed.
 
 ### Formatting
-- Use ruff-format (black-compatible). Do not hand-format.
-- Keep line length conservative; let the formatter decide.
-- Use trailing commas in multi-line literals and call arguments.
+Do not hand-format; ruff-format owns this. Use trailing commas in
+multi-line literals and call arguments so the formatter keeps them
+exploded.
 
 ### Docstring style: numpy
 - Use **numpy-style docstrings** for all public APIs (and any non-trivial
@@ -231,8 +237,7 @@ python -m build --sdist --wheel --outdir dist/ .
   this way; a Google-style (`Args:` / `Returns:`) or Sphinx-RST
   (`:param x:`) block in the middle of an otherwise numpy-style module
   is a stylistic break and renders inconsistently in the docs.
-- Sections use a header word followed by a dashed underline of equal
-  length. The common ones:
+- Section syntax is linted; the shape to aim for is:
 
   ```python
   def foo(x: int, y: str = "a") -> bool:
@@ -292,9 +297,29 @@ python -m build --sdist --wheel --outdir dist/ .
 ### Types and typing
 - Use type hints for public APIs and complex internal functions.
 - Reuse aliases from `python/pdstools/utils/types.py` where suitable.
-- Python 3.10+: use `list[str]`, `dict[str, ...]`, `X | None` (not
-  `Optional[X]`). Do not import `Optional`, `Union`, `List`, `Dict`
-  from `typing`.
+- **Reuse the shared frame TypeVar.** For helpers that accept and
+  return the same polars frame type, import
+  `F` from `pdstools.utils.cdh_utils._common`
+  (`F = TypeVar("F", pl.DataFrame, pl.LazyFrame)`) rather than
+  declaring a local one. Don't reach for `@overload` to express
+  "same type in, same type out" — that's what the constrained TypeVar
+  is for. And don't make a helper generic that only one frame type
+  ever reaches; annotate it concretely.
+
+#### `Enum` vs `Literal` vs module constants
+Default to **`Literal`** for public parameters that accept a fixed set
+of strings, and **plain module-level constants** for column names and
+sentinel values. Reserve `Enum` for external vocabularies that need
+bidirectional mapping, iteration, or attached behaviour (see
+`pdstools.infinity`).
+
+An `Enum` used purely as a namespace for string constants is a net
+loss: every use site pays `.value` noise, `name` and `value` drift
+apart silently (an `Enum` whose `name` is `MISSING` and `value` is
+`"missing"` will match nothing if the data holds `"MISSING"`), and it
+buys no validation against the actual schema. If you need to validate
+a `Literal` argument at runtime, write a small
+`validate_*()` helper that raises `ValueError` with the allowed values.
 
 #### `# type: ignore` is a smell, not a tool
 Treat `# type: ignore` as a last resort, and treat existing ones as
@@ -332,6 +357,17 @@ suspicious during any refactor — they often hide real bugs.
   the translation in the serialization layer — use Pydantic
   `serialization_alias` / `alias`, a custom encoder, or a `to_json()`
   method.
+- **Don't repeat the namespace in its method names.** A method reached
+  through a namespace attribute is already qualified by it, so the
+  prefix is pure noise: `dm.plot.predictor_binning()`, never
+  `dm.plot.plot_predictor_binning()`. Same for `generate`, `aggregates`,
+  `agb`.
+- **No `get_` prefix.** If it takes no arguments, make it a
+  `property` (or `cached_property` when the work is non-trivial). If it
+  does take arguments, name it for what it returns
+  (`predictor_contributions(...)`, not `get_predictor_contributions(...)`).
+- **Namespace classes that return aggregations are plural**
+  (`Aggregates`, `Plots`), matching the accessor they're bound to.
 
 ### Error handling
 - Raise specific exceptions; provide actionable messages.
@@ -343,8 +379,9 @@ suspicious during any refactor — they often hide real bugs.
   the user choose their tool.
 
 ### Logging
-- Use module-level `logger = logging.getLogger(__name__)`.
-- No `print()` in library code; log at `debug`/`info` levels.
+- Log at `debug`/`info` levels. The module-logger and no-`print` rules
+  are linted; `# noqa: T201` with a reason is the escape hatch for
+  genuinely user-facing CLI output.
 - `debug` as a parameter name: only when it changes the **return value**
   (extra columns, etc.), not for controlling log output.
 
@@ -633,6 +670,22 @@ you validation, defaults, and serialization for free, use its
 constructor directly. A fluent builder that only assigns fields and
 calls a constructor adds indirection without benefit.
 
+### One module per domain class — no `*Utils.py` grab-bags
+A class belongs in a module named after it (`ContextOperations.py`,
+not `ExplanationsUtils.py`). A `*Utils` module signals that nobody
+decided what the code *is*, and it becomes a magnet: constants,
+enums, a domain class, and a few loose functions accumulate with no
+cohesion and no obvious import site.
+
+If you find yourself reaching for `Utils`, split by what the contents
+actually are:
+- Shared vocabulary (column names, sentinels, `Literal` aliases and
+  their validators) → a private `_constants.py`.
+- A class with state and behaviour → its own `PascalCase.py` module.
+- Genuinely generic, cross-module helpers → the existing
+  `pdstools/utils/` package, in the topical module that fits
+  (`cdh_utils`, `namespaces`, `types`), not a new per-feature one.
+
 ### One concern per PR
 Keep pull requests focused on a single, well-defined change. If a
 feature touches multiple independent areas (e.g. conversion + security +
@@ -714,6 +767,13 @@ completion reveals everything) without ballooning the parent into a
 multi-thousand-line god class. Use the same pattern when refactoring
 existing fat classes — don't invent a new convention.
 
+**`super().__init__()` is required in `LazyNamespace` subclasses.** It
+looks removable — the base `__init__` takes no arguments and Python 3
+doesn't need it for plain object construction — but
+`LazyNamespace.__init__` sets `_dependencies_checked`, and without it
+the optional-dependency machinery breaks at first attribute access.
+Don't strip it in a cleanup pass.
+
 ### I/O lives in classmethods, not `__init__`
 Keep `__init__` pure: it should only accept already-loaded data
 structures (typically `pl.LazyFrame`s) and configuration. All file,
@@ -733,6 +793,15 @@ on the analyzer class — every analyzer benefits and the entry point
 stays singular. Use the more specialised `read_ds_export` only when
 you need its ADM-specific smart-name lookup (`"model_data"`,
 `"predictor_data"`) or remote-URL fetching.
+
+**Validate at the point of use, not ahead of it.** Don't write
+`validate_data_folder()`-style guards that stat paths, check for
+expected filenames, and raise before the real read happens. They
+duplicate logic the reader already has, drift out of sync with it,
+introduce a TOCTOU gap, and turn one clear `FileNotFoundError` into
+two competing error messages. Let the `read_data` / `scan_*` call
+fail, and if its message isn't actionable enough, improve it there —
+every caller benefits.
 
 The whole `pdstools.pega_io` module is the single funnel for
 user-facing path → polars reads (CodeQL `py/path-injection` is

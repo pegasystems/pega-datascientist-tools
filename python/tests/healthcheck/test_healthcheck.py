@@ -1,4 +1,7 @@
 import pathlib
+import re
+import zipfile
+from html.parser import HTMLParser
 
 import pytest
 from openpyxl import load_workbook
@@ -6,6 +9,56 @@ from pdstools import ADMDatamart, Prediction, datasets, read_ds_export
 from pdstools.utils.report_utils import check_report_for_errors
 
 basePath = pathlib.Path(__file__).parent.parent.parent.parent
+
+PLOTLY_CDN_LOAD_RE = re.compile(r"(?:src=|import\s+)[\"']https://cdn\.plot\.ly/")
+CSS_URL_RE = re.compile(r"url\(\s*([\"']?)([^\"')]+)\1\s*\)", re.IGNORECASE)
+REMOTE_REFERENCE_PREFIXES = ("http://", "https://", "//", "data:", "#", "about:", "javascript:", "mailto:", "tel:")
+
+
+class ResourceReferenceParser(HTMLParser):
+    """Collect live HTML resource references from generated reports."""
+
+    def __init__(self):
+        super().__init__()
+        self.references: list[tuple[str, str, str]] = []
+        self.style_chunks: list[str] = []
+        self._in_style = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "style":
+            self._in_style = True
+        for attr, value in attrs:
+            if attr in {"href", "src"} and value:
+                self.references.append((tag, attr, value))
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "style":
+            self._in_style = False
+
+    def handle_data(self, data: str) -> None:
+        if self._in_style:
+            self.style_chunks.append(data)
+
+
+def _is_local_file_reference(reference: str) -> bool:
+    return bool(reference.strip()) and not reference.strip().startswith(REMOTE_REFERENCE_PREFIXES)
+
+
+def _local_file_references(html: str) -> list[str]:
+    parser = ResourceReferenceParser()
+    parser.feed(html)
+    references = [
+        f"{tag}[{attr}]={reference}"
+        for tag, attr, reference in parser.references
+        if _is_local_file_reference(reference)
+    ]
+    references.extend(
+        f"style[url]={reference.strip()}"
+        for style in parser.style_chunks
+        for reference in (match.group(2) for match in CSS_URL_RE.finditer(style))
+        if _is_local_file_reference(reference)
+    )
+    return references
 
 
 def _assert_report_path(actual: pathlib.Path, parent: pathlib.Path, expected_stem: str) -> None:
@@ -20,6 +73,38 @@ def _assert_report_path(actual: pathlib.Path, parent: pathlib.Path, expected_ste
     assert actual.stem == expected_stem
     assert actual.suffix in {".html", ".zip"}, f"Unexpected extension: {actual.suffix}"
     assert actual.exists()
+
+
+def _read_report_html(report_path: pathlib.Path) -> str:
+    if report_path.suffix == ".zip":
+        with zipfile.ZipFile(report_path) as report_zip:
+            html_members = [name for name in report_zip.namelist() if name.endswith(".html")]
+            assert len(html_members) == 1
+            return report_zip.read(html_members[0]).decode("utf-8")
+    return report_path.read_text(encoding="utf-8")
+
+
+def _assert_plotly_resource_mode(
+    cdn_report: pathlib.Path, full_embed_report: pathlib.Path, *, report_label: str
+) -> None:
+    cdn_html = _read_report_html(cdn_report)
+    full_embed_html = _read_report_html(full_embed_report)
+
+    assert PLOTLY_CDN_LOAD_RE.search(cdn_html), f"{report_label} CDN output should load Plotly from the CDN"
+    assert not PLOTLY_CDN_LOAD_RE.search(full_embed_html), (
+        f"{report_label} full-embed output should not load Plotly from the CDN"
+    )
+    assert "Plotly.newPlot" in full_embed_html, f"{report_label} full-embed output should still contain Plotly charts"
+
+
+def _assert_full_embed_size_ratio(sizes: dict[str, int], *, report_label: str, min_ratio: float) -> None:
+    ratio = sizes["full_embed"] / sizes["cdn"]
+    assert ratio >= min_ratio, (
+        f"{report_label} full-embed output should be at least {min_ratio:.1f}x "
+        f"the CDN output, got {ratio:.1f}x "
+        f"(CDN {sizes['cdn'] / (1024 * 1024):.1f} MB, "
+        f"full-embed {sizes['full_embed'] / (1024 * 1024):.1f} MB)"
+    )
 
 
 @pytest.fixture
@@ -49,6 +134,41 @@ def test_GenerateHealthCheck(sample: ADMDatamart, tmp_path):
     _assert_report_path(hc, tmp_path, "HealthCheck")
     errors = check_report_for_errors(hc)
     assert len(errors) == 0, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
+
+
+def test_GenerateHealthCheck_default_cdn_is_djs_copy_safe(sample: ADMDatamart, tmp_path, monkeypatch):
+    """Default CDN Health Check can be copied as one standalone HTML file."""
+    monkeypatch.chdir(tmp_path)
+
+    hc = sample.generate.health_check(output_type="html")
+
+    assert hc == tmp_path / "HealthCheck.html"
+    html = hc.read_text(encoding="utf-8")
+    assert PLOTLY_CDN_LOAD_RE.search(html)
+    assert "HealthCheck_files/" not in html
+    assert not (tmp_path / "HealthCheck.zip").exists()
+
+    upload_dir = tmp_path / "upload"
+    upload_dir.mkdir()
+    copied_html = upload_dir / "HealthCheck.html"
+    copied_html.write_bytes(hc.read_bytes())
+    assert _local_file_references(copied_html.read_text(encoding="utf-8")) == []
+
+
+def test_GenerateHealthCheck_named_cdn_drops_qmd_resources(sample: ADMDatamart, tmp_path):
+    """CDN cleanup removes the QMD-stem resources folder for named outputs."""
+    hc = sample.generate.health_check(
+        output_dir=tmp_path,
+        name="cdn_named",
+        full_embed=False,
+        keep_temp_files=True,
+    )
+
+    assert hc == tmp_path / "HealthCheck_cdn_named.html"
+    temp_dirs = list(tmp_path.glob("tmp_cdn_named_*"))
+    assert len(temp_dirs) == 1
+    assert not (temp_dirs[0] / "HealthCheck_files").exists()
+    assert "HealthCheck_files/" not in (temp_dirs[0] / "HealthCheck_cdn_named.html").read_text(encoding="utf-8")
 
 
 def test_GenerateHealthCheck_custom_categorization_with_unmatched_predictors(sample: ADMDatamart, tmp_path):
@@ -87,9 +207,8 @@ def test_HealthCheck_full_embed(sample: ADMDatamart, tmp_path):
 
     size_diff = abs(sizes["default"] - sizes["cdn"]) / sizes["cdn"]
     assert size_diff <= 0.10, f"Default is cdn, file sizes could be slightly different, got {size_diff:.1%} difference"
-
-    full_embed_mb = sizes["full_embed"] / (1024 * 1024)
-    assert 50 <= full_embed_mb <= 150, f"Embedded size should be large, got {full_embed_mb:.1f} MB"
+    _assert_plotly_resource_mode(cdn, full_embed, report_label="HealthCheck")
+    _assert_full_embed_size_ratio(sizes, report_label="HealthCheck", min_ratio=3.0)
 
 
 def test_ExportTables(sample: ADMDatamart, tmp_path, monkeypatch):
@@ -202,9 +321,8 @@ def test_ModelReport_full_embed(sample: ADMDatamart, tmp_path):
 
     size_diff = abs(sizes["default"] - sizes["cdn"]) / sizes["cdn"]
     assert size_diff <= 0.10, f"Default is cdn and sizes should be very close, got {size_diff:.1%} difference"
-
-    full_embed_mb = sizes["full_embed"] / (1024 * 1024)
-    assert 90 <= full_embed_mb <= 150, f"Embedded size should be large, got {full_embed_mb:.1f} MB"
+    _assert_plotly_resource_mode(cdn, full_embed, report_label="ModelReport")
+    _assert_full_embed_size_ratio(sizes, report_label="ModelReport", min_ratio=3.0)
 
 
 def test_GenerateHealthCheck_CustomQmdFile(sample: ADMDatamart, tmp_path):

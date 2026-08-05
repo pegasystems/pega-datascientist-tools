@@ -1,19 +1,18 @@
-from datetime import datetime
 import gzip
-from io import BytesIO
 import json
 import zipfile
+from datetime import datetime
+from io import BytesIO
 from unittest.mock import patch
 
 import polars as pl
 import pytest
-
 from pdstools.adm.HealthCheckImport import (
-    HealthCheckReadOptions,
-    HealthCheckRowFilter,
     MODEL_CACHE_FILENAME,
     PREDICTION_CACHE_FILENAME,
     PREDICTOR_CACHE_FILENAME,
+    HealthCheckReadOptions,
+    HealthCheckRowFilter,
     SourceImportOptions,
     SourceNormalizationOptions,
     import_health_check_data,
@@ -22,7 +21,6 @@ from pdstools.adm.HealthCheckImport import (
     resolve_health_check_output_dir,
     save_health_check_parquet,
 )
-
 
 MINIMAL_MODEL_HEADER = (
     "pyModelID,pyConfigurationName,pySnapshotTime,pyPositives,pyNegatives,"
@@ -606,7 +604,6 @@ def test_import_health_check_data_applies_predictor_categorization():
         predictor_categorization={"External Model": ["Score"]},
     )
 
-    assert result.predictor_data is not None
     assert result.predictor_data.select("PredictorName", "PredictorCategory").collect().sort("PredictorName").to_dict(
         as_series=False
     ) == {
@@ -633,7 +630,6 @@ def test_import_health_check_data_applies_regex_predictor_categorization():
         predictor_categorization_uses_regex=True,
     )
 
-    assert result.predictor_data is not None
     assert result.predictor_data.select("PredictorName", "PredictorCategory").collect().sort("PredictorName").to_dict(
         as_series=False
     ) == {
@@ -685,7 +681,6 @@ def test_import_health_check_data_infers_sparse_prediction_export_schema():
         extract_pyname_keys=False,
     )
 
-    assert result.prediction is not None
     assert result.warnings == ()
     prediction_data = result.prediction.predictions.collect().sort("Positives")
     assert prediction_data["Performance"].to_list() == pytest.approx([0.71] * 3)

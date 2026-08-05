@@ -15,8 +15,9 @@ from ..utils.metric_limits import (
 )
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
     import datetime
+
+    from ..utils.types import QUERY
     from .ADMDatamart import ADMDatamart
 
 logger = logging.getLogger(__name__)
@@ -124,6 +125,10 @@ class Aggregates:
         ----------
         query : Optional[QUERY], optional
             A query to apply to the data before creating the pivot, by default None
+        active_only : bool, optional
+            Whether to only include predictors with EntryType "Active".
+            When False, all non-classifier predictors are included,
+            by default False
         by : str, optional
             A group by which to 'facet', by default "Name".
             If, for instance, the 'by' argument is set to 'Configuration',
@@ -146,6 +151,7 @@ class Aggregates:
                 (pl.col("EntryType") == "Active") if active_only else (pl.col("EntryType") != "Classifier"),
             ),
             query,
+            allow_empty=True,
         )
         unique_predictors = df.select(pl.col("PredictorName").unique()).collect()["PredictorName"]
 
@@ -298,7 +304,7 @@ class Aggregates:
                 .agg(
                     pl.col("PredictorName").sort_by(metric, descending=True).head(top_n),
                 )
-                .explode("PredictorName"),
+                .explode("PredictorName", empty_as_null=True),
                 on=(*facets, "PredictorName"),
             )
 
@@ -722,7 +728,7 @@ class Aggregates:
             .collect()
             .lazy()
             .drop(["literal"] if every is None else [])
-            .explode(["Channel", "Direction", "OmniChannel"])
+            .explode(["Channel", "Direction", "OmniChannel"], empty_as_null=True)
         )
 
         result = (

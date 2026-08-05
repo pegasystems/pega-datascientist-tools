@@ -9,6 +9,7 @@ on:
       - 'release/**'
     paths:
       - python/**
+      - scripts/**
       - pyproject.toml
       - .pre-commit-config.yaml
       - .github/workflows/**
@@ -16,11 +17,25 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - python/**
+      - scripts/**
       - pyproject.toml
       - .pre-commit-config.yaml
       - .github/workflows/**
 
 jobs:
+  quality-guards:
+    name: quality guards
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run changed-file quality guards
+        run: python3 scripts/check_quality_guards.py
+
   pre-commit:
     name: pre-commit (Python 3.12)
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)

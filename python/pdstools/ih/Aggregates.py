@@ -14,9 +14,10 @@ from ..utils.pega_outcomes import get_openrate_labels as _get_openrate_labels
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
-    from datetime import timedelta
     from collections.abc import Sequence
+    from datetime import timedelta
+
+    from ..utils.types import QUERY
     from .IH import IH as IH_Class
 
 
@@ -322,7 +323,7 @@ class Aggregates(LazyNamespace):
                 ],
                 Interactions=pl.len(),
                 # for debugging
-                Outcomes=pl.col.Outcomes.list.explode().unique().sort().drop_nulls(),
+                Outcomes=pl.col.Outcomes.list.explode(empty_as_null=True).unique().sort().drop_nulls(),
             )
             .with_columns(
                 [

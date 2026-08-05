@@ -8,9 +8,7 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-
 from pdstools.pega_io import File as F
-
 
 # ---------------------------------------------------------------------------
 # _is_artifact / _clean_artifacts
@@ -219,8 +217,7 @@ def test_read_ds_export_prefers_local_repo_data_for_raw_github_samples(monkeypat
         path="https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data",
     )
 
-    assert isinstance(df, pl.LazyFrame)
-    assert df.collect().height > 0
+    assert df.collect().shape == (7297, 17)
 
 
 # ---------------------------------------------------------------------------
@@ -231,9 +228,9 @@ def test_read_ds_export_prefers_local_repo_data_for_raw_github_samples(monkeypat
 class TestReadDataExcel:
     FIXTURE = Path(__file__).parent.parent / "data" / "ia" / "ImpactAnalyzerExport_minimal.xlsx"
 
-    def test_read_data_xlsx_returns_lazyframe(self):
+    def test_read_data_xlsx_returns_expected_row_count(self):
         result = F.read_data(self.FIXTURE)
-        assert isinstance(result, pl.LazyFrame)
+        assert result.collect().height == 41
 
     def test_read_data_xlsx_known_columns_and_value(self):
         df = F.read_data(self.FIXTURE).collect()
@@ -351,3 +348,37 @@ class TestReadDataDelimitedText:
             "name": ["first", "second"],
             "value": [1, 2],
         }
+
+
+# ---------------------------------------------------------------------------
+# is_url
+# ---------------------------------------------------------------------------
+
+
+class TestIsUrl:
+    """Unit tests for pega_io.is_url."""
+
+    def test_http_is_url(self):
+        from pdstools.pega_io import is_url
+
+        assert is_url("http://example.com/file.parquet") is True
+
+    def test_https_is_url(self):
+        from pdstools.pega_io import is_url
+
+        assert is_url("https://raw.githubusercontent.com/org/repo/main/data.parquet") is True
+
+    def test_local_path_is_not_url(self):
+        from pdstools.pega_io import is_url
+
+        assert is_url("/some/local/path.parquet") is False
+
+    def test_relative_path_is_not_url(self):
+        from pdstools.pega_io import is_url
+
+        assert is_url("data/file.parquet") is False
+
+    def test_path_object_is_not_url(self):
+        from pdstools.pega_io import is_url
+
+        assert is_url(Path("/some/path.parquet")) is False

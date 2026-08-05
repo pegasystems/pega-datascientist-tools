@@ -1,8 +1,9 @@
 """Tests for Impact Analyzer utility functions and shared sampling utilities."""
 
+from pathlib import Path
+
 import polars as pl
 import pytest
-
 from pdstools.utils.streamlit_utils import parse_sample_spec
 
 
@@ -64,7 +65,9 @@ class TestPrepareAndSaveRandom:
 
         sampled, path = prepare_and_save_random(data, n=100, output_dir=str(tmp_path))
 
-        assert path is not None
+        assert Path(path).parent == tmp_path
+        assert Path(path).name.startswith("ia_sample_data_100_")
+        assert Path(path).suffix == ".parquet"
         assert sampled.collect().height == 100
         assert pl.read_parquet(path).height == 100
 
@@ -77,7 +80,9 @@ class TestPrepareAndSaveRandom:
 
         sampled, path = prepare_and_save_random(data, fraction=0.1, output_dir=str(tmp_path))
 
-        assert path is not None
+        assert Path(path).parent == tmp_path
+        assert Path(path).name.startswith("ia_sample_data_100_")
+        assert Path(path).suffix == ".parquet"
         assert sampled.collect().height == 100
 
     def test_no_sampling_when_within_limit(self, tmp_path):

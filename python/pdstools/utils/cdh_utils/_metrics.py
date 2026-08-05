@@ -253,14 +253,14 @@ def z_ratio(
 
     Parameters
     ----------
-    posCol: pl.Expr
+    pos_col: str | pl.Expr
         The (Polars) column of the bin positives
-    negCol: pl.Expr
-        The (Polars) column of the bin positives
+    neg_col: str | pl.Expr
+        The (Polars) column of the bin negatives
 
     Examples
     --------
-    >>> df.group_by(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
+    >>> df.group_by(['ModelID', 'PredictorName']).agg([zRatio()]).explode(empty_as_null=True)
 
     """
     if isinstance(pos_col, str):
@@ -301,14 +301,14 @@ def lift(
 
     Parameters
     ----------
-    posCol: pl.Expr
+    pos_col: str | pl.Expr
         The (Polars) column of the bin positives
-    negCol: pl.Expr
-        The (Polars) column of the bin positives
+    neg_col: str | pl.Expr
+        The (Polars) column of the bin negatives
 
     Examples
     --------
-    >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode()
+    >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode(empty_as_null=True)
 
     """
     if isinstance(pos_col, str):
@@ -496,10 +496,10 @@ def gains_table(df, value: str, index=None, by=None):
         The (Polars) dataframe with the raw values
     value: str
         The name of the field with the values (plotted on y-axis)
-    index = None
+    index: str, optional
         Optional name of the field for the x-axis. If not passed in
         all records are used and weighted equally.
-    by = None
+    by: str | list[str], optional
         Grouping field(s), can also be None
 
     Returns

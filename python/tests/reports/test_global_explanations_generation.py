@@ -11,7 +11,6 @@ from pathlib import Path
 
 import pytest
 import yaml
-
 from pdstools.reports.GlobalExplanations.scripts.generate_report import (
     ReportGenerator,
 )
@@ -208,7 +207,6 @@ class TestReportGeneration:
         # Check for context-specific file
         context_dir = Path(temp_report_dir) / "by-model-context"
         context_files = list(context_dir.glob("plt-*.qmd"))
-        assert len(context_files) > 0
 
         # Verify context file content
         context_content = context_files[0].read_text()

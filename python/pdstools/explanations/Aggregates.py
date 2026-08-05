@@ -1,66 +1,64 @@
 from __future__ import annotations
 
-__all__ = ["Aggregate"]
+__all__ = ["Aggregates"]
 
 import logging
-from typing import ClassVar, TYPE_CHECKING, cast, overload
-from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar
 
 import polars as pl
 
-from ..pega_io import scan_parquet_path
 from ..utils.namespaces import LazyNamespace
-from .ExplanationsUtils import (
-    _COL,
-    _PREDICTOR_TYPE,
-    _SPECIAL,
-    ContextInfo,
-    ContextOperations,
-    SortBy,
-    _resolve_contribution_type,
-    validate,
+from ._constants import (
+    MISSING,
+    NUMERIC,
+    REMAINING,
+    SYMBOLIC,
+    TOTAL_FREQUENCY,
+    ContributionType,
+    validate_contribution_type,
 )
+from .ContextOperations import ContextOperations
 
 logger = logging.getLogger(__name__)
 
+
+def _weighted(col: str, alias: str) -> pl.Expr:
+    """Frequency-weighted mean of *col*, normalised by the group total frequency."""
+    return ((pl.col(col) * pl.col("frequency")).sum() / pl.col(TOTAL_FREQUENCY).first()).alias(alias)
+
+
+_CONTRIBUTION_AGGREGATIONS = [
+    pl.col("contribution").mean().alias("contribution"),
+    pl.col("contribution_abs").mean().alias("contribution_abs"),
+    _weighted("contribution", "contribution_weighted"),
+    _weighted("contribution_abs", "contribution_weighted_abs"),
+    pl.col("frequency").sum().alias("frequency"),
+    pl.col("contribution_min").min().alias("contribution_min"),
+    pl.col("contribution_max").max().alias("contribution_max"),
+]
+
 if TYPE_CHECKING:
+    from ..utils.cdh_utils._common import F
     from .Explanations import Explanations
 
 
-class Aggregate(LazyNamespace):
-    """Aggregate."""
+class Aggregates(LazyNamespace):
+    """Aggregates."""
 
     dependencies: ClassVar[list[str]] = ["polars"]
     dependency_group = "explanations"
 
-    def __init__(self, explanations: "Explanations"):
+    def __init__(self, explanations: Explanations):
         self.explanations = explanations
-        self.data_folderpath = Path(explanations.root_dir) / explanations.data_folder
-        self.data_pattern = None
-        self.df_contextual: pl.LazyFrame | None = None
-        self.df_overall: pl.LazyFrame | None = None
-        self.context_operations = ContextOperations(aggregate=self)
-        self.initialized = False
+        self.context_operations = ContextOperations(explanations=explanations)
         super().__init__()
 
-    def get_df_contextual(self) -> pl.LazyFrame:
-        """Get the contextual dataframe, loading it if not already loaded."""
-        self._load_data()
-        assert self.df_contextual is not None
-        return self.df_contextual
-
-    def get_df_overall(self) -> pl.LazyFrame:
-        """Get the overall dataframe, loading it if not already loaded."""
-        self._load_data()
-        assert self.df_overall is not None
-        return self.df_overall
-
-    def get_predictor_contributions(
+    def predictor_contributions(
         self,
         context: dict[str, str] | None = None,
         top_n: int = 20,
         *,
-        sort_by: SortBy = "contribution_abs",
+        sort_by: ContributionType = "contribution_abs",
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
@@ -91,18 +89,13 @@ class Aggregate(LazyNamespace):
             Include numeric predictors that have only a single bin.
             Default: ``False``.
         """
-        _resolve_contribution_type(sort_by)
+        validate_contribution_type(sort_by)
 
-        try:
-            validate(top_n=top_n)
-        except ValueError as e:
-            logger.error("Invalid parameters: %s", e)
-            raise
+        if not isinstance(top_n, int) or isinstance(top_n, bool) or top_n < 1:
+            raise ValueError(f"Invalid top_n value: {top_n}. Must be a positive integer.")
 
-        self._load_data()
-
-        return self._get_predictor_contributions(
-            contexts=cast("list[ContextInfo]", [context]) if context else None,
+        return self._predictor_contributions(
+            contexts=[context] if context else None,
             limit=top_n,
             sort_by=sort_by,
             descending=descending,
@@ -111,13 +104,13 @@ class Aggregate(LazyNamespace):
             include_numeric_single_bin=include_numeric_single_bin,
         )
 
-    def get_predictor_value_contributions(
+    def predictor_value_contributions(
         self,
         predictors: list[str],
         context: dict[str, str] | None = None,
         top_k: int = 20,
         *,
-        sort_by: SortBy = "contribution_abs",
+        sort_by: ContributionType = "contribution_abs",
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
@@ -150,18 +143,13 @@ class Aggregate(LazyNamespace):
             Include numeric predictors that have only a single bin.
             Default: ``False``.
         """
-        _resolve_contribution_type(sort_by)
+        validate_contribution_type(sort_by)
 
-        try:
-            validate(top_k=top_k)
-        except ValueError as e:
-            logger.error("Invalid parameters: %s", e)
-            raise
+        if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1:
+            raise ValueError(f"Invalid top_k value: {top_k}. Must be a positive integer.")
 
-        self._load_data()
-
-        return self._get_predictor_value_contributions(
-            contexts=cast("list[ContextInfo]", [context]) if context else None,
+        return self._predictor_value_contributions(
+            contexts=[context] if context else None,
             predictors=predictors,
             limit=top_k,
             sort_by=sort_by,
@@ -171,57 +159,17 @@ class Aggregate(LazyNamespace):
             include_numeric_single_bin=include_numeric_single_bin,
         )
 
-    def get_unique_contexts_list(
+    def unique_contexts(
         self,
-        context_infos: list[ContextInfo] | None = None,
+        context_infos: list[dict[str, str]] | None = None,
         with_partition_col: bool = False,
-    ) -> list[ContextInfo]:
+    ) -> list[dict[str, str]]:
         """Get unique contexts list."""
         return self.context_operations.get_list(context_infos, with_partition_col)
 
-    def _load_data(self):
-        if self.initialized:
-            return
-
-        try:
-            self.explanations.validate_data_folder()
-        except FileNotFoundError as e:
-            logger.error("Error validating aggregates folder: %s", e)
-            raise
-
-        selected_columns = [
-            _COL.PARTITION.value,
-            _COL.CONTRIBUTION.value,
-            _COL.CONTRIBUTION_ABS.value,
-            _COL.FREQUENCY.value,
-            _COL.PREDICTOR_TYPE.value,
-            _COL.PREDICTOR_NAME.value,
-            _COL.BIN_CONTENTS.value,
-            _COL.BIN_ORDER.value,
-            _COL.CONTRIBUTION_MIN.value,
-            _COL.CONTRIBUTION_MAX.value,
-        ]
-
-        context_ = self.data_folderpath / (self.data_pattern if self.data_pattern else "BY_CONTEXT.parquet")
-
-        self.df_contextual = (
-            scan_parquet_path(context_)
-            .select(selected_columns)
-            .filter(pl.col(_COL.CONTRIBUTION.value) != 0.0)
-            .sort(by=_COL.PREDICTOR_NAME.value)
-        )
-        self.df_overall = (
-            scan_parquet_path(self.data_folderpath / "OVERVIEW.parquet")
-            .select(selected_columns)
-            .filter(pl.col(_COL.CONTRIBUTION.value) != 0.0)
-            .sort(by=_COL.PREDICTOR_NAME.value)
-        )
-
-        self.initialized = True
-
-    def _get_predictor_contributions(
+    def _predictor_contributions(
         self,
-        contexts: list[ContextInfo] | None = None,
+        contexts: list[dict[str, str]] | None = None,
         predictors: list[str] | None = None,
         limit: int = 20,
         descending: bool = True,
@@ -247,22 +195,22 @@ class Aggregate(LazyNamespace):
 
         # If we do not want to include the missing predictor values, we filter them out
         if not missing:
-            df = df.filter(_COL.BIN_CONTENTS.value != _SPECIAL.MISSING.name)
+            df = df.filter(pl.col("bin_contents") != MISSING)
 
-        # Aggregate all the different types of contributions
+        # Aggregates all the different types of contributions
         # note: total_frequency is computed per predictor so the weighted average
         # divides by that predictor's own bin frequencies, not the entire partition.
         df = self._calculate_aggregates(
             df,
             frequency_over=[
-                _COL.PARTITION.value,
-                _COL.PREDICTOR_NAME.value,
-                _COL.PREDICTOR_TYPE.value,
+                "context_partition",
+                "predictor_name",
+                "predictor_type",
             ],
             aggregate_over=[
-                _COL.PARTITION.value,
-                _COL.PREDICTOR_NAME.value,
-                _COL.PREDICTOR_TYPE.value,
+                "context_partition",
+                "predictor_name",
+                "predictor_type",
             ],
         )
 
@@ -270,7 +218,7 @@ class Aggregate(LazyNamespace):
         df_top_predictors = self._get_df_with_top_limit(
             df,
             sort_by=sort_by,
-            over=[_COL.PARTITION.value],
+            over=["context_partition"],
             limit=limit,
             descending=descending,
         )
@@ -285,26 +233,31 @@ class Aggregate(LazyNamespace):
                 df,
                 df_anti=df_top_predictors,
                 anti_on=[
-                    _COL.PARTITION.value,
-                    _COL.PREDICTOR_NAME.value,
-                    _COL.PREDICTOR_TYPE.value,
+                    "context_partition",
+                    "predictor_name",
+                    "predictor_type",
                 ],
-                frequency_over=[_COL.PARTITION.value],
-                aggregate_over=[_COL.PARTITION.value],
+                frequency_over=["context_partition"],
+                aggregate_over=["context_partition"],
             )
             df_top_predictors = pl.concat(
                 df.select(sorted(df.collect_schema().names())) for df in [df_remaining, df_top_predictors]
             )
 
-        # Ensure all predictors are unique and sorted by sort_by
+        # Ensure all predictors are unique and sorted by sort_by. `unique` does not
+        # preserve order, so the sort needs a total ordering: predictor names are
+        # unique here and break ties in `sort_by` deterministically.
         df_out = df_top_predictors.unique()
-        df_out = df_out.sort(by=sort_by, descending=descending)
+        df_out = df_out.sort(
+            by=[sort_by, "predictor_name"],
+            descending=[descending, False],
+        )
 
         return df_out.collect()
 
-    def _get_predictor_value_contributions(
+    def _predictor_value_contributions(
         self,
-        contexts: list[ContextInfo] | None = None,
+        contexts: list[dict[str, str]] | None = None,
         predictors: list[str] | None = None,
         limit: int = 20,
         descending: bool = True,
@@ -326,21 +279,25 @@ class Aggregate(LazyNamespace):
         if len(predictors) > 0:
             df = self._filter_for_predictors(df, predictors)
 
-        # Aggregate all the different types of contributions
+        # If we do not want to include the missing predictor values, we filter them out
+        if not missing:
+            df = df.filter(pl.col("bin_contents") != MISSING)
+
+        # Aggregates all the different types of contributions
         # note: we need to aggregate frequency over partition to calculate weighted contributions
         df = self._calculate_aggregates(
             df,
             frequency_over=[
-                _COL.PARTITION.value,
-                _COL.PREDICTOR_NAME.value,
-                _COL.PREDICTOR_TYPE.value,
+                "context_partition",
+                "predictor_name",
+                "predictor_type",
             ],
             aggregate_over=[
-                _COL.PARTITION.value,
-                _COL.PREDICTOR_NAME.value,
-                _COL.PREDICTOR_TYPE.value,
-                _COL.BIN_ORDER.value,
-                _COL.BIN_CONTENTS.value,
+                "context_partition",
+                "predictor_name",
+                "predictor_type",
+                "bin_order",
+                "bin_contents",
             ],
         )
 
@@ -356,9 +313,9 @@ class Aggregate(LazyNamespace):
             df,
             sort_by=sort_by,
             over=[
-                _COL.PARTITION.value,
-                _COL.PREDICTOR_NAME.value,
-                _COL.PREDICTOR_TYPE.value,
+                "context_partition",
+                "predictor_name",
+                "predictor_type",
             ],
             limit=limit,
             descending=descending,
@@ -376,21 +333,21 @@ class Aggregate(LazyNamespace):
                 df_all=df,
                 df_anti=df_top_predictor_values,
                 anti_on=[
-                    _COL.PARTITION.value,
-                    _COL.PREDICTOR_NAME.value,
-                    _COL.PREDICTOR_TYPE.value,
-                    _COL.BIN_ORDER.value,
-                    _COL.BIN_CONTENTS.value,
+                    "context_partition",
+                    "predictor_name",
+                    "predictor_type",
+                    "bin_order",
+                    "bin_contents",
                 ],
                 frequency_over=[
-                    _COL.PARTITION.value,
-                    _COL.PREDICTOR_NAME.value,
-                    _COL.PREDICTOR_TYPE.value,
+                    "context_partition",
+                    "predictor_name",
+                    "predictor_type",
                 ],
                 aggregate_over=[
-                    _COL.PARTITION.value,
-                    _COL.PREDICTOR_NAME.value,
-                    _COL.PREDICTOR_TYPE.value,
+                    "context_partition",
+                    "predictor_name",
+                    "predictor_type",
                 ],
             )
 
@@ -403,10 +360,18 @@ class Aggregate(LazyNamespace):
                 df.select(sorted(df.collect_schema().names())) for df in [df_remaining, df_top_predictor_values]
             )
 
-        # Ensure all predictor values are unique and sorted according to predictor type
+        # Ensure all predictor values are unique and sorted according to predictor type.
+        # `unique` does not preserve order, so `bin_contents` is appended as a final
+        # tiebreaker to keep the output deterministic when `sort_value` ties (the
+        # forced MISSING bin and the 'remaining' rollup share a sort value).
         df_out = df_top_predictor_values.unique()
         df_out = df_out.sort(
-            by=[*self._get_sort_over_columns(predictors=None), "sort_value"],
+            by=[
+                "predictor_name",
+                "context_partition",
+                "sort_value",
+                "bin_contents",
+            ],
         )
         return df_out.collect()
 
@@ -421,12 +386,12 @@ class Aggregate(LazyNamespace):
         #  - symbolic predictors are sorted by contribution type
         """
         return df.with_columns(
-            pl.when(pl.col(_COL.PREDICTOR_TYPE.value) == _PREDICTOR_TYPE.NUMERIC.value)
-            .then(pl.lit(_COL.BIN_ORDER.value))
+            pl.when(pl.col("predictor_type") == NUMERIC)
+            .then(pl.lit("bin_order"))
             .otherwise(pl.lit(sort_by))
             .alias("sort_column"),
-            pl.when(pl.col(_COL.PREDICTOR_TYPE.value) == _PREDICTOR_TYPE.NUMERIC.value)
-            .then(pl.col(_COL.BIN_ORDER.value))
+            pl.when(pl.col("predictor_type") == NUMERIC)
+            .then(pl.col("bin_order"))
             .otherwise(pl.col(sort_by))
             .alias("sort_value"),
         )
@@ -436,7 +401,7 @@ class Aggregate(LazyNamespace):
         df: pl.LazyFrame,
         predictors: list[str],
     ) -> pl.LazyFrame:
-        return df.filter(pl.col(_COL.PREDICTOR_NAME.value).is_in(predictors))
+        return df.filter(pl.col("predictor_name").is_in(predictors))
 
     def _get_df_with_top_limit(
         self,
@@ -472,13 +437,14 @@ class Aggregate(LazyNamespace):
         )
 
     def _get_missing_predictor_values_df(self, df: pl.LazyFrame) -> pl.LazyFrame:
+        """Return the rows holding the "missing" bin, which is keyed on bin contents."""
         return df.filter(
-            pl.col(_COL.PREDICTOR_NAME.value) == _SPECIAL.MISSING.name,
-        ).select(pl.all())
+            pl.col("bin_contents") == MISSING,
+        )
 
     def _get_df(
         self,
-        contexts: list[ContextInfo] | None = None,
+        contexts: list[dict[str, str]] | None = None,
     ):
         contexts = contexts or []
 
@@ -493,26 +459,13 @@ class Aggregate(LazyNamespace):
         self,
         df_filtered_contexts: pl.DataFrame | None = None,
     ) -> pl.LazyFrame:
-        if self.df_overall is None or self.df_contextual is None:
-            self._load_data()
-        assert self.df_overall is not None
-        assert self.df_contextual is not None
-
         if df_filtered_contexts is None:
-            return self.df_overall
-        return self.df_contextual.join(
+            return self.explanations.overall
+        return self.explanations.contextual.join(
             df_filtered_contexts.lazy(),
-            on=_COL.PARTITION.value,
+            on="context_partition",
             how="inner",
         )
-
-    def _get_sort_over_columns(
-        self,
-        predictors: list[str] | None = None,
-    ) -> list[str]:
-        if predictors is None or len(predictors) == 0:
-            return [_COL.PREDICTOR_NAME.value, _COL.PARTITION.value]
-        return [_COL.PARTITION.value]
 
     def _calculate_remaining_aggregates(
         self,
@@ -522,7 +475,7 @@ class Aggregate(LazyNamespace):
         frequency_over: list[str],
         aggregate_over: list[str],
     ) -> pl.LazyFrame:
-        """Anti-join to isolate non-top rows, aggregate, and label as 'remaining'."""
+        """Anti-join to isolate non-top rows, aggregates, and label as 'remaining'."""
         df_remaining = df_all.join(df_anti, on=anti_on, how="anti")
         df_remaining = self._calculate_aggregates(df_remaining, frequency_over, aggregate_over)
         return self._label_remaining(df_remaining, aggregate_over)
@@ -530,14 +483,14 @@ class Aggregate(LazyNamespace):
     @staticmethod
     def _label_remaining(df: pl.LazyFrame, aggregate_over: list[str]) -> pl.LazyFrame:
         """Add 'remaining' labels based on aggregation granularity."""
-        if len(aggregate_over) == 1 and aggregate_over[0] == _COL.PARTITION.value:
+        if len(aggregate_over) == 1 and aggregate_over[0] == "context_partition":
             return df.with_columns(
-                pl.lit(_SPECIAL.REMAINING.value).alias(_COL.PREDICTOR_NAME.value),
-                pl.lit(_PREDICTOR_TYPE.SYMBOLIC).alias(_COL.PREDICTOR_TYPE.value),
+                pl.lit(REMAINING).alias("predictor_name"),
+                pl.lit(SYMBOLIC).alias("predictor_type"),
             )
         return df.with_columns(
-            pl.lit(_SPECIAL.REMAINING.value).alias(_COL.BIN_CONTENTS.value),
-            pl.lit(0).cast(pl.Int64).alias(_COL.BIN_ORDER.value),
+            pl.lit(REMAINING).alias("bin_contents"),
+            pl.lit(0).cast(pl.Int64).alias("bin_order"),
         )
 
     def _calculate_aggregates(
@@ -551,38 +504,33 @@ class Aggregate(LazyNamespace):
         return self._agg_over_columns_in_df(data, aggregate_over)
 
     @staticmethod
-    @overload
-    def _add_total_frequency_to_df(df: pl.DataFrame, group_by: list[str]) -> pl.DataFrame: ...
+    def _add_total_frequency_to_df(df: F, group_by: list[str]) -> F:
+        """Join a per-group ``total_frequency`` column onto *df*."""
+        grouped = df.group_by(group_by).agg(pl.sum("frequency").alias(TOTAL_FREQUENCY))
+        # grouped is the left side, so its freshly-computed TOTAL_FREQUENCY keeps the
+        # plain name and a pre-existing one on df arrives suffixed. Dropping the
+        # suffixed copy stops downstream readers picking up the stale value.
+        # pyrefly bug: when expanding a constrained TypeVar it fails to narrow the
+        # argument to the branch's concrete type, so `df` stays `F` and no overload
+        # of `join` matches. pyright accepts this. Minimal repro:
+        #     F = TypeVar("F", pl.DataFrame, pl.LazyFrame)
+        #     def f(df: F) -> F: return df.head(1).join(df, on="x", how="left")
+        # pyrefly: ignore[bad-argument-type, bad-return]
+        return grouped.join(df, on=group_by, how="left").drop(f"{TOTAL_FREQUENCY}_right", strict=False)
 
-    @staticmethod
-    @overload
-    def _add_total_frequency_to_df(df: pl.LazyFrame, group_by: list[str]) -> pl.LazyFrame: ...
-
-    @staticmethod
-    def _add_total_frequency_to_df(
-        df: pl.DataFrame | pl.LazyFrame,
-        group_by: list[str],
-    ) -> pl.DataFrame | pl.LazyFrame:
-        if isinstance(df, pl.DataFrame):
-            grouped_df = df.group_by(group_by).agg(pl.sum(_COL.FREQUENCY.value).alias(_SPECIAL.TOTAL_FREQUENCY.value))
-            return grouped_df.join(df, on=group_by, how="left")
-
-        grouped_lf = df.group_by(group_by).agg(pl.sum(_COL.FREQUENCY.value).alias(_SPECIAL.TOTAL_FREQUENCY.value))
-        return grouped_lf.join(df, on=group_by, how="left")
-
-    def add_frequency_pct_to_df(self, df: pl.DataFrame, group_by: list[str]) -> pl.DataFrame:
+    def _add_frequency_pct(self, df: pl.DataFrame, group_by: list[str]) -> pl.DataFrame:
         """Add a frequency percentage column to the dataframe based on the total frequency per group."""
 
         df_with_total_frequency = self._add_total_frequency_to_df(df, group_by)
         return df_with_total_frequency.with_columns(
-            pl.when(pl.col(_SPECIAL.TOTAL_FREQUENCY.value) == 0)
+            pl.when(pl.col(TOTAL_FREQUENCY) == 0)
             .then(0.0)
             # round(4) to preserve very small frequency shares (e.g. 0.02%)
-            .otherwise((pl.col(_COL.FREQUENCY.value) / pl.col(_SPECIAL.TOTAL_FREQUENCY.value) * 100).round(4))
+            .otherwise((pl.col("frequency") / pl.col(TOTAL_FREQUENCY) * 100).round(4))
             .alias("frequency_pct")
         )
 
-    def add_context_frequency_pct_to_df(
+    def _add_context_frequency_pct(
         self,
         df: pl.DataFrame,
         join_on: list[str],
@@ -608,83 +556,35 @@ class Aggregate(LazyNamespace):
             *df* with an added ``frequency_pct`` column (0–100).
         """
         overall_freq = (
-            self.get_df_overall()
-            .group_by(join_on)
-            .agg(pl.sum(_COL.FREQUENCY.value).alias("overall_total_frequency"))
+            self.explanations.overall.group_by(join_on)
+            .agg(pl.sum("frequency").alias("overall_total_frequency"))
             .collect()
         )
         df_joined = df.join(overall_freq, on=join_on, how="left")
         return df_joined.with_columns(
             pl.when(pl.col("overall_total_frequency").is_null() | (pl.col("overall_total_frequency") == 0))
             .then(0.0)
-            .otherwise((pl.col(_COL.FREQUENCY.value) / pl.col("overall_total_frequency") * 100).round(4))
+            .otherwise((pl.col("frequency") / pl.col("overall_total_frequency") * 100).round(4))
             .alias("frequency_pct")
         )
 
     @staticmethod
-    def _get_mean_aggregates():
-        """Get mean contribution aggregates."""
-
-        def _apply(col):
-            return pl.col(col).mean().alias(col)
-
-        return [
-            _apply(_COL.CONTRIBUTION.value),
-            _apply(_COL.CONTRIBUTION_ABS.value),
-        ]
-
-    @staticmethod
-    def _get_weighted_aggregates():
-        """Get frequency-weighted contribution aggregates normalized by total frequency."""
-
-        def _apply(col, alias):
-            return (
-                (pl.col(col) * pl.col(_COL.FREQUENCY.value)).sum() / pl.col(_SPECIAL.TOTAL_FREQUENCY.value).first()
-            ).alias(alias)
-
-        return [
-            _apply(_COL.CONTRIBUTION.value, _COL.CONTRIBUTION_WEIGHTED.value),
-            _apply(_COL.CONTRIBUTION_ABS.value, _COL.CONTRIBUTION_WEIGHTED_ABS.value),
-        ]
-
-    @staticmethod
-    def _get_frequency_aggregate():
-        """Get frequency sum aggregate."""
-        return [pl.col(_COL.FREQUENCY.value).sum().alias(_COL.FREQUENCY.value)]
-
-    @staticmethod
-    def _get_bounds_aggregates():
-        """Get min and max contribution bounds."""
-        return [
-            pl.col(_COL.CONTRIBUTION_MIN.value).min().alias(_COL.CONTRIBUTION_MIN.value),
-            pl.col(_COL.CONTRIBUTION_MAX.value).max().alias(_COL.CONTRIBUTION_MAX.value),
-        ]
-
-    def _agg_over_columns_in_df(self, df, group_by):
-        """Aggregate contribution metrics over specified columns."""
-        aggregate_by_list = [
-            *self._get_mean_aggregates(),
-            *self._get_weighted_aggregates(),
-            *self._get_frequency_aggregate(),
-            *self._get_bounds_aggregates(),
-        ]
-        return df.group_by(group_by).agg(aggregate_by_list)
+    def _agg_over_columns_in_df(df: pl.LazyFrame, group_by: list[str]) -> pl.LazyFrame:
+        """Aggregate contribution metrics over *group_by*."""
+        return df.group_by(group_by).agg(_CONTRIBUTION_AGGREGATIONS)
 
     @staticmethod
     def _filter_single_bin_numeric_predictors(df: pl.LazyFrame) -> pl.LazyFrame:
         """Remove numeric predictors that have only a single non-missing bin."""
         single_bin_predictors = (
-            df.filter(
-                (pl.col(_COL.PREDICTOR_TYPE.value) == _PREDICTOR_TYPE.NUMERIC.value)
-                & (pl.col(_COL.BIN_CONTENTS.value) != _SPECIAL.MISSING.name)
-            )
-            .group_by([_COL.PARTITION.value, _COL.PREDICTOR_NAME.value])
-            .agg(pl.col(_COL.BIN_ORDER.value).n_unique().alias("bin_count"))
+            df.filter((pl.col("predictor_type") == NUMERIC) & (pl.col("bin_contents") != MISSING))
+            .group_by(["context_partition", "predictor_name"])
+            .agg(pl.col("bin_order").n_unique().alias("bin_count"))
             .filter(pl.col("bin_count") <= 1)
-            .select([_COL.PARTITION.value, _COL.PREDICTOR_NAME.value])
+            .select(["context_partition", "predictor_name"])
         )
         return df.join(
             single_bin_predictors,
-            on=[_COL.PARTITION.value, _COL.PREDICTOR_NAME.value],
+            on=["context_partition", "predictor_name"],
             how="anti",
         )

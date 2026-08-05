@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import polars as pl
 import streamlit as st
+
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
     contextual_filters,
@@ -9,13 +10,11 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     get_data_filters,
     show_filtered_counts,
 )
-from pdstools.utils.streamlit_utils import get_current_index
-
 from pdstools.decision_analyzer.utils import (
     apply_filter,
     get_first_level_stats,
 )
-from pdstools.utils.streamlit_utils import standard_page_config
+from pdstools.utils.streamlit_utils import get_current_index, standard_page_config
 
 standard_page_config(page_title="Win/Loss · Decision Analysis")
 

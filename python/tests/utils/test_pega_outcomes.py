@@ -61,7 +61,10 @@ class TestResolveOutcomeLabels:
 class TestGetOpenrateLabels:
     def test_outbound_returns_labels(self):
         result = get_openrate_labels("Email/Outbound")
-        assert result is not None
+        assert result == {
+            "positive": ["Opened", "Open"],
+            "negative": ["Impression", "Pending"],
+        }
         assert result["positive"] == ["Opened", "Open"]
         assert result["negative"] == ["Impression", "Pending"]
 
@@ -73,7 +76,10 @@ class TestGetOpenrateLabels:
 
     def test_sms_outbound_returns_labels(self):
         result = get_openrate_labels("SMS/Outbound")
-        assert result is not None
+        assert result == {
+            "positive": ["Opened", "Open"],
+            "negative": ["Impression", "Pending"],
+        }
         assert "Opened" in result["positive"]
 
     def test_no_direction_returns_none(self):
