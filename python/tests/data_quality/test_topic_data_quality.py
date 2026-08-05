@@ -80,6 +80,32 @@ def dq(sample_df: pl.DataFrame) -> TopicDataQuality:
     return result
 
 
+@pytest.fixture(autouse=True)
+def _fake_nlp_backends(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep tests focused on pdstools instead of external ML implementations."""
+
+    class FakeSentenceTransformer:
+        def __init__(self, model_name: str) -> None:
+            assert model_name == "all-MiniLM-L6-v2"
+
+        def encode(self, texts: list[str], *, show_progress_bar: bool) -> np.ndarray:
+            assert not show_progress_bar
+            return np.arange(len(texts) * 3, dtype=float).reshape(len(texts), 3)
+
+    class FakeUMAP:
+        def __init__(self, **kwargs: object) -> None:
+            assert kwargs == {"n_neighbors": 15, "min_dist": 0.1, "random_state": 42}
+
+        def fit_transform(self, embeddings: np.ndarray) -> np.ndarray:
+            return embeddings[:, :2]
+
+    import sentence_transformers
+    import umap
+
+    monkeypatch.setattr(sentence_transformers, "SentenceTransformer", FakeSentenceTransformer)
+    monkeypatch.setattr(umap, "UMAP", FakeUMAP)
+
+
 @pytest.fixture
 def singleton_topic_dq() -> TopicDataQuality:
     df = pl.DataFrame(
@@ -633,38 +659,14 @@ class TestTopicLearnability:
 
 
 class TestEmbeddingsCaching:
-    def test_embeddings_cached(self, dq: TopicDataQuality, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_embeddings_cached(self, dq: TopicDataQuality) -> None:
         dq._embeddings = None
-
-        class FakeSentenceTransformer:
-            def __init__(self, model_name: str) -> None:
-                assert model_name == "all-MiniLM-L6-v2"
-
-            def encode(self, texts: list[str], *, show_progress_bar: bool) -> np.ndarray:
-                assert not show_progress_bar
-                return np.arange(len(texts) * 3, dtype=float).reshape(len(texts), 3)
-
-        import sentence_transformers
-
-        monkeypatch.setattr(sentence_transformers, "SentenceTransformer", FakeSentenceTransformer)
         emb1 = dq.compute.embeddings()
         emb2 = dq.compute.embeddings()
         assert emb1 is emb2
 
-    def test_embeddings_shape(self, dq: TopicDataQuality, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_embeddings_shape(self, dq: TopicDataQuality) -> None:
         dq._embeddings = None
-
-        class FakeSentenceTransformer:
-            def __init__(self, model_name: str) -> None:
-                assert model_name == "all-MiniLM-L6-v2"
-
-            def encode(self, texts: list[str], *, show_progress_bar: bool) -> np.ndarray:
-                assert not show_progress_bar
-                return np.ones((len(texts), 3))
-
-        import sentence_transformers
-
-        monkeypatch.setattr(sentence_transformers, "SentenceTransformer", FakeSentenceTransformer)
         emb = dq.compute.embeddings()
         assert emb.shape[0] == 16
         assert emb.shape[1] == 3
@@ -676,19 +678,8 @@ class TestEmbeddingsCaching:
 
 
 class TestUmapCaching:
-    def test_umap_cached(self, dq: TopicDataQuality, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_umap_cached(self, dq: TopicDataQuality) -> None:
         dq._umap_coords = None
-
-        class FakeUMAP:
-            def __init__(self, **kwargs: object) -> None:
-                assert kwargs == {"n_neighbors": 15, "min_dist": 0.1, "random_state": 42}
-
-            def fit_transform(self, embeddings: np.ndarray) -> np.ndarray:
-                return embeddings[:, :2]
-
-        import umap
-
-        monkeypatch.setattr(umap, "UMAP", FakeUMAP)
         u1 = dq.compute.umap()
         u2 = dq.compute.umap()
         assert u1 is u2
