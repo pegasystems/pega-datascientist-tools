@@ -1232,11 +1232,17 @@ class Aggregates:
         )
 
         if every is None:
+            # Join by row position to preserve horizontal concat padding
+            # without relying on version-specific Polars concat modes.
             return (
-                pl.concat(
-                    [overall_summary, best_worst_channel_summary],
-                    how="horizontal",
+                overall_summary.with_row_index("__summary_row")
+                .join(
+                    best_worst_channel_summary.with_row_index("__summary_row"),
+                    on="__summary_row",
+                    how="full",
+                    coalesce=True,
                 )
+                .drop("__summary_row")
                 .with_columns(
                     cs.categorical().cast(pl.Utf8),
                     pl.col("Number of Valid Channels").fill_null(0),

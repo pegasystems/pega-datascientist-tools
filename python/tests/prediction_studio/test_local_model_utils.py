@@ -1,4 +1,5 @@
 import re
+import warnings
 
 # Compatibility patches
 import onnx
@@ -44,7 +45,15 @@ def get_classification_onnx_model():
     pipeline = Pipeline(
         [("preprocessor", preprocessor), ("regressor", RandomForestClassifier())],
     )
-    pipeline.fit(X_df, y)
+    with warnings.catch_warnings():
+        # scikit-learn <1.9 probes Polars' deprecated dataframe interchange
+        # protocol; scikit-learn 1.9 replaces this path with Narwhals.
+        warnings.filterwarnings(
+            "ignore",
+            message="Support for the dataframe interchange protocol is deprecated since version 1\\.40\\.0",
+            category=DeprecationWarning,
+        )
+        pipeline.fit(X_df, y)
     initial_types = [(col, FloatTensorType([None, 1])) for col in cleaned_names]
     metadata = Metadata(
         type=OutcomeType.CATEGORICAL,
