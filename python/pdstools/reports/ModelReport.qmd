@@ -709,6 +709,9 @@ def show_single_predictor(pred):
         pass
 
     auc_display = f"{univariate_auc * 100:.2f}"
+    calculated_auc = univariate_ci_payload.get("auc")
+    if calculated_auc is not None:
+        auc_display = f"{calculated_auc * 100:.2f}"
     if (
         univariate_ci_payload.get("ci_available")
         and univariate_ci_payload.get("ci_lower") is not None
