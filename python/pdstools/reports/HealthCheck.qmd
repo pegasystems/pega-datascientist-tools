@@ -1364,9 +1364,14 @@ if datamart.predictor_data is not None:
     predictor_category_columns = [
         column for column in predictors_per_category.columns if column != "Configuration"
     ]
-    predictors_per_category = predictors_per_category.with_columns(
-        pl.sum_horizontal(predictor_category_columns).alias("Total")
-    )
+    if predictor_category_columns:
+        predictors_per_category = predictors_per_category.with_columns(
+            pl.sum_horizontal(predictor_category_columns).alias("Total")
+        )
+    else:
+        predictors_per_category = predictors_per_category.with_columns(
+            pl.lit(0).alias("Total")
+        )
 
     gt = report_utils.create_metric_gttable(
         predictors_per_category,
