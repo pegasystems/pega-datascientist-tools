@@ -651,6 +651,7 @@ def render_import_ui() -> None:
         if model_source is None:
             st.error("Select a Model Snapshot to enable Import.")
             st.stop()
+            raise RuntimeError("A model snapshot is required for import.")
         try:
             with st.spinner("Importing Health Check data..."):
                 result = import_health_check_data(
