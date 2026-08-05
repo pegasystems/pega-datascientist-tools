@@ -705,8 +705,10 @@ def show_single_predictor(pred):
             predictor_binning_df.get_column("BinNegatives").to_list(),
             confidence_level=confidence_level,
         )
-    except Exception:
-        pass
+    except (KeyError, TypeError, ValueError, pl.exceptions.PolarsError) as exc:
+        report_utils.quarto_callout_info(
+            f"Univariate AUC confidence interval unavailable ({type(exc).__name__})."
+        )
 
     auc_display = f"{univariate_auc * 100:.2f}"
     calculated_auc = univariate_ci_payload.get("auc")
