@@ -174,9 +174,13 @@ def auc_ci_from_bincounts(
     dict[str, float | bool | str | None]
         Payload with keys ``auc``, ``variance``, ``ci_lower``, ``ci_upper``,
         ``ci_available``, and ``ci_reason``. AUC and interval bounds use the
-        conventional 0-to-1 scale; callers that display Pega's 50-to-100
-        scale should multiply them by 100. ``variance`` is on the squared
-        0-to-1 scale.
+        conventional 0-to-1 scale. The point estimate is passed through
+        :func:`safe_range_auc`, which reflects values below 0.5 around 0.5
+        so the reported AUC remains in the 0.5-to-1.0 range. Callers that
+        display Pega's 50-to-100 scale should multiply the AUC and bounds by
+        100. The bounds are clipped to 0-to-1 but are not independently
+        reflected around 0.5, so a lower bound can display below 50.
+        ``variance`` is on the squared 0-to-1 scale.
     """
     validate_confidence_level(confidence_level)
     pos_series, neg_series, probs_series = _validate_grouped_auc_inputs(pos, neg, probs)
@@ -249,7 +253,10 @@ def weighted_auc_ci_from_estimates(
     The weighted estimate uses normalized response-count-style weights. Under
     the independence assumption, its variance is the sum of each model
     variance multiplied by the square of its normalized weight. AUC and
-    confidence bounds are returned on the conventional 0-to-1 scale.
+    confidence bounds are returned on the conventional 0-to-1 scale. The
+    point estimates have already been normalized with ``safe_range_auc``;
+    bounds are clipped to 0-to-1 and are not independently reflected around
+    0.5.
 
     Parameters
     ----------

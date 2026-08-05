@@ -1121,9 +1121,13 @@ class ADMDatamart:
         AUC numbers from the datamart.
 
         AUC values and confidence-interval bounds are returned on the conventional
-        0-to-1 scale. To display them on Pega's 50-to-100 AUC scale, multiply the
-        AUC and bound columns by 100. The confidence-interval variance is expressed
-        on the corresponding squared 0-to-1 scale.
+        0-to-1 scale. The AUC point estimate uses ``safe_range_auc`` semantics:
+        values below 0.5 are reflected around 0.5 so the reported AUC stays in
+        the 0.5-to-1.0 range. To display the AUC and bounds on Pega's 50-to-100
+        scale, multiply them by 100. Bounds are clipped to 0-to-1 but are not
+        independently reflected around 0.5, so a lower bound can display below 50.
+        The confidence-interval variance is expressed on the corresponding squared
+        0-to-1 scale.
 
         Parameters
         ----------
