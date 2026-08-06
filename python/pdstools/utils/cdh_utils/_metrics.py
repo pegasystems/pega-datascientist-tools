@@ -37,6 +37,130 @@ def validate_confidence_level(confidence_level: float) -> float:
     return confidence_level
 
 
+def _auc_ci_from_binned_rows(
+    data: pl.LazyFrame,
+    *,
+    group_col: str,
+    positive_col: str,
+    negative_col: str,
+    confidence_level: float,
+) -> pl.LazyFrame:
+    """Calculate grouped-bin AUC confidence intervals with Polars expressions.
+
+    Parameters
+    ----------
+    data : pl.LazyFrame
+        Long-form bin data with one row per score bin.
+    group_col : str
+        Column identifying the independently evaluated groups.
+    positive_col : str
+        Column containing positive response counts.
+    negative_col : str
+        Column containing negative response counts.
+    confidence_level : float
+        Two-sided confidence level used to derive the interval.
+
+    Returns
+    -------
+    pl.LazyFrame
+        One row per group with AUC, variance, confidence bounds, and class
+        counts.
+    """
+    validate_confidence_level(confidence_level)
+    z_score = NormalDist().inv_cdf(0.5 + confidence_level / 2.0)
+
+    sorted_bins = (
+        data.select(
+            pl.col(group_col),
+            pl.col(positive_col).cast(pl.Float64).alias("_Positive"),
+            pl.col(negative_col).cast(pl.Float64).alias("_Negative"),
+        )
+        .with_row_index("_BinOrder")
+        .with_columns(
+            _PositiveCount=pl.col("_Positive").sum().over(group_col),
+            _NegativeCount=pl.col("_Negative").sum().over(group_col),
+            _Probability=(pl.col("_Positive") / (pl.col("_Positive") + pl.col("_Negative")))
+            .fill_nan(0.0)
+            .fill_null(0.0),
+        )
+        .sort(
+            group_col,
+            "_Probability",
+            "_BinOrder",
+            descending=[False, True, True],
+        )
+        .with_columns(
+            _CumulativePositive=pl.col("_Positive").cum_sum().over(group_col),
+            _CumulativeNegative=pl.col("_Negative").cum_sum().over(group_col),
+        )
+        .with_columns(
+            _AUCArea=(
+                (pl.col("_Negative") / pl.col("_NegativeCount"))
+                * ((2.0 * pl.col("_CumulativePositive") - pl.col("_Positive")) / (2.0 * pl.col("_PositiveCount")))
+            ),
+            _V10=(
+                (pl.col("_CumulativeNegative") - pl.col("_Negative") + 0.5 * pl.col("_Negative"))
+                / pl.col("_NegativeCount")
+            ),
+            _V01=(
+                (pl.col("_CumulativePositive") - pl.col("_Positive") + 0.5 * pl.col("_Positive"))
+                / pl.col("_PositiveCount")
+            ),
+        )
+        .with_columns(
+            _MeanV10=(pl.col("_V10") * pl.col("_Positive")).sum().over(group_col) / pl.col("_PositiveCount"),
+            _MeanV01=(pl.col("_V01") * pl.col("_Negative")).sum().over(group_col) / pl.col("_NegativeCount"),
+        )
+    )
+
+    grouped = sorted_bins.group_by(group_col).agg(
+        _PositiveCount=pl.col("_PositiveCount").first(),
+        _NegativeCount=pl.col("_NegativeCount").first(),
+        _RawAUC=pl.col("_AUCArea").sum(),
+        _VarianceV10=(
+            ((pl.col("_V10") - pl.col("_MeanV10")).pow(2) * pl.col("_Positive")).sum()
+            / (pl.col("_PositiveCount").first() - 1.0)
+        ),
+        _VarianceV01=(
+            ((pl.col("_V01") - pl.col("_MeanV01")).pow(2) * pl.col("_Negative")).sum()
+            / (pl.col("_NegativeCount").first() - 1.0)
+        ),
+    )
+
+    return (
+        grouped.with_columns(
+            AUC=pl.when(
+                (pl.col("_PositiveCount") == 0) | (pl.col("_NegativeCount") == 0),
+            )
+            .then(0.5)
+            .otherwise(0.5 + (0.5 - pl.col("_RawAUC")).abs()),
+            AUC_CI_Variance=pl.when(
+                (pl.col("_PositiveCount") > 1) & (pl.col("_NegativeCount") > 1),
+            )
+            .then(
+                (
+                    pl.col("_VarianceV10") / pl.col("_PositiveCount")
+                    + pl.col("_VarianceV01") / pl.col("_NegativeCount")
+                ).clip(lower_bound=0.0),
+            )
+            .otherwise(None),
+        )
+        .with_columns(
+            AUC_CI_Lower=(pl.col("AUC") - z_score * pl.col("AUC_CI_Variance").sqrt()).clip(0.0, 1.0),
+            AUC_CI_Upper=(pl.col("AUC") + z_score * pl.col("AUC_CI_Variance").sqrt()).clip(0.0, 1.0),
+        )
+        .select(
+            group_col,
+            "AUC",
+            "AUC_CI_Variance",
+            "AUC_CI_Lower",
+            "AUC_CI_Upper",
+            "_PositiveCount",
+            "_NegativeCount",
+        )
+    )
+
+
 def _validate_grouped_auc_inputs(
     pos: Sequence[int] | pl.Series,
     neg: Sequence[int] | pl.Series,

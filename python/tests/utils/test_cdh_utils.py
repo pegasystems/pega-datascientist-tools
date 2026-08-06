@@ -94,6 +94,41 @@ def test_auc_ci_from_bincounts_includes_auc_and_bounds():
     assert abs(payload["ci_upper"] - 0.7042163651423964) < 1e-12
 
 
+def test_native_auc_ci_expressions_match_series_calculation():
+    positives = [50, 70, 75, 80, 85, 90, 110, 130, 150, 160]
+    negatives = [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450]
+    bins = pl.DataFrame(
+        {
+            "ModelID": ["model"] * len(positives),
+            "Positives": positives,
+            "Negatives": negatives,
+        },
+    ).lazy()
+
+    result = _metrics._auc_ci_from_binned_rows(
+        bins,
+        group_col="ModelID",
+        positive_col="Positives",
+        negative_col="Negatives",
+        confidence_level=0.95,
+    ).collect()
+    expected = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert result["AUC"].item() == pytest.approx(expected["auc"], abs=1e-12)
+    assert result["AUC_CI_Variance"].item() == pytest.approx(
+        expected["variance"],
+        abs=1e-12,
+    )
+    assert result["AUC_CI_Lower"].item() == pytest.approx(
+        expected["ci_lower"],
+        abs=1e-12,
+    )
+    assert result["AUC_CI_Upper"].item() == pytest.approx(
+        expected["ci_upper"],
+        abs=1e-12,
+    )
+
+
 def test_weighted_auc_ci_from_estimates_propagates_variance():
     payload = cdh_utils.weighted_auc_ci_from_estimates(
         [0.6, 0.8],
