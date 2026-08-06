@@ -44,6 +44,11 @@ def test_notebook(relative_filepath):
             f"""
         import os
         import sys
+        if sys.platform == "win32":
+            import asyncio
+
+            # pyzmq requires add_reader support, which ProactorEventLoop lacks.
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         os.chdir(r'{notebook_dir}')
         sys.path.append('{pythonPath}')""",
         )
