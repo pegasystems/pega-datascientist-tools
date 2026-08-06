@@ -37,8 +37,8 @@ NBA Configuration,UsingNBAD,1.0,,,,
 NBA Configuration,UsingImpactAnalyzer,,1.0,,,
 Taxonomy,ActionCount,50.0,100.0,2500.0,10000.0,From service health limits
 Taxonomy,ActiveActionCount,50.0,100.0,2500.0,10000.0,
-Taxonomy,AverageGroupsPerIssue,1.0,5.0,25.0,,From service health limits
-Taxonomy,AverageTreatmentsPerChannelPerAction,1.0,1.0,5.0,,From service health limits
+Taxonomy,GroupsPerIssueAverage,1.0,5.0,25.0,,From service health limits
+Taxonomy,TreatmentsPerChannelPerActionAverage,1.0,1.0,5.0,,From service health limits
 Taxonomy,InactiveActionCount,,,,,
 Taxonomy,ActionsPerGroupMaximum,1.0,100.0,250.0,,
 Taxonomy,IssueCount,1.0,5.0,25.0,,From service health limits
