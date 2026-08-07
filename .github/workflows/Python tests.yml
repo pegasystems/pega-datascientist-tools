@@ -78,7 +78,7 @@ jobs:
             **/pyproject.toml
 
       - name: Install the project
-        run: uv sync --extra tests
+        run: uv sync --locked --extra tests
 
       - name: Run tests
         # Run in two passes:
@@ -154,7 +154,7 @@ jobs:
             **/pyproject.toml
 
       - name: Install the project
-        run: uv sync --extra tests
+        run: uv sync --locked --extra tests
 
       - name: Run Streamlit AppTest suite
         # Files listed in python/tests/torch_test_files.txt are excluded
@@ -222,7 +222,7 @@ jobs:
       - name: Install the project with torch and nlp
         # `nlp` already depends on `pdstools[torch]`, so `--extra nlp` would
         # cover both. Keep both flags for clarity in CI logs.
-        run: uv sync --extra tests --extra torch --extra nlp
+        run: uv sync --locked --extra tests --extra torch --extra nlp
 
       - name: Run PyTorch tests
         shell: bash

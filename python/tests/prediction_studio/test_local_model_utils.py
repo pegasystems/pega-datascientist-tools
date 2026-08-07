@@ -1,4 +1,4 @@
-import re
+import warnings
 
 # Compatibility patches
 import onnx
@@ -18,33 +18,60 @@ from pdstools.infinity.resources.prediction_studio.local_model_utils import (
 from pydantic import ValidationError
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.compose import ColumnTransformer
-from sklearn.datasets import load_diabetes, load_iris
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+_REGRESSION_INITIAL_TYPES = [("float_input", FloatTensorType([None, 8]))]
+
 
 def get_regression_pipeline():
-    diabetes = load_diabetes()
-    X, y = diabetes.data, diabetes.target
     pipeline = Pipeline([("regressor", LinearRegression())])
-    pipeline.fit(X, y)
+    pipeline.fit(
+        [
+            [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+            [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
+        ],
+        [1.0, 2.0, 3.0],
+    )
     return pipeline
 
 
 def get_classification_onnx_model():
-    iris = load_iris()
-    X, y = iris.data, [iris.target_names[i] for i in iris.target]
-    cleaned_names = [re.sub(r"\W+", "_", name) for name in iris.feature_names]
-    X_df = pl.DataFrame(X, cleaned_names)
+    cleaned_names = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
+    X_df = pl.DataFrame(
+        [
+            [5.1, 3.5, 1.4, 0.2],
+            [4.9, 3.0, 1.4, 0.2],
+            [7.0, 3.2, 4.7, 1.4],
+            [6.4, 3.2, 4.5, 1.5],
+            [6.3, 3.3, 6.0, 2.5],
+            [5.8, 2.7, 5.1, 1.9],
+        ],
+        schema=cleaned_names,
+        orient="row",
+    )
+    y = ["setosa", "setosa", "versicolor", "versicolor", "virginica", "virginica"]
     preprocessor = ColumnTransformer(
         transformers=[("num", StandardScaler(), cleaned_names)],
     )
     pipeline = Pipeline(
-        [("preprocessor", preprocessor), ("regressor", RandomForestClassifier())],
+        [
+            ("preprocessor", preprocessor),
+            ("regressor", RandomForestClassifier(n_estimators=1, random_state=0)),
+        ],
     )
-    pipeline.fit(X_df, y)
+    with warnings.catch_warnings():
+        # scikit-learn <1.9 probes Polars' deprecated dataframe interchange
+        # protocol; scikit-learn 1.9 replaces this path with Narwhals.
+        warnings.filterwarnings(
+            "ignore",
+            message="Support for the dataframe interchange protocol is deprecated since version 1\\.40\\.0",
+            category=DeprecationWarning,
+        )
+        pipeline.fit(X_df, y)
     initial_types = [(col, FloatTensorType([None, 1])) for col in cleaned_names]
     metadata = Metadata(
         type=OutcomeType.CATEGORICAL,
@@ -59,14 +86,24 @@ def get_classification_onnx_model():
     ), X_df.head(1)
 
 
-def test_onnx_create_from_model_proto():
-    onnx_model = get_classification_onnx_model()
-    recreated = ONNXModel.from_onnx_proto(model=onnx_model[0]._model)
-    assert recreated._model.SerializeToString() == onnx_model[0]._model.SerializeToString()
+@pytest.fixture(scope="module")
+def regression_pipeline():
+    return get_regression_pipeline()
 
 
-def test_validate_and_run_classification_onnx_model():
-    onnx_model, X_df = get_classification_onnx_model()
+@pytest.fixture(scope="module")
+def classification_onnx_model():
+    return get_classification_onnx_model()
+
+
+def test_onnx_create_from_model_proto(classification_onnx_model):
+    onnx_model, _ = classification_onnx_model
+    recreated = ONNXModel.from_onnx_proto(model=onnx_model._model)
+    assert recreated._model.SerializeToString() == onnx_model._model.SerializeToString()
+
+
+def test_validate_and_run_classification_onnx_model(classification_onnx_model):
+    onnx_model, X_df = classification_onnx_model
     assert onnx_model.validate() is True
 
     df = X_df.with_columns([pl.col(col).cast(pl.Float32) for col in X_df.columns])
@@ -79,13 +116,8 @@ def test_onnx_creation_fails():
         ONNXModel.from_sklearn_pipeline(model=LinearRegression(), initial_types=None)
 
 
-@pytest.mark.parametrize(
-    "model, initial_types, metadata",
-    [
-        (
-            get_regression_pipeline(),
-            [("float_input", FloatTensorType([None, 8]))],
-            Metadata.from_json("""
+def test_validate_regression_onnx_model(regression_pipeline):
+    metadata = Metadata.from_json("""
                 {
                     "predictorList": [
                         {"name": "MedInc", "index": 1, "inputName": "float_input"},
@@ -104,26 +136,23 @@ def test_onnx_creation_fails():
                         "maxValue": 6.0
                     }
                 }
-            """),
-        ),
-    ],
-)
-def test_validate_regression_onnx_model(model, initial_types, metadata):
+            """)
     assert (
-        ONNXModel.from_sklearn_pipeline(model=model, initial_types=initial_types).add_metadata(metadata).validate()
+        ONNXModel.from_sklearn_pipeline(
+            model=regression_pipeline,
+            initial_types=_REGRESSION_INITIAL_TYPES,
+        )
+        .add_metadata(metadata)
+        .validate()
         is True
     )
 
 
-@pytest.mark.parametrize(
-    "model, initial_types",
-    [(get_regression_pipeline(), [("float_input", FloatTensorType([None, 8]))])],
-)
-def test_validate_onnx_model_without_metadata(model, initial_types):
+def test_validate_onnx_model_without_metadata(regression_pipeline):
     with pytest.raises(ONNXModelValidationError):
         ONNXModel.from_sklearn_pipeline(
-            model=model,
-            initial_types=initial_types,
+            model=regression_pipeline,
+            initial_types=_REGRESSION_INITIAL_TYPES,
         ).validate()
 
 
@@ -219,11 +248,9 @@ def test_onnx_metadata_creation(metadata):
 
 
 @pytest.mark.parametrize(
-    "model, initial_types, metadata",
+    "metadata",
     [
-        (  # Invalid output label name
-            get_regression_pipeline(),
-            [("float_input", FloatTensorType([None, 8]))],
+        pytest.param(
             Metadata.from_json("""
                 {
                     "predictorList": [
@@ -244,10 +271,9 @@ def test_onnx_metadata_creation(metadata):
                     }
                 }
             """),
+            id="invalid-output-label",
         ),
-        (  # Duplicate predictor index
-            get_regression_pipeline(),
-            [("float_input", FloatTensorType([None, 8]))],
+        pytest.param(
             Metadata.from_json("""
                 {
                     "predictorList": [
@@ -268,10 +294,9 @@ def test_onnx_metadata_creation(metadata):
                     }
                 }
             """),
+            id="duplicate-predictor-index",
         ),
-        (  # Missing predictor mapping
-            get_regression_pipeline(),
-            [("float_input", FloatTensorType([None, 8]))],
+        pytest.param(
             Metadata.from_json("""
                 {
                     "predictorList": [
@@ -291,12 +316,13 @@ def test_onnx_metadata_creation(metadata):
                     }
                 }
             """),
+            id="missing-predictor-mapping",
         ),
     ],
 )
-def test_validate_onnx_model_with_invalid_metadata(model, initial_types, metadata):
+def test_validate_onnx_model_with_invalid_metadata(regression_pipeline, metadata):
     with pytest.raises(ONNXModelValidationError):
         ONNXModel.from_sklearn_pipeline(
-            model=model,
-            initial_types=initial_types,
+            model=regression_pipeline,
+            initial_types=_REGRESSION_INITIAL_TYPES,
         ).add_metadata(metadata).validate()

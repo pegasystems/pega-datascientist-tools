@@ -48,7 +48,7 @@ version = {attr="pdstools.__version__"}
 
 [project.optional-dependencies]
 adm = [
-    "plotly[express]>=6.0,<7",
+    "plotly[express]>=6.7,<7",
     'pydot>=4.0,<5',
     'requests',
 ]
@@ -64,7 +64,7 @@ nlp = [
     'scikit-learn',
     "sentence-transformers; python_version < '3.14'",
     "umap-learn; python_version < '3.14'",
-    "plotly[express]>=6.0,<7",
+    "plotly[express]>=6.7,<7",
     "cleanlab[datalab]; python_version < '3.14'",
 ]
 app = [
@@ -228,6 +228,11 @@ extend-immutable-calls = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 addopts = "--strict-markers"
+# Surface runtime API removals in dependency-update CI jobs.
+filterwarnings = [
+    "error::DeprecationWarning",
+    "error::PendingDeprecationWarning",
+]
 markers = [
     "slow: marks tests as slow (report generation, integration tests)",
     "ui: UI tests requiring a running Streamlit app and Playwright (deselect with '-m \"not ui\"')",
