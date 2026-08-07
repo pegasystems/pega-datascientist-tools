@@ -4242,6 +4242,7 @@ name = "pdstools"
 source = { editable = "." }
 dependencies = [
     { name = "polars" },
+    { name = "pre-commit" },
     { name = "typing-extensions" },
 ]
 
@@ -4472,6 +4473,7 @@ requires-dist = [
     { name = "polars", specifier = "!=1.35.1,>=1.37,<2" },
     { name = "polars", extras = ["rt64"], marker = "extra == 'app'", specifier = "!=1.35.1,>=1.37,<2" },
     { name = "polars-hash", marker = "extra == 'pega-io'", specifier = ">=0.5,<1" },
+    { name = "pre-commit", specifier = ">=4.6.1" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pydantic", marker = "extra == 'api'", specifier = ">=2.10,<3" },
     { name = "pydantic", marker = "extra == 'docs'" },

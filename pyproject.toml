@@ -40,6 +40,7 @@ requires-python = ">=3.10,<3.15"
 # major deps (requests, pyyaml, ipywidgets, etc.) can stay loose.
 dependencies = [
     "polars>=1.37,!=1.35.1,<2",
+    "pre-commit>=4.6.1",
     'typing_extensions',
 ]
 
@@ -227,11 +228,13 @@ extend-immutable-calls = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 addopts = "--strict-markers"
 # Surface runtime API removals in dependency-update CI jobs.
 filterwarnings = [
     "error::DeprecationWarning",
     "error::PendingDeprecationWarning",
+    "ignore:'parseString' deprecated - use 'parse_string'",
 ]
 markers = [
     "slow: marks tests as slow (report generation, integration tests)",
