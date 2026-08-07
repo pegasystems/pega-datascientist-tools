@@ -18,6 +18,7 @@ from ..pega_io.File import read_dataflow_output, read_ds_export
 from ..utils import cdh_utils
 from ..utils.cdh_utils import _polars_capitalize
 from ..utils.cdh_utils._io import _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS
+from ..utils.cdh_utils._metrics import _auc_ci_from_binned_rows
 from . import Schema
 from .Aggregates import Aggregates
 from .Analysis import Analysis
@@ -1172,63 +1173,7 @@ class ADMDatamart:
             - idx_max - The maximum bin index that can be reached given the current binning of all predictors
 
         """
-        import numpy as np
-
         cdh_utils.validate_confidence_level(confidence_level)
-
-        def find_binindex(bounds, score):
-            if score is None:
-                return None
-            bounds = [bound for bound in bounds if bound is not None]
-            if not bounds:
-                return None
-            if len(bounds) == 1:
-                return 0
-            # Polars has search_sorted but it seems it doesn't do
-            # the exact same thing as numpy searchsorted. We could
-            # also use python's native bisect but that seems slower.
-            return min(
-                max(1, np.searchsorted(bounds, score, side="right").item()),
-                len(bounds),
-            )
-
-        def auc_from_active_bins(pos, neg, idx_min, idx_max):
-            if idx_min is None or idx_max is None:
-                return None
-            active_pos = pos[idx_min:idx_max]
-            active_neg = neg[idx_min:idx_max]
-            if not active_pos or not active_neg:
-                return None
-            return cdh_utils.auc_from_bincounts(
-                active_pos,
-                active_neg,
-            )
-
-        def auc_ci_payload_field(pos, neg, idx_min, idx_max, field):
-            if idx_min is None or idx_max is None:
-                return {
-                    "variance": None,
-                    "ci_lower": None,
-                    "ci_upper": None,
-                    "ci_available": False,
-                    "ci_reason": "missing_score_range",
-                }[field]
-            active_pos = pos[idx_min:idx_max]
-            active_neg = neg[idx_min:idx_max]
-            if not active_pos or not active_neg:
-                return {
-                    "variance": None,
-                    "ci_lower": None,
-                    "ci_upper": None,
-                    "ci_available": False,
-                    "ci_reason": "empty_active_range",
-                }[field]
-            payload = cdh_utils.auc_ci_from_bincounts(
-                active_pos,
-                active_neg,
-                confidence_level=confidence_level,
-            )
-            return payload[field]
 
         if isinstance(model_ids, str):
             query = pl.col("ModelID") == model_ids
@@ -1254,169 +1199,143 @@ class ADMDatamart:
             allow_empty=True,
         )
 
-        classifier_info = (
+        scores = self._minMaxScoresPerModel(most_recent_binning_data)
+        classifier_bins = (
             most_recent_binning_data.filter(EntryType="Classifier")
-            .sort("BinIndex")
-            .group_by("ModelID", maintain_order=True)
-            .agg(
-                AUC_Datamart=pl.col("Performance").first(),
-                Bins=pl.len(),
-                classifierBounds=pl.col("BinLowerBound").cast(pl.Float64),
-                classifierPos=pl.col("BinPositives").cast(pl.Float64),
-                classifierNeg=pl.col("BinNegatives").cast(pl.Float64),
+            .select(
+                "ModelID",
+                "BinIndex",
+                AUC_Datamart=pl.col("Performance"),
+                _ClassifierBound=pl.col("BinLowerBound").cast(pl.Float64),
+                _ClassifierPositive=pl.col("BinPositives").cast(pl.Float64),
+                _ClassifierNegative=pl.col("BinNegatives").cast(pl.Float64),
+            )
+            .sort("ModelID", "BinIndex")
+            .join(scores, on="ModelID", how="left")
+            .with_columns(
+                Bins=pl.len().over("ModelID"),
+                _ValidBounds=pl.col("_ClassifierBound").is_not_null().sum().over("ModelID"),
+                _BinPosition=(pl.col("BinIndex").rank(method="ordinal").over("ModelID") - 1),
+                _MinInsertion=(
+                    pl.col("_ClassifierBound").is_not_null() & (pl.col("_ClassifierBound") <= pl.col("score_min"))
+                )
+                .sum()
+                .over("ModelID"),
+                _MaxInsertion=(
+                    pl.col("_ClassifierBound").is_not_null() & (pl.col("_ClassifierBound") <= pl.col("score_max"))
+                )
+                .sum()
+                .over("ModelID"),
+            )
+            .with_columns(
+                idx_min=pl.when(
+                    pl.col("score_min").is_null() | (pl.col("_ValidBounds") == 0),
+                )
+                .then(None)
+                .when(pl.col("_ValidBounds") == 1)
+                .then(-1)
+                .otherwise(
+                    pl.max_horizontal(
+                        1,
+                        pl.min_horizontal(
+                            "_MinInsertion",
+                            "_ValidBounds",
+                        ),
+                    )
+                    - 1,
+                )
+                .cast(pl.Int32),
+                idx_max=pl.when(
+                    pl.col("score_max").is_null() | (pl.col("_ValidBounds") == 0),
+                )
+                .then(None)
+                .when(pl.col("_ValidBounds") == 1)
+                .then(0)
+                .otherwise(
+                    pl.max_horizontal(
+                        1,
+                        pl.min_horizontal(
+                            "_MaxInsertion",
+                            "_ValidBounds",
+                        ),
+                    ),
+                )
+                .cast(pl.Int32),
             )
         )
 
-        scores = self._minMaxScoresPerModel(most_recent_binning_data)
+        classifier_info = classifier_bins.group_by("ModelID").agg(
+            AUC_Datamart=pl.col("AUC_Datamart").first(),
+            Bins=pl.col("Bins").first(),
+            nActivePredictors=pl.col("nActivePredictors").first(),
+            classifierLogOffset=pl.col("classifierLogOffset").first(),
+            sumMinLogOdds=pl.col("sumMinLogOdds").first(),
+            sumMaxLogOdds=pl.col("sumMaxLogOdds").first(),
+            score_min=pl.col("score_min").first(),
+            score_max=pl.col("score_max").first(),
+            idx_min=pl.col("idx_min").first(),
+            idx_max=pl.col("idx_max").first(),
+        )
+
+        full_range_auc = _auc_ci_from_binned_rows(
+            classifier_bins,
+            group_col="ModelID",
+            positive_col="_ClassifierPositive",
+            negative_col="_ClassifierNegative",
+            confidence_level=confidence_level,
+        ).select(
+            "ModelID",
+            AUC_FullRange=pl.col("AUC"),
+        )
+        active_range_auc = _auc_ci_from_binned_rows(
+            classifier_bins.filter(
+                (pl.col("_BinPosition") >= pl.col("idx_min")) & (pl.col("_BinPosition") < pl.col("idx_max")),
+            ),
+            group_col="ModelID",
+            positive_col="_ClassifierPositive",
+            negative_col="_ClassifierNegative",
+            confidence_level=confidence_level,
+        ).select(
+            "ModelID",
+            AUC_ActiveRange=pl.col("AUC"),
+            AUC_ActiveRange_CI_Variance=pl.col("AUC_CI_Variance"),
+            AUC_ActiveRange_CI_Lower=pl.col("AUC_CI_Lower"),
+            AUC_ActiveRange_CI_Upper=pl.col("AUC_CI_Upper"),
+            _ActivePositiveCount=pl.col("_PositiveCount"),
+            _ActiveNegativeCount=pl.col("_NegativeCount"),
+        )
 
         return (
-            classifier_info.join(scores, on="ModelID", how="left")
-            .with_columns(
-                AUC_FullRange=pl.map_groups(
-                    exprs=[
-                        pl.col("classifierPos").explode(empty_as_null=True),
-                        pl.col("classifierNeg").explode(empty_as_null=True),
-                    ],
-                    function=lambda data: cdh_utils.auc_from_bincounts(
-                        data[0],
-                        data[1],
-                    ),
-                    return_dtype=pl.Float64,
-                    returns_scalar=True,
-                ).over("ModelID"),
-                idx_min=(
-                    pl.map_groups(
-                        exprs=[
-                            pl.col("classifierBounds"),
-                            pl.col("score_min"),
-                        ],
-                        function=lambda data: find_binindex(
-                            data[0].to_list()[0],
-                            data[1].item(),
-                        ),
-                        return_dtype=pl.Int32,
-                        returns_scalar=True,
-                    )
-                    - 1
-                ).over("ModelID"),
-                idx_max=pl.map_groups(
-                    exprs=[
-                        pl.col("classifierBounds"),
-                        pl.col("score_max"),
-                    ],
-                    function=lambda data: find_binindex(
-                        data[0].to_list()[0],
-                        data[1].item(),
-                    ),
-                    return_dtype=pl.Int32,
-                    returns_scalar=True,
-                ).over("ModelID"),
+            classifier_info.join(
+                full_range_auc,
+                on="ModelID",
+                how="left",
+            )
+            .join(
+                active_range_auc,
+                on="ModelID",
+                how="left",
             )
             .with_columns(
-                AUC_ActiveRange=pl.map_groups(
-                    exprs=[
-                        pl.col("classifierPos"),
-                        pl.col("classifierNeg"),
-                        pl.col("idx_min"),
-                        pl.col("idx_max"),
-                    ],
-                    function=lambda data: auc_from_active_bins(
-                        data[0].to_list()[0],
-                        data[1].to_list()[0],
-                        data[2].item(),
-                        data[3].item(),
-                    ),
-                    return_dtype=pl.Float64,
-                    returns_scalar=True,
-                ).over("ModelID"),
-                AUC_ActiveRange_CI_Lower=pl.map_groups(
-                    exprs=[
-                        pl.col("classifierPos"),
-                        pl.col("classifierNeg"),
-                        pl.col("idx_min"),
-                        pl.col("idx_max"),
-                    ],
-                    function=lambda data: auc_ci_payload_field(
-                        data[0].to_list()[0],
-                        data[1].to_list()[0],
-                        data[2].item(),
-                        data[3].item(),
-                        "ci_lower",
-                    ),
-                    return_dtype=pl.Float64,
-                    returns_scalar=True,
-                ).over("ModelID"),
-                AUC_ActiveRange_CI_Variance=pl.map_groups(
-                    exprs=[
-                        pl.col("classifierPos"),
-                        pl.col("classifierNeg"),
-                        pl.col("idx_min"),
-                        pl.col("idx_max"),
-                    ],
-                    function=lambda data: auc_ci_payload_field(
-                        data[0].to_list()[0],
-                        data[1].to_list()[0],
-                        data[2].item(),
-                        data[3].item(),
-                        "variance",
-                    ),
-                    return_dtype=pl.Float64,
-                    returns_scalar=True,
-                ).over("ModelID"),
-                AUC_ActiveRange_CI_Upper=pl.map_groups(
-                    exprs=[
-                        pl.col("classifierPos"),
-                        pl.col("classifierNeg"),
-                        pl.col("idx_min"),
-                        pl.col("idx_max"),
-                    ],
-                    function=lambda data: auc_ci_payload_field(
-                        data[0].to_list()[0],
-                        data[1].to_list()[0],
-                        data[2].item(),
-                        data[3].item(),
-                        "ci_upper",
-                    ),
-                    return_dtype=pl.Float64,
-                    returns_scalar=True,
-                ).over("ModelID"),
-                AUC_ActiveRange_CI_Available=pl.map_groups(
-                    exprs=[
-                        pl.col("classifierPos"),
-                        pl.col("classifierNeg"),
-                        pl.col("idx_min"),
-                        pl.col("idx_max"),
-                    ],
-                    function=lambda data: auc_ci_payload_field(
-                        data[0].to_list()[0],
-                        data[1].to_list()[0],
-                        data[2].item(),
-                        data[3].item(),
-                        "ci_available",
-                    ),
-                    return_dtype=pl.Boolean,
-                    returns_scalar=True,
-                ).over("ModelID"),
-                AUC_ActiveRange_CI_Reason=pl.map_groups(
-                    exprs=[
-                        pl.col("classifierPos"),
-                        pl.col("classifierNeg"),
-                        pl.col("idx_min"),
-                        pl.col("idx_max"),
-                    ],
-                    function=lambda data: auc_ci_payload_field(
-                        data[0].to_list()[0],
-                        data[1].to_list()[0],
-                        data[2].item(),
-                        data[3].item(),
-                        "ci_reason",
-                    ),
-                    return_dtype=pl.Utf8,
-                    returns_scalar=True,
-                ).over("ModelID"),
+                AUC_ActiveRange_CI_Available=pl.col(
+                    "AUC_ActiveRange_CI_Variance",
+                ).is_not_null(),
+                AUC_ActiveRange_CI_Reason=pl.when(
+                    pl.col("idx_min").is_null() | pl.col("idx_max").is_null(),
+                )
+                .then(pl.lit("missing_score_range"))
+                .when(pl.col("AUC_ActiveRange").is_null())
+                .then(pl.lit("empty_active_range"))
+                .when(
+                    (pl.col("_ActivePositiveCount") <= 1) | (pl.col("_ActiveNegativeCount") <= 1),
+                )
+                .then(pl.lit("insufficient_class_volume"))
+                .when(pl.col("AUC_ActiveRange_CI_Variance").is_null())
+                .then(pl.lit("variance_unavailable"))
+                .otherwise(None),
             )
             .sort("ModelID")
-            .drop("classifierBounds", "classifierPos", "classifierNeg")
+            .drop("_ActivePositiveCount", "_ActiveNegativeCount")
             .select(cs.starts_with("AUC"), ~cs.starts_with("AUC"))
             .select("ModelID", ~cs.starts_with("ModelID"))
         )

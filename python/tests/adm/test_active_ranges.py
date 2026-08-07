@@ -5,6 +5,7 @@ import pathlib
 import polars as pl
 import pytest
 from pdstools import ADMDatamart
+from polars.testing import assert_frame_equal
 
 basePath = pathlib.Path(__file__).parent.parent.parent.parent
 
@@ -60,6 +61,23 @@ def test_active_ranges_basic(sample):
     assert all(idx_min >= 0 for idx_min in ar["idx_min"])
     assert all(idx_max > 0 for idx_max in ar["idx_max"])
     assert all(idx_max >= idx_min for idx_min, idx_max in zip(ar["idx_min"], ar["idx_max"], strict=False))
+
+
+def test_active_ranges_uses_native_polars_expressions(sample):
+    """Keep active-range calculations visible to the Polars optimizer."""
+    assert "python_udf" not in sample.active_ranges().explain()
+
+
+def test_active_ranges_streaming_matches_default_engine(sample):
+    """Return identical values through the streaming engine."""
+    query = sample.active_ranges()
+
+    assert_frame_equal(
+        query.collect(engine="streaming"),
+        query.collect(),
+        check_row_order=True,
+        check_column_order=True,
+    )
 
 
 def test_active_ranges_single_model(sample):
