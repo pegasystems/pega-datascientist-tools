@@ -235,6 +235,7 @@ filterwarnings = [
     "error::DeprecationWarning",
     "error::PendingDeprecationWarning",
     "ignore:'parseString' deprecated - use 'parse_string'",
+    "ignore:'resetCache' deprecated - use 'reset_cache'",
 ]
 markers = [
     "slow: marks tests as slow (report generation, integration tests)",
