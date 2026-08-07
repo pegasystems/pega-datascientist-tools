@@ -61,3 +61,8 @@ test_consolidation.py
 
 # Claude / Copilot local settings (machine-specific, may contain tokens)
 .claude/settings.json
+
+# SpecKit local state and generated specifications
+/.specify/
+/.github/agents/speckit*.agent.md
+/.github/prompts/speckit*.prompt.md
