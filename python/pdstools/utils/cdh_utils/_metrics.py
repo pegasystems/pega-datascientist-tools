@@ -240,7 +240,9 @@ def auc_variance_delong_grouped(
     neg: Sequence[int] | pl.Series,
     probs: Sequence[float] | pl.Series | None = None,
 ) -> float | None:
-    """Estimate AUC variance using DeLong-style grouped-bin formulation.
+    """Estimate AUC variance with grouped-bin DeLong-style variance.
+
+    This uses the DeLong 1988 method: https://doi.org/10.2307/2531595.
 
     Parameters
     ----------
@@ -305,8 +307,8 @@ def auc_ci_from_bincounts(
 
     The AUC point estimate is calculated with :func:`auc_from_bincounts`, so it
     follows the Pega safe-AUC convention and is always reported in the
-    0.5-to-1.0 direction. The variance uses a DeLong-style grouped-bin
-    formulation: observations in the same bin are treated as tied scores and
+    0.5-to-1.0 direction. The variance uses a `DeLong-style grouped-bin
+    formulation`_: observations in the same bin are treated as tied scores and
     receive the midrank contribution implied by the bin's positive and
     negative counts. This gives an analytic interval from aggregated bin
     counts without expanding the data back to one row per observation.
@@ -356,27 +358,32 @@ def auc_ci_from_bincounts(
     Notes
     -----
     The implementation is an aggregated-count analogue of DeLong variance for
-    ROC AUC. It assumes independent positive and negative observations and a
-    binary outcome. The bin counts preserve enough ordering information for the
-    AUC and variance calculation, but they do not recover information lost by
-    coarse binning. Wider bins therefore give a practical confidence interval
-    for the binned classifier summary, not a perfect substitute for row-level
-    scores.
+    `ROC AUC`_. It assumes independent positive and negative observations and
+    a binary outcome. The bin counts preserve enough ordering information for
+    the AUC and variance calculation, but they do not recover information lost
+    by coarse binning. Wider bins therefore give a practical confidence
+    interval for the binned classifier summary, not a perfect substitute for
+    row-level scores.
 
     References
     ----------
-    - DeLong, E. R., DeLong, D. M., & Clarke-Pearson, D. L. (1988). Comparing
-      the areas under two or more correlated receiver operating characteristic
-      curves: a nonparametric approach. Biometrics, 44(3), 837-845.
-    - Sun, X., & Xu, W. (2014). Fast implementation of DeLong's algorithm for
-      comparing the areas under correlated receiver operating characteristic
-      curves. IEEE Signal Processing Letters, 21(11), 1389-1393.
+    DeLong, E. R., DeLong, D. M., & Clarke-Pearson, D. L. (1988). Comparing
+    the areas under two or more correlated receiver operating characteristic
+    curves: a nonparametric approach. Biometrics, 44(3), 837-845.
+    https://doi.org/10.2307/2531595.
+
+    Sun, X., & Xu, W. (2014). Fast implementation of DeLong's algorithm for
+    comparing the areas under correlated receiver operating characteristic
+    curves. IEEE Signal Processing Letters, 21(11), 1389-1393.
 
     See Also
     --------
     auc_from_bincounts : Safe AUC point estimate from binned counts.
     auc_variance_delong_grouped : Grouped-bin DeLong-style variance estimate.
     weighted_auc_ci_from_estimates : Weighted CI for portfolio-level summaries.
+
+    .. _DeLong-style grouped-bin formulation: https://doi.org/10.2307/2531595
+    .. _ROC AUC: https://en.wikipedia.org/wiki/Receiver_operating_characteristic#Area_under_the_curve
     """
     validate_confidence_level(confidence_level)
     pos_series, neg_series, probs_series = _validate_grouped_auc_inputs(pos, neg, probs)
