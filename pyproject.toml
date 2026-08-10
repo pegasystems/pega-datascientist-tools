@@ -235,7 +235,7 @@ addopts = "--strict-markers"
 filterwarnings = [
     "error::DeprecationWarning",
     "error::PendingDeprecationWarning",
-    "ignore::pyparsing.warnings.PyparsingDeprecationWarning",
+    "ignore:^'[A-Za-z][A-Za-z0-9]*' deprecated - use '[a-z_][a-z0-9_]*':DeprecationWarning",
 ]
 markers = [
     "slow: marks tests as slow (report generation, integration tests)",
