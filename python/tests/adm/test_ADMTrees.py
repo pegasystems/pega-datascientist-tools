@@ -372,6 +372,196 @@ def test_predictor_diagnostics_flags_symbolic_cardinality_and_numeric_like_value
     assert "verify whether it should be configured as numeric" in price["flags"]
 
 
+def test_predictor_diagnostics_handles_empty_models():
+    import polars as pl
+
+    model = ADMTreesModel(trees={}, model=[])
+
+    df = model.predictor_diagnostics()
+
+    assert df.is_empty()
+    assert df.schema == {
+        "predictor": pl.String,
+        "predictor_type": pl.String,
+        "predictor_category": pl.String,
+        "active": pl.Boolean,
+        "split_count": pl.Int64,
+        "total_gain": pl.Float64,
+        "observed_values": pl.Int64,
+        "numeric_like_values": pl.Int64,
+        "numeric_like_fraction": pl.Float64,
+        "used_bins": pl.Int64,
+        "max_bins": pl.Int64,
+        "bin_fill_rate": pl.Float64,
+        "cardinality_source": pl.String,
+        "flags": pl.String,
+    }
+
+
+def test_predictor_diagnostics_infers_exported_model_types_from_splits():
+    model = ADMTreesModel.from_dict(
+        {
+            "model": {
+                "boosters": [
+                    {
+                        "trees": [
+                            {
+                                "score": 0.0,
+                                "split": "Customer.Age < 35",
+                                "gain": 2.0,
+                                "left": {"score": 0.1},
+                                "right": {
+                                    "score": -0.1,
+                                    "split": "Customer.PostalPrefix in { 101, 102, 103 }",
+                                    "gain": 1.0,
+                                    "left": {"score": 0.2},
+                                    "right": {"score": -0.2},
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    rows = {row["predictor"]: row for row in model.predictor_diagnostics().to_dicts()}
+
+    age = rows["Customer.Age"]
+    assert age["predictor_type"] == "numeric"
+    assert age["active"] is True
+    assert age["split_count"] == 1
+    assert age["total_gain"] == 2.0
+    assert age["cardinality_source"] == "split_values"
+    assert age["observed_values"] == 0
+    assert age["flags"] == ""
+
+    postal = rows["Customer.PostalPrefix"]
+    assert postal["predictor_type"] == "symbolic"
+    assert postal["observed_values"] == 3
+    assert postal["numeric_like_values"] == 3
+    assert postal["numeric_like_fraction"] == 1.0
+    assert "numeric-looking values" in postal["flags"]
+
+
+def test_predictor_diagnostics_flags_high_cardinality_without_encoder_capacity():
+    values = ", ".join(f"SKU{i:03d}" for i in range(5))
+    model = ADMTreesModel.from_dict(
+        {
+            "configuration": {"predictors": [{"name": "Param.SKUNumber", "type": "symbolic"}]},
+            "model": {
+                "boosters": [
+                    {
+                        "trees": [
+                            {
+                                "score": 0.0,
+                                "split": f"Param.SKUNumber in {{ {values} }}",
+                                "gain": 7.12345,
+                                "left": {"score": 0.1},
+                                "right": {"score": -0.1},
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    row = model.predictor_diagnostics(high_cardinality_threshold=5).row(0, named=True)
+
+    assert row["predictor"] == "Param.SKUNumber"
+    assert row["observed_values"] == 5
+    assert row["used_bins"] is None
+    assert row["max_bins"] is None
+    assert row["bin_fill_rate"] is None
+    assert row["total_gain"] == 7.1235
+    assert "High-cardinality symbolic predictor (5 split_values)" in row["flags"]
+
+
+def test_predictor_diagnostics_reads_numeric_and_unknown_encoder_metadata():
+    model = ADMTreesModel.from_dict(
+        {
+            "configuration": {
+                "predictors": [
+                    {"name": "Customer.Income", "type": "double"},
+                    {"name": "Customer.Flag", "type": "boolean"},
+                ],
+            },
+            "model": {
+                "boosters": [
+                    {
+                        "trees": [
+                            {
+                                "score": 0.0,
+                                "split": "Customer.Income < 1000",
+                                "gain": 3.0,
+                                "left": {"score": 0.1},
+                                "right": {"score": -0.1},
+                            },
+                        ],
+                    },
+                ],
+                "inputsEncoder": {
+                    "encoders": [
+                        {
+                            "key": "Customer.Income",
+                            "value": {
+                                "encoder": {
+                                    "quantileArray": {
+                                        "summary": {"initialValues": [10, 20, 30]},
+                                        "maxNumberOfBins": 10,
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            "key": "Customer.Unknown",
+                            "value": {"encoder": {"rareEncoder": {}}},
+                        },
+                    ],
+                },
+            },
+        },
+    )
+
+    rows = {row["predictor"]: row for row in model.predictor_diagnostics().to_dicts()}
+
+    income = rows["Customer.Income"]
+    assert income["predictor_type"] == "numeric"
+    assert income["used_bins"] == 3
+    assert income["max_bins"] == 10
+    assert income["bin_fill_rate"] == 0.3
+    assert income["flags"] == ""
+
+    unknown = rows["Customer.Unknown"]
+    assert unknown["predictor_type"] == "symbolic"
+    assert unknown["active"] is False
+    assert unknown["used_bins"] == 0
+    assert unknown["max_bins"] is None
+    assert unknown["cardinality_source"] == "encoder_bins"
+
+    flag = rows["Customer.Flag"]
+    assert flag["predictor_type"] == "symbolic"
+    assert flag["active"] is False
+
+
+@pytest.mark.parametrize(
+    ("raw_value", "expected"),
+    [
+        (None, False),
+        ("", False),
+        (" missing ", False),
+        ("true", False),
+        ("NaN", False),
+        ("inf", False),
+        ("'42.5'", True),
+        ("abc", False),
+    ],
+)
+def test_is_numeric_literal_handles_symbolic_edge_values(raw_value, expected):
+    assert ADMTreesModel._is_numeric_literal(raw_value) is expected
+
+
 # --- split type tests -------------------------------------------------------
 
 

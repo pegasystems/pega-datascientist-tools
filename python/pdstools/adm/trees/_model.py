@@ -533,12 +533,13 @@ class ADMTreesModel:
         names = sorted(set(predictors) | set(encoder_info) | set(var_ops))
         rows: list[dict[str, Any]] = []
         for name in names:
+            split_operators = var_ops.get(name, set())
             info = encoder_info.get(name, {})
             predictor_type = self._normalise_predictor_type(
                 cast("str | None", info.get("type") or predictors.get(name)),
             )
             if predictor_type == "unknown":
-                predictor_type = "numeric" if "<" in var_ops[name] else "symbolic"
+                predictor_type = "numeric" if "<" in split_operators else "symbolic"
             observed_values = set(info.get("values", split_values.get(name, set())))
             observed_value_count = len(observed_values)
             numeric_like_count = sum(self._is_numeric_literal(value) for value in observed_values)
@@ -577,9 +578,9 @@ class ADMTreesModel:
                     "predictor": name,
                     "predictor_type": predictor_type,
                     "predictor_category": self._classify_predictor(name),
-                    "active": name in var_ops,
-                    "split_count": var_split_count[name],
-                    "total_gain": round(var_total_gain[name], 4),
+                    "active": bool(split_operators),
+                    "split_count": var_split_count.get(name, 0),
+                    "total_gain": round(var_total_gain.get(name, 0.0), 4),
                     "observed_values": observed_value_count,
                     "numeric_like_values": numeric_like_count,
                     "numeric_like_fraction": round(numeric_like_fraction, 4),

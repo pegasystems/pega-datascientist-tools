@@ -51,7 +51,7 @@ def _toc_anchor(title: str) -> str:
 
 
 def test_agb_explained_intro_toc_matches_level_two_headings():
-    notebook = json.loads(AGB_EXPLAINED.read_text())
+    notebook = json.loads(AGB_EXPLAINED.read_text(encoding="utf-8"))
 
     headings = _level_two_headings(notebook)
     entries = _intro_toc_entries(notebook)
