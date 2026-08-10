@@ -471,6 +471,157 @@ class ADMTreesModel:
             "flags": [msg for is_flag, msg in checks if is_flag],
         }
 
+    def predictor_diagnostics(
+        self,
+        *,
+        high_cardinality_threshold: int = 200,
+        numeric_like_min_values: int = 3,
+    ) -> pl.DataFrame:
+        """Summarise predictor-level diagnostics for the exported model.
+
+        Parameters
+        ----------
+        high_cardinality_threshold : int, default 200
+            Symbolic predictors with this many observed values or used encoder
+            bins are flagged as high-cardinality.
+        numeric_like_min_values : int, default 3
+            Minimum number of numeric-looking symbolic values before a predictor
+            is flagged for type verification.
+
+        Returns
+        -------
+        polars.DataFrame
+            One row per known predictor, including split counts, gain, encoder
+            bin usage when available, and human-readable flag text.
+        """
+        schema = {
+            "predictor": pl.String,
+            "predictor_type": pl.String,
+            "predictor_category": pl.String,
+            "active": pl.Boolean,
+            "split_count": pl.Int64,
+            "total_gain": pl.Float64,
+            "observed_values": pl.Int64,
+            "numeric_like_values": pl.Int64,
+            "numeric_like_fraction": pl.Float64,
+            "used_bins": pl.Int64,
+            "max_bins": pl.Int64,
+            "bin_fill_rate": pl.Float64,
+            "cardinality_source": pl.String,
+            "flags": pl.String,
+        }
+        encoder_info = self._get_encoder_info() or {}
+        predictors = self.predictors or {}
+        var_ops: dict[str, set[str]] = collections.defaultdict(set)
+        var_split_count: dict[str, int] = collections.defaultdict(int)
+        var_total_gain: dict[str, float] = collections.defaultdict(float)
+        split_values: dict[str, set[Any]] = collections.defaultdict(set)
+
+        for tree in self.model:
+            for node in _iter_nodes(tree):
+                split = node.split
+                if split is None:
+                    continue
+                name = split.variable
+                var_ops[name].add(split.operator)
+                var_split_count[name] += 1
+                var_total_gain[name] += node.gain
+                if split.is_symbolic:
+                    values = split.value if isinstance(split.value, tuple) else (split.value,)
+                    split_values[name].update(values)
+
+        names = sorted(set(predictors) | set(encoder_info) | set(var_ops))
+        rows: list[dict[str, Any]] = []
+        for name in names:
+            info = encoder_info.get(name, {})
+            predictor_type = self._normalise_predictor_type(
+                cast("str | None", info.get("type") or predictors.get(name)),
+            )
+            if predictor_type == "unknown":
+                predictor_type = "numeric" if "<" in var_ops[name] else "symbolic"
+            observed_values = set(info.get("values", split_values.get(name, set())))
+            observed_value_count = len(observed_values)
+            numeric_like_count = sum(self._is_numeric_literal(value) for value in observed_values)
+            numeric_like_fraction = numeric_like_count / observed_value_count if observed_value_count else 0.0
+            used_bins = cast("int | None", info.get("used_bins"))
+            max_bins = cast("int | None", info.get("max_bins"))
+            bin_fill_rate = used_bins / max_bins if used_bins is not None and max_bins else None
+            cardinality_count = used_bins if used_bins is not None else observed_value_count
+            cardinality_source = "encoder_bins" if used_bins is not None else "split_values"
+
+            flags: list[str] = []
+            if (
+                predictor_type == "symbolic"
+                and max_bins is not None
+                and used_bins is not None
+                and used_bins >= max_bins
+            ):
+                flags.append(
+                    f"Symbolic encoder has reached its {max_bins}-bin capacity; values are sharing hashed bins.",
+                )
+            elif predictor_type == "symbolic" and cardinality_count >= high_cardinality_threshold:
+                flags.append(
+                    f"High-cardinality symbolic predictor ({cardinality_count} {cardinality_source}); if this is an identifier or code, consider a coarser derived predictor.",
+                )
+            if (
+                predictor_type == "symbolic"
+                and numeric_like_count >= numeric_like_min_values
+                and numeric_like_fraction >= 0.8
+            ):
+                flags.append(
+                    "Symbolic predictor has numeric-looking values; verify whether it should be configured as numeric.",
+                )
+
+            rows.append(
+                {
+                    "predictor": name,
+                    "predictor_type": predictor_type,
+                    "predictor_category": self._classify_predictor(name),
+                    "active": name in var_ops,
+                    "split_count": var_split_count[name],
+                    "total_gain": round(var_total_gain[name], 4),
+                    "observed_values": observed_value_count,
+                    "numeric_like_values": numeric_like_count,
+                    "numeric_like_fraction": round(numeric_like_fraction, 4),
+                    "used_bins": used_bins,
+                    "max_bins": max_bins,
+                    "bin_fill_rate": round(bin_fill_rate, 4) if bin_fill_rate is not None else None,
+                    "cardinality_source": cardinality_source,
+                    "flags": " ".join(flags),
+                },
+            )
+        if not rows:
+            return pl.DataFrame(schema=schema)
+        return pl.DataFrame(rows, schema=schema).sort(
+            ["flags", "total_gain", "predictor"],
+            descending=[True, True, False],
+        )
+
+    @staticmethod
+    def _normalise_predictor_type(predictor_type: str | None) -> str:
+        """Normalise Pega predictor-type labels to diagnostic categories."""
+        if predictor_type is None:
+            return "unknown"
+        lower = predictor_type.lower()
+        if lower in {"numeric", "double", "integer", "float"}:
+            return "numeric"
+        if lower in {"symbolic", "string", "boolean"}:
+            return "symbolic"
+        return lower
+
+    @staticmethod
+    def _is_numeric_literal(value: Any) -> bool:
+        """Return whether a symbolic value can be interpreted as a finite number."""
+        if value is None:
+            return False
+        text = str(value).strip().strip("'")
+        if not text or text.lower() in {"missing", "true", "false", "nan", "inf", "-inf"}:
+            return False
+        try:
+            return math.isfinite(float(text))
+        except ValueError:
+            return False
+
     @staticmethod
     def metric_descriptions() -> dict[str, str]:
         """Return a dictionary mapping metric names to human-readable descriptions."""
@@ -817,15 +968,22 @@ class ADMTreesModel:
                 }
             elif encoder_type == "stringTranslator":
                 enc_data = encoder[encoder_type]
+                symbols = enc_data.get("symbols", [])
                 result[name] = {
                     "type": "symbolic",
-                    "used_bins": len(enc_data.get("symbols", [])),
+                    "used_bins": len(symbols),
                     "max_bins": enc_data.get("maxNumberOfBins"),
+                    "values": self._encoder_symbol_values(symbols),
                 }
             else:
                 result[name] = {"type": "unknown", "used_bins": 0, "max_bins": None}
 
         return result
+
+    @staticmethod
+    def _encoder_symbol_values(symbols: list[Any]) -> list[str]:
+        """Extract original symbolic values from ``value=index`` encoder entries."""
+        return [str(symbol).rsplit("=", 1)[0] for symbol in symbols]
 
     # ------------------------------------------------------------------
     # Cached views

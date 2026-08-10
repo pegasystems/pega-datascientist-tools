@@ -294,6 +294,84 @@ def test_sanity_check_handles_missing_response_counts():
     assert "Response counts are unavailable — volume-based stability checks were skipped." in result["flags"]
 
 
+def test_predictor_diagnostics_flags_symbolic_cardinality_and_numeric_like_values():
+    postal_symbols = [f"PC{i:03d}={i}" for i in range(256)]
+    price_symbols = ["44.95=0", "85.05=1", "94.95=2"]
+    model = ADMTreesModel.from_dict(
+        {
+            "configuration": {
+                "predictors": [
+                    {"name": "Customer.PrimaryPostalCode", "type": "symbolic"},
+                    {"name": "Param.RetailPrice", "type": "symbolic"},
+                ],
+            },
+            "model": {
+                "boosters": [
+                    {
+                        "trees": [
+                            {
+                                "score": 0.0,
+                                "split": "Customer.PrimaryPostalCode in { PC001, PC002 }",
+                                "gain": 2.5,
+                                "left": {"score": 0.1},
+                                "right": {
+                                    "score": -0.1,
+                                    "split": "Param.RetailPrice in { 44.95, 85.05, 94.95 }",
+                                    "gain": 1.5,
+                                    "left": {"score": 0.2},
+                                    "right": {"score": -0.2},
+                                },
+                            },
+                        ],
+                    },
+                ],
+                "inputsEncoder": {
+                    "encoders": [
+                        {
+                            "key": "Customer.PrimaryPostalCode",
+                            "value": {
+                                "index": 0,
+                                "encoder": {
+                                    "stringTranslator": {
+                                        "symbols": postal_symbols,
+                                        "maxNumberOfBins": 256,
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            "key": "Param.RetailPrice",
+                            "value": {
+                                "index": 1,
+                                "encoder": {
+                                    "stringTranslator": {
+                                        "symbols": price_symbols,
+                                        "maxNumberOfBins": 256,
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                },
+            },
+        },
+    )
+
+    rows = {row["predictor"]: row for row in model.predictor_diagnostics().to_dicts()}
+
+    postal = rows["Customer.PrimaryPostalCode"]
+    assert postal["predictor_type"] == "symbolic"
+    assert postal["used_bins"] == 256
+    assert postal["max_bins"] == 256
+    assert postal["bin_fill_rate"] == 1.0
+    assert "reached its 256-bin capacity" in postal["flags"]
+
+    price = rows["Param.RetailPrice"]
+    assert price["numeric_like_values"] == 3
+    assert price["numeric_like_fraction"] == 1.0
+    assert "verify whether it should be configured as numeric" in price["flags"]
+
+
 # --- split type tests -------------------------------------------------------
 
 
@@ -1077,8 +1155,7 @@ def test_plot_feature_importance_by_gain_return_df(rich_model: ADMTreesModel):
     # Top predictor must be pyGroup.
     assert df["predictor"][0] == "pyGroup"
     assert df["total_gain"][0] == pytest.approx(48305.23435, rel=1e-4)
-    # Undotted py* context fields follow ADM's default Primary category.
-    assert df["PredictorCategory"][0] == "Primary"
+    assert df["PredictorCategory"][0] == "Model context"
     # All rows are sorted descending by total_gain.
     gains = df["total_gain"].to_list()
     assert gains == sorted(gains, reverse=True)
@@ -1095,9 +1172,25 @@ def test_plot_feature_importance_by_gain_figure(rich_model: ADMTreesModel):
     fig = rich_model.plot.feature_importance_by_gain()
     assert isinstance(fig, go.Figure)
     colors_by_category = {trace.name: trace.marker.color for trace in fig.data}
+    assert colors_by_category["Model context"] == "#2E7D32"
     assert colors_by_category["Customer"] == "#001F5F"
     assert colors_by_category["IH"] == "#10A5AC"
-    assert colors_by_category["Primary"] == "#63666F"
+
+
+def test_agb_model_context_predictors_have_dedicated_category(rich_model: ADMTreesModel):
+    import polars as pl
+
+    predictors = ["pyIssue", "pyGroup", "pyName", "pyTreatment", "pyDirection", "pyChannel", "AnotherPrimary"]
+    df = pl.DataFrame({"predictor": predictors}).with_columns(rich_model.plot.predictor_category_expr)
+    assert df["PredictorCategory"].to_list() == [
+        "Model context",
+        "Model context",
+        "Model context",
+        "Model context",
+        "Model context",
+        "Model context",
+        "Primary",
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -1120,8 +1213,7 @@ def test_plot_early_vs_late_gain_return_df(rich_model: ADMTreesModel):
     row = df.filter(df["predictor"] == "pyGroup").row(0, named=True)
     assert row["early_gain"] == pytest.approx(15286.858930, rel=1e-4)
     assert row["late_gain"] == pytest.approx(6791.741500, rel=1e-4)
-    # Undotted py* context fields follow ADM's default Primary category.
-    assert row["PredictorCategory"] == "Primary"
+    assert row["PredictorCategory"] == "Model context"
 
 
 def test_plot_early_vs_late_gain_figure(rich_model: ADMTreesModel):
@@ -1186,8 +1278,7 @@ def test_plot_feature_role_map_return_df(rich_model: ADMTreesModel):
     assert row["tree_coverage"] == 63
     assert row["total_gain"] == pytest.approx(48305.23435, rel=1e-4)
     assert row["mean_depth"] == pytest.approx(4.3161, abs=1e-3)
-    # Undotted py* context fields follow ADM's default Primary category.
-    assert row["PredictorCategory"] == "Primary"
+    assert row["PredictorCategory"] == "Model context"
     # Exactly 4 predictor categories present.
     assert df["PredictorCategory"].n_unique() == 4
 
