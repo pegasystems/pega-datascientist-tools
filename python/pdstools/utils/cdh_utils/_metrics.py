@@ -149,12 +149,26 @@ def _auc_ci_from_binned_rows(
             AUC_CI_Lower=(pl.col("AUC") - z_score * pl.col("AUC_CI_Variance").sqrt()).clip(0.0, 1.0),
             AUC_CI_Upper=(pl.col("AUC") + z_score * pl.col("AUC_CI_Variance").sqrt()).clip(0.0, 1.0),
         )
+        .with_columns(
+            _AUC_CI_Safe_Lower=0.5 + (0.5 - pl.col("AUC_CI_Lower")).abs(),
+            _AUC_CI_Safe_Upper=0.5 + (0.5 - pl.col("AUC_CI_Upper")).abs(),
+        )
+        .with_columns(
+            AUC_CI_Safe_Lower=pl.when(
+                (pl.col("AUC_CI_Lower") <= 0.5) & (pl.col("AUC_CI_Upper") >= 0.5),
+            )
+            .then(0.5)
+            .otherwise(pl.min_horizontal("_AUC_CI_Safe_Lower", "_AUC_CI_Safe_Upper")),
+            AUC_CI_Safe_Upper=pl.max_horizontal("_AUC_CI_Safe_Lower", "_AUC_CI_Safe_Upper"),
+        )
         .select(
             group_col,
             "AUC",
             "AUC_CI_Variance",
             "AUC_CI_Lower",
             "AUC_CI_Upper",
+            "AUC_CI_Safe_Lower",
+            "AUC_CI_Safe_Upper",
             "_PositiveCount",
             "_NegativeCount",
         )
@@ -297,13 +311,15 @@ def auc_ci_from_bincounts(
     -------
     dict[str, float | bool | str | None]
         Payload with keys ``auc``, ``variance``, ``ci_lower``, ``ci_upper``,
-        ``ci_available``, and ``ci_reason``. AUC and interval bounds use the
-        conventional 0-to-1 scale. The point estimate is passed through
+        ``safe_ci_lower``, ``safe_ci_upper``, ``ci_available``, and
+        ``ci_reason``. AUC and interval bounds use the conventional 0-to-1
+        scale. The point estimate is passed through
         :func:`safe_range_auc`, which reflects values below 0.5 around 0.5
-        so the reported AUC remains in the 0.5-to-1.0 range. Callers that
-        display Pega's 50-to-100 scale should multiply the AUC and bounds by
-        100. The bounds are clipped to 0-to-1 but are not independently
-        reflected around 0.5, so a lower bound can display below 50.
+        so the reported AUC remains in the 0.5-to-1.0 range. The
+        ``safe_ci_lower`` and ``safe_ci_upper`` fields apply the same
+        convention to the confidence interval for Pega's 50-to-100 display
+        scale. The ``ci_lower`` and ``ci_upper`` fields remain the regular
+        0-to-1 interval endpoints before that safe-range transform.
         ``variance`` is on the squared 0-to-1 scale.
     """
     validate_confidence_level(confidence_level)
@@ -319,6 +335,8 @@ def auc_ci_from_bincounts(
             "variance": None,
             "ci_lower": None,
             "ci_upper": None,
+            "safe_ci_lower": None,
+            "safe_ci_upper": None,
             "ci_available": False,
             "ci_reason": "insufficient_class_volume",
         }
@@ -330,6 +348,8 @@ def auc_ci_from_bincounts(
             "variance": None,
             "ci_lower": None,
             "ci_upper": None,
+            "safe_ci_lower": None,
+            "safe_ci_upper": None,
             "ci_available": False,
             "ci_reason": "variance_unavailable",
         }
@@ -342,6 +362,8 @@ def auc_ci_from_bincounts(
             "variance": variance,
             "ci_lower": clipped,
             "ci_upper": clipped,
+            "safe_ci_lower": clipped,
+            "safe_ci_upper": clipped,
             "ci_available": True,
             "ci_reason": None,
         }
@@ -350,12 +372,15 @@ def auc_ci_from_bincounts(
     z_score = NormalDist().inv_cdf(1.0 - alpha / 2.0)
     ci_lower = min(max(auc - z_score * std_err, 0.0), 1.0)
     ci_upper = min(max(auc + z_score * std_err, 0.0), 1.0)
+    safe_ci_lower, safe_ci_upper = safe_range_interval(ci_lower, ci_upper)
 
     return {
         "auc": auc,
         "variance": variance,
         "ci_lower": ci_lower,
         "ci_upper": ci_upper,
+        "safe_ci_lower": safe_ci_lower,
+        "safe_ci_upper": safe_ci_upper,
         "ci_available": True,
         "ci_reason": None,
     }
@@ -378,9 +403,9 @@ def weighted_auc_ci_from_estimates(
     the independence assumption, its variance is the sum of each model
     variance multiplied by the square of its normalized weight. AUC and
     confidence bounds are returned on the conventional 0-to-1 scale. The
-    point estimates have already been normalized with ``safe_range_auc``;
-    bounds are clipped to 0-to-1 and are not independently reflected around
-    0.5.
+    point estimates have already been normalized with ``safe_range_auc``.
+    The ``safe_ci_lower`` and ``safe_ci_upper`` fields apply the same safe
+    AUC convention to the confidence interval for Pega-style display.
 
     Parameters
     ----------
@@ -399,7 +424,7 @@ def weighted_auc_ci_from_estimates(
         Weighted AUC, variance, confidence bounds, and availability status.
         The ``auc``, ``ci_lower``, and ``ci_upper`` values use the 0-to-1
         scale; ``variance`` uses the corresponding squared scale. Multiply
-        the AUC and bounds by 100 for Pega's 50-to-100 display scale.
+        the AUC and safe bounds by 100 for Pega's 50-to-100 display scale.
 
     Raises
     ------
@@ -418,6 +443,8 @@ def weighted_auc_ci_from_estimates(
             "variance": None,
             "ci_lower": None,
             "ci_upper": None,
+            "safe_ci_lower": None,
+            "safe_ci_upper": None,
             "ci_available": False,
             "ci_reason": "no_estimates",
         }
@@ -442,11 +469,17 @@ def weighted_auc_ci_from_estimates(
     standard_error = math.sqrt(max(weighted_variance, 0.0))
     z_score = NormalDist().inv_cdf(0.5 + confidence_level / 2.0)
 
+    ci_lower = min(max(weighted_auc - z_score * standard_error, 0.0), 1.0)
+    ci_upper = min(max(weighted_auc + z_score * standard_error, 0.0), 1.0)
+    safe_ci_lower, safe_ci_upper = safe_range_interval(ci_lower, ci_upper)
+
     return {
         "auc": weighted_auc,
         "variance": weighted_variance,
-        "ci_lower": min(max(weighted_auc - z_score * standard_error, 0.0), 1.0),
-        "ci_upper": min(max(weighted_auc + z_score * standard_error, 0.0), 1.0),
+        "ci_lower": ci_lower,
+        "ci_upper": ci_upper,
+        "safe_ci_lower": safe_ci_lower,
+        "safe_ci_upper": safe_ci_upper,
         "ci_available": True,
         "ci_reason": None,
     }
@@ -471,6 +504,43 @@ def safe_range_auc(auc: float) -> float:
     if np.isnan(auc):
         return 0.5
     return 0.5 + np.abs(0.5 - auc)
+
+
+def safe_range_interval(lower: float, upper: float) -> tuple[float, float]:
+    """Reflect an AUC interval onto Pega's safe 0.5-to-1.0 scale.
+
+    Parameters
+    ----------
+    lower : float
+        Lower confidence interval endpoint on the conventional 0-to-1 AUC scale.
+    upper : float
+        Upper confidence interval endpoint on the conventional 0-to-1 AUC scale.
+
+    Returns
+    -------
+    tuple[float, float]
+        Confidence interval endpoints after applying ``safe_range_auc`` semantics.
+        Endpoints are clipped to the valid AUC domain before folding. If the
+        clipped interval crosses 0.5, the safe lower bound is 0.5.
+
+    Raises
+    ------
+    ValueError
+        If either endpoint is non-finite or the lower endpoint is greater than
+        the upper endpoint.
+    """
+    if not math.isfinite(lower) or not math.isfinite(upper):
+        raise ValueError("AUC interval endpoints must be finite")
+    if lower > upper:
+        raise ValueError("AUC interval lower bound must be less than or equal to upper bound")
+
+    lower = min(max(lower, 0.0), 1.0)
+    upper = min(max(upper, 0.0), 1.0)
+    safe_lower = safe_range_auc(lower)
+    safe_upper = safe_range_auc(upper)
+    if lower <= 0.5 <= upper:
+        return 0.5, max(safe_lower, safe_upper)
+    return min(safe_lower, safe_upper), max(safe_lower, safe_upper)
 
 
 def auc_from_probs(groundtruth: list[int], probs: list[float]) -> float:

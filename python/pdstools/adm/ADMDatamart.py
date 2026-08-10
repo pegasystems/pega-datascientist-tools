@@ -1124,9 +1124,12 @@ class ADMDatamart:
         AUC values and confidence-interval bounds are returned on the conventional
         0-to-1 scale. The AUC point estimate uses ``safe_range_auc`` semantics:
         values below 0.5 are reflected around 0.5 so the reported AUC stays in
-        the 0.5-to-1.0 range. To display the AUC and bounds on Pega's 50-to-100
-        scale, multiply them by 100. Bounds are clipped to 0-to-1 but are not
-        independently reflected around 0.5, so a lower bound can display below 50.
+        the 0.5-to-1.0 range. The ``AUC_ActiveRange_CI_Safe_Lower`` and
+        ``AUC_ActiveRange_CI_Safe_Upper`` fields apply the same convention to the
+        interval bounds. To display the AUC and safe bounds on Pega's 50-to-100
+        scale, multiply them by 100. The raw ``AUC_ActiveRange_CI_Lower`` and
+        ``AUC_ActiveRange_CI_Upper`` fields remain the regular clipped interval
+        endpoints before that safe-range transform.
         The confidence-interval variance is expressed on the corresponding squared
         0-to-1 scale.
 
@@ -1154,6 +1157,8 @@ class ADMDatamart:
             - AUC_ActiveRange_CI_Variance - The variance of the active-range AUC estimate; null when unavailable
             - AUC_ActiveRange_CI_Lower - Lower CI bound for active-range AUC
             - AUC_ActiveRange_CI_Upper - Upper CI bound for active-range AUC
+            - AUC_ActiveRange_CI_Safe_Lower - Lower CI bound after applying Pega's safe AUC convention
+            - AUC_ActiveRange_CI_Safe_Upper - Upper CI bound after applying Pega's safe AUC convention
             - AUC_ActiveRange_CI_Available - Whether CI could be estimated
             - AUC_ActiveRange_CI_Reason - Unavailable reason when CI is missing
 
@@ -1301,6 +1306,8 @@ class ADMDatamart:
             AUC_ActiveRange_CI_Variance=pl.col("AUC_CI_Variance"),
             AUC_ActiveRange_CI_Lower=pl.col("AUC_CI_Lower"),
             AUC_ActiveRange_CI_Upper=pl.col("AUC_CI_Upper"),
+            AUC_ActiveRange_CI_Safe_Lower=pl.col("AUC_CI_Safe_Lower"),
+            AUC_ActiveRange_CI_Safe_Upper=pl.col("AUC_CI_Safe_Upper"),
             _ActivePositiveCount=pl.col("_PositiveCount"),
             _ActiveNegativeCount=pl.col("_NegativeCount"),
         )

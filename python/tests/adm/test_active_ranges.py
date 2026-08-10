@@ -32,6 +32,8 @@ def test_active_ranges_basic(sample):
         "AUC_ActiveRange_CI_Variance",
         "AUC_ActiveRange_CI_Lower",
         "AUC_ActiveRange_CI_Upper",
+        "AUC_ActiveRange_CI_Safe_Lower",
+        "AUC_ActiveRange_CI_Safe_Upper",
         "AUC_ActiveRange_CI_Available",
         "AUC_ActiveRange_CI_Reason",
         "Bins",
@@ -191,6 +193,8 @@ def test_active_ranges_empty_classifier_slice_returns_unavailable_ci(sample, mon
     assert result["AUC_ActiveRange"].item() is None
     assert result["AUC_ActiveRange_CI_Lower"].item() is None
     assert result["AUC_ActiveRange_CI_Upper"].item() is None
+    assert result["AUC_ActiveRange_CI_Safe_Lower"].item() is None
+    assert result["AUC_ActiveRange_CI_Safe_Upper"].item() is None
     assert result["AUC_ActiveRange_CI_Available"].item() is False
     assert result["AUC_ActiveRange_CI_Reason"].item() == "empty_active_range"
 

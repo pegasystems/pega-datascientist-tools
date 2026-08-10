@@ -233,8 +233,8 @@ try:
     ).collect().to_dicts()[0]
 
     auc_roc = active_range_info['AUC_ActiveRange']
-    ci_lower = active_range_info['AUC_ActiveRange_CI_Lower']
-    ci_upper = active_range_info['AUC_ActiveRange_CI_Upper']
+    ci_lower = active_range_info['AUC_ActiveRange_CI_Safe_Lower']
+    ci_upper = active_range_info['AUC_ActiveRange_CI_Safe_Upper']
     ci_available = active_range_info['AUC_ActiveRange_CI_Available']
     ci_reason = active_range_info['AUC_ActiveRange_CI_Reason']
     ci_percent = round(confidence_level * 100, 1)
@@ -696,6 +696,8 @@ def show_single_predictor(pred):
     univariate_ci_payload = {
         "ci_lower": None,
         "ci_upper": None,
+        "safe_ci_lower": None,
+        "safe_ci_upper": None,
         "ci_available": False,
         "ci_reason": "unavailable",
     }
@@ -716,16 +718,17 @@ def show_single_predictor(pred):
         auc_display = f"{calculated_auc * 100:.2f}"
     if (
         univariate_ci_payload.get("ci_available")
-        and univariate_ci_payload.get("ci_lower") is not None
-        and univariate_ci_payload.get("ci_upper") is not None
+        and univariate_ci_payload.get("safe_ci_lower") is not None
+        and univariate_ci_payload.get("safe_ci_upper") is not None
     ):
-        ci_half_width = (
-            (univariate_ci_payload["ci_upper"] - univariate_ci_payload["ci_lower"]) / 2
-        ) * 100
-        auc_display = f"{univariate_auc * 100:.2f} +/- {ci_half_width:.2f}"
+        auc_display = (
+            f"{univariate_auc * 100:.2f} "
+            f"[{univariate_ci_payload['safe_ci_lower'] * 100:.2f}, "
+            f"{univariate_ci_payload['safe_ci_upper'] * 100:.2f}]"
+        )
 
     predictor_summary_table = predictor_properties.collect().with_columns(
-        pl.lit(auc_display).alias("Univariate AUC (+/- CI)")
+        pl.lit(auc_display).alias("Univariate AUC (CI)")
     )
 
     # Predictor summary
