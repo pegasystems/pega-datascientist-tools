@@ -117,7 +117,7 @@ Module Contents
    .. py:attribute:: datamart
 
 
-   .. py:method:: model_reports(model_ids: str | list[str], *, name: str | None = None, only_active_predictors: bool = True, progress_callback: collections.abc.Callable[[int, int], None] | None = None, model_file_path: str | os.PathLike[str] | None = None, predictor_file_path: str | os.PathLike[str] | None = None, **options: Unpack[ReportOptions]) -> pathlib.Path
+   .. py:method:: model_reports(model_ids: str | list[str], *, name: str | None = None, only_active_predictors: bool = True, confidence_level: float = 0.95, progress_callback: collections.abc.Callable[[int, int], None] | None = None, model_file_path: str | os.PathLike[str] | None = None, predictor_file_path: str | os.PathLike[str] | None = None, **options: Unpack[ReportOptions]) -> pathlib.Path
 
       Generate model reports for Naive Bayes ADM models.
 
@@ -127,6 +127,8 @@ Module Contents
       :type name: str, optional
       :param only_active_predictors: Whether to only include active predictor details.
       :type only_active_predictors: bool, default=True
+      :param confidence_level: Two-sided confidence level for AUC confidence intervals.
+      :type confidence_level: float, default=0.95
       :param progress_callback: Function called as ``progress_callback(current, total)`` after each model
                                 report is rendered. Used by the Streamlit app.
       :type progress_callback: callable, optional
