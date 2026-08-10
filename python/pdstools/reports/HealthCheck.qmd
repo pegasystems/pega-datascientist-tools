@@ -1344,8 +1344,6 @@ The Predictor Categories identify the source of the predictors. By default we sp
 
 You can override this behavior when the data is read.
 
-The numbers here can differ from the totals above, these ones are leading.
-
 ```{python}
 if datamart.predictor_data is not None:
     predictors_per_category = (
@@ -1363,15 +1361,24 @@ if datamart.predictor_data is not None:
         )
         .fill_null(0)
     )
+    predictor_category_columns = [
+        column for column in predictors_per_category.columns if column != "Configuration"
+    ]
+    if predictor_category_columns:
+        predictors_per_category = predictors_per_category.with_columns(
+            pl.sum_horizontal(predictor_category_columns).alias("Total")
+        )
+    else:
+        predictors_per_category = predictors_per_category.with_columns(
+            pl.lit(0).alias("Total")
+        )
 
     gt = report_utils.create_metric_gttable(
         predictors_per_category,
         "Number of Predictors per Predictor Category",
         subtitle=f"models updated since {active_models_threshold_date_string}",
         column_to_metric={
-            tuple(
-                x for x in predictors_per_category.columns if x not in {"Configuration"}
-            ): "PredictorCount"
+            "Total": "PredictorCount",
         },
     )
 
@@ -1802,7 +1809,7 @@ else:
             color="Category",
             facet_col=facet,
             template="pega",
-            color_discrete_sequence=px.colors.sequential.Turbo,
+            color_discrete_sequence=px.colors.qualitative.Safe,
         )
 
         fig.for_each_xaxis(lambda xaxis: xaxis.update(title=""))

@@ -289,6 +289,19 @@ def test_GenerateModelReport(sample: ADMDatamart, tmp_path):
     assert len(errors) == 0, "Model report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
 
 
+def test_GenerateModelReport_confidence_level_override(sample: ADMDatamart, tmp_path):
+    report = sample.generate.model_reports(
+        model_ids=["bd70a915-697a-5d43-ab2c-53b0557c85a0"],
+        output_dir=tmp_path,
+        name="MyOrgCI90",
+        only_active_predictors=True,
+        confidence_level=0.90,
+    )
+    _assert_report_path(report, tmp_path, "ModelReport_MyOrgCI90_bd70a915-697a-5d43-ab2c-53b0557c85a0")
+    html = _read_report_html(report)
+    assert "90.0% confidence interval" in html
+
+
 @pytest.mark.slow
 def test_ModelReport_full_embed(sample: ADMDatamart, tmp_path):
     """Test model report file sizes for full_embed options."""

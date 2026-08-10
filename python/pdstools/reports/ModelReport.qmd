@@ -30,8 +30,8 @@ import os.path
 from pathlib import Path
 import traceback
 
-from pdstools import datasets, ADMDatamart, read_ds_export
-from pdstools.utils.cdh_utils import z_ratio, lift
+from pdstools import __version__ as pdstools_version, datasets, ADMDatamart, read_ds_export
+from pdstools.utils.cdh_utils import auc_ci_from_bincounts, z_ratio, lift
 import polars as pl
 from IPython.display import display, Markdown
 from great_tables import GT, style, md, html, loc
@@ -62,6 +62,7 @@ query = None
 model_id = None
 
 only_active_predictors = True
+confidence_level = 0.95
 # Fallback for direct/manual QMD execution. pdstools report generation passes
 # this parameter explicitly from Reports.model_reports(...).
 full_embed = True
@@ -81,6 +82,8 @@ if model_id and model_id == "None":
     model_id = None
 if isinstance(full_embed, str):
     full_embed = full_embed.lower() == "true"
+if isinstance(confidence_level, str):
+    confidence_level = float(confidence_level)
 
 # Plotly serializes figures at display time, so choose the renderer before
 # any plots are shown. Quarto embed-resources alone cannot rewrite already
@@ -211,6 +214,10 @@ The charts are built with [Plotly](https://plotly.com/python/) and have [user co
 ```{python}
 
 # unfortunately and TODO return_df on the previous plot doesnt give all the columns we'd need so we have to fetch the data separately
+adm_nb_explained_url = report_utils.docs_article_url("ADMExplained", pdstools_version)
+classifier = None
+active_range_info = None
+auc_roc = None
 
 try:
     classifier = (
@@ -220,20 +227,62 @@ try:
         .sort("BinIndex")
     )
 
-    active_range_info = datamart.active_ranges(model_id).collect().to_dicts()[0]
+    active_range_info = datamart.active_ranges(
+        model_id,
+        confidence_level=confidence_level,
+    ).collect().to_dicts()[0]
 
     auc_roc = active_range_info['AUC_ActiveRange']
+    ci_lower = active_range_info['AUC_ActiveRange_CI_Lower']
+    ci_upper = active_range_info['AUC_ActiveRange_CI_Upper']
+    ci_available = active_range_info['AUC_ActiveRange_CI_Available']
+    ci_reason = active_range_info['AUC_ActiveRange_CI_Reason']
+    ci_percent = round(confidence_level * 100, 1)
+
+    if ci_available and ci_lower is not None and ci_upper is not None:
+        auc_text = (
+            f"The model performance is **{round(auc_roc * 100, 2)}** measured as AUC-ROC "
+            f"with a **{ci_percent}% confidence interval** of "
+            f"**[{round(ci_lower * 100, 2)}, {round(ci_upper * 100, 2)}]**. "
+            "This number is calculated from the 'active' bins of the Classifier. "
+            "In Pega, AUC is always scaled to a number 50-100."
+        )
+    else:
+        reason = f" ({ci_reason})" if ci_reason else ""
+        auc_text = (
+            f"The model performance is **{round(auc_roc * 100, 2)}** measured as AUC-ROC. "
+            f"The **{ci_percent}% confidence interval** is unavailable{reason}. "
+            "This number is calculated from the 'active' bins of the Classifier. "
+            "In Pega, AUC is always scaled to a number 50-100."
+        )
 
     report_utils.quarto_print(
-        f"The model performance is **{round(auc_roc*100, 2)}** measured as AUC-ROC. This number is calculated from the 'active' bins of the Classifier. In Pega, AUC is always scaled to a number 50-100."
+        auc_text
     )
 except Exception as e:
     report_utils.quarto_plot_exception("Model Performance", e)
+    if classifier is not None:
+        fallback_range = (
+            classifier.select(
+                pl.col("BinIndex").min().alias("idx_min"),
+                pl.col("BinIndex").max().alias("idx_max"),
+            )
+            .collect()
+            .to_dicts()[0]
+        )
+        active_range_info = {
+            "idx_min": fallback_range["idx_min"],
+            "idx_max": fallback_range["idx_max"],
+        }
 ```
 
 The classifier maps the model scores (average of the log odds of the active predictors) to a propensity value. The “active” bins are the ones that can be reached from the current binning of the active predictors.
 
-See the [ADM NB Explained](https://pegasystems.github.io/pega-datascientist-tools/Python/articles/ADMExplained.html) article for more information on how ADM exactly works.
+```{python}
+report_utils.quarto_print(
+    f"See the [ADM NB Explained]({adm_nb_explained_url}) article for more information on how ADM exactly works."
+)
+```
 
 ```{python}
 gt = (
@@ -255,6 +304,7 @@ gt = (
     ).cols_label(
         ResponseCount="Responses",
     )
+    .fmt_number(columns=["Base Propensity"], decimals=3)
 )
 
 display(gt)
@@ -312,13 +362,28 @@ try:
 
     # TODO some of the formatting could be done in GT instead of in polars
 
-    gt = report_utils.create_metric_gttable(
-        human_friendly_scoredistribution, title="Score Distribution"
-    ).tab_style(
-        # this won't happen now - we could consider adding
-        # that info to the list
-        style=style.text(color="grey"),
-        locations=loc.body(rows=~active_range_filter_expr),
+    gt = (
+        report_utils.create_metric_gttable(
+            human_friendly_scoredistribution, title="Score Distribution"
+        )
+        .fmt_number(
+            columns=["Propensity (%)", "Adjusted Propensity (%)"],
+            decimals=3,
+        )
+        .fmt_number(
+            columns=["Z Ratio", "Lift (%)"],
+            decimals=1,
+        )
+        .fmt_number(
+            columns=["Cum. Positives (%)", "Cum. Total (%)"],
+            decimals=2,
+        )
+        .tab_style(
+            # this won't happen now - we could consider adding
+            # that info to the list
+            style=style.text(color="grey"),
+            locations=loc.body(rows=~active_range_filter_expr),
+        )
     )
 
     display(gt)
@@ -445,6 +510,7 @@ else:
                 title="Model Performance Trend",
                 yaxis_title="ROC-AUC",
                 xaxis_title="",
+                yaxis=dict(range=[50, 100]),
                 showlegend=False,
                 autosize=False,
                 width=400,
@@ -625,15 +691,47 @@ def show_single_predictor(pred):
         .item()
     )
 
+    predictor_binning_df = predictor_binning_data.collect()
+    univariate_auc = predictor_properties.select(pl.col("Univariate Performance")).collect().item()
+    univariate_ci_payload = {
+        "ci_lower": None,
+        "ci_upper": None,
+        "ci_available": False,
+        "ci_reason": "unavailable",
+    }
+    try:
+        univariate_ci_payload = auc_ci_from_bincounts(
+            predictor_binning_df.get_column("BinPositives").to_list(),
+            predictor_binning_df.get_column("BinNegatives").to_list(),
+            confidence_level=confidence_level,
+        )
+    except (KeyError, TypeError, ValueError, pl.exceptions.PolarsError) as exc:
+        report_utils.quarto_callout_info(
+            f"Univariate AUC confidence interval unavailable ({type(exc).__name__})."
+        )
+
+    auc_display = f"{univariate_auc * 100:.2f}"
+    calculated_auc = univariate_ci_payload.get("auc")
+    if calculated_auc is not None:
+        auc_display = f"{calculated_auc * 100:.2f}"
+    if (
+        univariate_ci_payload.get("ci_available")
+        and univariate_ci_payload.get("ci_lower") is not None
+        and univariate_ci_payload.get("ci_upper") is not None
+    ):
+        ci_half_width = (
+            (univariate_ci_payload["ci_upper"] - univariate_ci_payload["ci_lower"]) / 2
+        ) * 100
+        auc_display = f"{univariate_auc * 100:.2f} +/- {ci_half_width:.2f}"
+
+    predictor_summary_table = predictor_properties.collect().with_columns(
+        pl.lit(auc_display).alias("Univariate AUC (+/- CI)")
+    )
+
     # Predictor summary
 
     display(
-        report_utils.create_metric_gttable(predictor_properties.collect())
-        .fmt_number(
-            decimals=2,
-            scale_by=100.0,
-            columns=["Univariate Performance"],
-        )
+        report_utils.create_metric_gttable(predictor_summary_table)
         .fmt_number(
             decimals=2,
             columns=["Missing %", "Residual %"],
@@ -642,7 +740,16 @@ def show_single_predictor(pred):
             decimals=0,
             columns=["Positives", "Responses"],
         )
-        .cols_hide(["PredictorName", "isActive", "GroupIndex", "AnyActiveInGroup", "Indentation", "Binning", "PredictorLink"])
+        .cols_hide([
+            "PredictorName",
+            "isActive",
+            "GroupIndex",
+            "AnyActiveInGroup",
+            "Indentation",
+            "Binning",
+            "PredictorLink",
+            "Univariate Performance",
+        ])
         .cols_label(EntryType="Status")
     )
 
@@ -666,7 +773,19 @@ def show_single_predictor(pred):
         fig.add_hline(y=base_propensity, line_dash="dash", line_color="grey", yref="y2")
         # fig.update_xaxes(type='category') # prevent plotly from trying to guess
 
-        fig.update_layout(width=700, height=250)
+        fig.update_layout(
+            width=700,
+            height=250,
+            margin=dict(r=210),
+            yaxis2=dict(automargin=True),
+            legend=dict(
+                orientation="v",
+                x=1.14,
+                xanchor="left",
+                y=1.0,
+                yanchor="top",
+            ),
+        )
         fig.show()
 
         # Alternative view in the binning Lift plot
@@ -682,7 +801,7 @@ def show_single_predictor(pred):
 
     # Table with binning details
 
-    human_friendly_binning_table = predictor_binning_data.select(
+    human_friendly_binning_table = predictor_binning_df.select(
         pl.col("BinIndex").alias("Index"),
         pl.col("BinSymbol").alias("Bin"),
         pl.col("BinResponseCount").alias("Responses"),
@@ -694,10 +813,12 @@ def show_single_predictor(pred):
         .round(2)
         .alias("Lift (%)"),
         (pl.col("BinPropensity") * 100).round(3).alias("Propensity (%)"),
-    ).collect()
+    )
 
     display(
         report_utils.create_metric_gttable(human_friendly_binning_table)
+        .fmt_number(columns=["Propensity (%)"], decimals=3)
+        .fmt_number(columns=["Z Ratio", "Lift (%)"], decimals=1)
         .fmt_nanoplot(columns="Z Ratio", plot_type="bar", autoscale=False)
     )
 
@@ -718,9 +839,11 @@ for pred in (
 
 ```{python}
 # | echo: false
+from pdstools.utils import show_versions
 
 # unfortunately no way to get the quarto source file name, so that is hardcoded
 report_utils.show_credits("pega-datascientist-tools/python/pdstools/reports/ModelReport.qmd")
+show_versions.show_versions(include_dependencies=False)
 ```
 
 ::: {.callout-note collapse="true"}

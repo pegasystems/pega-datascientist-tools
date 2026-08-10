@@ -61,9 +61,11 @@ from ._io import (
     setup_logger,
 )
 from ._metrics import (
+    auc_ci_from_bincounts,
     auc_from_bincounts,
     auc_from_probs,
     auc_to_gini,
+    auc_variance_delong_grouped,
     aucpr_from_bincounts,
     aucpr_from_probs,
     bin_log_odds,
@@ -72,6 +74,8 @@ from ._metrics import (
     lift,
     log_odds_polars,
     safe_range_auc,
+    validate_confidence_level,
+    weighted_auc_ci_from_estimates,
     z_ratio,
 )
 from ._misc import legend_color_order, safe_flatten_list
@@ -96,10 +100,12 @@ __all__ = [
     "QUERY",
     # constants / shared types
     "F",
+    "auc_ci_from_bincounts",
     # metrics
     "auc_from_bincounts",
     "auc_from_probs",
     "auc_to_gini",
+    "auc_variance_delong_grouped",
     "aucpr_from_bincounts",
     "aucpr_from_probs",
     "bin_log_odds",
@@ -127,6 +133,8 @@ __all__ = [
     "safe_range_auc",
     "setup_logger",
     "to_prpc_date_time",
+    "validate_confidence_level",
+    "weighted_auc_ci_from_estimates",
     "weighted_average_polars",
     "weighted_performance_polars",
     "z_ratio",
