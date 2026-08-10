@@ -294,33 +294,89 @@ def auc_ci_from_bincounts(
     *,
     confidence_level: float = 0.95,
 ) -> dict[str, float | bool | str | None]:
-    """Compute grouped-bin AUC confidence interval payload.
+    """Compute an AUC confidence interval from binned class counts.
+
+    This helper is intended for situations where the original row-level
+    predictions are no longer available, but each score bin still carries the
+    number of positive and negative outcomes. A common ADM example is the
+    Naive Bayes ``Classifier`` row: the classifier bins summarize the model's
+    calibrated score distribution, and each bin contains observed positive and
+    negative response counts.
+
+    The AUC point estimate is calculated with :func:`auc_from_bincounts`, so it
+    follows the Pega safe-AUC convention and is always reported in the
+    0.5-to-1.0 direction. The variance uses a DeLong-style grouped-bin
+    formulation: observations in the same bin are treated as tied scores and
+    receive the midrank contribution implied by the bin's positive and
+    negative counts. This gives an analytic interval from aggregated bin
+    counts without expanding the data back to one row per observation.
+
+    Use this interval as an uncertainty estimate for a single independently
+    validated binary classifier. It is most useful when trend data is not
+    available and a single AUC point estimate would otherwise hide sample-size
+    uncertainty. For portfolio summaries across multiple models, combine model
+    estimates with :func:`weighted_auc_ci_from_estimates` rather than pooling
+    unrelated bins into one classifier.
 
     Parameters
     ----------
     pos : Sequence[int] | pl.Series
-        Positive class counts per score bin.
+        Positive class counts per score bin. Values must be non-negative and
+        aligned with ``neg`` and ``probs``.
     neg : Sequence[int] | pl.Series
-        Negative class counts per score bin.
+        Negative class counts per score bin. Values must be non-negative and
+        aligned with ``pos`` and ``probs``.
     probs : Sequence[float] | pl.Series | None, optional
-        Optional per-bin scores for sorting descending.
+        Optional per-bin scores for sorting descending. When omitted, bins are
+        ordered by their observed event rate, ``pos / (pos + neg)``. Pass this
+        argument when the bin order must follow an external score, propensity,
+        or classifier interval order rather than the observed response rate.
     confidence_level : float, default 0.95
-        Two-sided confidence level used to derive the interval.
+        Two-sided confidence level used to derive the interval. Must be a
+        finite value strictly between 0 and 1.
 
     Returns
     -------
     dict[str, float | bool | str | None]
         Payload with keys ``auc``, ``variance``, ``ci_lower``, ``ci_upper``,
         ``safe_ci_lower``, ``safe_ci_upper``, ``ci_available``, and
-        ``ci_reason``. AUC and interval bounds use the conventional 0-to-1
-        scale. The point estimate is passed through
-        :func:`safe_range_auc`, which reflects values below 0.5 around 0.5
-        so the reported AUC remains in the 0.5-to-1.0 range. The
-        ``safe_ci_lower`` and ``safe_ci_upper`` fields apply the same
-        convention to the confidence interval for Pega's 50-to-100 display
-        scale. The ``ci_lower`` and ``ci_upper`` fields remain the regular
-        0-to-1 interval endpoints before that safe-range transform.
-        ``variance`` is on the squared 0-to-1 scale.
+        ``ci_reason``.
+
+        ``auc`` is the safe 0.5-to-1.0 AUC point estimate. ``ci_lower`` and
+        ``ci_upper`` are the regular clipped confidence interval endpoints on
+        the 0-to-1 AUC scale. ``safe_ci_lower`` and ``safe_ci_upper`` fold that
+        interval through :func:`safe_range_interval` for Pega's safe display
+        convention; multiply ``auc`` and the safe bounds by 100 for the
+        50-to-100 Pega scale. ``variance`` is on the squared 0-to-1 AUC scale.
+
+        When the interval cannot be estimated, ``ci_available`` is ``False``,
+        interval fields are ``None``, and ``ci_reason`` is either
+        ``"insufficient_class_volume"`` or ``"variance_unavailable"``.
+
+    Notes
+    -----
+    The implementation is an aggregated-count analogue of DeLong variance for
+    ROC AUC. It assumes independent positive and negative observations and a
+    binary outcome. The bin counts preserve enough ordering information for the
+    AUC and variance calculation, but they do not recover information lost by
+    coarse binning. Wider bins therefore give a practical confidence interval
+    for the binned classifier summary, not a perfect substitute for row-level
+    scores.
+
+    References
+    ----------
+    - DeLong, E. R., DeLong, D. M., & Clarke-Pearson, D. L. (1988). Comparing
+      the areas under two or more correlated receiver operating characteristic
+      curves: a nonparametric approach. Biometrics, 44(3), 837-845.
+    - Sun, X., & Xu, W. (2014). Fast implementation of DeLong's algorithm for
+      comparing the areas under correlated receiver operating characteristic
+      curves. IEEE Signal Processing Letters, 21(11), 1389-1393.
+
+    See Also
+    --------
+    auc_from_bincounts : Safe AUC point estimate from binned counts.
+    auc_variance_delong_grouped : Grouped-bin DeLong-style variance estimate.
+    weighted_auc_ci_from_estimates : Weighted CI for portfolio-level summaries.
     """
     validate_confidence_level(confidence_level)
     pos_series, neg_series, probs_series = _validate_grouped_auc_inputs(pos, neg, probs)
