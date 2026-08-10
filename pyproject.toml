@@ -112,6 +112,7 @@ tests = [
     'itables>=2',
     'matplotlib>=3.8,<4',
     'numpy>=2.0,<3',
+    'pyparsing>=3.0,<4',
 ]
 
 [project.urls]
@@ -234,8 +235,7 @@ addopts = "--strict-markers"
 filterwarnings = [
     "error::DeprecationWarning",
     "error::PendingDeprecationWarning",
-    "ignore:'parseString' deprecated - use 'parse_string'",
-    "ignore:'resetCache' deprecated - use 'reset_cache'",
+    "ignore::pyparsing.warnings.PyparsingDeprecationWarning",
 ]
 markers = [
     "slow: marks tests as slow (report generation, integration tests)",
