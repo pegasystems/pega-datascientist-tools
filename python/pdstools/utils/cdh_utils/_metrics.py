@@ -149,12 +149,26 @@ def _auc_ci_from_binned_rows(
             AUC_CI_Lower=(pl.col("AUC") - z_score * pl.col("AUC_CI_Variance").sqrt()).clip(0.0, 1.0),
             AUC_CI_Upper=(pl.col("AUC") + z_score * pl.col("AUC_CI_Variance").sqrt()).clip(0.0, 1.0),
         )
+        .with_columns(
+            _AUC_CI_Safe_Lower=0.5 + (0.5 - pl.col("AUC_CI_Lower")).abs(),
+            _AUC_CI_Safe_Upper=0.5 + (0.5 - pl.col("AUC_CI_Upper")).abs(),
+        )
+        .with_columns(
+            AUC_CI_Safe_Lower=pl.when(
+                (pl.col("AUC_CI_Lower") <= 0.5) & (pl.col("AUC_CI_Upper") >= 0.5),
+            )
+            .then(0.5)
+            .otherwise(pl.min_horizontal("_AUC_CI_Safe_Lower", "_AUC_CI_Safe_Upper")),
+            AUC_CI_Safe_Upper=pl.max_horizontal("_AUC_CI_Safe_Lower", "_AUC_CI_Safe_Upper"),
+        )
         .select(
             group_col,
             "AUC",
             "AUC_CI_Variance",
             "AUC_CI_Lower",
             "AUC_CI_Upper",
+            "AUC_CI_Safe_Lower",
+            "AUC_CI_Safe_Upper",
             "_PositiveCount",
             "_NegativeCount",
         )
@@ -226,7 +240,9 @@ def auc_variance_delong_grouped(
     neg: Sequence[int] | pl.Series,
     probs: Sequence[float] | pl.Series | None = None,
 ) -> float | None:
-    """Estimate AUC variance using DeLong-style grouped-bin formulation.
+    """Estimate AUC variance with grouped-bin DeLong-style variance.
+
+    This uses the DeLong 1988 method: https://doi.org/10.2307/2531595.
 
     Parameters
     ----------
@@ -280,31 +296,94 @@ def auc_ci_from_bincounts(
     *,
     confidence_level: float = 0.95,
 ) -> dict[str, float | bool | str | None]:
-    """Compute grouped-bin AUC confidence interval payload.
+    """Compute an AUC confidence interval from binned class counts.
+
+    This helper is intended for situations where the original row-level
+    predictions are no longer available, but each score bin still carries the
+    number of positive and negative outcomes. A common ADM example is the
+    Naive Bayes ``Classifier`` row: the classifier bins summarize the model's
+    calibrated score distribution, and each bin contains observed positive and
+    negative response counts.
+
+    The AUC point estimate is calculated with :func:`auc_from_bincounts`, so it
+    follows the Pega safe-AUC convention and is always reported in the
+    0.5-to-1.0 direction. The variance uses a `DeLong-style grouped-bin
+    formulation`_: observations in the same bin are treated as tied scores and
+    receive the midrank contribution implied by the bin's positive and
+    negative counts. This gives an analytic interval from aggregated bin
+    counts without expanding the data back to one row per observation.
+
+    Use this interval as an uncertainty estimate for a single independently
+    validated binary classifier. It is most useful when trend data is not
+    available and a single AUC point estimate would otherwise hide sample-size
+    uncertainty. For portfolio summaries across multiple models, combine model
+    estimates with :func:`weighted_auc_ci_from_estimates` rather than pooling
+    unrelated bins into one classifier.
 
     Parameters
     ----------
     pos : Sequence[int] | pl.Series
-        Positive class counts per score bin.
+        Positive class counts per score bin. Values must be non-negative and
+        aligned with ``neg`` and ``probs``.
     neg : Sequence[int] | pl.Series
-        Negative class counts per score bin.
+        Negative class counts per score bin. Values must be non-negative and
+        aligned with ``pos`` and ``probs``.
     probs : Sequence[float] | pl.Series | None, optional
-        Optional per-bin scores for sorting descending.
+        Optional per-bin scores for sorting descending. When omitted, bins are
+        ordered by their observed event rate, ``pos / (pos + neg)``. Pass this
+        argument when the bin order must follow an external score, propensity,
+        or classifier interval order rather than the observed response rate.
     confidence_level : float, default 0.95
-        Two-sided confidence level used to derive the interval.
+        Two-sided confidence level used to derive the interval. Must be a
+        finite value strictly between 0 and 1.
 
     Returns
     -------
     dict[str, float | bool | str | None]
         Payload with keys ``auc``, ``variance``, ``ci_lower``, ``ci_upper``,
-        ``ci_available``, and ``ci_reason``. AUC and interval bounds use the
-        conventional 0-to-1 scale. The point estimate is passed through
-        :func:`safe_range_auc`, which reflects values below 0.5 around 0.5
-        so the reported AUC remains in the 0.5-to-1.0 range. Callers that
-        display Pega's 50-to-100 scale should multiply the AUC and bounds by
-        100. The bounds are clipped to 0-to-1 but are not independently
-        reflected around 0.5, so a lower bound can display below 50.
-        ``variance`` is on the squared 0-to-1 scale.
+        ``safe_ci_lower``, ``safe_ci_upper``, ``ci_available``, and
+        ``ci_reason``.
+
+        ``auc`` is the safe 0.5-to-1.0 AUC point estimate. ``ci_lower`` and
+        ``ci_upper`` are the regular clipped confidence interval endpoints on
+        the 0-to-1 AUC scale. ``safe_ci_lower`` and ``safe_ci_upper`` fold that
+        interval through :func:`safe_range_interval` for Pega's safe display
+        convention; multiply ``auc`` and the safe bounds by 100 for the
+        50-to-100 Pega scale. ``variance`` is on the squared 0-to-1 AUC scale.
+
+        When the interval cannot be estimated, ``ci_available`` is ``False``,
+        interval fields are ``None``, and ``ci_reason`` is either
+        ``"insufficient_class_volume"`` or ``"variance_unavailable"``.
+
+    Notes
+    -----
+    The implementation is an aggregated-count analogue of DeLong variance for
+    `ROC AUC`_. It assumes independent positive and negative observations and
+    a binary outcome. The bin counts preserve enough ordering information for
+    the AUC and variance calculation, but they do not recover information lost
+    by coarse binning. Wider bins therefore give a practical confidence
+    interval for the binned classifier summary, not a perfect substitute for
+    row-level scores.
+
+    References
+    ----------
+    DeLong, E. R., DeLong, D. M., & Clarke-Pearson, D. L. (1988). Comparing
+    the areas under two or more correlated receiver operating characteristic
+    curves: a nonparametric approach. Biometrics, 44(3), 837-845.
+    https://doi.org/10.2307/2531595.
+
+    Sun, X., & Xu, W. (2014). Fast implementation of DeLong's algorithm for
+    comparing the areas under correlated receiver operating characteristic
+    curves. IEEE Signal Processing Letters, 21(11), 1389-1393.
+
+    See Also
+    --------
+    auc_from_bincounts : Safe AUC point estimate from binned counts.
+    auc_variance_delong_grouped : Grouped-bin DeLong-style variance estimate.
+    weighted_auc_ci_from_estimates : Weighted CI for portfolio-level summaries.
+
+    .. _DeLong-style grouped-bin formulation: https://doi.org/10.2307/2531595
+    .. _ROC AUC: https://en.wikipedia.org/wiki/Receiver_operating_characteristic#Area_under_the_curve
     """
     validate_confidence_level(confidence_level)
     pos_series, neg_series, probs_series = _validate_grouped_auc_inputs(pos, neg, probs)
@@ -319,6 +398,8 @@ def auc_ci_from_bincounts(
             "variance": None,
             "ci_lower": None,
             "ci_upper": None,
+            "safe_ci_lower": None,
+            "safe_ci_upper": None,
             "ci_available": False,
             "ci_reason": "insufficient_class_volume",
         }
@@ -330,6 +411,8 @@ def auc_ci_from_bincounts(
             "variance": None,
             "ci_lower": None,
             "ci_upper": None,
+            "safe_ci_lower": None,
+            "safe_ci_upper": None,
             "ci_available": False,
             "ci_reason": "variance_unavailable",
         }
@@ -342,6 +425,8 @@ def auc_ci_from_bincounts(
             "variance": variance,
             "ci_lower": clipped,
             "ci_upper": clipped,
+            "safe_ci_lower": clipped,
+            "safe_ci_upper": clipped,
             "ci_available": True,
             "ci_reason": None,
         }
@@ -350,12 +435,15 @@ def auc_ci_from_bincounts(
     z_score = NormalDist().inv_cdf(1.0 - alpha / 2.0)
     ci_lower = min(max(auc - z_score * std_err, 0.0), 1.0)
     ci_upper = min(max(auc + z_score * std_err, 0.0), 1.0)
+    safe_ci_lower, safe_ci_upper = safe_range_interval(ci_lower, ci_upper)
 
     return {
         "auc": auc,
         "variance": variance,
         "ci_lower": ci_lower,
         "ci_upper": ci_upper,
+        "safe_ci_lower": safe_ci_lower,
+        "safe_ci_upper": safe_ci_upper,
         "ci_available": True,
         "ci_reason": None,
     }
@@ -378,9 +466,9 @@ def weighted_auc_ci_from_estimates(
     the independence assumption, its variance is the sum of each model
     variance multiplied by the square of its normalized weight. AUC and
     confidence bounds are returned on the conventional 0-to-1 scale. The
-    point estimates have already been normalized with ``safe_range_auc``;
-    bounds are clipped to 0-to-1 and are not independently reflected around
-    0.5.
+    point estimates have already been normalized with ``safe_range_auc``.
+    The ``safe_ci_lower`` and ``safe_ci_upper`` fields apply the same safe
+    AUC convention to the confidence interval for Pega-style display.
 
     Parameters
     ----------
@@ -399,7 +487,7 @@ def weighted_auc_ci_from_estimates(
         Weighted AUC, variance, confidence bounds, and availability status.
         The ``auc``, ``ci_lower``, and ``ci_upper`` values use the 0-to-1
         scale; ``variance`` uses the corresponding squared scale. Multiply
-        the AUC and bounds by 100 for Pega's 50-to-100 display scale.
+        the AUC and safe bounds by 100 for Pega's 50-to-100 display scale.
 
     Raises
     ------
@@ -418,6 +506,8 @@ def weighted_auc_ci_from_estimates(
             "variance": None,
             "ci_lower": None,
             "ci_upper": None,
+            "safe_ci_lower": None,
+            "safe_ci_upper": None,
             "ci_available": False,
             "ci_reason": "no_estimates",
         }
@@ -442,11 +532,17 @@ def weighted_auc_ci_from_estimates(
     standard_error = math.sqrt(max(weighted_variance, 0.0))
     z_score = NormalDist().inv_cdf(0.5 + confidence_level / 2.0)
 
+    ci_lower = min(max(weighted_auc - z_score * standard_error, 0.0), 1.0)
+    ci_upper = min(max(weighted_auc + z_score * standard_error, 0.0), 1.0)
+    safe_ci_lower, safe_ci_upper = safe_range_interval(ci_lower, ci_upper)
+
     return {
         "auc": weighted_auc,
         "variance": weighted_variance,
-        "ci_lower": min(max(weighted_auc - z_score * standard_error, 0.0), 1.0),
-        "ci_upper": min(max(weighted_auc + z_score * standard_error, 0.0), 1.0),
+        "ci_lower": ci_lower,
+        "ci_upper": ci_upper,
+        "safe_ci_lower": safe_ci_lower,
+        "safe_ci_upper": safe_ci_upper,
         "ci_available": True,
         "ci_reason": None,
     }
@@ -471,6 +567,43 @@ def safe_range_auc(auc: float) -> float:
     if np.isnan(auc):
         return 0.5
     return 0.5 + np.abs(0.5 - auc)
+
+
+def safe_range_interval(lower: float, upper: float) -> tuple[float, float]:
+    """Reflect an AUC interval onto Pega's safe 0.5-to-1.0 scale.
+
+    Parameters
+    ----------
+    lower : float
+        Lower confidence interval endpoint on the conventional 0-to-1 AUC scale.
+    upper : float
+        Upper confidence interval endpoint on the conventional 0-to-1 AUC scale.
+
+    Returns
+    -------
+    tuple[float, float]
+        Confidence interval endpoints after applying ``safe_range_auc`` semantics.
+        Endpoints are clipped to the valid AUC domain before folding. If the
+        clipped interval crosses 0.5, the safe lower bound is 0.5.
+
+    Raises
+    ------
+    ValueError
+        If either endpoint is non-finite or the lower endpoint is greater than
+        the upper endpoint.
+    """
+    if not math.isfinite(lower) or not math.isfinite(upper):
+        raise ValueError("AUC interval endpoints must be finite")
+    if lower > upper:
+        raise ValueError("AUC interval lower bound must be less than or equal to upper bound")
+
+    lower = min(max(lower, 0.0), 1.0)
+    upper = min(max(upper, 0.0), 1.0)
+    safe_lower = safe_range_auc(lower)
+    safe_upper = safe_range_auc(upper)
+    if lower <= 0.5 <= upper:
+        return 0.5, max(safe_lower, safe_upper)
+    return min(safe_lower, safe_upper), max(safe_lower, safe_upper)
 
 
 def auc_from_probs(groundtruth: list[int], probs: list[float]) -> float:

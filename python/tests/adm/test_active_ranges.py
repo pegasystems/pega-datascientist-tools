@@ -5,6 +5,7 @@ import pathlib
 import polars as pl
 import pytest
 from pdstools import ADMDatamart
+from pdstools.utils import cdh_utils
 from polars.testing import assert_frame_equal
 
 basePath = pathlib.Path(__file__).parent.parent.parent.parent
@@ -32,6 +33,8 @@ def test_active_ranges_basic(sample):
         "AUC_ActiveRange_CI_Variance",
         "AUC_ActiveRange_CI_Lower",
         "AUC_ActiveRange_CI_Upper",
+        "AUC_ActiveRange_CI_Safe_Lower",
+        "AUC_ActiveRange_CI_Safe_Upper",
         "AUC_ActiveRange_CI_Available",
         "AUC_ActiveRange_CI_Reason",
         "Bins",
@@ -55,6 +58,14 @@ def test_active_ranges_basic(sample):
     assert all(0 <= auc <= 1 for auc in ar["AUC_FullRange"])
     assert all(0 <= auc <= 1 for auc in ar["AUC_ActiveRange"])
     assert all(variance is None or variance >= 0 for variance in ar["AUC_ActiveRange_CI_Variance"])
+    for row in ar.iter_rows(named=True):
+        if row["AUC_ActiveRange_CI_Available"]:
+            expected_lower, expected_upper = cdh_utils.safe_range_interval(
+                row["AUC_ActiveRange_CI_Lower"],
+                row["AUC_ActiveRange_CI_Upper"],
+            )
+            assert row["AUC_ActiveRange_CI_Safe_Lower"] == pytest.approx(expected_lower)
+            assert row["AUC_ActiveRange_CI_Safe_Upper"] == pytest.approx(expected_upper)
     assert all(flag in (True, False) for flag in ar["AUC_ActiveRange_CI_Available"])
     assert all(bins > 0 for bins in ar["Bins"])
     assert all(n >= 0 for n in ar["nActivePredictors"])
@@ -191,6 +202,8 @@ def test_active_ranges_empty_classifier_slice_returns_unavailable_ci(sample, mon
     assert result["AUC_ActiveRange"].item() is None
     assert result["AUC_ActiveRange_CI_Lower"].item() is None
     assert result["AUC_ActiveRange_CI_Upper"].item() is None
+    assert result["AUC_ActiveRange_CI_Safe_Lower"].item() is None
+    assert result["AUC_ActiveRange_CI_Safe_Upper"].item() is None
     assert result["AUC_ActiveRange_CI_Available"].item() is False
     assert result["AUC_ActiveRange_CI_Reason"].item() == "empty_active_range"
 
