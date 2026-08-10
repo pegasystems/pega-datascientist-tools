@@ -103,6 +103,15 @@ def test_safe_range_interval_reflects_bounds_around_chance_auc():
     assert cdh_utils.safe_range_interval(-0.10, 1.10) == pytest.approx((0.50, 1.00))
 
 
+def test_safe_range_interval_rejects_invalid_endpoints():
+    with pytest.raises(ValueError, match="finite"):
+        cdh_utils.safe_range_interval(float("nan"), 0.7)
+    with pytest.raises(ValueError, match="finite"):
+        cdh_utils.safe_range_interval(0.4, float("inf"))
+    with pytest.raises(ValueError, match="less than or equal"):
+        cdh_utils.safe_range_interval(0.7, 0.4)
+
+
 def test_native_auc_ci_expressions_match_series_calculation():
     positives = [50, 70, 75, 80, 85, 90, 110, 130, 150, 160]
     negatives = [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450]
@@ -146,6 +155,35 @@ def test_native_auc_ci_expressions_match_series_calculation():
     )
 
 
+def test_native_auc_ci_expressions_fold_intervals_crossing_chance_auc():
+    positives = [11, 10]
+    negatives = [10, 11]
+    bins = pl.DataFrame(
+        {
+            "ModelID": ["model"] * len(positives),
+            "Positives": positives,
+            "Negatives": negatives,
+        },
+    ).lazy()
+
+    result = _metrics._auc_ci_from_binned_rows(
+        bins,
+        group_col="ModelID",
+        positive_col="Positives",
+        negative_col="Negatives",
+        confidence_level=0.95,
+    ).collect()
+    expected = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert result["AUC_CI_Lower"].item() < 0.5
+    assert result["AUC_CI_Upper"].item() > 0.5
+    assert result["AUC_CI_Safe_Lower"].item() == pytest.approx(0.5)
+    assert result["AUC_CI_Safe_Upper"].item() == pytest.approx(
+        expected["safe_ci_upper"],
+        abs=1e-12,
+    )
+
+
 def test_weighted_auc_ci_from_estimates_propagates_variance():
     payload = cdh_utils.weighted_auc_ci_from_estimates(
         [0.6, 0.8],
@@ -160,6 +198,21 @@ def test_weighted_auc_ci_from_estimates_propagates_variance():
     assert payload["safe_ci_lower"] == pytest.approx(0.5)
     assert payload["safe_ci_upper"] == pytest.approx(1.0)
     assert payload["ci_available"] is True
+
+
+def test_weighted_auc_ci_from_estimates_returns_unavailable_for_no_estimates():
+    payload = cdh_utils.weighted_auc_ci_from_estimates([], [], [])
+
+    assert payload == {
+        "auc": None,
+        "variance": None,
+        "ci_lower": None,
+        "ci_upper": None,
+        "safe_ci_lower": None,
+        "safe_ci_upper": None,
+        "ci_available": False,
+        "ci_reason": "no_estimates",
+    }
 
 
 def test_auc_ci_from_bincounts_insufficient_data_returns_unavailable():
