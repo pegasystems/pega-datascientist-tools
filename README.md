@@ -42,4 +42,4 @@ Installation instructions and a getting started guide can be found [in the docum
 
 # Contributing
 
-We love feedback. See [Contributing](https://github.com/pegasystems/pega-datascientist-tools/blob/master/CONTRIBUTING.md) for guidelines.
+We love feedback. See [Contributing](CONTRIBUTING.md) for guidelines, including [local development setup and tips for running the example notebooks](CONTRIBUTING.md#local-development-setup).
