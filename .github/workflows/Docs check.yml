@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - python/**
+      - examples/**
+      - .github/workflows/Docs check.yml
 
 permissions:
   contents: read
@@ -47,3 +49,13 @@ jobs:
         env:
           SPHINXOPTS: -W --keep-going
         run: make html
+
+      - name: Check documentation links
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          workingDirectory: python/docs
+          args: >-
+            --root-dir "${{ github.workspace }}/python/docs/build/html"
+            --no-progress
+            --verbose
+            'build/html/**/*.html'

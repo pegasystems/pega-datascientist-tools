@@ -194,7 +194,7 @@ uploading your own files directly. If your files are already on disk, expand
 files or the individual file paths.
 
 .. note::
-   If you haven't downloaded the ADM Datamart yet, see `How to export the ADM Datamart <https://docs.pega.com/bundle/platform/page/platform/decision-management/enabling-monitoring-database-export.html>`_ for instructions.
+   If you haven't downloaded the ADM Datamart yet, see `How to export the ADM Datamart <https://docs.pega.com/bundle/platform-25/page/platform/decision-management/enabling-monitoring-database-export.html>`_ for instructions.
 
 - **Direct file upload**: Upload the Model Snapshot, optional Predictor Binning snapshot, and optional Prediction Table through the web interface.
 - **File paths**: Provide the folder path where the ADM files are located (e.g., ``/User/Downloads/``), or provide individual paths. The tool will automatically find the relevant files in a configured folder.
