@@ -10,12 +10,6 @@ on:
       - .github/workflows/**
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    paths:
-      - python/**
-      - reports/*.qmd
-      - .github/workflows/**
-      - uv.lock
-      - pyproject.toml
 
 permissions:
   contents: read
@@ -27,10 +21,47 @@ env:
   PYTHON_VERSION: "3.14"
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      run-report-tests: ${{ steps.changed-files.outputs.run-report-tests }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect report test inputs
+        id: changed-files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.event.pull_request.head.sha }}"
+          else
+            base_sha="${{ github.event.before }}"
+            head_sha="${{ github.sha }}"
+          fi
+
+          changed_files=$(git diff --name-only "$base_sha" "$head_sha" -- \
+            'python/**' \
+            'reports/*.qmd' \
+            '.github/workflows/**' \
+            'uv.lock' \
+            'pyproject.toml')
+
+          if [[ -n "$changed_files" ]]; then
+            echo "run-report-tests=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run-report-tests=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # ── Step 1: Cache Quarto and Pandoc binaries ─────────────────────────
   prepare-tools:
+    needs: [detect-changes]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs.detect-changes.outputs.run-report-tests == 'true')
     outputs:
       cache-key-tools: ${{ steps.cache-keys.outputs.tools }}
     steps:
@@ -77,9 +108,10 @@ jobs:
 
   # ── Step 2a: Healthcheck report tests ────────────────────────────────
   healthcheck-tests:
-    needs: [prepare-tools]
+    needs: [detect-changes, prepare-tools]
     runs-on: ubuntu-latest
     name: Healthcheck report tests
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs.detect-changes.outputs.run-report-tests == 'true')
     steps:
       - uses: actions/checkout@v4
 
@@ -119,9 +151,10 @@ jobs:
 
   # ── Step 2a-batch: Batch healthcheck integration test ──────────────
   batch-healthcheck-tests:
-    needs: [prepare-tools]
+    needs: [detect-changes, prepare-tools]
     runs-on: ubuntu-latest
     name: Batch healthcheck integration test
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs.detect-changes.outputs.run-report-tests == 'true')
     steps:
       - uses: actions/checkout@v4
 
@@ -155,9 +188,10 @@ jobs:
 
   # ── Step 2a-no-esbuild: Healthcheck without esbuild (DJS simulation) ─
   healthcheck-tests-no-esbuild:
-    needs: [prepare-tools]
+    needs: [detect-changes, prepare-tools]
     runs-on: ubuntu-latest
     name: Healthcheck without esbuild (DJS simulation)
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs.detect-changes.outputs.run-report-tests == 'true')
     steps:
       - uses: actions/checkout@v4
 
@@ -198,9 +232,10 @@ jobs:
 
   # ── Step 2a-batch-no-esbuild: Batch healthcheck without esbuild ────
   batch-healthcheck-tests-no-esbuild:
-    needs: [prepare-tools]
+    needs: [detect-changes, prepare-tools]
     runs-on: ubuntu-latest
     name: Batch healthcheck without esbuild (DJS simulation)
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs.detect-changes.outputs.run-report-tests == 'true')
     steps:
       - uses: actions/checkout@v4
 
@@ -241,9 +276,10 @@ jobs:
 
   # ── Step 2b: Explanations report tests ───────────────────────────────
   explanations-tests:
-    needs: [prepare-tools]
+    needs: [detect-changes, prepare-tools]
     runs-on: ubuntu-latest
     name: Explanations report tests
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs.detect-changes.outputs.run-report-tests == 'true')
     steps:
       - uses: actions/checkout@v4
 
@@ -283,9 +319,10 @@ jobs:
 
   # ── Step 2b-no-esbuild: Explanations without esbuild (DJS simulation) ─
   explanations-tests-no-esbuild:
-    needs: [prepare-tools]
+    needs: [detect-changes, prepare-tools]
     runs-on: ubuntu-latest
     name: Explanations without esbuild (DJS simulation)
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs.detect-changes.outputs.run-report-tests == 'true')
     steps:
       - uses: actions/checkout@v4
 
