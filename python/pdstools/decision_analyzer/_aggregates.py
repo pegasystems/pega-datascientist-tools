@@ -983,6 +983,78 @@ class Aggregates:
             .sort([self.da.level, "available_actions"])
         )
 
+    def get_exclusion_rate_data(
+        self,
+        from_stage: str,
+        to_stage: str = "Arbitration",
+        df: pl.LazyFrame | None = None,
+    ) -> pl.LazyFrame:
+        """Per-interaction exclusion rate between two pipeline stages.
+
+        The exclusion rate is the attrition counterpart of optionality: of the
+        actions an interaction had remaining at a baseline (``from``) stage,
+        what fraction were lost by the measurement (``to``) stage. Both action
+        counts use the same "remaining at stage" semantics as
+        :meth:`get_optionality_data` (an action counts at a stage when it is
+        present at that stage or any later stage), so the two metrics are
+        computed from the same per-interaction, per-stage counts.
+
+        For an interaction, the rate is
+        ``(actions_at_from - actions_at_to) / actions_at_from``. Interactions
+        with no actions at ``from_stage`` have no defined rate and are omitted.
+
+        Parameters
+        ----------
+        from_stage : str
+            Baseline stage. Must be one of :attr:`AvailableNBADStages` and at or
+            before ``to_stage`` in pipeline order.
+        to_stage : str, default "Arbitration"
+            Measurement stage. Must be one of :attr:`AvailableNBADStages`.
+        df : pl.LazyFrame, optional
+            Input data. Defaults to :attr:`sample`.
+
+        Returns
+        -------
+        pl.LazyFrame
+            One row per interaction with at least one action at ``from_stage``,
+            with columns ``Interaction ID``, ``Actions From``, ``Actions To``,
+            ``Excluded`` and ``Exclusion Rate`` (a fraction in ``[0, 1]``).
+
+        Raises
+        ------
+        ValueError
+            If ``from_stage`` or ``to_stage`` is not an available stage, or if
+            ``from_stage`` is later in the pipeline than ``to_stage``.
+        """
+        if df is None:
+            df = self.da.sample
+        from_idx = self._stage_index(from_stage)
+        to_idx = self._stage_index(to_stage)
+        if from_idx > to_idx:
+            raise ValueError(
+                f"from_stage {from_stage!r} is later in the pipeline than to_stage "
+                f"{to_stage!r}; expected from_stage at or before to_stage."
+            )
+
+        per_interaction = self.aggregate_remaining_per_stage(
+            df=df,
+            group_by_columns=["Interaction ID"],
+            aggregations=[pl.len().alias("nOffers")],
+        )
+        from_counts = per_interaction.filter(pl.col(self.da.level) == from_stage).select(
+            "Interaction ID", pl.col("nOffers").cast(pl.Int64).alias("Actions From")
+        )
+        to_counts = per_interaction.filter(pl.col(self.da.level) == to_stage).select(
+            "Interaction ID", pl.col("nOffers").cast(pl.Int64).alias("Actions To")
+        )
+        return (
+            from_counts.join(to_counts, on="Interaction ID", how="left")
+            .with_columns(pl.col("Actions To").fill_null(0))
+            .with_columns((pl.col("Actions From") - pl.col("Actions To")).alias("Excluded"))
+            .with_columns((pl.col("Excluded") / pl.col("Actions From")).alias("Exclusion Rate"))
+            .select("Interaction ID", "Actions From", "Actions To", "Excluded", "Exclusion Rate")
+        )
+
     def get_action_variation_data(
         self,
         stage: str,

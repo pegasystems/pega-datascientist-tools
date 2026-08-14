@@ -66,3 +66,6 @@ test_consolidation.py
 /.specify/
 /.github/agents/speckit*.agent.md
 /.github/prompts/speckit*.prompt.md
+
+# Spec Kit generated artifacts
+/specs/
