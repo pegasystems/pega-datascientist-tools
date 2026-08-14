@@ -88,6 +88,9 @@ Package Contents
    .. py:attribute:: optionality_trend
 
 
+   .. py:attribute:: exclusion_rate_distribution
+
+
    .. py:attribute:: optionality_funnel
 
 
