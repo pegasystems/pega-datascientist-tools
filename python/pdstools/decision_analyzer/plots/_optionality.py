@@ -213,7 +213,7 @@ def exclusion_rate_distribution(self, from_stage, to_stage="Arbitration", df=Non
         propensity_min = cast(float, propensity_values.min())
         propensity_max = cast(float, propensity_values.max())
         padding = max((propensity_max - propensity_min) * 0.1, 0.001)
-        propensity_range = [max(0.0, propensity_min - padding), min(1.0, propensity_max + padding)]
+        propensity_range = [0.0, min(1.0, propensity_max + padding)]
     bar_colors = px.colors.sample_colorscale("RdYlGn", [1 - index / 19 for index in range(20)])
     fig = make_subplots(specs=[[{"secondary_y": True}]]) if has_propensity else go.Figure()
     bar_customdata = (

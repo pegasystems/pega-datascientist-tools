@@ -507,7 +507,7 @@ class TestExclusionRateDistribution:
         assert fig.layout.xaxis.zeroline is False
         assert fig.layout.yaxis.zeroline is False
         assert fig.layout.yaxis2.zeroline is False
-        assert fig.layout.yaxis2.range[0] >= 0
+        assert fig.layout.yaxis2.range[0] == 0
         assert fig.layout.yaxis2.range[1] <= 1
 
     def test_default_to_stage_is_arbitration(self, plot_v2):
