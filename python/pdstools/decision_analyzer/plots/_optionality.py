@@ -131,3 +131,77 @@ def optionality_trend(self, df: pl.LazyFrame, return_df=False):
     fig.update_yaxes(title="Avg. Actions per Customer")
 
     return fig, warning
+
+
+# Exclusion-rate bands (2.5 percentage points), ordered from least to most excluded.
+_EXCLUSION_BANDS = [f"{band * 2.5:g}-{(band + 1) * 2.5:g}%" for band in range(40)]
+
+
+def exclusion_rate_distribution(self, from_stage, to_stage="Arbitration", df=None, return_df=False):
+    """Distribution of the per-interaction exclusion rate between two stages.
+
+    The attrition counterpart of :func:`propensity_vs_optionality`: bars show
+    the share of interactions whose action set shrank by each 2.5-percent band
+    between ``from_stage`` and ``to_stage``, with lower exclusion rates shaded
+    green and higher rates shaded red.
+    ``return_df=True`` returns the underlying per-interaction frame from
+    :meth:`Aggregates.get_exclusion_rate_data` instead of the figure.
+    """
+    plot_data = self._decision_data.aggregates.get_exclusion_rate_data(
+        from_stage=from_stage,
+        to_stage=to_stage,
+        df=df,
+    )
+    if return_df:
+        return plot_data
+
+    collected = plot_data.collect()
+    n_interactions = collected.height
+    counts = (
+        collected.with_columns(
+            (pl.col("Exclusion Rate") * 40).floor().cast(pl.Int64).clip(upper_bound=39).alias("_band_idx")
+        )
+        .with_columns(
+            pl.col("_band_idx")
+            .replace_strict(dict(enumerate(_EXCLUSION_BANDS)), return_dtype=pl.Utf8)
+            .alias("Exclusion Band")
+        )
+        .group_by("Exclusion Band")
+        .agg(Interactions=pl.len())
+    )
+    banded = (
+        pl.DataFrame({"Exclusion Band": _EXCLUSION_BANDS})
+        .join(counts, on="Exclusion Band", how="left")
+        .with_columns(pl.col("Interactions").fill_null(0))
+        .with_columns((pl.col("Interactions") / pl.lit(max(n_interactions, 1)) * 100).alias("PctInteractions"))
+    )
+
+    bar_colors = px.colors.sample_colorscale("RdYlGn", [1 - index / 39 for index in range(40)])
+    fig = go.Figure(
+        go.Bar(
+            x=banded["Exclusion Band"],
+            y=banded["PctInteractions"],
+            name="Interactions",
+            marker_color=bar_colors,
+            customdata=banded["Interactions"],
+            hovertemplate=("Excluded = %{x}<br>Interactions = %{y:.2f}% (%{customdata})<extra></extra>"),
+        ),
+    )
+    fig.update_layout(
+        template="pega",
+        title=f"Exclusion Rate: {from_stage} → {to_stage}",
+        xaxis_title="Percentage of Actions Excluded",
+        yaxis_title="% of Interactions",
+    )
+    tick_bands = _EXCLUSION_BANDS[::4]
+    fig.update_xaxes(
+        type="category",
+        categoryorder="array",
+        categoryarray=_EXCLUSION_BANDS,
+        tickmode="array",
+        tickvals=tick_bands,
+        ticktext=tick_bands,
+        tickangle=45,
+    )
+    fig.layout.yaxis.ticksuffix = "%"
+    return fig

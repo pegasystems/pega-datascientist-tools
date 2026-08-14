@@ -484,6 +484,38 @@ class TestOptionalityPerStage:
         assert collected.columns == ["nOffers", "Stage Group", "Interactions", "AverageBestPropensity"]
 
 
+class TestExclusionRateDistribution:
+    """Test exclusion_rate_distribution method."""
+
+    def test_plot_builds_with_bands(self, plot_v2):
+        """Figure has 2.5-percent bars shaded from green to red."""
+        fig = plot_v2.exclusion_rate_distribution(from_stage="Engagement Policies", to_stage="Arbitration")
+        assert isinstance(fig, Figure)
+        assert len(fig.data) == 1
+        assert len(fig.data[0].x) == 40
+        assert fig.data[0].x[0] == "0-2.5%"
+        assert fig.data[0].x[-1] == "97.5-100%"
+        assert fig.data[0].type == "bar"
+        assert fig.data[0].marker.color[0] != fig.data[0].marker.color[-1]
+        assert fig.layout.xaxis.tickangle == 45
+
+    def test_default_to_stage_is_arbitration(self, plot_v2):
+        """Omitting to_stage defaults to Arbitration and still builds a figure."""
+        fig = plot_v2.exclusion_rate_distribution(from_stage="Engagement Policies")
+        assert isinstance(fig, Figure)
+
+    def test_return_df(self, plot_v2):
+        """return_df yields the per-interaction frame that drives the chart."""
+        df = plot_v2.exclusion_rate_distribution(
+            from_stage="Engagement Policies", to_stage="Arbitration", return_df=True
+        )
+        collected = df.collect()
+        assert collected.columns == ["Interaction ID", "Actions From", "Actions To", "Excluded", "Exclusion Rate"]
+        assert (collected["Exclusion Rate"] >= 0.0).all()
+        assert (collected["Exclusion Rate"] <= 1.0).all()
+        assert (collected["Actions From"] >= 1).all()
+
+
 class TestOptionalityTrend:
     """Test optionality_trend method."""
 
