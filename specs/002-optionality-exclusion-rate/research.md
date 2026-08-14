@@ -51,11 +51,11 @@ other stage APIs.
 ## R3 — Distribution representation and `return_df`
 
 **Decision**: The exclusion rate is continuous on [0, 1]. The library method
-returns a **per-interaction** frame; the plot buckets it into 40 fixed
-2.5-percentage-point bands and shows the **share of interactions** per band
+returns a **per-interaction** frame; the plot buckets it into 20 fixed
+5-percentage-point bands and shows the **share of interactions** per band
 (percentage y-axis), with a green-to-red bar scale from low to high exclusion.
-This remains visually consistent with the optionality distribution's "% of
-Decisions" bars while making concentrated high-exclusion data easier to read.
+When available, an optionality-style propensity line is placed on a secondary
+axis but hidden by default.
 `return_df=True` returns the per-interaction frame (the data that drives the
 chart), per the repo's plot conventions.
 

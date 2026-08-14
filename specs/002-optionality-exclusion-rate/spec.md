@@ -165,10 +165,11 @@ contextual (channel) filters.
   count at baseline stage, action count at measurement stage, number of actions
   excluded, exclusion rate (0–1). Derived from the per-interaction, per-stage
   remaining counts shared with optionality.
-- **Exclusion-rate distribution**: aggregation of exclusion records into 40
-  2.5-percentage-point bands from `0-2.5%` through `97.5-100%`, with the share
-  of interactions in each band. Bars use a green-to-red scale from low to high
-  exclusion and drive the distribution plot.
+- **Exclusion-rate distribution**: aggregation of exclusion records into 20
+  5-percentage-point bands from `0-5%` through `95-100%`, with the share of
+  interactions in each band. Bars use a green-to-red scale from low to high
+  exclusion. When usable propensity data exists, an optionality-style line is
+  available on a secondary axis and hidden by default.
 
 ## Success Criteria *(mandatory)*
 

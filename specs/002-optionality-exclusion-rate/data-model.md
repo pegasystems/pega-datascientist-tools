@@ -30,12 +30,12 @@ row per interaction that has **at least one action at the baseline stage**.
 ## Entity: Exclusion-rate distribution (plot-side)
 
 Derived inside `Plot.exclusion_rate_distribution` by binning `Exclusion Rate`
-into 40 fixed 2.5-percentage-point bands and normalizing to the share of
+into 20 fixed 5-percentage-point bands and normalizing to the share of
 interactions. Bars are shaded green at low exclusion and red at high exclusion.
 
 | Field            | Type    | Description                                            |
 | ---------------- | ------- | ------------------------------------------------------ |
-| band             | category| One of 40 bands from `0-2.5%` through `97.5-100%`.     |
+| band             | category| One of 20 bands from `0-5%` through `95-100%`.         |
 | pct_interactions | Float64 | Share of interactions falling in the band (sums ~100%).|
 
 This entity is internal to the plot; `return_df=True` returns the

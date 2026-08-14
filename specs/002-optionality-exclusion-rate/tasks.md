@@ -35,12 +35,12 @@
 
 - [ ] T006 [P] [US1] Add exact aggregate tests for `5→2`, `4→0`, and `3→1` action counts, expected `Actions From`, `Actions To`, `Excluded`, and `Exclusion Rate` columns in `python/tests/decision_analyzer/test_DecisionAnalyzer.py`
 - [ ] T007 [P] [US1] Add aggregate edge-case tests for equal stages, zero-baseline interaction omission, inverted stage errors, and unknown stage errors in `python/tests/decision_analyzer/test_DecisionAnalyzer.py`
-- [ ] T008 [P] [US1] Add plot tests for `return_df`, 40 2.5% bands, single bar trace, endpoint labels, and distinct green-to-red marker colors in `python/tests/decision_analyzer/test_da_plots.py`
+- [ ] T008 [P] [US1] Add plot tests for `return_df`, 20 5% bands, hidden-by-default optionality-style propensity trace, endpoint labels, and distinct green-to-red marker colors in `python/tests/decision_analyzer/test_da_plots.py`
 
 ### Implementation for User Story 1
 
 - [ ] T009 [US1] Implement `Aggregates.get_exclusion_rate_data(from_stage, to_stage, df)` in `python/pdstools/decision_analyzer/_aggregates.py` by reusing `aggregate_remaining_per_stage`, validating stage order, omitting zero-baseline interactions, and returning exact per-interaction counts and rates
-- [ ] T010 [US1] Implement `exclusion_rate_distribution(from_stage, to_stage, df, return_df)` in `python/pdstools/decision_analyzer/plots/_optionality.py` with 2.5% bands, percentage-of-interactions bars, and a green-to-red color scale
+- [ ] T010 [US1] Implement `exclusion_rate_distribution(from_stage, to_stage, df, return_df)` in `python/pdstools/decision_analyzer/plots/_optionality.py` with 5% bands, percentage-of-interactions bars, a green-to-red color scale, and hidden-by-default propensity on a secondary axis
 - [ ] T011 [US1] Register `exclusion_rate_distribution` on the `Plot` namespace in `python/pdstools/decision_analyzer/plots/__init__.py`
 - [ ] T012 [US1] Run the focused aggregate and plot tests with `uv run pytest python/tests/decision_analyzer/test_DecisionAnalyzer.py python/tests/decision_analyzer/test_da_plots.py -k "ExclusionRate or exclusion" -q` and resolve defects in the User Story 1 implementation files
 
@@ -162,7 +162,7 @@ Then:    T025 related regression suite
 
 1. Complete Setup and Foundational phases.
 2. Implement and test `get_exclusion_rate_data`.
-3. Implement and register `exclusion_rate_distribution` with 2.5% green-to-red bars.
+3. Implement and register `exclusion_rate_distribution` with 5% green-to-red bars and optional hidden propensity.
 4. Run the exact-value and plot tests.
 5. Stop at the US1 checkpoint for a notebook/library demonstration.
 

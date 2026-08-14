@@ -47,10 +47,11 @@ def exclusion_rate_distribution(
 ```
 
 **Behavior**
-- Builds a distribution figure with 40 2.5-percentage-point bands on the x-axis,
-  from `0-2.5%` through `97.5-100%`, and share of interactions on the y-axis.
-  Bars use a green-to-red color scale from low to high exclusion and follow the
-  Pega template used by `propensity_vs_optionality`.
+- Builds a distribution figure with 20 5-percentage-point bands on the x-axis,
+  from `0-5%` through `95-100%`, and share of interactions on the y-axis.
+  Bars use a green-to-red color scale from low to high exclusion. When usable
+  propensity data exists, an optionality-style `markers+lines` trace is
+  available on a secondary y-axis but hidden by default (`legendonly`).
 - `return_df=True` returns the per-interaction `LazyFrame` from
   `get_exclusion_rate_data` (the data that drives the chart) instead of the
   figure.

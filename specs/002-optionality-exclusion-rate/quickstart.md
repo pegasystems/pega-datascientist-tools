@@ -44,7 +44,7 @@ da.aggregates.get_exclusion_rate_data(from_stage="Output", to_stage="Eligibility
 ```python
 fig = da.plot.exclusion_rate_distribution(from_stage="Eligibility", to_stage="Output")
 assert fig.data  # a Plotly figure with at least one trace
-assert len(fig.data[0].x) == 40  # 2.5% bands from 0-2.5% through 97.5-100%
+assert len(fig.data[0].x) == 20  # 5% bands from 0-5% through 95-100%
 assert fig.data[0].marker.color[0] != fig.data[0].marker.color[-1]
 
 frame = da.plot.exclusion_rate_distribution(
