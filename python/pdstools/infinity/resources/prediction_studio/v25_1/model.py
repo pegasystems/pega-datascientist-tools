@@ -2,17 +2,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal, overload
 
-
 from ....internal._pagination import AsyncPaginatedList, PaginatedList
 from ....internal._resource import api_method
-from ..base import AsyncModel as AsyncPreviousModel
 from ..base import AsyncNotification, ModelAttributes, Notification
-from ..base import Model as PreviousModel
+from ..schemas import ModelData
+from ..v26_1.model import AsyncModel as AsyncModelV26_1
+from ..v26_1.model import Model as ModelV26_1
 
 if TYPE_CHECKING:
-    import polars as pl
-    from ..types import NotificationCategory
     from collections.abc import Callable
+
+    import polars as pl
+
+    from ..types import NotificationCategory
 
 
 class _Modelv25_1Mixin:
@@ -43,8 +45,10 @@ class _Modelv25_1Mixin:
         return await self._a_get(endpoint)
 
 
-class Model(_Modelv25_1Mixin, PreviousModel):
+class Model(_Modelv25_1Mixin, ModelV26_1):
     """v25 Model — no performance fields."""
+
+    _data_cls: type[ModelData] = ModelData
 
     @overload
     def get_notifications(
@@ -96,8 +100,10 @@ class Model(_Modelv25_1Mixin, PreviousModel):
         return notifications
 
 
-class AsyncModel(_Modelv25_1Mixin, AsyncPreviousModel):
+class AsyncModel(_Modelv25_1Mixin, AsyncModelV26_1):
     """v25 async Model — no performance fields."""
+
+    _data_cls: type[ModelData] = ModelData
 
     async def get_notifications(
         self,

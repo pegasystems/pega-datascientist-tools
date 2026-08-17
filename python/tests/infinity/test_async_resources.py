@@ -10,15 +10,23 @@ from __future__ import annotations
 import datetime
 from unittest.mock import AsyncMock, MagicMock
 
-import polars as pl
 import pytest
 from pdstools.infinity.internal._pagination import AsyncPaginatedList
+from pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio import (
+    AsyncPredictionStudio as AsyncPredictionStudioV24_1,
+)
 from pdstools.infinity.resources.prediction_studio.v24_2.model import AsyncModel
 from pdstools.infinity.resources.prediction_studio.v24_2.prediction import (
     AsyncPrediction,
 )
 from pdstools.infinity.resources.prediction_studio.v24_2.prediction_studio import (
     AsyncPredictionStudio,
+)
+from pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio import (
+    AsyncPredictionStudio as AsyncPredictionStudioV25_1,
+)
+from pdstools.infinity.resources.prediction_studio.v26_1.prediction_studio import (
+    AsyncPredictionStudio as AsyncPredictionStudioV26_1,
 )
 
 # ---------------------------------------------------------------------------
@@ -287,7 +295,6 @@ class TestAsyncPredictionStudio:
         async_client.get.return_value = mock_response_model
         async_client.request.return_value = mock_response_model
         result = await async_ps.list_models(return_df=True)
-        assert isinstance(result, pl.DataFrame)
         assert result.shape == (2, 9)
         assert result.columns == [
             "model_id",
@@ -316,7 +323,6 @@ class TestAsyncPredictionStudio:
         async_client.get.return_value = mock_response_predictions
         async_client.request.return_value = mock_response_predictions
         result = await async_ps.list_predictions(return_df=True)
-        assert isinstance(result, pl.DataFrame)
         assert result.shape == (2, 6)
         assert result.columns == [
             "prediction_id",
@@ -354,8 +360,138 @@ class TestAsyncPredictionStudio:
         async_client.get.return_value = mock_response_notifications
         async_client.request.return_value = mock_response_notifications
         result = await async_ps.get_notifications(return_df=True)
-        assert isinstance(result, pl.DataFrame)
         assert result.shape == (2, 10)
+
+
+@pytest.mark.parametrize(
+    "ps_cls",
+    [
+        AsyncPredictionStudioV24_1,
+        AsyncPredictionStudio,
+        AsyncPredictionStudioV25_1,
+        AsyncPredictionStudioV26_1,
+    ],
+)
+@pytest.mark.asyncio
+async def test_versioned_async_list_predictions_supports_dataframe_return(ps_cls):
+    client = _make_async_client()
+    client.get.return_value = mock_response_predictions
+    client.request.return_value = mock_response_predictions
+    ps = ps_cls(client=client)
+
+    pages = await ps.list_predictions(return_df=False)
+    assert isinstance(pages, AsyncPaginatedList)
+
+    result = await ps.list_predictions(return_df=True)
+    assert result.shape == (2, 6)
+    assert result.columns == [
+        "prediction_id",
+        "label",
+        "objective",
+        "subject",
+        "status",
+        "last_update_time",
+    ]
+
+
+@pytest.mark.parametrize(
+    "ps_cls",
+    [
+        AsyncPredictionStudio,
+        AsyncPredictionStudioV25_1,
+        AsyncPredictionStudioV26_1,
+    ],
+)
+@pytest.mark.asyncio
+async def test_versioned_async_get_prediction_passes_lookup_keys(ps_cls):
+    ps = ps_cls(client=_make_async_client())
+    pages = AsyncMock()
+    expected_prediction = object()
+    pages.get.return_value = expected_prediction
+    ps.list_predictions = AsyncMock(return_value=pages)
+
+    result = await ps.get_prediction(
+        prediction_id="CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS",
+        label="Predict Cards Acceptance",
+        source="Pega",
+    )
+
+    ps.list_predictions.assert_awaited_once_with()
+    pages.get.assert_awaited_once_with(
+        source="Pega",
+        prediction_id="CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS",
+        label="Predict Cards Acceptance",
+    )
+    assert result is expected_prediction
+
+
+@pytest.mark.parametrize(
+    "ps_cls",
+    [
+        AsyncPredictionStudio,
+        AsyncPredictionStudioV25_1,
+        AsyncPredictionStudioV26_1,
+    ],
+)
+@pytest.mark.asyncio
+async def test_versioned_async_get_prediction_raises_keyerror_when_missing(ps_cls):
+    ps = ps_cls(client=_make_async_client())
+    pages = AsyncMock()
+    pages.get.return_value = None
+    ps.list_predictions = AsyncMock(return_value=pages)
+
+    with pytest.raises(KeyError, match="No prediction found"):
+        await ps.get_prediction(prediction_id="missing", label="Missing Prediction")
+
+
+@pytest.mark.parametrize(
+    "ps_cls",
+    [
+        AsyncPredictionStudio,
+        AsyncPredictionStudioV25_1,
+        AsyncPredictionStudioV26_1,
+    ],
+)
+@pytest.mark.asyncio
+async def test_versioned_async_get_model_normalizes_model_id(ps_cls):
+    ps = ps_cls(client=_make_async_client())
+    pages = AsyncMock()
+    expected_model = object()
+    pages.get.return_value = expected_model
+    ps.list_models = AsyncMock(return_value=pages)
+
+    result = await ps.get_model(
+        model_id="cdhsample-data-customer!adm_16330376371",
+        label="Accept",
+        source="Pega",
+    )
+
+    ps.list_models.assert_awaited_once_with()
+    pages.get.assert_awaited_once_with(
+        source="Pega",
+        model_id="CDHSAMPLE-DATA-CUSTOMER!ADM_16330376371",
+        label="Accept",
+    )
+    assert result is expected_model
+
+
+@pytest.mark.parametrize(
+    "ps_cls",
+    [
+        AsyncPredictionStudio,
+        AsyncPredictionStudioV25_1,
+        AsyncPredictionStudioV26_1,
+    ],
+)
+@pytest.mark.asyncio
+async def test_versioned_async_get_model_raises_keyerror_when_missing(ps_cls):
+    ps = ps_cls(client=_make_async_client())
+    pages = AsyncMock()
+    pages.get.return_value = None
+    ps.list_models = AsyncMock(return_value=pages)
+
+    with pytest.raises(KeyError, match="No model found"):
+        await ps.get_model(model_id="missing", label="Missing Model")
 
     @pytest.mark.asyncio
     async def test_trigger_datamart_export(self, async_ps, async_client):
@@ -512,7 +648,6 @@ class TestAsyncPrediction:
         async_client.get.return_value = mock_response_notifications
         async_client.request.return_value = mock_response_notifications
         result = await async_prediction.get_notifications(return_df=True)
-        assert isinstance(result, pl.DataFrame)
         assert result.shape == (2, 10)
 
     @pytest.mark.asyncio
@@ -541,7 +676,11 @@ class TestAsyncPrediction:
         for cc in result:
             assert cc.prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
             assert cc.challenger_model is None
-            assert cc.active_model is not None
+        assert [cc.active_model.model_id for cc in result] == [
+            "CDHSample-Data-Customer!Adm_16330376371",
+            "@baseclass!testModel_falcons",
+            "CDHSample-Data-Customer!RiskModel",
+        ]
 
         # Category model entry carries its category; default/supporting do not
         categories = [cc.category for cc in result]
@@ -630,7 +769,6 @@ class TestAsyncPrediction:
             "category/Retention/models/%40baseclass%21testModel_falcons",
             data={"contextName": "NoContext"},
         )
-        assert result is not None
         assert result.active_model.model_id.lower() == "@baseclass!testmodel_falcons"
         assert result.category == "Retention"
 
@@ -658,7 +796,6 @@ class TestAsyncPrediction:
             category="Retention",
             context="NoContext",
         )
-        assert result is not None
         assert result.active_model.model_id.lower() == "@baseclass!testmodel_falcons"
 
     @pytest.mark.asyncio
@@ -669,7 +806,6 @@ class TestAsyncPrediction:
     ):
         """When _a_post raises PegaException, wrap in PegaMLopsError."""
         from httpx import Response
-
         from pdstools.infinity.internal._exceptions import PegaException, PegaMLopsError
 
         async def _raise(*args, **kwargs):

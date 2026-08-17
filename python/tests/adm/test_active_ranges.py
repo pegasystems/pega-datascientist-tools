@@ -5,6 +5,8 @@ import pathlib
 import polars as pl
 import pytest
 from pdstools import ADMDatamart
+from pdstools.utils import cdh_utils
+from polars.testing import assert_frame_equal
 
 basePath = pathlib.Path(__file__).parent.parent.parent.parent
 
@@ -28,6 +30,13 @@ def test_active_ranges_basic(sample):
         "AUC_Datamart",
         "AUC_FullRange",
         "AUC_ActiveRange",
+        "AUC_ActiveRange_CI_Variance",
+        "AUC_ActiveRange_CI_Lower",
+        "AUC_ActiveRange_CI_Upper",
+        "AUC_ActiveRange_CI_Safe_Lower",
+        "AUC_ActiveRange_CI_Safe_Upper",
+        "AUC_ActiveRange_CI_Available",
+        "AUC_ActiveRange_CI_Reason",
         "Bins",
         "nActivePredictors",
         "classifierLogOffset",
@@ -48,11 +57,38 @@ def test_active_ranges_basic(sample):
     assert all(0 <= auc <= 1 for auc in ar["AUC_Datamart"])
     assert all(0 <= auc <= 1 for auc in ar["AUC_FullRange"])
     assert all(0 <= auc <= 1 for auc in ar["AUC_ActiveRange"])
+    assert all(variance is None or variance >= 0 for variance in ar["AUC_ActiveRange_CI_Variance"])
+    for row in ar.iter_rows(named=True):
+        if row["AUC_ActiveRange_CI_Available"]:
+            expected_lower, expected_upper = cdh_utils.safe_range_interval(
+                row["AUC_ActiveRange_CI_Lower"],
+                row["AUC_ActiveRange_CI_Upper"],
+            )
+            assert row["AUC_ActiveRange_CI_Safe_Lower"] == pytest.approx(expected_lower)
+            assert row["AUC_ActiveRange_CI_Safe_Upper"] == pytest.approx(expected_upper)
+    assert all(flag in (True, False) for flag in ar["AUC_ActiveRange_CI_Available"])
     assert all(bins > 0 for bins in ar["Bins"])
     assert all(n >= 0 for n in ar["nActivePredictors"])
     assert all(idx_min >= 0 for idx_min in ar["idx_min"])
     assert all(idx_max > 0 for idx_max in ar["idx_max"])
     assert all(idx_max >= idx_min for idx_min, idx_max in zip(ar["idx_min"], ar["idx_max"], strict=False))
+
+
+def test_active_ranges_uses_native_polars_expressions(sample):
+    """Keep active-range calculations visible to the Polars optimizer."""
+    assert "python_udf" not in sample.active_ranges().explain()
+
+
+def test_active_ranges_streaming_matches_default_engine(sample):
+    """Return identical values through the streaming engine."""
+    query = sample.active_ranges()
+
+    assert_frame_equal(
+        query.collect(engine="streaming"),
+        query.collect(),
+        check_row_order=True,
+        check_column_order=True,
+    )
 
 
 def test_active_ranges_single_model(sample):
@@ -142,3 +178,55 @@ def test_active_ranges_pega7():
         ar["AUC_FullRange"].item(),
         6,
     )
+
+
+def test_active_ranges_empty_classifier_slice_returns_unavailable_ci(sample, monkeypatch):
+    """Return unavailable CI metadata when no classifier bin is active."""
+    model_id = sample._require_predictor_data().select("ModelID").unique().collect()["ModelID"][0]
+    original_min_max_scores = ADMDatamart._minMaxScoresPerModel
+
+    def scores_below_classifier_bounds(cls, data):
+        return original_min_max_scores(data).with_columns(
+            pl.lit(1e9).alias("score_min"),
+            pl.lit(-1e9).alias("score_max"),
+        )
+
+    monkeypatch.setattr(
+        ADMDatamart,
+        "_minMaxScoresPerModel",
+        classmethod(scores_below_classifier_bounds),
+    )
+
+    result = sample.active_ranges(model_id).collect()
+
+    assert result["AUC_ActiveRange"].item() is None
+    assert result["AUC_ActiveRange_CI_Lower"].item() is None
+    assert result["AUC_ActiveRange_CI_Upper"].item() is None
+    assert result["AUC_ActiveRange_CI_Safe_Lower"].item() is None
+    assert result["AUC_ActiveRange_CI_Safe_Upper"].item() is None
+    assert result["AUC_ActiveRange_CI_Available"].item() is False
+    assert result["AUC_ActiveRange_CI_Reason"].item() == "empty_active_range"
+
+
+def test_active_ranges_missing_score_range_returns_unavailable_ci(sample, monkeypatch):
+    """Return unavailable CI metadata when predictor scores are missing."""
+    model_id = sample._require_predictor_data().select("ModelID").unique().collect()["ModelID"][0]
+    original_min_max_scores = ADMDatamart._minMaxScoresPerModel
+
+    def scores_with_missing_range(cls, data):
+        return original_min_max_scores(data).with_columns(
+            pl.lit(None, dtype=pl.Float64).alias("score_min"),
+            pl.lit(None, dtype=pl.Float64).alias("score_max"),
+        )
+
+    monkeypatch.setattr(
+        ADMDatamart,
+        "_minMaxScoresPerModel",
+        classmethod(scores_with_missing_range),
+    )
+
+    result = sample.active_ranges(model_id).collect()
+
+    assert result["AUC_ActiveRange"].item() is None
+    assert result["AUC_ActiveRange_CI_Available"].item() is False
+    assert result["AUC_ActiveRange_CI_Reason"].item() == "missing_score_range"

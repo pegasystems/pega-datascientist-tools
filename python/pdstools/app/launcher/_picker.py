@@ -10,6 +10,7 @@ stays inside the same Streamlit process — no JS, no iframes.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import streamlit as st
 
@@ -72,10 +73,10 @@ TILES: tuple[AppTile, ...] = (
 # object (so navigation runs in-process). The launcher entry script
 # registers the per-app home pages here before calling ``picker_page``;
 # tests that exercise the picker in isolation fall back to the raw URL.
-_app_pages: dict[str, "st.Page"] = {}
+_app_pages: dict[str, Any] = {}
 
 
-def set_app_pages(pages: dict[str, "st.Page"]) -> None:
+def set_app_pages(pages: dict[str, Any]) -> None:
     """Register the per-app home ``st.Page`` objects for tile links."""
     _app_pages.clear()
     _app_pages.update(pages)

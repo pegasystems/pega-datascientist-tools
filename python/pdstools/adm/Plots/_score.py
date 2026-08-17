@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import polars as pl
 
 from ...utils import cdh_utils
 from ._base import _PlotsBase
 from ._helpers import distribution_graph, requires
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ...utils.types import QUERY
     from ...utils.plot_utils import Figure
+    from ...utils.types import QUERY
 
 
 class _ScorePlotsMixin(_PlotsBase):
@@ -93,7 +94,9 @@ class _ScorePlotsMixin(_PlotsBase):
                 active_range_filter_expr = (pl.col("BinIndex") >= active_range_info["idx_min"]) & (
                     pl.col("BinIndex") <= active_range_info["idx_max"]
                 )
-                df = df.filter(active_range_filter_expr)
+                active_range_df = df.filter(active_range_filter_expr)
+                if active_range_df.select(pl.first().len()).collect().item() > 0:
+                    df = active_range_df
 
         if df.select(pl.first().len()).collect().item() == 0:
             raise ValueError(f"There is no data for the provided modelid '{model_id}'")

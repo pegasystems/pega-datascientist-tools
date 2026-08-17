@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Literal, overload
+
 from ....internal._pagination import AsyncPaginatedList, PaginatedList
 from ....internal._resource import api_method
 from ..base import AsyncPredictionStudioBase, PredictionStudioBase
 from .prediction import AsyncPrediction, Prediction
 from .repository import AsyncRepository, Repository
+
+if TYPE_CHECKING:
+    import polars as pl
 
 
 class _PredictionStudioV24_1Mixin:
@@ -39,8 +44,17 @@ class PredictionStudio(_PredictionStudioV24_1Mixin, PredictionStudioBase):
             _root="predictions",
         )
 
-    def list_predictions(self) -> PaginatedList[Prediction]:
-        return self.predictions
+    @overload
+    def list_predictions(self, return_df: Literal[False] = False) -> PaginatedList[Prediction]: ...
+
+    @overload
+    def list_predictions(self, return_df: Literal[True]) -> pl.DataFrame: ...
+
+    def list_predictions(self, return_df: bool = False) -> PaginatedList[Prediction] | pl.DataFrame:
+        pages = self.predictions
+        if not return_df:
+            return pages
+        return pages.as_df()
 
     def repository(self) -> Repository:
         endpoint = "/prweb/api/PredictionStudio/v3/predictions/repository"
@@ -69,8 +83,17 @@ class AsyncPredictionStudio(_PredictionStudioV24_1Mixin, AsyncPredictionStudioBa
             _root="predictions",
         )
 
-    async def list_predictions(self) -> AsyncPaginatedList[AsyncPrediction]:
-        return self.predictions
+    @overload
+    async def list_predictions(self, return_df: Literal[False] = False) -> AsyncPaginatedList[AsyncPrediction]: ...
+
+    @overload
+    async def list_predictions(self, return_df: Literal[True]) -> pl.DataFrame: ...
+
+    async def list_predictions(self, return_df: bool = False) -> AsyncPaginatedList[AsyncPrediction] | pl.DataFrame:
+        pages = self.predictions
+        if not return_df:
+            return pages
+        return await pages.as_df()
 
     async def repository(self) -> AsyncRepository:
         endpoint = "/prweb/api/PredictionStudio/v3/predictions/repository"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, cast
 
 from .....internal._exceptions import NoMonitoringExportError, PegaException
 from .....internal._pagination import AsyncPaginatedList
@@ -10,7 +11,6 @@ from ..model import AsyncModel
 from ..prediction import AsyncPrediction
 from ..repository import AsyncRepository
 from ._mixin import _PredictionStudiov26_1Mixin
-from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     import polars as pl
@@ -139,6 +139,8 @@ class AsyncPredictionStudio(_PredictionStudiov26_1Mixin, AsyncPredictionStudioPr
             The unique ID of the prediction.
         label : str, optional
             The label of the prediction.
+        **kwargs : Any
+            Additional attribute name/value pairs to match the prediction on.
 
         Returns
         -------
@@ -151,7 +153,10 @@ class AsyncPredictionStudio(_PredictionStudiov26_1Mixin, AsyncPredictionStudioPr
         if label:
             uniques["label"] = label
         pages = cast("AsyncPaginatedList[AsyncPrediction]", await self.list_predictions())
-        return await pages.get(**uniques)
+        prediction = await pages.get(**uniques)
+        if prediction is None:
+            raise KeyError(f"No prediction found for lookup {uniques!r}")
+        return prediction
 
     async def get_model(
         self,
@@ -167,6 +172,8 @@ class AsyncPredictionStudio(_PredictionStudiov26_1Mixin, AsyncPredictionStudioPr
             The unique ID of the model.
         label : str, optional
             The label of the model.
+        **kwargs : Any
+            Additional attribute name/value pairs to match the model on.
 
         Returns
         -------
@@ -179,7 +186,10 @@ class AsyncPredictionStudio(_PredictionStudiov26_1Mixin, AsyncPredictionStudioPr
         if label:
             uniques["label"] = label
         pages = cast("AsyncPaginatedList[AsyncModel]", await self.list_models())
-        return await pages.get(**uniques)
+        model = await pages.get(**uniques)
+        if model is None:
+            raise KeyError(f"No model found for lookup {uniques!r}")
+        return model
 
     async def trigger_datamart_export(self) -> AsyncDatamartExport:
         """Initiates an export of model data to the Repository.

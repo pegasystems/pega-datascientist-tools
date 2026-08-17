@@ -3,18 +3,16 @@ from __future__ import annotations
 __all__ = ["Plots"]
 
 import logging
-from typing import ClassVar, Literal, TYPE_CHECKING, cast, overload
+from typing import TYPE_CHECKING, ClassVar, Literal, overload
 
 import polars as pl
 
 from ..utils.namespaces import LazyNamespace
-from .ExplanationsUtils import (
-    _COL,
-    _SPECIAL,
-    ContextInfo,
-    DisplayBy,
-    SortBy,
-    _resolve_contribution_type,
+from ._constants import (
+    CONTRIBUTION_LABELS,
+    REMAINING,
+    ContributionType,
+    validate_contribution_type,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,129 +29,20 @@ class Plots(LazyNamespace):
     dependencies: ClassVar[list[str]] = ["numpy", "plotly"]
     dependency_group = "explanations"
 
-    X_AXIS_TITLE_DEFAULT = "Contribution"
-    Y_AXIS_TITLE_DEFAULT = "Predictor"
-
     def __init__(self, explanations: "Explanations"):
         self.explanations = explanations
-        self.aggregate = self.explanations.aggregate
+        self.aggregates = self.explanations.aggregates
         super().__init__()
 
-    def contributions(
-        self,
-        top_n: int = 20,
-        top_k: int = 20,
-        *,
-        return_df: bool = False,
-        sort_by: SortBy = "contribution_abs",
-        display_by: DisplayBy = "contribution",
-        descending: bool = True,
-        missing: bool = True,
-        remaining: bool = True,
-        include_numeric_single_bin: bool = False,
-    ):
-        """Plots contributions for the overall model or a selected context.
-
-        Parameters
-        ----------
-        top_n : int
-            Number of top predictors to display.
-        top_k : int
-            Number of top unique values for each categorical predictor to display.
-        return_df : bool
-            If True, skip plotting and return the underlying dataframes instead.
-            When a context is selected, returns
-            ``(predictor_df, predictor_value_df)``; otherwise returns the same
-            pair computed against the overall model.
-        sort_by : str
-            Column to rank/select top predictors. One of
-            ``contribution``, ``contribution_abs``,
-            ``contribution_weighted``, ``contribution_weighted_abs``.
-            Default: ``"contribution_abs"``.
-        display_by : str
-            Column to use for the chart axis values.
-            Default: ``"contribution"``.
-        descending : bool
-            Sort most- or least-impactful first. Default: ``True``.
-        missing : bool
-            Include missing-value bins. Default: ``True``.
-        remaining : bool
-            Include an aggregated "remaining" row. Default: ``True``.
-        include_numeric_single_bin : bool
-            Include numeric predictors that have only a single bin.
-            Default: ``False``.
-
-        Returns
-        -------
-        tuple[go.Figure, list[go.Figure]]
-            - left: context header if context is selected, otherwise None
-            - right: overall contributions plot and a list of predictor contribution plots.
-
-        """
-        common_kwargs = {
-            "sort_by": sort_by,
-            "display_by": display_by,
-            "descending": descending,
-            "missing": missing,
-            "remaining": remaining,
-            "include_numeric_single_bin": include_numeric_single_bin,
-        }
-        if self.explanations.filter.is_context_selected():
-            if return_df:
-                return self.plot_contributions_by_context(
-                    context=self.explanations.filter.get_selected_context(),
-                    top_n=top_n,
-                    top_k=top_k,
-                    return_df=True,
-                    **common_kwargs,
-                )
-            context_plot, overall_plot, predictor_plots = self.plot_contributions_by_context(
-                context=self.explanations.filter.get_selected_context(),
-                top_n=top_n,
-                top_k=top_k,
-                **common_kwargs,
-            )
-
-            plots = [overall_plot, *predictor_plots]
-            for plot in [context_plot, *plots]:
-                plot.show()
-
-            return context_plot, plots
-
-        if return_df:
-            return self.plot_contributions_for_overall(
-                top_n=top_n,
-                top_k=top_k,
-                return_df=True,
-                **common_kwargs,
-            )
-
-        logger.info(
-            "No context selected, plotting overall contributions. "
-            "Use explanations.filter.interactive() to select a context.",
-        )
-
-        overall_plot, predictor_plots = self.plot_contributions_for_overall(
-            top_n=top_n,
-            top_k=top_k,
-            **common_kwargs,
-        )
-
-        plots = [overall_plot, *predictor_plots]
-        for plot in plots:
-            plot.show()
-
-        return None, plots
-
     @overload
-    def plot_contributions_for_overall(
+    def contributions_overall(
         self,
         top_n: int = ...,
         top_k: int = ...,
         *,
         return_df: Literal[False] = ...,
-        sort_by: SortBy = ...,
-        display_by: DisplayBy = ...,
+        sort_by: ContributionType = ...,
+        display_by: ContributionType = ...,
         descending: bool = ...,
         missing: bool = ...,
         remaining: bool = ...,
@@ -161,90 +50,91 @@ class Plots(LazyNamespace):
     ) -> tuple[go.Figure, list[go.Figure]]: ...
 
     @overload
-    def plot_contributions_for_overall(
+    def contributions_overall(
         self,
         top_n: int = ...,
         top_k: int = ...,
         *,
         return_df: Literal[True],
-        sort_by: SortBy = ...,
-        display_by: DisplayBy = ...,
+        sort_by: ContributionType = ...,
+        display_by: ContributionType = ...,
         descending: bool = ...,
         missing: bool = ...,
         remaining: bool = ...,
         include_numeric_single_bin: bool = ...,
     ) -> tuple[pl.DataFrame, pl.DataFrame]: ...
 
-    def plot_contributions_for_overall(
+    def contributions_overall(
         self,
         top_n: int = 20,
         top_k: int = 20,
         *,
         return_df: bool = False,
-        sort_by: SortBy = "contribution_abs",
-        display_by: DisplayBy = "contribution",
+        sort_by: ContributionType = "contribution_abs",
+        display_by: ContributionType = "contribution",
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
         include_numeric_single_bin: bool = False,
     ) -> tuple[go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
         """Plot contributions for overall."""
-        display_by_enum = _resolve_contribution_type(display_by)
-        agg_kwargs = {
-            "sort_by": sort_by,
-            "descending": descending,
-            "missing": missing,
-            "remaining": remaining,
-            "include_numeric_single_bin": include_numeric_single_bin,
-        }
-
-        df = self.aggregate.get_predictor_contributions(
+        display_by = validate_contribution_type(display_by)
+        display_by_label = CONTRIBUTION_LABELS[display_by][0]
+        df = self.aggregates.predictor_contributions(
             top_n=top_n,
-            **agg_kwargs,
+            sort_by=sort_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
         predictors = (
-            df.filter(pl.col(_COL.PREDICTOR_NAME.value) != _SPECIAL.REMAINING.value)
-            .select(_COL.PREDICTOR_NAME.value)
-            .unique()
+            df.filter(pl.col("predictor_name") != REMAINING)
+            .select("predictor_name")
+            .unique(maintain_order=True)
             .to_series()
             .to_list()
         )
 
-        df_predictors = self.aggregate.get_predictor_value_contributions(
+        df_predictors = self.aggregates.predictor_value_contributions(
             predictors=predictors,
             top_k=top_k,
-            **agg_kwargs,
+            sort_by=sort_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
         if return_df:
             return df, df_predictors
 
-        overall_fig = self._plot_overall_contributions(
+        overall_fig = self._overall_figure(
             df,
-            x_col=display_by_enum.value,
-            y_col=_COL.PREDICTOR_NAME.value,
-            x_title=display_by_enum.alt,
+            x_col=display_by,
+            y_col="predictor_name",
+            x_title=display_by_label,
         )
-        predictors_figs = self._plot_predictor_contributions(
+        predictors_figs = self._predictor_figures(
             df_predictors,
-            x_col=display_by_enum.value,
-            y_col=_COL.BIN_CONTENTS.value,
-            x_title=display_by_enum.alt,
+            x_col=display_by,
+            y_col="bin_contents",
+            x_title=display_by_label,
         )
 
         return overall_fig, predictors_figs
 
     @overload
-    def plot_contributions_by_context(
+    def contributions_by_context(
         self,
         context: dict[str, str],
         top_n: int = ...,
         top_k: int = ...,
         *,
         return_df: Literal[False] = ...,
-        sort_by: SortBy = ...,
-        display_by: DisplayBy = ...,
+        sort_by: ContributionType = ...,
+        display_by: ContributionType = ...,
         descending: bool = ...,
         missing: bool = ...,
         remaining: bool = ...,
@@ -252,92 +142,94 @@ class Plots(LazyNamespace):
     ) -> tuple[go.Figure, go.Figure, list[go.Figure]]: ...
 
     @overload
-    def plot_contributions_by_context(
+    def contributions_by_context(
         self,
         context: dict[str, str],
         top_n: int = ...,
         top_k: int = ...,
         *,
         return_df: Literal[True],
-        sort_by: SortBy = ...,
-        display_by: DisplayBy = ...,
+        sort_by: ContributionType = ...,
+        display_by: ContributionType = ...,
         descending: bool = ...,
         missing: bool = ...,
         remaining: bool = ...,
         include_numeric_single_bin: bool = ...,
     ) -> tuple[pl.DataFrame, pl.DataFrame]: ...
 
-    def plot_contributions_by_context(
+    def contributions_by_context(
         self,
         context: dict[str, str],
         top_n: int = 20,
         top_k: int = 20,
         *,
         return_df: bool = False,
-        sort_by: SortBy = "contribution_abs",
-        display_by: DisplayBy = "contribution",
+        sort_by: ContributionType = "contribution_abs",
+        display_by: ContributionType = "contribution",
         descending: bool = True,
         missing: bool = True,
         remaining: bool = True,
         include_numeric_single_bin: bool = False,
     ) -> tuple[go.Figure, go.Figure, list[go.Figure]] | tuple[pl.DataFrame, pl.DataFrame]:
         """Plot contributions by context."""
-        display_by_enum = _resolve_contribution_type(display_by)
-        agg_kwargs = {
-            "sort_by": sort_by,
-            "descending": descending,
-            "missing": missing,
-            "remaining": remaining,
-            "include_numeric_single_bin": include_numeric_single_bin,
-        }
-
-        df_context = self.aggregate.get_predictor_contributions(
+        display_by = validate_contribution_type(display_by)
+        display_by_label = CONTRIBUTION_LABELS[display_by][0]
+        df_context = self.aggregates.predictor_contributions(
             context,
             top_n=top_n,
-            **agg_kwargs,
+            sort_by=sort_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
         # filter out the context rows for plotting by context
-        contexts = list(context.keys())
+        # is_in yields null for null predictor_name, and ~null is null, which
+        # filter drops — fill_null keeps those rows instead.
         df_context = df_context.filter(
-            ~pl.col(_COL.PREDICTOR_NAME.value).is_in(contexts),
+            ~pl.col("predictor_name").is_in(list(context.keys())).fill_null(False),
         )
 
         predictors = (
             df_context.filter(
-                pl.col(_COL.PREDICTOR_NAME.value) != _SPECIAL.REMAINING.value,
+                pl.col("predictor_name") != REMAINING,
             )
-            .select(_COL.PREDICTOR_NAME.value)
-            .unique()
+            .select("predictor_name")
+            .unique(maintain_order=True)
             .to_series()
             .to_list()
         )
 
-        df = self.aggregate.get_predictor_value_contributions(
+        df = self.aggregates.predictor_value_contributions(
             predictors,
             context=context,
             top_k=top_k,
-            **agg_kwargs,
+            sort_by=sort_by,
+            descending=descending,
+            missing=missing,
+            remaining=remaining,
+            include_numeric_single_bin=include_numeric_single_bin,
         )
 
         if return_df:
             return df_context, df
 
-        header_fig = self._plot_context_table(cast("ContextInfo", context))
+        header_fig = self._context_table_figure(context)
 
-        overall_fig = self._plot_overall_contributions(
+        overall_fig = self._overall_figure(
             df_context,
-            x_col=display_by_enum.value,
-            y_col=_COL.PREDICTOR_NAME.value,
-            x_title=display_by_enum.alt,
-            context=cast("ContextInfo", context),
+            x_col=display_by,
+            y_col="predictor_name",
+            x_title=display_by_label,
+            context=context,
         )
 
-        predictors_figs = self._plot_predictor_contributions(
+        predictors_figs = self._predictor_figures(
             df,
-            x_col=display_by_enum.value,
-            y_col=_COL.BIN_CONTENTS.value,
-            x_title=display_by_enum.alt,
+            x_col=display_by,
+            y_col="bin_contents",
+            x_title=display_by_label,
         )
 
         return header_fig, overall_fig, predictors_figs
@@ -350,18 +242,25 @@ class Plots(LazyNamespace):
     ):
         """Build customdata array and hovertemplate for contribution plots.
 
-        Args:
-            df: DataFrame. Must contain a ``frequency_pct`` column when
-                ``include_frequency=True``.
-            x_col: Column used as the contribution value.
-            include_frequency: When False, omits the frequency row from the
-                hover tooltip (e.g. for the whole-model view where it is always 100%).
+        Parameters
+        ----------
+        df : pl.DataFrame
+            DataFrame. Must contain a ``frequency_pct`` column when
+            ``include_frequency=True``.
+        x_col : str
+            Column used as the contribution value.
+        include_frequency : bool, default True
+            When False, omits the frequency row from the hover tooltip
+            (e.g. for the whole-model view where it is always 100%).
 
-        Returns (customdata, hovertemplate).
+        Returns
+        -------
+        tuple[numpy.ndarray, str]
+            Tuple of (customdata, hovertemplate).
         """
         select_cols = [
-            _COL.PREDICTOR_NAME.value,
-            _COL.PREDICTOR_TYPE.value,
+            "predictor_name",
+            "predictor_type",
             pl.col(x_col).alias("contribution"),
         ]
         if include_frequency:
@@ -378,14 +277,14 @@ class Plots(LazyNamespace):
 
         return customdata, hovertemplate
 
-    def _plot_overall_contributions(
+    def _overall_figure(
         self,
         df: pl.DataFrame,
         x_col: str,
         y_col: str,
-        x_title: str = X_AXIS_TITLE_DEFAULT,
-        y_title: str = Y_AXIS_TITLE_DEFAULT,
-        context: ContextInfo | None = None,
+        x_title: str,
+        y_title: str = "Predictor",
+        context: dict[str, str] | None = None,
     ) -> go.Figure:
         import plotly.graph_objects as go
 
@@ -396,9 +295,9 @@ class Plots(LazyNamespace):
         else:
             title += "-".join([f"{v}" for k, v in context.items()])
             # Show each predictor's context frequency as a share of the overall model.
-            df_with_pct = self.aggregate.add_context_frequency_pct_to_df(
+            df_with_pct = self.aggregates._add_context_frequency_pct(
                 df,
-                join_on=[_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value],
+                join_on=["predictor_name", "predictor_type"],
             )
             customdata, hovertemplate = self._build_hover_customdata(df_with_pct, x_col)
 
@@ -428,25 +327,25 @@ class Plots(LazyNamespace):
         fig.update_layout(xaxis_title=x_title, yaxis_title=y_title, height=600)
         return fig
 
-    def _plot_predictor_contributions(
+    def _predictor_figures(
         self,
         df: pl.DataFrame,
         x_col: str,
         y_col: str,
-        x_title: str = X_AXIS_TITLE_DEFAULT,
-        y_title: str = Y_AXIS_TITLE_DEFAULT,
+        x_title: str,
+        y_title: str = "Predictor",
     ) -> list[go.Figure]:
         import plotly.graph_objects as go
 
-        df_with_frequency_pct = self.aggregate.add_frequency_pct_to_df(
-            df, group_by=[_COL.PARTITON.value, _COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]
+        df_with_frequency_pct = self.aggregates._add_frequency_pct(
+            df, group_by=["context_partition", "predictor_name", "predictor_type"]
         )
 
-        predictor_info = df.select([_COL.PREDICTOR_NAME.value, _COL.PREDICTOR_TYPE.value]).unique()
+        predictor_info = df.select(["predictor_name", "predictor_type"]).unique(maintain_order=True)
 
         plots = []
         for predictor, predictor_type in predictor_info.iter_rows():
-            predictor_df = df_with_frequency_pct.filter(pl.col(_COL.PREDICTOR_NAME.value) == predictor)
+            predictor_df = df_with_frequency_pct.filter(pl.col("predictor_name") == predictor)
 
             customdata, hovertemplate = self._build_hover_customdata(predictor_df, x_col)
 
@@ -479,7 +378,7 @@ class Plots(LazyNamespace):
         return plots
 
     @staticmethod
-    def _plot_context_table(context_info: ContextInfo) -> go.Figure:
+    def _context_table_figure(context_info: dict[str, str]) -> go.Figure:
         import plotly.graph_objects as go
 
         fig = go.Figure(

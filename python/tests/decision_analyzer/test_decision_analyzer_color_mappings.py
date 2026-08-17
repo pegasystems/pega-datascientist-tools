@@ -104,11 +104,24 @@ def test_distribution_treemap_uses_consistent_colors(sample_data):
         scope_options=scope_options,
     )
 
-    # Verify the figure was created
-    assert fig is not None
-
-    # The color_discrete_map passed to Plotly should match our cached mappings
-    # We can't directly inspect what px.treemap received, but we can verify
-    # that the figure contains traces with colors from our mapping
-    # Check that at least some Issue values appear in the figure data
-    assert len(fig.data) > 0
+    assert [
+        (
+            trace.type,
+            list(trace.labels),
+            list(trace.values),
+            list(trace.marker.colors),
+        )
+        for trace in fig.data
+    ] == [
+        (
+            "treemap",
+            ["All Actions Arbitration", "Retention", "Sales", "Service"],
+            [30.0, 10.0, 10.0, 10.0],
+            [
+                "#661D34",
+                da.color_mappings["Issue"]["Retention"],
+                da.color_mappings["Issue"]["Sales"],
+                da.color_mappings["Issue"]["Service"],
+            ],
+        ),
+    ]

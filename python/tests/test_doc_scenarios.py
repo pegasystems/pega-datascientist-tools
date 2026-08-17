@@ -35,13 +35,21 @@ basePath = pathlib.Path(__file__).parent.parent.parent
 )
 def test_notebook(relative_filepath):
     file = str(basePath / relative_filepath)
+    notebook_dir = pathlib.Path(file).parent
 
     pythonPath = "python" if platform.system() == "Windows" else str(basePath / "python")
 
     with testbook(file) as tb:
         tb.inject(
             f"""
+        import os
         import sys
+        if sys.platform == "win32":
+            import asyncio
+
+            # pyzmq requires add_reader support, which ProactorEventLoop lacks.
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        os.chdir(r'{notebook_dir}')
         sys.path.append('{pythonPath}')""",
         )
         tb.execute()

@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ["BinAggregator"]
 import logging
 from functools import cached_property
-from typing import ClassVar, Literal, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, ClassVar, Literal, cast
 
 import polars as pl
 
@@ -185,7 +185,8 @@ class BinAggregator(LazyNamespace):
                     )
 
                 if is_numeric:
-                    assert empty_numeric_binning is not None  # set above when is_numeric
+                    if empty_numeric_binning is None:
+                        raise RuntimeError("Expected numeric binning data when processing numeric predictors.")
                     cum_binning = self.accumulate_num_binnings(
                         predictor,
                         ids,
@@ -263,7 +264,7 @@ class BinAggregator(LazyNamespace):
             .filter(pl.col("PredictorName") == predictor)
             .filter(pl.col("BinSymbol") != "NON-MISSING")
             .filter(pl.col("Symbol").is_not_null())
-            .explode("Symbol")
+            .explode("Symbol", empty_as_null=True)
             .group_by("Symbol")
             .agg(
                 Frequency=pl.sum("BinResponses"),
@@ -302,7 +303,7 @@ class BinAggregator(LazyNamespace):
         # Explode symbol list into separate rows
         symbins_long = (
             symbins.join(lift_residual_bins, on="ModelID", how="left")
-            .explode("Symbol")
+            .explode("Symbol", empty_as_null=True)
             .filter(pl.col("Symbol").is_in(symbollist))
             .collect()
         )
@@ -510,6 +511,8 @@ class BinAggregator(LazyNamespace):
             maximum = bins_minmax.select(pl.col("Maximum").max()).item()
         if boundaries is None:
             boundaries = []
+        if minimum is None or maximum is None:
+            raise ValueError("Could not determine bin boundaries from the available data.")
 
         def create_additional_intervals(
             n: int,
@@ -546,12 +549,17 @@ class BinAggregator(LazyNamespace):
             boundaries.insert(0, minimum)
 
         if maximum > boundaries[-1]:
-            boundaries = boundaries + create_additional_intervals(
-                n,
-                distribution,
-                boundaries,
-                minimum,
-                maximum,
+            boundaries.extend(
+                cast(
+                    list[float],
+                    create_additional_intervals(
+                        n,
+                        distribution,
+                        boundaries,
+                        minimum,
+                        maximum,
+                    ),
+                ),
             )
 
         # Bit of a hack here but if minimum = maximum = 0 otherwise errors out with no binning
@@ -821,7 +829,7 @@ class BinAggregator(LazyNamespace):
             boundaries_data,
             x="boundary",
             y="binning",
-            markers="both",
+            markers=True,
             color="binning",
             template="plotly_white",
             # log_x=True,

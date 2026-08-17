@@ -2,11 +2,8 @@
 
 from unittest.mock import patch
 
-import polars as pl
-import pytest
-
 import pdstools
-from pdstools import __version__
+import pytest
 from pdstools.utils import show_versions as sv_module
 
 
@@ -15,7 +12,7 @@ def test_show_versions_print(capsys):
     captured = capsys.readouterr()
     assert "Version info" in captured.out
     assert "pdstools" in captured.out
-    assert __version__ in captured.out
+    assert sv_module.__version__ in captured.out
     assert "Dependencies" in captured.out
 
 
@@ -23,7 +20,7 @@ def test_show_versions_return_string():
     result = pdstools.show_versions(False)
     assert isinstance(result, str)
     assert "Version info" in result
-    assert __version__ in result
+    assert sv_module.__version__ in result
     assert "Dependencies" in result
 
 
@@ -43,15 +40,26 @@ class TestGetDependencyVersion:
         version = sv_module._get_dependency_version("polars>=1.0")
         assert version != "<not installed>"
 
+    def test_strips_extras_and_multiple_constraints(self):
+        version = sv_module._get_dependency_version("polars[rt64]!=1.35.1,<2,>=1.37")
+        assert version != "<not installed>"
+
     def test_missing_module(self):
         version = sv_module._get_dependency_version("definitely_not_a_real_module_xyz")
         assert version == "<not installed>"
 
     def test_unexpected_import_error_handled(self):
-        with patch.object(
-            sv_module.importlib,
-            "import_module",
-            side_effect=RuntimeError("boom"),
+        with (
+            patch.object(
+                sv_module.importlib.metadata,
+                "version",
+                side_effect=sv_module.importlib.metadata.PackageNotFoundError,
+            ),
+            patch.object(
+                sv_module.importlib,
+                "import_module",
+                side_effect=RuntimeError("boom"),
+            ),
         ):
             version = sv_module._get_dependency_version("polars")
             assert version == "<not installed>"
@@ -88,9 +96,21 @@ def test_grouped_dependencies_has_required():
 class TestDependencyTable:
     def test_returns_polars_dataframe(self):
         table = sv_module._dependency_table(public_only=False)
-        assert isinstance(table, pl.DataFrame)
         assert table.columns[0] == "group"
-        assert table.height > 0
+        assert set(table["group"].to_list()) == {
+            "adm",
+            "pega-io",
+            "api",
+            "healthcheck",
+            "explanations",
+            "nlp",
+            "app",
+            "onnx",
+            "all",
+            "dev",
+            "docs",
+            "tests",
+        }
 
     def test_public_only_excludes_private_groups(self):
         table_all = sv_module._dependency_table(public_only=False)

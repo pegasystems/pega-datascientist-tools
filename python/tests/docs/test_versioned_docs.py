@@ -5,11 +5,10 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-
 MODULE_PATH = Path(__file__).resolve().parents[2] / "docs" / "versioned_docs.py"
 MODULE_SPEC = importlib.util.spec_from_file_location("versioned_docs", MODULE_PATH)
-assert MODULE_SPEC is not None
-assert MODULE_SPEC.loader is not None
+if MODULE_SPEC is None or MODULE_SPEC.loader is None:
+    raise RuntimeError(f"Unable to load docs helper module from {MODULE_PATH}")
 versioned_docs = importlib.util.module_from_spec(MODULE_SPEC)
 MODULE_SPEC.loader.exec_module(versioned_docs)
 
@@ -37,6 +36,46 @@ def test_build_manifest_prefers_latest_pypi_release(tmp_path: Path) -> None:
     assert stable_entry["url"] == "https://example.com/pdstools/4.7.1/"
 
 
+def test_build_manifest_ignores_non_version_dirs_and_collapses_prereleases(
+    tmp_path: Path,
+) -> None:
+    for version in [
+        "dev",
+        "4.7.0",
+        "4.7.1",
+        "5.0.0a1",
+        "5.0.0b2",
+        "5.0.0rc2",
+        "articles",
+        "autoapi",
+        "latest",
+    ]:
+        (tmp_path / version).mkdir()
+
+    manifest, preferred_version = versioned_docs.build_manifest(
+        tmp_path,
+        "https://example.com/pdstools",
+        pypi_version="4.7.1",
+    )
+
+    assert preferred_version == "4.7.1"
+    assert [entry["version"] for entry in manifest] == ["dev", "4.7.1", "4.7.0", "5.0.0rc2"]
+
+
+def test_build_manifest_hides_prerelease_once_stable_exists(tmp_path: Path) -> None:
+    for version in ["dev", "4.7.1", "5.0.0rc2", "5.0.0"]:
+        (tmp_path / version).mkdir()
+
+    manifest, preferred_version = versioned_docs.build_manifest(
+        tmp_path,
+        "https://example.com/pdstools",
+        pypi_version="5.0.0rc2",
+    )
+
+    assert preferred_version == "5.0.0"
+    assert [entry["version"] for entry in manifest] == ["dev", "5.0.0", "4.7.1"]
+
+
 def test_build_manifest_falls_back_to_highest_release(tmp_path: Path) -> None:
     for version in ["dev", "4.7.0", "4.7.1"]:
         (tmp_path / version).mkdir()
@@ -49,6 +88,22 @@ def test_build_manifest_falls_back_to_highest_release(tmp_path: Path) -> None:
 
     assert preferred_version == "4.7.1"
     assert any(entry["preferred"] for entry in manifest)
+
+
+def test_build_manifest_falls_back_to_latest_prerelease_when_no_stable_exists(
+    tmp_path: Path,
+) -> None:
+    for version in ["dev", "5.0.0a1", "5.0.0rc2", "5.1.0b1"]:
+        (tmp_path / version).mkdir()
+
+    manifest, preferred_version = versioned_docs.build_manifest(
+        tmp_path,
+        "https://example.com/pdstools",
+        pypi_version="5.0.0rc2",
+    )
+
+    assert preferred_version == "5.1.0b1"
+    assert [entry["version"] for entry in manifest] == ["dev", "5.1.0b1", "5.0.0rc2"]
 
 
 def test_write_root_redirect_targets_preferred_release(tmp_path: Path) -> None:

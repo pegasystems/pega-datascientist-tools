@@ -150,7 +150,7 @@ def _show_data_summary(
     except (pl.exceptions.PolarsError, AttributeError, KeyError):
         rows = None
 
-    prefix = _banner_prefix(source_kind, source_label)
+    prefix = _banner_prefix(source_kind or "sample", source_label)
 
     if rows is None:
         st.success(f"{prefix}. Detected format: {format_label}")
@@ -181,10 +181,12 @@ def home_page() -> None:
         get_sample_limit,
         get_temp_dir,
         parse_sample_spec,
-        set_active_app as _set_active_app,
         show_sidebar_branding,
         show_version_header,
         standard_page_config,
+    )
+    from pdstools.utils.streamlit_utils import (
+        set_active_app as _set_active_app,
     )
 
     standard_page_config(page_title="Impact Analyzer")
@@ -323,9 +325,10 @@ by default — upload your own file below to replace it.
             sampling_msg = "Sampling rows..."
 
         with st.spinner(sampling_msg):
+            sample_n = sample_kwargs.get("n")
             sampled_data, sample_path = prepare_and_save_random(
                 impact_analyzer.ia_data,
-                n=sample_kwargs.get("n"),
+                n=int(sample_n) if sample_n is not None else None,
                 fraction=sample_kwargs.get("fraction"),
                 output_dir=get_temp_dir() or ".",
                 source_path=data_source_path,

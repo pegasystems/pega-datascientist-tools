@@ -7,8 +7,16 @@ published-title: "Report generated on"
 ```{{python}}
 # | echo: false
 # | output: false
+from pathlib import Path
 from pdstools.explanations import Explanations
 from pdstools.utils import report_utils, show_versions
+import plotly.io as pio
+
+# Plotly serializes figures at display time, so generated pages set the
+# renderer before any plots are shown. The pre-render script substitutes this
+# placeholder with notebook for fully embedded reports or notebook_connected
+# for CDN-backed reports.
+pio.renderers.default = "{PLOTLY_RENDERER}"
 ```
 
 ## Predictor contributions at model level
@@ -16,17 +24,18 @@ from pdstools.utils import report_utils, show_versions
 The top-{TOP_N} predictors over the entire model, selected by their {SORT_BY_TEXT} to predictions
 
 ```{{python}}
-explanations = Explanations()
-explanations.aggregate.data_folderpath = "{DATA_FOLDER}"
+explanations = Explanations.from_aggregates(
+    base_path="{DATA_FOLDER}",
+)
 
 try:
-    overall_plot, predictor_plots = explanations.plot.plot_contributions_for_overall(
+    overall_plot, predictor_plots = explanations.plot.contributions_overall(
         top_n={TOP_N},
         top_k={TOP_K},
         sort_by="{SORT_BY}",
         display_by="{DISPLAY_BY}"
     )
-    overall_plot.show()
+    display(overall_plot)
 except Exception as e:
     report_utils.quarto_plot_exception("Overall Predictor Contributions", e)
 ```

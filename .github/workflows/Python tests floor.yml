@@ -93,7 +93,6 @@ jobs:
             --ignore=python/tests/reports \
             --ignore=python/tests/test_doc_scenarios.py \
             --ignore=python/tests/prediction_studio/test_local_model_utils.py \
-            --ignore=python/tests/infinity/resources/prediction_studio/test_local_model_utils_24_2.py \
             $TORCH_IGNORES \
             --deselect python/tests/adm/test_plots.py::test_predictor_count
 

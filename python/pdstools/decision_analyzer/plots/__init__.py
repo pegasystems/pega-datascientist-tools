@@ -64,6 +64,7 @@ from ._offer_quality import (
     offer_quality_piecharts,
     offer_quality_single_pie,
 )
+from ._optionality import exclusion_rate_distribution as _exclusion_rate_distribution
 from ._optionality import optionality_per_stage as _optionality_per_stage
 from ._optionality import optionality_trend as _optionality_trend
 from ._optionality import propensity_vs_optionality as _propensity_vs_optionality
@@ -112,6 +113,7 @@ class Plot(LazyNamespace):
     propensity_vs_optionality = _propensity_vs_optionality
     optionality_per_stage = _optionality_per_stage
     optionality_trend = _optionality_trend
+    exclusion_rate_distribution = _exclusion_rate_distribution
 
     # _funnel
     optionality_funnel = _optionality_funnel

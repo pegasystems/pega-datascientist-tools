@@ -2,6 +2,7 @@
 
 import datetime
 import shutil
+from unittest.mock import patch
 
 import polars as pl
 import pytest
@@ -520,6 +521,15 @@ def test_from_databricks_view_applies_query():
     assert result["ModelName"].unique().to_list() == ["PREDICTWEBPROPENSITY"]
 
 
+def test_from_databricks_view_preserves_lazy_validation():
+    databricks_data = _make_databricks_prediction_data(["MYCUSTOMPREDICTION"])
+
+    with patch.object(Prediction, "__init__", return_value=None) as init_mock:
+        Prediction.from_databricks_view(databricks_data)
+
+    assert init_mock.call_args.kwargs["_materialize_validated"] is False
+
+
 def test_prediction_plots_internal_method(preds_singleday):
     """Test the internal _prediction_trend method of PredictionPlots."""
     plt, plot_df = preds_singleday.plot._prediction_trend(
@@ -609,10 +619,6 @@ def test_from_processed_data():
     predictions_cache = pred.save_data(temp_path)
 
     cached_data = read_ds_export(predictions_cache)
-    # read_ds_export can legitimately return None when the file is missing;
-    # narrow the type here so the equality check below is well-defined.
-    assert isinstance(cached_data, pl.LazyFrame)
-
     loaded_pred = Prediction.from_processed_data(cached_data)
     assert loaded_pred.is_available
     assert loaded_pred.is_valid

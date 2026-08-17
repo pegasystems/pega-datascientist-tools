@@ -11,8 +11,12 @@ Generated .qmd files are written to the project root for Quarto to render.
 from __future__ import annotations
 
 import json
-import os
 import logging
+import os
+import shutil
+from pathlib import Path
+from typing import cast
+
 import yaml
 
 logger = logging.getLogger(__name__)
@@ -29,6 +33,7 @@ SORT_BY_DEFAULT = "contribution_abs"
 SORT_BY_TEXT_DEFAULT = "absolute average contribution"
 DISPLAY_BY_DEFAULT = "contribution"
 DISPLAY_BY_TEXT_DEFAULT = "average contribution"
+FULL_EMBED_DEFAULT = True
 
 DATA_FOLDER = "aggregated_data"
 UNIQUE_CONTEXTS_FILENAME = "unique_contexts.json"
@@ -49,11 +54,17 @@ SINGLE_CONTEXT_TEMPLATE = "context.qmd"
 
 class ReportGenerator:
     """Quarto pre-render generator for the GlobalExplanations website project.
+
     Reads .qmd templates from assets/templates/, substitutes parameter
     placeholders with values from params.yml, and writes the rendered .qmd
     files for Quarto to build. Shared configuration (front matter, theme,
     branding) is inherited from _quarto.yml; templates only contain
     page-specific content and code cells.
+
+    The generated pages also receive a Plotly renderer value. Plotly emits its
+    HTML when figures are displayed, so the renderer must be set inside each
+    generated page before any plots are shown: ``notebook`` for fully embedded
+    reports and ``notebook_connected`` for CDN-backed reports.
     """
 
     def __init__(self):
@@ -70,10 +81,15 @@ class ReportGenerator:
         self.display_by = None
         self.display_by_text = None
         self.model_context_limit = int(os.getenv("MODEL_CONTEXT_LIMIT", "2500"))
+        self.full_embed = None
 
         self.by_context_folder = f"{self.report_folder}/{CONTEXT_FOLDER}"
-        if not os.path.exists(self.by_context_folder):
-            os.makedirs(self.by_context_folder, exist_ok=True)
+        # Rebuilt from scratch: every file in here is generated from the current
+        # params and context batches, so leftovers from a previous run into the same
+        # output directory would be rendered into the site as orphan pages.
+        if os.path.exists(self.by_context_folder):
+            shutil.rmtree(self.by_context_folder)
+        os.makedirs(self.by_context_folder, exist_ok=True)
 
         self.plots_for_batch_filepath = f"{self.by_context_folder}/{PLOTS_FOR_BATCH}"
         self.contexts = None
@@ -105,6 +121,19 @@ class ReportGenerator:
             self.display_by,
         )
 
+    @staticmethod
+    def _parse_bool(value: object) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.lower() == "true"
+        return bool(value)
+
+    @property
+    def plotly_renderer(self) -> str:
+        """Return the Plotly renderer matching the report resource mode."""
+        return "notebook" if self.full_embed else "notebook_connected"
+
     def _read_params(self):
         params_file = os.path.join(self.report_folder, "scripts", PARAMS_FILENAME)
 
@@ -119,6 +148,7 @@ class ReportGenerator:
             self.display_by = DISPLAY_BY_DEFAULT
             self.display_by_text = DISPLAY_BY_TEXT_DEFAULT
 
+            self.full_embed = FULL_EMBED_DEFAULT
             logger.info("Parameters file %s does not exist. Using defaults.", params_file)
 
         else:
@@ -134,16 +164,21 @@ class ReportGenerator:
                 self.display_by = params.get("display_by", DISPLAY_BY_DEFAULT)
                 self.display_by_text = params.get("display_by_text", DISPLAY_BY_TEXT_DEFAULT)
 
+                self.full_embed = self._parse_bool(params.get("full_embed", FULL_EMBED_DEFAULT))
         self.root_dir = os.path.abspath(os.path.join(self.report_folder, ".."))
-
-        self.data_folder = os.path.abspath(os.path.join(self.report_folder, "..", self.data_folder))
+        data_folder_path = Path(str(self.data_folder))
+        if data_folder_path.is_absolute():
+            resolved_data_folder = data_folder_path
+        else:
+            resolved_data_folder = Path(self.root_dir) / data_folder_path
+        self.data_folder = str(resolved_data_folder.resolve())
         logger.info("Using data folder: %s", self.data_folder)
 
         self._log_params()
 
     @staticmethod
-    def _get_context_dict(context_info: str) -> dict:
-        return json.loads(context_info)["partition"]
+    def _get_context_dict(context_info: str) -> dict[str, str]:
+        return cast("dict[str, str]", json.loads(context_info)["partition"])
 
     def _get_context_string(self, context_info: str) -> str:
         return "-".join([v.replace(" ", "") for _, v in self._get_context_dict(context_info).items()])
@@ -178,7 +213,7 @@ class ReportGenerator:
     ):
         # template file: context.qmd
         with open(filename, "w", encoding=ENCODING) as fw:
-            f_context_template = f"""{
+            fw.write(
                 template.format(
                     EMBED_PATH_FOR_BATCH=embed_path_for_batch,
                     CONTEXT_STR=context_str,
@@ -186,26 +221,24 @@ class ReportGenerator:
                     TOP_N=self.top_n,
                     SORT_BY_TEXT=self.sort_by_text,
                 )
-            }"""
-            fw.write(f_context_template)
+            )
 
     def _write_header_to_file(self, file_batch_nb: str, filename: str):
         # template file: all_context_header.qmd
 
         template = self._read_template(ALL_CONTEXT_HEADER_TEMPLATE)
 
-        f_template = f"""{
-            template.format(
-                ROOT_DIR=self.root_dir,
-                DATA_FOLDER=self.data_folder,
-                DATA_PATTERN=f"*_BATCH_{file_batch_nb}.parquet",
-                TOP_N=self.top_n,
-                SORT_BY_TEXT=self.sort_by_text,
-            )
-        }"""
-
         with open(filename, "w", encoding=ENCODING) as writer:
-            writer.write(f_template)
+            writer.write(
+                template.format(
+                    ROOT_DIR=self.root_dir,
+                    DATA_FOLDER=self.data_folder,
+                    DATA_PATTERN=f"batches/BATCH_{file_batch_nb}.parquet",
+                    PLOTLY_RENDERER=self.plotly_renderer,
+                    TOP_N=self.top_n,
+                    SORT_BY_TEXT=self.sort_by_text,
+                )
+            )
 
     def _append_content_to_file(
         self,
@@ -216,7 +249,8 @@ class ReportGenerator:
     ):
         # template file: all_context_content.qmd
         with open(filename, "a", encoding=ENCODING) as writer:
-            f_content_template = f"""{
+            writer.write("\n")
+            writer.write(
                 template.format(
                     CONTEXT_DICT=context_dict,
                     CONTEXT_LABEL=context_label,
@@ -225,78 +259,72 @@ class ReportGenerator:
                     SORT_BY=self.sort_by,
                     DISPLAY_BY=self.display_by,
                 )
-            }"""
-
-            writer.write("\n")
-            writer.write(f_content_template)
+            )
 
     def _get_unique_contexts(self):
         if self.contexts is not None:
             return self.contexts
 
         unique_contexts_file = f"{self.data_folder}/{UNIQUE_CONTEXTS_FILENAME}"
+
         if not os.path.exists(unique_contexts_file):
-            raise FileNotFoundError(
-                f"Unique contexts file not found: {unique_contexts_file}. "
-                "Please ensure that aggregates have been generated."
-            )
+            raise FileNotFoundError(f"Unique contexts file not found in {self.data_folder}")
+
         with open(unique_contexts_file, "r", encoding=ENCODING) as f:
             self.contexts = json.load(f)
+
         return self.contexts
 
     def _generate_by_context_qmds(self):
         contexts = self._get_unique_contexts()
 
-        for file_batch_nb, context_batches in contexts.items():
-            plots_for_batch_filepath = f"{self.plots_for_batch_filepath}_{file_batch_nb}.qmd"
+        for batch_key, batch_contexts in contexts.items():
+            plots_for_batch_filepath = f"{self.plots_for_batch_filepath}_{batch_key}.qmd"
 
             # write header
-            self._write_header_to_file(file_batch_nb, plots_for_batch_filepath)
+            self._write_header_to_file(batch_key, plots_for_batch_filepath)
 
             # write content
             context_content_template = self._read_template(ALL_CONTEXT_CONTENT_TEMPLATE)
             single_context_template = self._read_template(SINGLE_CONTEXT_TEMPLATE)
 
-            for _query_batch_nb, contexts in context_batches.items():
-                for context in contexts:
-                    context_str = self._get_context_string(context)
-                    context_label = ("plt-" + context_str).lower()
+            for context in batch_contexts:
+                context_str = self._get_context_string(context)
+                context_label = ("plt-" + context_str).lower()
 
-                    self._append_content_to_file(
-                        filename=plots_for_batch_filepath,
-                        template=context_content_template,
-                        context_dict=self._get_context_dict(context),
-                        context_label=context_label,
-                    )
+                self._append_content_to_file(
+                    filename=plots_for_batch_filepath,
+                    template=context_content_template,
+                    context_dict=self._get_context_dict(context),
+                    context_label=context_label,
+                )
 
-                    self._write_single_context_file(
-                        embed_path_for_batch=f"{PLOTS_FOR_BATCH}_{file_batch_nb}.qmd",
-                        filename=f"{self.by_context_folder}/{context_label}.qmd",
-                        template=single_context_template,
-                        context_str=context_str,
-                        context_label=context_label,
-                    )
+                self._write_single_context_file(
+                    embed_path_for_batch=f"{PLOTS_FOR_BATCH}_{batch_key}.qmd",
+                    filename=f"{self.by_context_folder}/{context_label}.qmd",
+                    template=single_context_template,
+                    context_str=context_str,
+                    context_label=context_label,
+                )
 
     def _generate_overview_qmd(self):
         # template file: overview.qmd
         with open(f"{TEMPLATES_FOLDER}/{OVERVIEW_FILENAME}", "r", encoding=ENCODING) as fr:
             template = fr.read()
 
-        f_template = f"""{
-            template.format(
-                ROOT_DIR=self.root_dir,
-                DATA_FOLDER=self.data_folder,
-                TOP_N=self.top_n,
-                TOP_K=self.top_k,
-                SORT_BY=self.sort_by,
-                SORT_BY_TEXT=self.sort_by_text,
-                DISPLAY_BY=self.display_by,
-            )
-        }
-        """
-
         with open(OVERVIEW_FILENAME, "w", encoding=ENCODING) as f:
-            f.write(f_template)
+            f.write(
+                template.format(
+                    ROOT_DIR=self.root_dir,
+                    DATA_FOLDER=self.data_folder,
+                    TOP_N=self.top_n,
+                    TOP_K=self.top_k,
+                    SORT_BY=self.sort_by,
+                    SORT_BY_TEXT=self.sort_by_text,
+                    DISPLAY_BY=self.display_by,
+                    PLOTLY_RENDERER=self.plotly_renderer,
+                )
+            )
 
     def _generate_introduction_qmd(self):
         # template file: getting-started.qmd
@@ -308,18 +336,16 @@ class ReportGenerator:
         else:
             date_info = f"from `{self.from_date}` to `{self.to_date}`"
 
-        f_template = f"""{
-            template.format(
-                TOP_N=self.top_n,
-                TOP_K=self.top_k,
-                DATE_INFO=date_info,
-                SORT_BY_TEXT=self.sort_by_text,
-                MODEL_CONTEXT_LIMIT=self.model_context_limit,
-            )
-        }"""
-
         with open(INTRODUCTION_FILENAME, "w", encoding=ENCODING) as f:
-            f.write(f_template)
+            f.write(
+                template.format(
+                    TOP_N=self.top_n,
+                    TOP_K=self.top_k,
+                    DATE_INFO=date_info,
+                    SORT_BY_TEXT=self.sort_by_text,
+                    MODEL_CONTEXT_LIMIT=self.model_context_limit,
+                )
+            )
 
     def run(self):
         """Main method to generate the report files."""

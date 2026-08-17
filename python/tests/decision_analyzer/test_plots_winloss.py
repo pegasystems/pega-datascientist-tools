@@ -9,10 +9,8 @@ from __future__ import annotations
 
 import polars as pl
 import pytest
-from plotly.graph_objs import Figure
-
 from pdstools.decision_analyzer.plots._winloss import create_win_distribution_plot
-
+from plotly.graph_objs import Figure
 
 # ---------------------------------------------------------------------------
 # Helpers / fixtures

@@ -19,9 +19,10 @@ from ..utils.namespaces import LazyNamespace
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
-    from ..utils.plot_utils import Figure
     from collections.abc import Iterable
+
+    from ..utils.plot_utils import Figure
+    from ..utils.types import QUERY
     from .ValueFinder import ValueFinder
 
 COLORSCALE_TYPES = list[tuple[float, str]] | list[str]
@@ -67,7 +68,7 @@ class Plots(LazyNamespace):
         df = (
             df.group_by("Stage")
             .agg(pl.col(by).value_counts(sort=True, name="Count"))
-            .explode(by)
+            .explode(by, empty_as_null=True)
             .unnest(by)
             .sort("Stage")
         )

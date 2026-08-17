@@ -7,6 +7,7 @@ import logging
 import tempfile
 import urllib.request
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import streamlit as st
 
@@ -15,7 +16,6 @@ from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
     get_data_path,
 )
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -23,6 +23,14 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 SAMPLE_VBD_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/ia/ImpactAnalyzer_InfinityDemo.zip"
+
+
+def _require_impact_analyzer(
+    analyzer: ImpactAnalyzer | None | object,
+) -> ImpactAnalyzer:
+    if isinstance(analyzer, ImpactAnalyzer):
+        return analyzer
+    raise ValueError("Impact Analyzer data could not be loaded.")
 
 
 def ensure_ia_data_loaded(*, show_toast: bool = False) -> bool:
@@ -171,15 +179,15 @@ def _resolve_sample_path() -> Path:
 @st.cache_resource
 def load_sample() -> ImpactAnalyzer:
     sample_path = _resolve_sample_path()
-    return ImpactAnalyzer.from_vbd(str(sample_path))
+    return _require_impact_analyzer(ImpactAnalyzer.from_vbd(str(sample_path)))
 
 
 @st.cache_resource
 def load_pdc_from_paths(paths: tuple[str, ...]) -> ImpactAnalyzer:
     cleaned_paths = [path for path in paths if path]
     if len(cleaned_paths) == 1:
-        return ImpactAnalyzer.from_pdc(cleaned_paths[0])
-    return ImpactAnalyzer.from_pdc(cleaned_paths)
+        return _require_impact_analyzer(ImpactAnalyzer.from_pdc(cleaned_paths[0]))
+    return _require_impact_analyzer(ImpactAnalyzer.from_pdc(cleaned_paths))
 
 
 def load_pdc_from_uploads(uploaded_files: Iterable) -> ImpactAnalyzer:
@@ -234,7 +242,7 @@ def _detect_file_format(uploaded_file) -> str:
 
 @st.cache_resource
 def load_excel_from_path(path: str) -> ImpactAnalyzer:
-    return ImpactAnalyzer.from_excel(path)
+    return _require_impact_analyzer(ImpactAnalyzer.from_excel(path))
 
 
 def load_excel_from_upload(uploaded_file) -> ImpactAnalyzer:
@@ -371,7 +379,7 @@ def discover_vbd_outcomes(ia: ImpactAnalyzer) -> tuple[dict[str, list[str]], dic
 
     rows = (
         ia.ia_data.select("Channel", "Outcome")
-        .explode("Outcome")
+        .explode("Outcome", empty_as_null=True)
         .select("Channel", "Outcome")
         .unique()
         .sort("Channel", "Outcome")
@@ -637,8 +645,9 @@ def prepare_and_save_random(
     tuple[pl.LazyFrame, str | None]
         (sampled_data, output_path) where output_path is None if no sampling occurred
     """
-    import polars as pl
     from datetime import datetime
+
+    import polars as pl
 
     total_rows = data.select(pl.len()).collect().item()
 

@@ -14,8 +14,9 @@ from typing import TYPE_CHECKING
 from ._common import logger
 
 if TYPE_CHECKING:
-    import polars as pl
     from os import PathLike
+
+    import polars as pl
 
 
 def process_files_to_bytes(
@@ -82,7 +83,7 @@ def process_files_to_bytes(
 
 
 def get_latest_pdstools_version():
-    import requests  # type: ignore[import-untyped]  # requests has no PEP 561 stubs by default
+    import requests
 
     try:
         response = requests.get("https://pypi.org/pypi/pdstools/json", timeout=5)
@@ -178,7 +179,12 @@ _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS = frozenset(
 )
 
 
-def _validate_databricks_schema(df: pl.LazyFrame, schema: set, view_name: str, schema_const_name: str) -> pl.LazyFrame:
+def _validate_databricks_schema(
+    df: pl.LazyFrame,
+    schema: frozenset[str] | set[str],
+    view_name: str,
+    schema_const_name: str,
+) -> pl.LazyFrame:
     df_cols = set(df.collect_schema().names())
     if missing := schema - df_cols:
         raise ValueError(f"Required columns missing from Databricks {view_name} view: {missing}")
@@ -208,7 +214,7 @@ def _validate_databricks_predictions(df: pl.LazyFrame) -> pl.LazyFrame:
 
 def _validate_databricks_rename_map(
     rename_map: dict[str, str],
-    schema: set,
+    schema: frozenset[str] | set[str],
     view_name: str,
     schema_const_name: str,
 ) -> None:

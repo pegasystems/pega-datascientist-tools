@@ -3,18 +3,19 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING, Any
 
 import polars as pl
 
 from ...utils import cdh_utils
 from ._base import _PlotsBase
 from ._helpers import add_metric_limit_lines, requires
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ...utils.types import QUERY
-    from ...utils.plot_utils import Figure
     from datetime import timedelta
+
+    from ...utils.plot_utils import Figure
+    from ...utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ class _PerformancePlotsMixin(_PlotsBase):
         cumulative: bool = True,
         query: QUERY | None = None,
         facet: str | None = None,
+        facet_col_spacing: float | None = None,
         show_metric_limits: bool = False,
         return_df: bool = False,
     ):
@@ -49,11 +51,23 @@ class _PerformancePlotsMixin(_PlotsBase):
             By what time period to group, by default "1d", see https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html
             for periods.
         cumulative : bool, optional
-            Whether to show cumulative values or period-over-period changes, by default True
+            Whether to show the cumulative metric value at each observed time
+            bucket or the period-over-period change, by default True. When
+            False, the method first keeps the last observed value per Polars
+            dynamic time bucket, then differences consecutive observed buckets
+            within each series. If one or more buckets are missing, count-like
+            deltas are divided by the number of elapsed buckets so a multi-week
+            gap in a weekly chart is shown as an average change per week, not as
+            a single-week spike. Missing buckets are only used to count elapsed
+            time; they are not plotted or value-interpolated.
         query : Optional[QUERY], optional
             The query to apply to the data, by default None
         facet : Optional[str], optional
             Whether to facet the plot into subplots, by default None
+        facet_col_spacing : float, optional
+            Horizontal spacing between facet columns, using Plotly Express'
+            ``facet_col_spacing`` scale from 0 to 1. By default, Plotly's
+            standard spacing is used.
         show_metric_limits : bool, optional
             Whether to show dashed horizontal lines at the metric limit
             thresholds (from MetricLimits.csv), by default False.
@@ -171,9 +185,25 @@ class _PerformancePlotsMixin(_PlotsBase):
                     group_by=grouping_columns,
                 )
                 .agg(pl.last(metric))
+                .sort(*grouping_columns, "SnapshotTime")
+            )
+            period_index = (
+                df.collect()
+                .upsample("SnapshotTime", every=every, group_by=grouping_columns)
+                .sort(*grouping_columns, "SnapshotTime")
                 .with_columns(
-                    pl.col(metric).diff().over(grouping_columns).alias(plot_metric),
+                    pl.int_range(pl.len()).over(grouping_columns).alias("__period_index"),
                 )
+                .select([*grouping_columns, "SnapshotTime", "__period_index"])
+            )
+            periods_elapsed = pl.col("__period_index").diff().over(grouping_columns).clip(lower_bound=1)
+            df = (
+                df.join(period_index.lazy(), on=[*grouping_columns, "SnapshotTime"])
+                .sort(*grouping_columns, "SnapshotTime")
+                .with_columns(
+                    (pl.col(metric).diff().over(grouping_columns) / periods_elapsed).alias(plot_metric),
+                )
+                .drop("__period_index")
             )
 
         if return_df:
@@ -213,25 +243,28 @@ class _PerformancePlotsMixin(_PlotsBase):
             facet_col_wrap = max(2, int(unique_facet_values**0.5))
 
         title = "over all models" if facet is None else f"per {facet}"
-        fig = px.line(
-            final_df,
-            x="SnapshotTime",
-            y=plot_metric,
-            color=by_col,
-            hover_data={
+        line_kwargs: dict[str, Any] = {
+            "x": "SnapshotTime",
+            "y": plot_metric,
+            "color": by_col,
+            "hover_data": {
                 by_col: ":.d",
                 plot_metric: metric_formatting[metric.split("_")[0]],
             },
-            markers=True,
-            title=f"{metric} over time, per {by_col} {title}",
-            facet_col=facet,
-            facet_col_wrap=facet_col_wrap,
-            template="pega",
-        )
+            "markers": True,
+            "title": f"{metric} over time, per {by_col} {title}",
+            "facet_col": facet,
+            "template": "pega",
+        }
+        if facet_col_wrap is not None:
+            line_kwargs["facet_col_wrap"] = facet_col_wrap
+        if facet_col_spacing is not None:
+            line_kwargs["facet_col_spacing"] = facet_col_spacing
+
+        fig = px.line(final_df, **line_kwargs)
 
         if metric == "SuccessRate":
-            fig.update_yaxes(tickformat=".2%")
-            fig.update_layout(yaxis={"rangemode": "tozero"})
+            fig.update_yaxes(tickformat=".2%", rangemode="nonnegative")
 
         if show_metric_limits and metric == "Performance":
             fig = add_metric_limit_lines(fig, orientation="horizontal")

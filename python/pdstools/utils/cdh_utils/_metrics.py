@@ -3,14 +3,549 @@
 from __future__ import annotations
 
 import math
+from statistics import NormalDist
+from typing import TYPE_CHECKING
 
 import polars as pl
 
 from ._polars import weighted_average_polars
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+
+def validate_confidence_level(confidence_level: float) -> float:
+    """Validate a two-sided confidence level.
+
+    Parameters
+    ----------
+    confidence_level : float
+        Confidence level as a fraction in the open interval ``(0, 1)``.
+
+    Returns
+    -------
+    float
+        The validated confidence level.
+
+    Raises
+    ------
+    ValueError
+        If the confidence level is not finite or not strictly between 0 and 1.
+    """
+    if not math.isfinite(confidence_level) or confidence_level <= 0 or confidence_level >= 1:
+        raise ValueError("confidence_level must be a finite float strictly between 0 and 1")
+    return confidence_level
+
+
+def _auc_ci_from_binned_rows(
+    data: pl.LazyFrame,
+    *,
+    group_col: str,
+    positive_col: str,
+    negative_col: str,
+    confidence_level: float,
+) -> pl.LazyFrame:
+    """Calculate grouped-bin AUC confidence intervals with Polars expressions.
+
+    Parameters
+    ----------
+    data : pl.LazyFrame
+        Long-form bin data with one row per score bin.
+    group_col : str
+        Column identifying the independently evaluated groups.
+    positive_col : str
+        Column containing positive response counts.
+    negative_col : str
+        Column containing negative response counts.
+    confidence_level : float
+        Two-sided confidence level used to derive the interval.
+
+    Returns
+    -------
+    pl.LazyFrame
+        One row per group with AUC, variance, confidence bounds, and class
+        counts.
+    """
+    validate_confidence_level(confidence_level)
+    z_score = NormalDist().inv_cdf(0.5 + confidence_level / 2.0)
+
+    sorted_bins = (
+        data.select(
+            pl.col(group_col),
+            pl.col(positive_col).cast(pl.Float64).alias("_Positive"),
+            pl.col(negative_col).cast(pl.Float64).alias("_Negative"),
+        )
+        .with_row_index("_BinOrder")
+        .with_columns(
+            _PositiveCount=pl.col("_Positive").sum().over(group_col),
+            _NegativeCount=pl.col("_Negative").sum().over(group_col),
+            _Probability=(pl.col("_Positive") / (pl.col("_Positive") + pl.col("_Negative")))
+            .fill_nan(0.0)
+            .fill_null(0.0),
+        )
+        .sort(
+            group_col,
+            "_Probability",
+            "_BinOrder",
+            descending=[False, True, True],
+        )
+        .with_columns(
+            _CumulativePositive=pl.col("_Positive").cum_sum().over(group_col),
+            _CumulativeNegative=pl.col("_Negative").cum_sum().over(group_col),
+        )
+        .with_columns(
+            _AUCArea=(
+                (pl.col("_Negative") / pl.col("_NegativeCount"))
+                * ((2.0 * pl.col("_CumulativePositive") - pl.col("_Positive")) / (2.0 * pl.col("_PositiveCount")))
+            ),
+            _V10=(
+                (pl.col("_CumulativeNegative") - pl.col("_Negative") + 0.5 * pl.col("_Negative"))
+                / pl.col("_NegativeCount")
+            ),
+            _V01=(
+                (pl.col("_CumulativePositive") - pl.col("_Positive") + 0.5 * pl.col("_Positive"))
+                / pl.col("_PositiveCount")
+            ),
+        )
+        .with_columns(
+            _MeanV10=(pl.col("_V10") * pl.col("_Positive")).sum().over(group_col) / pl.col("_PositiveCount"),
+            _MeanV01=(pl.col("_V01") * pl.col("_Negative")).sum().over(group_col) / pl.col("_NegativeCount"),
+        )
+    )
+
+    grouped = sorted_bins.group_by(group_col).agg(
+        _PositiveCount=pl.col("_PositiveCount").first(),
+        _NegativeCount=pl.col("_NegativeCount").first(),
+        _RawAUC=pl.col("_AUCArea").sum(),
+        _VarianceV10=(
+            ((pl.col("_V10") - pl.col("_MeanV10")).pow(2) * pl.col("_Positive")).sum()
+            / (pl.col("_PositiveCount").first() - 1.0)
+        ),
+        _VarianceV01=(
+            ((pl.col("_V01") - pl.col("_MeanV01")).pow(2) * pl.col("_Negative")).sum()
+            / (pl.col("_NegativeCount").first() - 1.0)
+        ),
+    )
+
+    return (
+        grouped.with_columns(
+            AUC=pl.when(
+                (pl.col("_PositiveCount") == 0) | (pl.col("_NegativeCount") == 0),
+            )
+            .then(0.5)
+            .otherwise(0.5 + (0.5 - pl.col("_RawAUC")).abs()),
+            AUC_CI_Variance=pl.when(
+                (pl.col("_PositiveCount") > 1) & (pl.col("_NegativeCount") > 1),
+            )
+            .then(
+                (
+                    pl.col("_VarianceV10") / pl.col("_PositiveCount")
+                    + pl.col("_VarianceV01") / pl.col("_NegativeCount")
+                ).clip(lower_bound=0.0),
+            )
+            .otherwise(None),
+        )
+        .with_columns(
+            AUC_CI_Lower=(pl.col("AUC") - z_score * pl.col("AUC_CI_Variance").sqrt()).clip(0.0, 1.0),
+            AUC_CI_Upper=(pl.col("AUC") + z_score * pl.col("AUC_CI_Variance").sqrt()).clip(0.0, 1.0),
+        )
+        .with_columns(
+            _AUC_CI_Safe_Lower=0.5 + (0.5 - pl.col("AUC_CI_Lower")).abs(),
+            _AUC_CI_Safe_Upper=0.5 + (0.5 - pl.col("AUC_CI_Upper")).abs(),
+        )
+        .with_columns(
+            AUC_CI_Safe_Lower=pl.when(
+                (pl.col("AUC_CI_Lower") <= 0.5) & (pl.col("AUC_CI_Upper") >= 0.5),
+            )
+            .then(0.5)
+            .otherwise(pl.min_horizontal("_AUC_CI_Safe_Lower", "_AUC_CI_Safe_Upper")),
+            AUC_CI_Safe_Upper=pl.max_horizontal("_AUC_CI_Safe_Lower", "_AUC_CI_Safe_Upper"),
+        )
+        .select(
+            group_col,
+            "AUC",
+            "AUC_CI_Variance",
+            "AUC_CI_Lower",
+            "AUC_CI_Upper",
+            "AUC_CI_Safe_Lower",
+            "AUC_CI_Safe_Upper",
+            "_PositiveCount",
+            "_NegativeCount",
+        )
+    )
+
+
+def _validate_grouped_auc_inputs(
+    pos: Sequence[int] | pl.Series,
+    neg: Sequence[int] | pl.Series,
+    probs: Sequence[float] | pl.Series | None = None,
+) -> tuple[pl.Series, pl.Series, pl.Series]:
+    """Validate grouped-bin counts and return aligned float series.
+
+    Parameters
+    ----------
+    pos : Sequence[int] | pl.Series
+        Positive class counts per score bin.
+    neg : Sequence[int] | pl.Series
+        Negative class counts per score bin.
+    probs : Sequence[float] | pl.Series | None, optional
+        Optional per-bin scores for sorting. When omitted, the bin rate
+        ``pos/(pos+neg)`` is used.
+
+    Returns
+    -------
+    tuple[pl.Series, pl.Series, pl.Series]
+        Validated and aligned ``(pos, neg, probs)`` series.
+
+    Raises
+    ------
+    ValueError
+        If lengths do not match, counts are negative, or bins are empty.
+    """
+    pos_series = pl.Series("pos", pos, strict=False).cast(pl.Float64)
+    neg_series = pl.Series("neg", neg, strict=False).cast(pl.Float64)
+
+    if len(pos_series) == 0 or len(neg_series) == 0:
+        raise ValueError("pos and neg must be non-empty")
+    if len(pos_series) != len(neg_series):
+        raise ValueError("pos and neg must have the same length")
+    if (pos_series < 0).any() or (neg_series < 0).any():
+        raise ValueError("pos and neg must contain non-negative counts")
+
+    if probs is None:
+        denom = pos_series + neg_series
+        probs_series = (pos_series / denom).fill_nan(0.0).fill_null(0.0)
+    else:
+        probs_series = pl.Series("probs", probs, strict=False).cast(pl.Float64)
+        if len(probs_series) != len(pos_series):
+            raise ValueError("probs must have the same length as pos and neg")
+
+    return pos_series, neg_series, probs_series
+
+
+def _weighted_sample_variance(values: pl.Series, weights: pl.Series) -> float | None:
+    """Compute weighted sample variance for grouped repeated values."""
+    total_weight = float(weights.sum())
+    if total_weight <= 1:
+        return None
+
+    weighted_sum = float((values * weights).sum())
+    mean_value = weighted_sum / total_weight
+    numerator = float((((values - mean_value) ** 2) * weights).sum())
+    return numerator / (total_weight - 1.0)
+
+
+def auc_variance_delong_grouped(
+    pos: Sequence[int] | pl.Series,
+    neg: Sequence[int] | pl.Series,
+    probs: Sequence[float] | pl.Series | None = None,
+) -> float | None:
+    """Estimate AUC variance with grouped-bin DeLong-style variance.
+
+    This uses the DeLong 1988 method: https://doi.org/10.2307/2531595.
+
+    Parameters
+    ----------
+    pos : Sequence[int] | pl.Series
+        Positive class counts per score bin.
+    neg : Sequence[int] | pl.Series
+        Negative class counts per score bin.
+    probs : Sequence[float] | pl.Series | None, optional
+        Optional per-bin scores for sorting descending. When omitted, the bin
+        event rate ``pos/(pos+neg)`` is used.
+
+    Returns
+    -------
+    float | None
+        Estimated AUC variance, or ``None`` when there is insufficient class
+        volume to estimate variance.
+    """
+    pos_series, neg_series, probs_series = _validate_grouped_auc_inputs(pos, neg, probs)
+
+    n_pos = float(pos_series.sum())
+    n_neg = float(neg_series.sum())
+    if n_pos <= 1 or n_neg <= 1:
+        return None
+
+    order_df = (
+        pl.DataFrame({"pos": pos_series, "neg": neg_series, "probs": probs_series})
+        .sort("probs", descending=True)
+        .with_columns(
+            cum_neg_before=pl.col("neg").cum_sum().shift(1).fill_null(0.0),
+            cum_pos_before=pl.col("pos").cum_sum().shift(1).fill_null(0.0),
+        )
+    )
+
+    v10 = ((pl.col("cum_neg_before") + 0.5 * pl.col("neg")) / n_neg).alias("v10")
+    v01 = ((pl.col("cum_pos_before") + 0.5 * pl.col("pos")) / n_pos).alias("v01")
+    scored = order_df.with_columns(v10, v01)
+
+    var_v10 = _weighted_sample_variance(scored.get_column("v10"), scored.get_column("pos"))
+    var_v01 = _weighted_sample_variance(scored.get_column("v01"), scored.get_column("neg"))
+    if var_v10 is None or var_v01 is None:
+        return None
+
+    variance = (var_v10 / n_pos) + (var_v01 / n_neg)
+    return variance if variance >= 0 else 0.0
+
+
+def auc_ci_from_bincounts(
+    pos: Sequence[int] | pl.Series,
+    neg: Sequence[int] | pl.Series,
+    probs: Sequence[float] | pl.Series | None = None,
+    *,
+    confidence_level: float = 0.95,
+) -> dict[str, float | bool | str | None]:
+    """Compute an AUC confidence interval from binned class counts.
+
+    This helper is intended for situations where the original row-level
+    predictions are no longer available, but each score bin still carries the
+    number of positive and negative outcomes. A common ADM example is the
+    Naive Bayes ``Classifier`` row: the classifier bins summarize the model's
+    calibrated score distribution, and each bin contains observed positive and
+    negative response counts.
+
+    The AUC point estimate is calculated with :func:`auc_from_bincounts`, so it
+    follows the Pega safe-AUC convention and is always reported in the
+    0.5-to-1.0 direction. The variance uses a `DeLong-style grouped-bin
+    formulation`_: observations in the same bin are treated as tied scores and
+    receive the midrank contribution implied by the bin's positive and
+    negative counts. This gives an analytic interval from aggregated bin
+    counts without expanding the data back to one row per observation.
+
+    Use this interval as an uncertainty estimate for a single independently
+    validated binary classifier. It is most useful when trend data is not
+    available and a single AUC point estimate would otherwise hide sample-size
+    uncertainty. For portfolio summaries across multiple models, combine model
+    estimates with :func:`weighted_auc_ci_from_estimates` rather than pooling
+    unrelated bins into one classifier.
+
+    Parameters
+    ----------
+    pos : Sequence[int] | pl.Series
+        Positive class counts per score bin. Values must be non-negative and
+        aligned with ``neg`` and ``probs``.
+    neg : Sequence[int] | pl.Series
+        Negative class counts per score bin. Values must be non-negative and
+        aligned with ``pos`` and ``probs``.
+    probs : Sequence[float] | pl.Series | None, optional
+        Optional per-bin scores for sorting descending. When omitted, bins are
+        ordered by their observed event rate, ``pos / (pos + neg)``. Pass this
+        argument when the bin order must follow an external score, propensity,
+        or classifier interval order rather than the observed response rate.
+    confidence_level : float, default 0.95
+        Two-sided confidence level used to derive the interval. Must be a
+        finite value strictly between 0 and 1.
+
+    Returns
+    -------
+    dict[str, float | bool | str | None]
+        Payload with keys ``auc``, ``variance``, ``ci_lower``, ``ci_upper``,
+        ``safe_ci_lower``, ``safe_ci_upper``, ``ci_available``, and
+        ``ci_reason``.
+
+        ``auc`` is the safe 0.5-to-1.0 AUC point estimate. ``ci_lower`` and
+        ``ci_upper`` are the regular clipped confidence interval endpoints on
+        the 0-to-1 AUC scale. ``safe_ci_lower`` and ``safe_ci_upper`` fold that
+        interval through :func:`safe_range_interval` for Pega's safe display
+        convention; multiply ``auc`` and the safe bounds by 100 for the
+        50-to-100 Pega scale. ``variance`` is on the squared 0-to-1 AUC scale.
+
+        When the interval cannot be estimated, ``ci_available`` is ``False``,
+        interval fields are ``None``, and ``ci_reason`` is either
+        ``"insufficient_class_volume"`` or ``"variance_unavailable"``.
+
+    Notes
+    -----
+    The implementation is an aggregated-count analogue of DeLong variance for
+    `ROC AUC`_. It assumes independent positive and negative observations and
+    a binary outcome. The bin counts preserve enough ordering information for
+    the AUC and variance calculation, but they do not recover information lost
+    by coarse binning. Wider bins therefore give a practical confidence
+    interval for the binned classifier summary, not a perfect substitute for
+    row-level scores.
+
+    References
+    ----------
+    DeLong, E. R., DeLong, D. M., & Clarke-Pearson, D. L. (1988). Comparing
+    the areas under two or more correlated receiver operating characteristic
+    curves: a nonparametric approach. Biometrics, 44(3), 837-845.
+    https://doi.org/10.2307/2531595.
+
+    Sun, X., & Xu, W. (2014). Fast implementation of DeLong's algorithm for
+    comparing the areas under correlated receiver operating characteristic
+    curves. IEEE Signal Processing Letters, 21(11), 1389-1393.
+
+    See Also
+    --------
+    auc_from_bincounts : Safe AUC point estimate from binned counts.
+    auc_variance_delong_grouped : Grouped-bin DeLong-style variance estimate.
+    weighted_auc_ci_from_estimates : Weighted CI for portfolio-level summaries.
+
+    .. _DeLong-style grouped-bin formulation: https://doi.org/10.2307/2531595
+    .. _ROC AUC: https://en.wikipedia.org/wiki/Receiver_operating_characteristic#Area_under_the_curve
+    """
+    validate_confidence_level(confidence_level)
+    pos_series, neg_series, probs_series = _validate_grouped_auc_inputs(pos, neg, probs)
+
+    n_pos = float(pos_series.sum())
+    n_neg = float(neg_series.sum())
+    auc = auc_from_bincounts(pos_series, neg_series, probs_series)
+
+    if n_pos <= 1 or n_neg <= 1:
+        return {
+            "auc": auc,
+            "variance": None,
+            "ci_lower": None,
+            "ci_upper": None,
+            "safe_ci_lower": None,
+            "safe_ci_upper": None,
+            "ci_available": False,
+            "ci_reason": "insufficient_class_volume",
+        }
+
+    variance = auc_variance_delong_grouped(pos_series, neg_series, probs_series)
+    if variance is None:
+        return {
+            "auc": auc,
+            "variance": None,
+            "ci_lower": None,
+            "ci_upper": None,
+            "safe_ci_lower": None,
+            "safe_ci_upper": None,
+            "ci_available": False,
+            "ci_reason": "variance_unavailable",
+        }
+
+    std_err = math.sqrt(max(variance, 0.0))
+    if std_err == 0.0:
+        clipped = min(max(auc, 0.0), 1.0)
+        return {
+            "auc": auc,
+            "variance": variance,
+            "ci_lower": clipped,
+            "ci_upper": clipped,
+            "safe_ci_lower": clipped,
+            "safe_ci_upper": clipped,
+            "ci_available": True,
+            "ci_reason": None,
+        }
+
+    alpha = 1.0 - confidence_level
+    z_score = NormalDist().inv_cdf(1.0 - alpha / 2.0)
+    ci_lower = min(max(auc - z_score * std_err, 0.0), 1.0)
+    ci_upper = min(max(auc + z_score * std_err, 0.0), 1.0)
+    safe_ci_lower, safe_ci_upper = safe_range_interval(ci_lower, ci_upper)
+
+    return {
+        "auc": auc,
+        "variance": variance,
+        "ci_lower": ci_lower,
+        "ci_upper": ci_upper,
+        "safe_ci_lower": safe_ci_lower,
+        "safe_ci_upper": safe_ci_upper,
+        "ci_available": True,
+        "ci_reason": None,
+    }
+
+
+def weighted_auc_ci_from_estimates(
+    auc: Sequence[float] | pl.Series,
+    variance: Sequence[float] | pl.Series,
+    weights: Sequence[float] | pl.Series,
+    *,
+    confidence_level: float = 0.95,
+) -> dict[str, float | bool | str | None]:
+    """Combine independent model-level AUC estimates with response weights.
+
+    The returned interval describes the uncertainty of a weighted average of
+    model-level estimates. It is not a confidence interval for AUC computed
+    from pooled observations.
+
+    The weighted estimate uses normalized response-count-style weights. Under
+    the independence assumption, its variance is the sum of each model
+    variance multiplied by the square of its normalized weight. AUC and
+    confidence bounds are returned on the conventional 0-to-1 scale. The
+    point estimates have already been normalized with ``safe_range_auc``.
+    The ``safe_ci_lower`` and ``safe_ci_upper`` fields apply the same safe
+    AUC convention to the confidence interval for Pega-style display.
+
+    Parameters
+    ----------
+    auc : Sequence[float] | pl.Series
+        Model-level AUC estimates.
+    variance : Sequence[float] | pl.Series
+        Model-level AUC variance estimates corresponding to ``auc``.
+    weights : Sequence[float] | pl.Series
+        Non-negative weights for the model-level estimates.
+    confidence_level : float, default=0.95
+        Two-sided confidence level used to derive the interval.
+
+    Returns
+    -------
+    dict[str, float | bool | str | None]
+        Weighted AUC, variance, confidence bounds, and availability status.
+        The ``auc``, ``ci_lower``, and ``ci_upper`` values use the 0-to-1
+        scale; ``variance`` uses the corresponding squared scale. Multiply
+        the AUC and safe bounds by 100 for Pega's 50-to-100 display scale.
+
+    Raises
+    ------
+    ValueError
+        If the inputs have different lengths or contain invalid values.
+    """
+    validate_confidence_level(confidence_level)
+    auc_series = pl.Series("auc", auc, strict=False).cast(pl.Float64)
+    variance_series = pl.Series("variance", variance, strict=False).cast(pl.Float64)
+    weight_series = pl.Series("weights", weights, strict=False).cast(pl.Float64)
+    if not (len(auc_series) == len(variance_series) == len(weight_series)):
+        raise ValueError("auc, variance, and weights must have the same length")
+    if len(auc_series) == 0:
+        return {
+            "auc": None,
+            "variance": None,
+            "ci_lower": None,
+            "ci_upper": None,
+            "safe_ci_lower": None,
+            "safe_ci_upper": None,
+            "ci_available": False,
+            "ci_reason": "no_estimates",
+        }
+    auc_values = auc_series.to_list()
+    variance_values = variance_series.to_list()
+    weight_values = weight_series.to_list()
+    if (
+        any(
+            value is None or not math.isfinite(value)
+            for values in (auc_values, variance_values, weight_values)
+            for value in values
+        )
+        or any(value < 0 for value in variance_values if value is not None)
+        or any(value <= 0 for value in weight_values if value is not None)
+    ):
+        raise ValueError("auc, variance, and weights must contain finite values; variance must be non-negative")
+
+    total_weight = float(weight_series.sum())
+    normalized_weights = weight_series / total_weight
+    weighted_auc = float((auc_series * normalized_weights).sum())
+    weighted_variance = float((normalized_weights.pow(2) * variance_series).sum())
+    standard_error = math.sqrt(max(weighted_variance, 0.0))
+    z_score = NormalDist().inv_cdf(0.5 + confidence_level / 2.0)
+
+    ci_lower = min(max(weighted_auc - z_score * standard_error, 0.0), 1.0)
+    ci_upper = min(max(weighted_auc + z_score * standard_error, 0.0), 1.0)
+    safe_ci_lower, safe_ci_upper = safe_range_interval(ci_lower, ci_upper)
+
+    return {
+        "auc": weighted_auc,
+        "variance": weighted_variance,
+        "ci_lower": ci_lower,
+        "ci_upper": ci_upper,
+        "safe_ci_lower": safe_ci_lower,
+        "safe_ci_upper": safe_ci_upper,
+        "ci_available": True,
+        "ci_reason": None,
+    }
 
 
 def safe_range_auc(auc: float) -> float:
@@ -32,6 +567,43 @@ def safe_range_auc(auc: float) -> float:
     if np.isnan(auc):
         return 0.5
     return 0.5 + np.abs(0.5 - auc)
+
+
+def safe_range_interval(lower: float, upper: float) -> tuple[float, float]:
+    """Reflect an AUC interval onto Pega's safe 0.5-to-1.0 scale.
+
+    Parameters
+    ----------
+    lower : float
+        Lower confidence interval endpoint on the conventional 0-to-1 AUC scale.
+    upper : float
+        Upper confidence interval endpoint on the conventional 0-to-1 AUC scale.
+
+    Returns
+    -------
+    tuple[float, float]
+        Confidence interval endpoints after applying ``safe_range_auc`` semantics.
+        Endpoints are clipped to the valid AUC domain before folding. If the
+        clipped interval crosses 0.5, the safe lower bound is 0.5.
+
+    Raises
+    ------
+    ValueError
+        If either endpoint is non-finite or the lower endpoint is greater than
+        the upper endpoint.
+    """
+    if not math.isfinite(lower) or not math.isfinite(upper):
+        raise ValueError("AUC interval endpoints must be finite")
+    if lower > upper:
+        raise ValueError("AUC interval lower bound must be less than or equal to upper bound")
+
+    lower = min(max(lower, 0.0), 1.0)
+    upper = min(max(upper, 0.0), 1.0)
+    safe_lower = safe_range_auc(lower)
+    safe_upper = safe_range_auc(upper)
+    if lower <= 0.5 <= upper:
+        return 0.5, max(safe_lower, safe_upper)
+    return min(safe_lower, safe_upper), max(safe_lower, safe_upper)
 
 
 def auc_from_probs(groundtruth: list[int], probs: list[float]) -> float:
@@ -116,10 +688,9 @@ def auc_from_bincounts(
     if (np.sum(pos_arr) == 0) or (np.sum(neg_arr) == 0):
         return 0.5
 
-    if probs is None:
-        probs = pos_arr / (pos_arr + neg_arr)
+    probs_arr = pos_arr / (pos_arr + neg_arr) if probs is None else np.asarray(probs)
 
-    binorder = np.argsort(probs)[::-1]
+    binorder = np.argsort(probs_arr)[::-1]
     FPR = np.cumsum(neg_arr[binorder]) / np.sum(neg_arr)
     TPR = np.cumsum(pos_arr[binorder]) / np.sum(pos_arr)
 
@@ -254,14 +825,14 @@ def z_ratio(
 
     Parameters
     ----------
-    posCol: pl.Expr
+    pos_col: str | pl.Expr
         The (Polars) column of the bin positives
-    negCol: pl.Expr
-        The (Polars) column of the bin positives
+    neg_col: str | pl.Expr
+        The (Polars) column of the bin negatives
 
     Examples
     --------
-    >>> df.group_by(['ModelID', 'PredictorName']).agg([zRatio()]).explode()
+    >>> df.group_by(['ModelID', 'PredictorName']).agg([zRatio()]).explode(empty_as_null=True)
 
     """
     if isinstance(pos_col, str):
@@ -302,14 +873,14 @@ def lift(
 
     Parameters
     ----------
-    posCol: pl.Expr
+    pos_col: str | pl.Expr
         The (Polars) column of the bin positives
-    negCol: pl.Expr
-        The (Polars) column of the bin positives
+    neg_col: str | pl.Expr
+        The (Polars) column of the bin negatives
 
     Examples
     --------
-    >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode()
+    >>> df.group_by(['ModelID', 'PredictorName']).agg([lift()]).explode(empty_as_null=True)
 
     """
     if isinstance(pos_col, str):
@@ -497,10 +1068,10 @@ def gains_table(df, value: str, index=None, by=None):
         The (Polars) dataframe with the raw values
     value: str
         The name of the field with the values (plotted on y-axis)
-    index = None
+    index: str, optional
         Optional name of the field for the x-axis. If not passed in
         all records are used and weighted equally.
-    by = None
+    by: str | list[str], optional
         Grouping field(s), can also be None
 
     Returns

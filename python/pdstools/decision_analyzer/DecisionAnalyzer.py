@@ -1,22 +1,32 @@
 from __future__ import annotations
 
-# python/pdstools/decision_analyzer/DecisionAnalyzer.py
-from typing import ClassVar, TYPE_CHECKING
-from functools import cached_property
 import logging
+import os
 import warnings
+from functools import cached_property
+
+# python/pdstools/decision_analyzer/DecisionAnalyzer.py
+from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar, cast
 
 import polars as pl
 import polars.selectors as cs
 
-from .data_read_utils import validate_columns
+from ..pega_io.File import read_data
+from ..utils.namespaces import LazyNamespace
 from ._aggregates import Aggregates
 from ._scoring import Scoring
-from .stage_grouping import DISPLAY_NAME_LOOKUP
 from .column_schema import (
     DecisionAnalyzer as DecisionAnalyzer_TD,
+)
+from .column_schema import (
     ExplainabilityExtract as ExplainabilityExtract_TD,
 )
+from .column_schema import (
+    TableConfig,
+)
+from .data_read_utils import validate_columns
+from .stage_grouping import DISPLAY_NAME_LOOKUP
 from .utils import (
     SCOPE_HIERARCHY,
     apply_filter,
@@ -25,11 +35,11 @@ from .utils import (
     rename_and_cast_types,
     resolve_aliases,
 )
-from ..pega_io.File import read_data
-from ..utils.namespaces import LazyNamespace
 
 if TYPE_CHECKING:
     import os
+    from collections.abc import Callable
+
     from .plots import Plot
 
 logger = logging.getLogger(__name__)
@@ -179,7 +189,7 @@ class DecisionAnalyzer:
         level: str = "Stage Group",
         sample_size: int = DEFAULT_SAMPLE_SIZE,
         mandatory_expr: pl.Expr | None = None,
-        additional_columns: dict[str, pl.DataType] | None = None,
+        additional_columns: dict[str, type[pl.DataType]] | None = None,
         num_samples: int = 1,
     ) -> "DecisionAnalyzer":
         """Create a DecisionAnalyzer from an Explainability Extract (v1) file.
@@ -205,7 +215,8 @@ class DecisionAnalyzer:
         >>> da = DecisionAnalyzer.from_explainability_extract("data/extract_dir/")
         >>> da = DecisionAnalyzer.from_explainability_extract("data/**/*.parquet")
         """
-        raw_data = read_data(source)
+        raw_source = Path(source) if isinstance(source, os.PathLike) else source
+        raw_data = read_data(raw_source)
         return cls(
             raw_data,
             level=level,
@@ -223,7 +234,7 @@ class DecisionAnalyzer:
         level: str = "Stage Group",
         sample_size: int = DEFAULT_SAMPLE_SIZE,
         mandatory_expr: pl.Expr | None = None,
-        additional_columns: dict[str, pl.DataType] | None = None,
+        additional_columns: dict[str, type[pl.DataType]] | None = None,
         num_samples: int = 1,
     ) -> "DecisionAnalyzer":
         """Create a DecisionAnalyzer from a Decision Analyzer / EEV2 (v2) file.
@@ -249,7 +260,8 @@ class DecisionAnalyzer:
         >>> da = DecisionAnalyzer.from_decision_analyzer("data/eev2_partitioned/")
         >>> da = DecisionAnalyzer.from_decision_analyzer("data/**/*.parquet")
         """
-        raw_data = read_data(source)
+        raw_source = Path(source) if isinstance(source, os.PathLike) else source
+        raw_data = read_data(raw_source)
         return cls(
             raw_data,
             level=level,
@@ -281,7 +293,7 @@ class DecisionAnalyzer:
         level: str = "Stage Group",
         sample_size: int = DEFAULT_SAMPLE_SIZE,
         mandatory_expr: pl.Expr | None = None,
-        additional_columns: dict[str, pl.DataType] | None = None,
+        additional_columns: dict[str, type[pl.DataType]] | None = None,
         num_samples: int = 1,
     ):
         """Initialize DecisionAnalyzer with raw decision data.
@@ -329,7 +341,7 @@ class DecisionAnalyzer:
             the ``Priority`` column using
             ``pl.col("Priority") >= MANDATORY_PRIORITY_THRESHOLD`` — mirroring
             how the arbitration engine treats high-priority actions.
-        additional_columns : dict[str, pl.DataType], optional
+        additional_columns : dict[str, type[pl.DataType]], optional
             Additional columns to include in processing beyond the standard table definition.
             Dictionary mapping column names to their polars data types.
 
@@ -372,11 +384,11 @@ class DecisionAnalyzer:
         table_def = get_table_definition(self.extract_type)
         if additional_columns:
             for col_name, col_type in additional_columns.items():
-                table_def[col_name] = {
-                    "display_name": col_name,
-                    "default": True,
-                    "type": col_type,
-                }
+                table_def[col_name] = TableConfig(
+                    display_name=col_name,
+                    default=True,
+                    type=col_type,
+                )
         # all columns are present?
         validation_result, validation_error = validate_columns(raw_data, table_def)
         self.validation_error = validation_error if not validation_result else None
@@ -987,6 +999,127 @@ class DecisionAnalyzer:
         if isinstance(filters, list) and not filters:
             return self.sample
         return apply_filter(self.sample, filters)
+
+    def get_interaction_ids(self, method_name: str, *args: object, **kwargs: object) -> pl.DataFrame:
+        """Project unique interaction IDs from a row-producing method.
+
+        This is the main handoff interface for downstream applications that
+        need the exact decision cohort behind a Decision Analyzer question.
+        Use aggregate methods first to decide what needs investigation, then
+        call this method with the public row-producing method path that
+        defines the cohort. The selected method is called with ``*args`` and ``**kwargs``;
+        its Polars result is reduced to a one-column DataFrame of unique
+        ``Interaction ID`` values.
+
+        ``Interaction ID`` is the only identity returned by this interface.
+        Decision Analyzer does not resolve interaction IDs to subject IDs,
+        customer IDs, dates, accounts, households, or profile attributes. That
+        resolution belongs in the downstream application, which owns the
+        customer identity model, time-window rules, and data-retention context.
+
+        Pass only public methods that still return decision rows containing
+        ``Interaction ID``. This works for methods such as
+        ``aggregates.remaining_at_stage`` because their results still contain the rows
+        behind the cohort. Aggregate summaries should be built from the same
+        row-producing cohort method whenever downstream applications also need
+        the exact IDs. For a cohort size, call ``.height`` (or ``len(...)``) on
+        the returned frame. If a cohort needs custom logic, add that logic as a
+        row-producing method first (for example, ``aggregates.dropped_at_stage``),
+        then project its IDs here.
+
+        Parameters
+        ----------
+        method_name : str
+            Name or dotted path of a public method on ``DecisionAnalyzer`` that
+            returns a Polars DataFrame or LazyFrame containing ``Interaction ID``.
+        *args, **kwargs
+            Arguments forwarded to the selected method.
+
+        Returns
+        -------
+        pl.DataFrame
+            A one-column DataFrame containing unique ``Interaction ID`` values.
+
+        Raises
+        ------
+        ValueError
+            If ``method_name`` is private, unknown, or returns row data without
+            an ``Interaction ID`` column.
+        TypeError
+            If the selected method does not return a Polars DataFrame or
+            LazyFrame.
+
+        Examples
+        --------
+        Get the decisions that still have at least one action at Output:
+
+        >>> da.get_interaction_ids("aggregates.remaining_at_stage", "Output")
+
+        Forward filters to the row-producing method:
+
+        >>> da.get_interaction_ids(
+        ...     "aggregates.remaining_at_stage",
+        ...     "Output",
+        ...     pl.col("Channel") == "Web",
+        ... )
+
+        Project IDs from a set-derived row cohort:
+
+        >>> da.get_interaction_ids(
+        ...     "aggregates.dropped_at_stage",
+        ...     "Contact Policies and final Action processing",
+        ... )
+        """
+        result = self._row_result_for_interaction_projection(method_name, *args, **kwargs)
+        if isinstance(result, pl.LazyFrame):
+            return result.select("Interaction ID").unique().collect()
+
+        return result.select("Interaction ID").unique()
+
+    def _row_result_for_interaction_projection(
+        self,
+        method_name: str,
+        *args: object,
+        **kwargs: object,
+    ) -> pl.LazyFrame | pl.DataFrame:
+        method = self._resolve_public_method(method_name)
+        if not callable(method):
+            raise ValueError(f"Unknown DecisionAnalyzer method: {method_name!r}.")
+
+        result = cast("Callable[..., object]", method)(*args, **kwargs)
+        if isinstance(result, pl.LazyFrame):
+            if "Interaction ID" not in result.collect_schema().names():
+                raise ValueError(f"{method_name!r} does not return an 'Interaction ID' column.")
+            return result
+
+        if isinstance(result, pl.DataFrame):
+            if "Interaction ID" not in result.columns:
+                raise ValueError(f"{method_name!r} does not return an 'Interaction ID' column.")
+            return result
+
+        raise TypeError(f"{method_name!r} must return a Polars DataFrame or LazyFrame.")
+
+    def _resolve_public_method(self, method_name: str) -> object:
+        target: object = self
+        for part in method_name.split("."):
+            if not part or part.startswith("_"):
+                raise ValueError("method_name must refer to a public DecisionAnalyzer method.")
+            target = getattr(target, part, None)
+            if target is None:
+                break
+        return target
+
+    def get_overview_stats(self) -> dict[str, object]:
+        """Return overview statistics as a concrete dictionary.
+
+        Returns
+        -------
+        dict[str, object]
+            A shallow copy of the analyzer overview statistics, suitable for
+            downstream serialization or display without exposing the internal
+            cached mapping.
+        """
+        return dict(self.overview_stats)
 
     def get_available_fields_for_filtering(self, *, categorical_only: bool = False) -> list[str]:
         """Return column names available for data filtering.

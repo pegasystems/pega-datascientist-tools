@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import html
-from typing import Any
+from typing import Any, cast
 
 import polars as pl
 
@@ -178,7 +178,7 @@ def create_metric_itable(
     for col, sort_col in sort_col_map.items():
         pdf[sort_col] = numeric_source[col].to_pandas()
 
-    styled_df = pdf.style.apply(style_row, axis=1).format(format_dict, na_rep="")
+    styled_df = pdf.style.apply(style_row, axis=1).format(cast("dict[Any, Any]", format_dict), na_rep="")
 
     # Set default itable options
     default_kwargs: dict[str, Any] = {

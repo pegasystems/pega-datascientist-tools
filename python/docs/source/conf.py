@@ -4,6 +4,7 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import importlib.metadata
 import os
 from datetime import datetime
 
@@ -18,7 +19,7 @@ copyright = f"{datetime.now().year}, Pegasystems"
 author = "Pegasystems"
 
 # The full version, including alpha/beta/rc tags
-release = "4.0.0"
+release = importlib.metadata.version("pdstools")
 
 
 # -- General configuration ---------------------------------------------------
@@ -177,7 +178,8 @@ PATCH_TEMPLATE = r"{{% block {block} -%}}\n{patch}{{% endblock {block} %}}\n"
 def search(block, template):
     pattern = BLOCK_REGEX.format(block=block)
     m = re.search(pattern, template, re.DOTALL)
-    assert m is not None, f"Block {block} is not found"
+    if m is None:
+        raise ValueError(f"Block {block} is not found")
     return m.group(3)
 
 

@@ -1,8 +1,9 @@
 """Test cases for the Reports class that handles generating reports from aggregated data."""
 
+import json
 import logging
-import os
-import shutil
+import runpy
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
@@ -10,75 +11,65 @@ from unittest.mock import patch
 import pytest
 import yaml
 from pdstools.explanations import Explanations
-from pdstools.explanations.ExplanationsUtils import _CONTRIBUTION_TYPE
 
-basePath = Path(__file__).parent.parent.parent.parent
-
-
-def clean_up(root_dir):
-    _root_dir = Path(f"{basePath}/{root_dir}")
-    if _root_dir.exists():
-        for file in _root_dir.iterdir():
-            if file.is_file():
-                file.unlink()
-            elif file.is_dir():
-                # Remove subdirectories recursively
-                shutil.rmtree(file)
-        _root_dir.rmdir()
+DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
+REPORT_SCRIPT = (
+    Path(__file__).parents[2] / "pdstools" / "reports" / "GlobalExplanations" / "scripts" / "generate_report.py"
+)
 
 
 @pytest.fixture(scope="module")
 def reports():
     """Fixture to serve as class to call functions from."""
-    explanations = Explanations.from_local_directory(
-        data_folder=f"{basePath}/data/explanations",
+    explanations = Explanations.from_aggregates(
+        base_path=DATA_DIR,
         model_name="AdaptiveBoostCT",
         from_date=datetime(2025, 3, 28),
         to_date=datetime(2025, 3, 28),
     )
     yield explanations.report
 
-    # cleanup .tmp folder
-    clean_up(explanations.root_dir)
+
+@pytest.fixture
+def report_folder(tmp_path):
+    """Provides a temporary report output directory."""
+    return tmp_path / "reports"
 
 
-def test_validate_report_dir(reports):
-    """Test the report directory validation."""
-    reports._validate_report_dir()
+def test_copy_report_resources(report_folder):
+    """Test the _copy_report_resources static method."""
+    from pdstools.explanations.Reports import Reports
 
-    assert os.path.exists(reports.report_folderpath), "Report folder does not exist."
-    assert os.path.isdir(reports.report_folderpath), "Report folder is not a directory."
+    report_folder.mkdir(parents=True, exist_ok=True)
+    Reports._copy_report_resources(report_folder)
 
+    assert report_folder.exists(), "Report folder does not exist."
+    assert any(report_folder.iterdir()), "Report folder is empty."
 
-def test_copy_report_resources(reports):
-    """Test the copy_report_resources method."""
-    reports._validate_report_dir()
-    reports._copy_report_resources()
-
-    assert os.path.exists(reports.report_folderpath), "Report folder does not exist."
-    assert any(os.scandir(reports.report_folderpath)), "Report folder is empty."
-
-    assets_folder = os.path.join(reports.report_folderpath, "assets")
-    assert os.path.exists(assets_folder), "Assets folder not copied."
-    assert any(os.scandir(assets_folder)), "Assets folder is empty."
+    assets_folder = report_folder / "assets"
+    assert assets_folder.exists(), "Assets folder not copied."
+    assert any(assets_folder.iterdir()), "Assets folder is empty."
 
 
-def test_copy_report_resources_raises_on_error(reports):
+def test_copy_report_resources_raises_on_error(report_folder):
+    from pdstools.explanations.Reports import Reports
+
+    report_folder.mkdir(parents=True, exist_ok=True)
     with patch(
         "pdstools.explanations.Reports.copy_report_resources",
         side_effect=OSError("fail"),
     ):
         with pytest.raises(OSError):
-            reports._copy_report_resources()
+            Reports._copy_report_resources(report_folder)
 
 
-def test_set_params(reports):
+def test_set_params(reports, report_folder):
     """Test _set_params writes all parameters including sort_by and display_by."""
-    reports._validate_report_dir()
-    reports._copy_report_resources()
-    reports._set_params(top_n=5, top_k=3, from_date="2026-01-01", to_date="2026-01-31")
+    params_file = report_folder / "scripts" / "params.yml"
+    data_folder = report_folder / "data"
+    reports._set_params(params_file, data_folder, top_n=5, top_k=3, from_date="2026-01-01", to_date="2026-01-31")
 
-    with open(reports.params_file, encoding="utf-8") as f:
+    with open(params_file, encoding="utf-8") as f:
         params = yaml.safe_load(f)
 
     assert params["top_n"] == 5
@@ -89,18 +80,153 @@ def test_set_params(reports):
     assert params["sort_by_text"] == "absolute average contribution"
     assert params["display_by"] == "contribution"
     assert params["display_by_text"] == "average contribution"
-    assert params["data_folder"] == reports.aggregate_folder.name
+    assert params["data_folder"] == str(data_folder)
+    assert params["full_embed"] is False
 
 
-def test_set_params_custom_contribution_types(reports):
+def test_set_params_full_embed(reports, report_folder):
+    """full_embed is written through to params.yml."""
+    params_file = report_folder / "scripts" / "params.yml"
+    reports._set_params(params_file, report_folder / "data", full_embed=True)
+
+    with open(params_file, encoding="utf-8") as f:
+        params = yaml.safe_load(f)
+
+    assert params["full_embed"] is True
+
+
+def test_set_full_embed_options(report_folder):
+    """_set_full_embed_options toggles both Quarto HTML embedding keys."""
+    from pdstools.explanations.Reports import Reports
+
+    report_folder.mkdir(parents=True, exist_ok=True)
+    Reports._copy_report_resources(report_folder)
+
+    Reports._set_full_embed_options(report_folder, full_embed=True)
+    with open(report_folder / "_quarto.yml", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    assert config["format"]["html"]["embed-resources"] is True
+    assert config["format"]["html"]["plotly-connected"] is True
+
+    Reports._set_full_embed_options(report_folder, full_embed=False)
+    with open(report_folder / "_quarto.yml", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    assert config["format"]["html"]["embed-resources"] is False
+    assert config["format"]["html"]["plotly-connected"] is False
+
+
+def test_set_full_embed_options_without_config(report_folder):
+    """A missing _quarto.yml is a no-op rather than an error."""
+    from pdstools.explanations.Reports import Reports
+
+    report_folder.mkdir(parents=True, exist_ok=True)
+    Reports._set_full_embed_options(report_folder, full_embed=True)
+
+    assert not (report_folder / "_quarto.yml").exists()
+
+
+def _prepare_pre_render(reports, report_folder, *, full_embed):
+    """Lay out a report folder the pre-render script can run against."""
+    from pdstools.explanations.Reports import Reports
+
+    report_folder.mkdir(parents=True, exist_ok=True)
+    Reports._copy_report_resources(report_folder)
+
+    data_folder = report_folder / "data"
+    data_folder.mkdir(parents=True, exist_ok=True)
+    (data_folder / "unique_contexts.json").write_text(
+        json.dumps({"0": [json.dumps({"partition": {"Issue": "Sales"}})]}),
+        encoding="utf-8",
+    )
+    reports._set_params(report_folder / "scripts" / "params.yml", data_folder, full_embed=full_embed)
+    return report_folder / "scripts" / "params.yml"
+
+
+def _rendered_pages(report_folder):
+    overview = (report_folder / "overview.qmd").read_text(encoding="utf-8")
+    by_context = next((report_folder / "by-model-context").glob("plots_for_batch_*.qmd")).read_text(encoding="utf-8")
+    return overview, by_context
+
+
+def test_pre_render_uses_full_embed_plotly_renderer(reports, report_folder, monkeypatch):
+    """full_embed=True renders with the self-contained notebook renderer."""
+    _prepare_pre_render(reports, report_folder, full_embed=True)
+
+    monkeypatch.chdir(report_folder)
+    runpy.run_path(str(REPORT_SCRIPT), run_name="__main__")
+
+    overview, by_context = _rendered_pages(report_folder)
+    assert 'pio.renderers.default = "notebook"' in overview
+    assert 'pio.renderers.default = "notebook"' in by_context
+
+
+def test_pre_render_accepts_string_full_embed_false(reports, report_folder, monkeypatch):
+    """A stringified "False" in params.yml still selects the CDN renderer."""
+    params_file = _prepare_pre_render(reports, report_folder, full_embed=True)
+    with open(params_file, encoding="utf-8") as f:
+        params = yaml.safe_load(f)
+    params["full_embed"] = "False"
+    with open(params_file, "w", encoding="utf-8") as f:
+        yaml.safe_dump(params, f)
+
+    monkeypatch.chdir(report_folder)
+    runpy.run_path(str(REPORT_SCRIPT), run_name="__main__")
+
+    overview, by_context = _rendered_pages(report_folder)
+    assert 'pio.renderers.default = "notebook_connected"' in overview
+    assert 'pio.renderers.default = "notebook_connected"' in by_context
+
+
+def test_pre_render_defaults_to_full_embed_without_params(report_folder, monkeypatch):
+    """Without params.yml the script falls back to fully embedded output."""
+    from pdstools.explanations.Reports import Reports
+
+    report_folder.mkdir(parents=True, exist_ok=True)
+    Reports._copy_report_resources(report_folder)
+
+    monkeypatch.chdir(report_folder)
+    namespace = runpy.run_path(str(REPORT_SCRIPT))
+
+    generator = namespace["ReportGenerator"]()
+    assert generator.full_embed is True
+    assert generator.plotly_renderer == "notebook"
+    assert generator._parse_bool(1) is True
+    assert generator._parse_bool(0) is False
+
+
+def test_set_params_writes_resolved_data_folder(tmp_path):
+    nested_aggregate_dir = tmp_path / "nested" / "aggregated_data"
+    nested_aggregate_dir.mkdir(parents=True)
+    for filename in ("BY_CONTEXT.parquet", "OVERVIEW.parquet"):
+        (nested_aggregate_dir / filename).write_bytes((DATA_DIR / filename).read_bytes())
+
+    explanations = Explanations.from_aggregates(
+        base_path=nested_aggregate_dir,
+        model_name="AdaptiveBoostCT",
+    )
+    reports = explanations.report
+    params_file = tmp_path / "reports" / "scripts" / "params.yml"
+    data_folder = nested_aggregate_dir
+
+    reports._set_params(params_file, data_folder)
+
+    with open(params_file, encoding="utf-8") as f:
+        params = yaml.safe_load(f)
+
+    # The params file stores whatever path was passed to _set_params.
+    assert params["data_folder"] == str(data_folder)
+
+
+def test_set_params_custom_contribution_types(reports, report_folder):
     """Test _set_params writes custom sort_by and display_by values."""
-    reports._validate_report_dir()
-    reports._copy_report_resources()
-
-    sort_by = _CONTRIBUTION_TYPE.CONTRIBUTION_ABS
-    display_by = _CONTRIBUTION_TYPE.CONTRIBUTION_ABS
+    sort_by = "contribution_abs"
+    display_by = "contribution_abs"
+    params_file = report_folder / "scripts" / "params.yml"
+    data_folder = report_folder / "data"
 
     reports._set_params(
+        params_file,
+        data_folder,
         top_n=10,
         top_k=5,
         from_date="2026-03-01",
@@ -109,24 +235,28 @@ def test_set_params_custom_contribution_types(reports):
         display_by=display_by,
     )
 
-    with open(reports.params_file, encoding="utf-8") as f:
+    with open(params_file, encoding="utf-8") as f:
         params = yaml.safe_load(f)
 
     assert params["top_n"] == 10
     assert params["top_k"] == 5
-    assert params["sort_by"] == sort_by.value
-    assert params["sort_by_text"] == sort_by.text
-    assert params["display_by"] == display_by.value
-    assert params["display_by_text"] == display_by.text
+    assert params["sort_by"] == sort_by
+    assert params["sort_by_text"] == "absolute average contribution"
+    assert params["display_by"] == display_by
+    assert params["display_by_text"] == "absolute average contribution"
 
 
-def test_reports_logging(reports, caplog):
+def test_reports_logging(reports, report_folder, caplog):
     """Test that report operations produce debug logs when logging enabled."""
-    reports._validate_report_dir()
+    from pdstools.explanations.Reports import Reports
+
+    report_folder.mkdir(parents=True, exist_ok=True)
+    params_file = report_folder / "scripts" / "params.yml"
+    data_folder = report_folder / "data"
 
     with caplog.at_level(logging.DEBUG):
-        reports._copy_report_resources()
-        reports._set_params(top_n=5, top_k=3)
+        Reports._copy_report_resources(report_folder)
+        reports._set_params(params_file, data_folder, top_n=5, top_k=3)
 
     # Should have debug messages from both operations
     debug_messages = [r.message for r in caplog.records if r.levelname == "DEBUG"]
@@ -146,40 +276,184 @@ class TestGenerateFilterKwargs:
         with pytest.raises(TypeError, match="unexpected keyword argument"):
             reports.generate(unknown_param=True)
 
-    def test_generate_resolves_defaults(self, reports):
+    def test_generate_resolves_defaults(self, reports, report_folder):
         """generate() resolves filter_kwargs and passes enums to _set_params."""
         with (
-            patch.object(reports, "_validate_report_dir"),
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params") as mock_set_params,
+            patch.object(
+                reports.explanations.aggregates.context_operations,
+                "write_batches",
+            ),
             patch(
                 "pdstools.explanations.Reports.run_quarto",
                 return_value=0,
             ),
         ):
-            reports.generate()
+            reports.generate(output_dir=report_folder)
 
             mock_set_params.assert_called_once()
             call_kwargs = mock_set_params.call_args
-            assert call_kwargs.kwargs["sort_by"] == _CONTRIBUTION_TYPE.CONTRIBUTION_ABS
-            assert call_kwargs.kwargs["display_by"] == _CONTRIBUTION_TYPE.CONTRIBUTION
+            assert call_kwargs.kwargs["sort_by"] == "contribution_abs"
+            assert call_kwargs.kwargs["display_by"] == "contribution"
+            assert call_kwargs.kwargs["full_embed"] is False
 
-    def test_generate_resolves_custom_kwargs(self, reports):
-        """generate() passes custom sort_by/display_by through the resolver."""
+    def test_generate_resolves_relative_output_dir(self, reports, tmp_path, monkeypatch):
+        """A relative output_dir must be resolved to an absolute path.
+
+        The Quarto pre-render script runs with the report folder as its cwd and
+        resolves a relative ``data_folder`` against that folder's *parent*, so a
+        relative path stored in params.yml gets doubled up.
+        """
+        monkeypatch.chdir(tmp_path)
         with (
-            patch.object(reports, "_validate_report_dir"),
             patch.object(reports, "_copy_report_resources"),
             patch.object(reports, "_set_params") as mock_set_params,
+            patch.object(
+                reports.explanations.aggregates.context_operations,
+                "write_batches",
+            ),
+            patch(
+                "pdstools.explanations.Reports.run_quarto",
+                return_value=0,
+            ) as mock_run_quarto,
+        ):
+            reports.generate(output_dir=".tmp/reports")
+
+            data_folder = mock_set_params.call_args.kwargs["data_folder"]
+            assert data_folder.is_absolute()
+            assert data_folder == tmp_path.resolve() / ".tmp" / "reports" / "data"
+            assert mock_run_quarto.call_args.kwargs["temp_dir"].is_absolute()
+
+    def test_generate_passes_full_embed_to_report_pipeline(self, reports, report_folder):
+        """full_embed reaches the Quarto config, the params file and the CLI."""
+        with (
+            patch.object(reports, "_copy_report_resources"),
+            patch.object(reports, "_set_full_embed_options") as mock_set_full_embed_options,
+            patch.object(reports, "_set_params") as mock_set_params,
+            patch.object(
+                reports.explanations.aggregates.context_operations,
+                "write_batches",
+            ),
+            patch(
+                "pdstools.explanations.Reports.run_quarto",
+                return_value=0,
+            ) as mock_run_quarto,
+        ):
+            reports.generate(output_dir=report_folder, full_embed=True)
+
+            mock_set_full_embed_options.assert_called_once_with(report_folder, full_embed=True)
+            assert mock_set_params.call_args.kwargs["full_embed"] is True
+            assert mock_run_quarto.call_args.kwargs["full_embed"] is True
+
+    def test_generate_resolves_custom_kwargs(self, reports, report_folder):
+        """generate() passes custom sort_by/display_by through the resolver."""
+        with (
+            patch.object(reports, "_copy_report_resources"),
+            patch.object(reports, "_set_params") as mock_set_params,
+            patch.object(
+                reports.explanations.aggregates.context_operations,
+                "write_batches",
+            ),
             patch(
                 "pdstools.explanations.Reports.run_quarto",
                 return_value=0,
             ),
         ):
             reports.generate(
+                output_dir=report_folder,
                 sort_by="contribution",
                 display_by="contribution_abs",
             )
 
             call_kwargs = mock_set_params.call_args
-            assert call_kwargs.kwargs["sort_by"] == _CONTRIBUTION_TYPE.CONTRIBUTION
-            assert call_kwargs.kwargs["display_by"] == _CONTRIBUTION_TYPE.CONTRIBUTION_ABS
+            assert call_kwargs.kwargs["sort_by"] == "contribution"
+            assert call_kwargs.kwargs["display_by"] == "contribution_abs"
+
+    def test_generate_calls_write_batches(self, reports, report_folder):
+        with (
+            patch.object(reports, "_copy_report_resources"),
+            patch.object(reports, "_set_params"),
+            patch(
+                "pdstools.explanations.Reports.run_quarto",
+                return_value=0,
+            ),
+            patch.object(
+                reports.explanations.aggregates.context_operations,
+                "write_batches",
+            ) as mock_write_batches,
+        ):
+            reports.generate(output_dir=report_folder)
+
+        mock_write_batches.assert_called_once_with(report_folder / "data")
+
+    def test_generate_raises_when_save_data_fails(self, reports, report_folder):
+        """Generation surfaces data access errors rather than swallowing them."""
+        with (
+            patch.object(reports.explanations, "save_data", side_effect=FileNotFoundError("data missing")),
+            pytest.raises(FileNotFoundError),
+        ):
+            reports.generate(output_dir=report_folder)
+
+    def test_generate_raises_when_copy_fails(self, reports, report_folder):
+        with (
+            patch.object(reports, "_copy_report_resources", side_effect=OSError("copy failed")),
+            patch.object(
+                reports.explanations.aggregates.context_operations,
+                "write_batches",
+            ),
+        ):
+            with pytest.raises(OSError, match="copy failed"):
+                reports.generate(output_dir=report_folder)
+
+    def test_generate_raises_when_quarto_process_errors(self, reports, report_folder):
+        with (
+            patch.object(reports, "_copy_report_resources"),
+            patch.object(reports, "_set_params"),
+            patch.object(
+                reports.explanations.aggregates.context_operations,
+                "write_batches",
+            ),
+            patch(
+                "pdstools.explanations.Reports.run_quarto",
+                side_effect=subprocess.CalledProcessError(1, "quarto"),
+            ),
+        ):
+            with pytest.raises(subprocess.CalledProcessError):
+                reports.generate(output_dir=report_folder)
+
+    def test_generate_raises_when_quarto_returns_nonzero(self, reports, report_folder):
+        with (
+            patch.object(reports, "_copy_report_resources"),
+            patch.object(reports, "_set_params"),
+            patch.object(
+                reports.explanations.aggregates.context_operations,
+                "write_batches",
+            ),
+            patch(
+                "pdstools.explanations.Reports.run_quarto",
+                return_value=2,
+            ),
+        ):
+            with pytest.raises(RuntimeError, match="return code 2"):
+                reports.generate(output_dir=report_folder)
+
+    def test_generate_with_zip_output_creates_zip(self, reports, report_folder):
+        with (
+            patch.object(reports, "_copy_report_resources"),
+            patch.object(reports, "_set_params"),
+            patch.object(
+                reports.explanations.aggregates.context_operations,
+                "write_batches",
+            ),
+            patch(
+                "pdstools.explanations.Reports.run_quarto",
+                return_value=0,
+            ),
+            patch(
+                "pdstools.explanations.Reports.generate_zipped_report",
+            ) as mock_zip,
+        ):
+            reports.generate(report_filename="out.zip", zip_output=True, output_dir=report_folder)
+
+        mock_zip.assert_called_once_with("out.zip", report_folder / "_site")

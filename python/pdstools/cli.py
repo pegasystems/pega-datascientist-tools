@@ -6,14 +6,13 @@ from __future__ import annotations
 #     "pdstools[app]>=4.0.3",
 # ]
 # ///
-
 import argparse
 import difflib
 import logging
 import os
 import sys
 from importlib import resources
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from types import ModuleType
@@ -233,7 +232,7 @@ def doctor() -> None:
     """
     from .utils.show_versions import show_versions
 
-    show_versions(include_runtime_diagnostics=True)
+    show_versions(print_output=True, include_runtime_diagnostics=True)
 
 
 def main():
@@ -429,41 +428,42 @@ def run(args, unknown):
     if args.full_embed:
         os.environ["PDSTOOLS_FULL_EMBED"] = "true"
 
-    display_name = APPS[args.app]["display_name"]
+    app_name = cast(str, args.app)
+    display_name = APPS[app_name]["display_name"]
     print(f"Running {display_name} app...")
 
-    app_path = APPS[args.app]["path"]
-    with resources.path(app_path, "Home.py") as filepath:
+    app_path = APPS[app_name]["path"]
+    with resources.as_file(resources.files(app_path) / "Home.py") as filepath:
         filename = str(filepath)
 
-    if args.app == "decision_analyzer":
-        sys.argv = [
-            "streamlit",
-            "run",
-            filename,
-            "--server.enableXsrfProtection",
-            "false",
-        ]
-    elif args.app == "launcher":
-        # The launcher hosts the DA pages, so it inherits DA's XSRF
-        # exemption (DA uses the file-uploader workaround that breaks
-        # under XSRF). Standalone HC / IA launches keep XSRF on.
-        os.environ["PDSTOOLS_LAUNCHER_MODE"] = "1"
-        sys.argv = [
-            "streamlit",
-            "run",
-            filename,
-            "--server.enableXsrfProtection",
-            "false",
-        ]
-    else:  # health_check, impact_analyzer
-        sys.argv = ["streamlit", "run", filename]
+        if args.app == "decision_analyzer":
+            sys.argv = [
+                "streamlit",
+                "run",
+                filename,
+                "--server.enableXsrfProtection",
+                "false",
+            ]
+        elif args.app == "launcher":
+            # The launcher hosts the DA pages, so it inherits DA's XSRF
+            # exemption (DA uses the file-uploader workaround that breaks
+            # under XSRF). Standalone HC / IA launches keep XSRF on.
+            os.environ["PDSTOOLS_LAUNCHER_MODE"] = "1"
+            sys.argv = [
+                "streamlit",
+                "run",
+                filename,
+                "--server.enableXsrfProtection",
+                "false",
+            ]
+        else:  # health_check, impact_analyzer
+            sys.argv = ["streamlit", "run", filename]
 
-    if unknown:
-        sys.argv.extend(unknown)
-    if "--server.maxUploadSize" not in sys.argv:
-        sys.argv.extend(["--server.maxUploadSize", "2000"])
-    sys.exit(stcli.main())
+        if unknown:
+            sys.argv.extend(unknown)
+        if "--server.maxUploadSize" not in sys.argv:
+            sys.argv.extend(["--server.maxUploadSize", "2000"])
+        sys.exit(stcli.main())
 
 
 if __name__ == "__main__":

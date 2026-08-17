@@ -18,11 +18,13 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import polars as pl
 
 if TYPE_CHECKING:
+    import decimal
+
     from ._compute import Compute
     from ._health import Health
     from ._plot import Plot
@@ -150,9 +152,12 @@ class TopicDataQuality:
         """Ratio of the largest to the smallest topic count."""
         counts = self.topic_counts.get_column("count")
         mn = counts.min()
+        mx = counts.max()
+        if mn is None or mx is None:
+            return float("nan")
         if mn == 0:
             return float("inf")
-        return counts.max() / mn
+        return float(cast("int | float | decimal.Decimal", mx)) / float(cast("int | float | decimal.Decimal", mn))
 
     # ------------------------------------------------------------------
     # Convenience (delegate to sub-namespaces)

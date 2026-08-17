@@ -255,6 +255,313 @@ def test_metrics_stump_count_exported(exported_model: ADMTreesModel):
     assert m["tree_depth_std"] == 2.11
 
 
+def test_sanity_check_flags_immature_stump_model():
+    model = ADMTreesModel(
+        trees={"model": [{"score": 0.0}]},
+        model=[{"score": 0.0}],
+        properties={
+            "auc": 0.5,
+            "trainingStats": {"positiveCount": 25, "negativeCount": 10},
+        },
+    )
+
+    result = model.sanity_check()
+
+    assert result == {
+        "n_trees": 1,
+        "pooled_auc": 0.5,
+        "positive_count": 25,
+        "negative_count": 10,
+        "flags": [
+            "Only 1 tree(s) — model has barely started learning.",
+            "1/1 trees are stumps (no split) — mostly non-informative trees.",
+            "Avg splits/tree = 0.00 — model is not developing structure (SOP-ADM009).",
+            "Pooled AUC = 0.5000 — statistically indistinguishable from random.",
+            "Negatives (10) < positives (25) — inverted response ratio; unusual for an NBA response model.",
+            "Very low response volume (positives=25, negatives=10) — metrics are not yet statistically stable.",
+            "Only 0 active predictor(s) — model is deciding on a very narrow feature set.",
+        ],
+    }
+
+
+def test_sanity_check_handles_missing_response_counts():
+    model = ADMTreesModel(trees={"model": [{"score": 0.0}]}, model=[{"score": 0.0}], properties={"auc": 0.7})
+
+    result = model.sanity_check()
+
+    assert result["positive_count"] is None
+    assert result["negative_count"] is None
+    assert "Response counts are unavailable — volume-based stability checks were skipped." in result["flags"]
+
+
+def test_predictor_diagnostics_flags_symbolic_cardinality_and_numeric_like_values():
+    postal_symbols = [f"PC{i:03d}={i}" for i in range(256)]
+    price_symbols = ["44.95=0", "85.05=1", "94.95=2"]
+    model = ADMTreesModel.from_dict(
+        {
+            "configuration": {
+                "predictors": [
+                    {"name": "Customer.PrimaryPostalCode", "type": "symbolic"},
+                    {"name": "Param.RetailPrice", "type": "symbolic"},
+                ],
+            },
+            "model": {
+                "boosters": [
+                    {
+                        "trees": [
+                            {
+                                "score": 0.0,
+                                "split": "Customer.PrimaryPostalCode in { PC001, PC002 }",
+                                "gain": 2.5,
+                                "left": {"score": 0.1},
+                                "right": {
+                                    "score": -0.1,
+                                    "split": "Param.RetailPrice in { 44.95, 85.05, 94.95 }",
+                                    "gain": 1.5,
+                                    "left": {"score": 0.2},
+                                    "right": {"score": -0.2},
+                                },
+                            },
+                        ],
+                    },
+                ],
+                "inputsEncoder": {
+                    "encoders": [
+                        {
+                            "key": "Customer.PrimaryPostalCode",
+                            "value": {
+                                "index": 0,
+                                "encoder": {
+                                    "stringTranslator": {
+                                        "symbols": postal_symbols,
+                                        "maxNumberOfBins": 256,
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            "key": "Param.RetailPrice",
+                            "value": {
+                                "index": 1,
+                                "encoder": {
+                                    "stringTranslator": {
+                                        "symbols": price_symbols,
+                                        "maxNumberOfBins": 256,
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                },
+            },
+        },
+    )
+
+    rows = {row["predictor"]: row for row in model.predictor_diagnostics().to_dicts()}
+
+    postal = rows["Customer.PrimaryPostalCode"]
+    assert postal["predictor_type"] == "symbolic"
+    assert postal["used_bins"] == 256
+    assert postal["max_bins"] == 256
+    assert postal["bin_fill_rate"] == 1.0
+    assert "reached its 256-bin capacity" in postal["flags"]
+
+    price = rows["Param.RetailPrice"]
+    assert price["numeric_like_values"] == 3
+    assert price["numeric_like_fraction"] == 1.0
+    assert "verify whether it should be configured as numeric" in price["flags"]
+
+
+def test_predictor_diagnostics_handles_empty_models():
+    import polars as pl
+
+    model = ADMTreesModel(trees={}, model=[])
+
+    df = model.predictor_diagnostics()
+
+    assert df.is_empty()
+    assert df.schema == {
+        "predictor": pl.String,
+        "predictor_type": pl.String,
+        "predictor_category": pl.String,
+        "active": pl.Boolean,
+        "split_count": pl.Int64,
+        "total_gain": pl.Float64,
+        "observed_values": pl.Int64,
+        "numeric_like_values": pl.Int64,
+        "numeric_like_fraction": pl.Float64,
+        "used_bins": pl.Int64,
+        "max_bins": pl.Int64,
+        "bin_fill_rate": pl.Float64,
+        "cardinality_source": pl.String,
+        "flags": pl.String,
+    }
+
+
+def test_predictor_diagnostics_infers_exported_model_types_from_splits():
+    model = ADMTreesModel.from_dict(
+        {
+            "model": {
+                "boosters": [
+                    {
+                        "trees": [
+                            {
+                                "score": 0.0,
+                                "split": "Customer.Age < 35",
+                                "gain": 2.0,
+                                "left": {"score": 0.1},
+                                "right": {
+                                    "score": -0.1,
+                                    "split": "Customer.PostalPrefix in { 101, 102, 103 }",
+                                    "gain": 1.0,
+                                    "left": {"score": 0.2},
+                                    "right": {"score": -0.2},
+                                },
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    rows = {row["predictor"]: row for row in model.predictor_diagnostics().to_dicts()}
+
+    age = rows["Customer.Age"]
+    assert age["predictor_type"] == "numeric"
+    assert age["active"] is True
+    assert age["split_count"] == 1
+    assert age["total_gain"] == 2.0
+    assert age["cardinality_source"] == "split_values"
+    assert age["observed_values"] == 0
+    assert age["flags"] == ""
+
+    postal = rows["Customer.PostalPrefix"]
+    assert postal["predictor_type"] == "symbolic"
+    assert postal["observed_values"] == 3
+    assert postal["numeric_like_values"] == 3
+    assert postal["numeric_like_fraction"] == 1.0
+    assert "numeric-looking values" in postal["flags"]
+
+
+def test_predictor_diagnostics_flags_high_cardinality_without_encoder_capacity():
+    values = ", ".join(f"SKU{i:03d}" for i in range(5))
+    model = ADMTreesModel.from_dict(
+        {
+            "configuration": {"predictors": [{"name": "Param.SKUNumber", "type": "symbolic"}]},
+            "model": {
+                "boosters": [
+                    {
+                        "trees": [
+                            {
+                                "score": 0.0,
+                                "split": f"Param.SKUNumber in {{ {values} }}",
+                                "gain": 7.12345,
+                                "left": {"score": 0.1},
+                                "right": {"score": -0.1},
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    row = model.predictor_diagnostics(high_cardinality_threshold=5).row(0, named=True)
+
+    assert row["predictor"] == "Param.SKUNumber"
+    assert row["observed_values"] == 5
+    assert row["used_bins"] is None
+    assert row["max_bins"] is None
+    assert row["bin_fill_rate"] is None
+    assert row["total_gain"] == 7.1235
+    assert "High-cardinality symbolic predictor (5 split_values)" in row["flags"]
+
+
+def test_predictor_diagnostics_reads_numeric_and_unknown_encoder_metadata():
+    model = ADMTreesModel.from_dict(
+        {
+            "configuration": {
+                "predictors": [
+                    {"name": "Customer.Income", "type": "double"},
+                    {"name": "Customer.Flag", "type": "boolean"},
+                ],
+            },
+            "model": {
+                "boosters": [
+                    {
+                        "trees": [
+                            {
+                                "score": 0.0,
+                                "split": "Customer.Income < 1000",
+                                "gain": 3.0,
+                                "left": {"score": 0.1},
+                                "right": {"score": -0.1},
+                            },
+                        ],
+                    },
+                ],
+                "inputsEncoder": {
+                    "encoders": [
+                        {
+                            "key": "Customer.Income",
+                            "value": {
+                                "encoder": {
+                                    "quantileArray": {
+                                        "summary": {"initialValues": [10, 20, 30]},
+                                        "maxNumberOfBins": 10,
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            "key": "Customer.Unknown",
+                            "value": {"encoder": {"rareEncoder": {}}},
+                        },
+                    ],
+                },
+            },
+        },
+    )
+
+    rows = {row["predictor"]: row for row in model.predictor_diagnostics().to_dicts()}
+
+    income = rows["Customer.Income"]
+    assert income["predictor_type"] == "numeric"
+    assert income["used_bins"] == 3
+    assert income["max_bins"] == 10
+    assert income["bin_fill_rate"] == 0.3
+    assert income["flags"] == ""
+
+    unknown = rows["Customer.Unknown"]
+    assert unknown["predictor_type"] == "symbolic"
+    assert unknown["active"] is False
+    assert unknown["used_bins"] == 0
+    assert unknown["max_bins"] is None
+    assert unknown["cardinality_source"] == "encoder_bins"
+
+    flag = rows["Customer.Flag"]
+    assert flag["predictor_type"] == "symbolic"
+    assert flag["active"] is False
+
+
+@pytest.mark.parametrize(
+    ("raw_value", "expected"),
+    [
+        (None, False),
+        ("", False),
+        (" missing ", False),
+        ("true", False),
+        ("NaN", False),
+        ("inf", False),
+        ("'42.5'", True),
+        ("abc", False),
+    ],
+)
+def test_is_numeric_literal_handles_symbolic_edge_values(raw_value, expected):
+    assert ADMTreesModel._is_numeric_literal(raw_value) is expected
+
+
 # --- split type tests -------------------------------------------------------
 
 
@@ -372,6 +679,7 @@ def test_safe_condition_evaluate_unsupported_operator(tree_sample):
 def test_safe_condition_evaluate_handles_bad_numeric(tree_sample, caplog):
     """First failure logs at INFO; subsequent identical failures log at DEBUG."""
     import logging
+
     from pdstools.adm.trees import ADMTreesModel
 
     # Reset the dedupe set so we get a deterministic INFO on first call.
@@ -570,8 +878,9 @@ def test_multitrees_from_datamart_timestamp_formatting():
     12:30:20) used to get mangled to ``12:30:2``.  The fix uses
     ``dt.strftime`` which formats explicitly.
     """
-    import polars as pl
     from datetime import datetime
+
+    import polars as pl
     from pdstools.adm.trees import MultiTrees
 
     df = pl.DataFrame(
@@ -616,10 +925,11 @@ def test_multitrees_add_admtreesmodel_without_timestamp_raises(exported_model):
 def test_multitrees_from_datamart_rejects_multi_config(exported_model):
     """Passing a multi-config DataFrame to from_datamart should raise —
     callers must use from_datamart_grouped or pass `configuration=`."""
-    import polars as pl
     from datetime import datetime
-    from pdstools.adm.trees import MultiTrees, ADMTreesModel
+
     import pdstools.adm.trees as mod
+    import polars as pl
+    from pdstools.adm.trees import ADMTreesModel, MultiTrees
 
     df = pl.DataFrame(
         {
@@ -648,10 +958,11 @@ def test_multitrees_from_datamart_rejects_multi_config(exported_model):
 
 def test_multitrees_from_datamart_grouped(exported_model):
     """from_datamart_grouped returns a {config: MultiTrees} dict."""
-    import polars as pl
     from datetime import datetime
-    from pdstools.adm.trees import MultiTrees, ADMTreesModel
+
     import pdstools.adm.trees as mod
+    import polars as pl
+    from pdstools.adm.trees import ADMTreesModel, MultiTrees
 
     df = pl.DataFrame(
         {
@@ -925,6 +1236,40 @@ def rich_model() -> ADMTreesModel:
     return ADMTreesModel.from_file(f"{basePath}/data/agb/ModelExportWithSampleCount.json")
 
 
+@pytest.fixture
+def stump_model() -> ADMTreesModel:
+    """Minimal model with one tree and no splits."""
+    return ADMTreesModel(
+        trees={"model": [{"score": 0.0}]},
+        model=[{"score": 0.0}],
+        properties={
+            "auc": 0.7,
+            "trainingStats": {"positiveCount": 500, "negativeCount": 500},
+        },
+    )
+
+
+def test_stump_model_empty_gain_tables_keep_numeric_schema(stump_model: ADMTreesModel):
+    import polars as pl
+
+    assert stump_model.gains_per_split.schema == {
+        "split": pl.String,
+        "gains": pl.Float64,
+        "predictor": pl.String,
+    }
+
+    tree_stats = stump_model.tree_stats
+    assert tree_stats.schema["gains"] == pl.List(pl.Float64)
+    assert tree_stats.row(0, named=True) == {
+        "treeID": 0,
+        "score": 0.0,
+        "depth": 0,
+        "nsplits": 0,
+        "gains": [],
+        "meangains": 0,
+    }
+
+
 # ---------------------------------------------------------------------------
 # plot.gain_per_tree
 # ---------------------------------------------------------------------------
@@ -949,6 +1294,7 @@ def test_plot_gain_per_tree_figure(rich_model: ADMTreesModel):
 
     fig = rich_model.plot.gain_per_tree()
     assert isinstance(fig, go.Figure)
+    assert fig.layout.margin.r == 100
 
 
 # ---------------------------------------------------------------------------
@@ -976,6 +1322,17 @@ def test_plot_cumulative_gain_share_figure(rich_model: ADMTreesModel):
     assert isinstance(fig, go.Figure)
 
 
+def test_plot_cumulative_gain_share_stump_model(stump_model: ADMTreesModel):
+    import plotly.graph_objects as go
+
+    df = stump_model.plot.cumulative_gain_share(return_df=True)
+    assert df.to_dict(as_series=False) == {"treeID": [0], "cumulative_gain_share": [None]}
+
+    fig = stump_model.plot.cumulative_gain_share()
+    assert isinstance(fig, go.Figure)
+    assert fig.data[0].y == (None,)
+
+
 # ---------------------------------------------------------------------------
 # plot.feature_importance_by_gain
 # ---------------------------------------------------------------------------
@@ -983,13 +1340,12 @@ def test_plot_cumulative_gain_share_figure(rich_model: ADMTreesModel):
 
 def test_plot_feature_importance_by_gain_return_df(rich_model: ADMTreesModel):
     df = rich_model.plot.feature_importance_by_gain(return_df=True)
-    assert df.columns == ["predictor", "total_gain", "Predictor Group"]
+    assert df.columns == ["predictor", "total_gain", "PredictorCategory"]
     assert df.height == 15
     # Top predictor must be pyGroup.
     assert df["predictor"][0] == "pyGroup"
     assert df["total_gain"][0] == pytest.approx(48305.23435, rel=1e-4)
-    # py* predictors are grouped under "Context Keys".
-    assert df["Predictor Group"][0] == "Context Keys"
+    assert df["PredictorCategory"][0] == "Model context"
     # All rows are sorted descending by total_gain.
     gains = df["total_gain"].to_list()
     assert gains == sorted(gains, reverse=True)
@@ -1005,6 +1361,26 @@ def test_plot_feature_importance_by_gain_figure(rich_model: ADMTreesModel):
 
     fig = rich_model.plot.feature_importance_by_gain()
     assert isinstance(fig, go.Figure)
+    colors_by_category = {trace.name: trace.marker.color for trace in fig.data}
+    assert colors_by_category["Model context"] == "#2E7D32"
+    assert colors_by_category["Customer"] == "#001F5F"
+    assert colors_by_category["IH"] == "#10A5AC"
+
+
+def test_agb_model_context_predictors_have_dedicated_category(rich_model: ADMTreesModel):
+    import polars as pl
+
+    predictors = ["pyIssue", "pyGroup", "pyName", "pyTreatment", "pyDirection", "pyChannel", "AnotherPrimary"]
+    df = pl.DataFrame({"predictor": predictors}).with_columns(rich_model.plot.predictor_category_expr)
+    assert df["PredictorCategory"].to_list() == [
+        "Model context",
+        "Model context",
+        "Model context",
+        "Model context",
+        "Model context",
+        "Model context",
+        "Primary",
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -1014,7 +1390,7 @@ def test_plot_feature_importance_by_gain_figure(rich_model: ADMTreesModel):
 
 def test_plot_early_vs_late_gain_return_df(rich_model: ADMTreesModel):
     df = rich_model.plot.early_vs_late_gain(return_df=True)
-    assert df.columns == ["predictor", "early_gain", "late_gain", "total_gain", "Predictor Group"]
+    assert df.columns == ["predictor", "early_gain", "late_gain", "total_gain", "PredictorCategory"]
     assert df.height == 179
     # Every predictor that appears has non-negative gains in each bucket.
     assert (df["early_gain"] >= 0).all()
@@ -1027,8 +1403,7 @@ def test_plot_early_vs_late_gain_return_df(rich_model: ADMTreesModel):
     row = df.filter(df["predictor"] == "pyGroup").row(0, named=True)
     assert row["early_gain"] == pytest.approx(15286.858930, rel=1e-4)
     assert row["late_gain"] == pytest.approx(6791.741500, rel=1e-4)
-    # py* predictors are grouped under "Context Keys".
-    assert row["Predictor Group"] == "Context Keys"
+    assert row["PredictorCategory"] == "Model context"
 
 
 def test_plot_early_vs_late_gain_figure(rich_model: ADMTreesModel):
@@ -1038,6 +1413,18 @@ def test_plot_early_vs_late_gain_figure(rich_model: ADMTreesModel):
     assert isinstance(fig, go.Figure)
 
 
+def test_plot_early_vs_late_gain_stump_model_returns_empty_figure(stump_model: ADMTreesModel):
+    import plotly.graph_objects as go
+
+    df = stump_model.plot.early_vs_late_gain(return_df=True)
+    assert df.columns == ["predictor", "early_gain", "late_gain", "total_gain", "PredictorCategory"]
+    assert df.is_empty()
+
+    fig = stump_model.plot.early_vs_late_gain()
+    assert isinstance(fig, go.Figure)
+    assert fig.layout.title.text == "Early vs late tree gain per predictor"
+
+
 # ---------------------------------------------------------------------------
 # plot.gain_by_namespace
 # ---------------------------------------------------------------------------
@@ -1045,14 +1432,14 @@ def test_plot_early_vs_late_gain_figure(rich_model: ADMTreesModel):
 
 def test_plot_gain_by_namespace_return_df(rich_model: ADMTreesModel):
     df = rich_model.plot.gain_by_namespace(return_df=True)
-    assert df.columns == ["Predictor Group", "total_gain", "gain_share"]
-    # 4 distinct predictor groups (IH, Context Keys, Customer, Param).
+    assert df.columns == ["PredictorCategory", "total_gain", "gain_share"]
+    # 4 distinct predictor categories (IH, Primary, Customer, Param).
     assert df.height == 4
     # gain_share must sum to 1.
     assert df["gain_share"].sum() == pytest.approx(1.0, abs=1e-9)
-    # IH is the dominant predictor group.
+    # IH is the dominant predictor category.
     top = df.sort("total_gain", descending=True).row(0, named=True)
-    assert top["Predictor Group"] == "IH"
+    assert top["PredictorCategory"] == "IH"
     assert top["gain_share"] == pytest.approx(0.45146, abs=1e-4)
 
 
@@ -1061,6 +1448,10 @@ def test_plot_gain_by_namespace_figure(rich_model: ADMTreesModel):
 
     fig = rich_model.plot.gain_by_namespace()
     assert isinstance(fig, go.Figure)
+    expected_order = rich_model.plot.gain_by_namespace(return_df=True)["PredictorCategory"].to_list()
+    assert list(fig.layout.yaxis.categoryarray) == expected_order
+    assert fig.layout.yaxis.autorange == "reversed"
+    assert fig.layout.yaxis.automargin is True
 
 
 # ---------------------------------------------------------------------------
@@ -1070,17 +1461,16 @@ def test_plot_gain_by_namespace_figure(rich_model: ADMTreesModel):
 
 def test_plot_feature_role_map_return_df(rich_model: ADMTreesModel):
     df = rich_model.plot.feature_role_map(return_df=True)
-    assert df.columns == ["predictor", "mean_depth", "tree_coverage", "total_gain", "Predictor Group"]
+    assert df.columns == ["predictor", "mean_depth", "tree_coverage", "total_gain", "PredictorCategory"]
     assert df.height == 194
     # pyGroup is used in 63 distinct trees.
     row = df.filter(df["predictor"] == "pyGroup").row(0, named=True)
     assert row["tree_coverage"] == 63
     assert row["total_gain"] == pytest.approx(48305.23435, rel=1e-4)
     assert row["mean_depth"] == pytest.approx(4.3161, abs=1e-3)
-    # py* predictors are grouped under "Context Keys".
-    assert row["Predictor Group"] == "Context Keys"
-    # Exactly 4 predictor groups present.
-    assert df["Predictor Group"].n_unique() == 4
+    assert row["PredictorCategory"] == "Model context"
+    # Exactly 4 predictor categories present.
+    assert df["PredictorCategory"].n_unique() == 4
 
 
 def test_plot_feature_role_map_figure(rich_model: ADMTreesModel):
@@ -1088,6 +1478,18 @@ def test_plot_feature_role_map_figure(rich_model: ADMTreesModel):
 
     fig = rich_model.plot.feature_role_map()
     assert isinstance(fig, go.Figure)
+
+
+def test_plot_feature_role_map_stump_model_returns_empty_figure(stump_model: ADMTreesModel):
+    import plotly.graph_objects as go
+
+    df = stump_model.plot.feature_role_map(return_df=True)
+    assert df.columns == ["predictor", "mean_depth", "tree_coverage", "total_gain", "PredictorCategory"]
+    assert df.is_empty()
+
+    fig = stump_model.plot.feature_role_map()
+    assert isinstance(fig, go.Figure)
+    assert fig.layout.title.text == "Feature role map (router vs refiner)"
 
 
 # ---------------------------------------------------------------------------

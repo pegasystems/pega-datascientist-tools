@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from typing import Any, Literal, overload
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -10,13 +11,33 @@ import polars as pl
 from plotly.subplots import make_subplots
 
 
+@overload
 def offer_quality_piecharts(
     df: pl.LazyFrame,
-    propensity_th,
-    AvailableNBADStages,
-    return_df=False,
-    level="Stage Group",
-):
+    propensity_th: Any,
+    AvailableNBADStages: list[str],
+    return_df: Literal[True],
+    level: str = "Stage Group",
+) -> dict[tuple, pl.DataFrame]: ...
+
+
+@overload
+def offer_quality_piecharts(
+    df: pl.LazyFrame,
+    propensity_th: Any,
+    AvailableNBADStages: list[str],
+    return_df: Literal[False] = False,
+    level: str = "Stage Group",
+) -> go.Figure: ...
+
+
+def offer_quality_piecharts(
+    df: pl.LazyFrame,
+    propensity_th: Any,
+    AvailableNBADStages: list[str],
+    return_df: bool = False,
+    level: str = "Stage Group",
+) -> dict[tuple, pl.DataFrame] | go.Figure:
     value_finder_names = [
         "atleast_one_relevant_action",
         "atleast_one_action",
@@ -46,10 +67,10 @@ def offer_quality_piecharts(
 
     fig_height = 400 + (num_rows - 1) * 300
 
-    specs = []
+    specs: list[list[dict[str, str] | None]] = []
     stage_idx = 0
     for _row in range(num_rows):
-        row_specs = []
+        row_specs: list[dict[str, str] | None] = []
         for _col in range(num_cols):
             if stage_idx < num_stages:
                 row_specs.append({"type": "domain"})
@@ -181,7 +202,30 @@ def offer_quality_single_pie(
     return fig
 
 
-def getTrendChart(df: pl.LazyFrame, stage: str = "Output", return_df=False, level="Stage Group"):
+@overload
+def getTrendChart(
+    df: pl.LazyFrame,
+    stage: str,
+    return_df: Literal[True],
+    level: str = "Stage Group",
+) -> pl.LazyFrame: ...
+
+
+@overload
+def getTrendChart(
+    df: pl.LazyFrame,
+    stage: str = "Output",
+    return_df: Literal[False] = False,
+    level: str = "Stage Group",
+) -> go.Figure: ...
+
+
+def getTrendChart(
+    df: pl.LazyFrame,
+    stage: str = "Output",
+    return_df: bool = False,
+    level: str = "Stage Group",
+) -> pl.LazyFrame | go.Figure:
     value_finder_names = [
         "atleast_one_relevant_action",
         "atleast_one_action",

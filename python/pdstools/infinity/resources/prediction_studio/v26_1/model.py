@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal, overload
 
-
 from ....internal._pagination import AsyncPaginatedList, PaginatedList
 from ....internal._resource import api_method
 from ..base import AsyncModel as AsyncPreviousModel
@@ -14,12 +13,14 @@ from ..base import (
     Notification,
 )
 from ..base import Model as PreviousModel
-from ..schemas import ModelDataV26_1
+from ..schemas import ModelData, ModelDataV26_1
 
 if TYPE_CHECKING:
-    import polars as pl
-    from ..types import NotificationCategory
     from collections.abc import Callable
+
+    import polars as pl
+
+    from ..types import NotificationCategory
 
 
 class _Modelv26_1Mixin:
@@ -33,7 +34,7 @@ class _Modelv26_1Mixin:
     # Construction is handled by base ``_ModelMixin`` (payload -> _data_cls).
     # v26.1 payloads additionally carry ``performance`` / ``performanceMeasure``,
     # captured by the version-specific ``ModelDataV26_1`` schema.
-    _data_cls = ModelDataV26_1
+    _data_cls: type[ModelData] = ModelDataV26_1
 
     @api_method
     async def describe(self) -> ModelAttributes:
@@ -184,13 +185,13 @@ class AsyncModel(_Modelv26_1Mixin, AsyncPreviousModel):
         return notifications
 
     @overload
-    def list_instances(
+    async def list_instances(
         self,
         return_df: Literal[False] = False,
     ) -> AsyncPaginatedList[AsyncModelInstance]: ...
 
     @overload
-    def list_instances(
+    async def list_instances(
         self,
         return_df: Literal[True] = True,
     ) -> pl.DataFrame: ...

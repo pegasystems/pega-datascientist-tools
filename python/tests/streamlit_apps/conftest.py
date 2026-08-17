@@ -17,7 +17,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from pdstools.adm.ADMDatamart import ADMDatamart
 from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 from pdstools.impactanalyzer.ImpactAnalyzer import ImpactAnalyzer
@@ -42,6 +41,16 @@ def _stub_pypi_version_check(monkeypatch: pytest.MonkeyPatch) -> None:
     # actually called instead of a stale cached return value.
     import streamlit as st
 
+    for var in (
+        "PDSTOOLS_DATA_PATH",
+        "PDSTOOLS_SAMPLE_LIMIT",
+        "PDSTOOLS_FILTER",
+        "PDSTOOLS_TEMP_DIR",
+        "PDSTOOLS_FULL_EMBED",
+    ):
+        monkeypatch.delenv(var, raising=False)
+
+    st.session_state.clear()
     st.cache_data.clear()
     st.cache_resource.clear()
 

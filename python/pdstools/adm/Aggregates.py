@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 __all__ = ["Aggregates"]
+import datetime
 import logging
 from typing import TYPE_CHECKING, Literal
 
@@ -14,8 +15,9 @@ from ..utils.metric_limits import (
 )
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
     import datetime
+
+    from ..utils.types import QUERY
     from .ADMDatamart import ADMDatamart
 
 logger = logging.getLogger(__name__)
@@ -26,6 +28,18 @@ class Aggregates:
 
     def __init__(self, datamart: "ADMDatamart"):
         self.datamart = datamart
+
+    @staticmethod
+    def _normalize_literal_query(query: QUERY | None) -> tuple[QUERY | None, bool | None]:
+        """Normalize literal-only queries for aggregate helper methods."""
+        if query is None:
+            return None, None
+        if not isinstance(query, pl.Expr):
+            return query, None
+        if query.meta.root_names():
+            return query, None
+        literal_value = pl.LazyFrame({"_": [1]}).select(query.alias("value")).collect().item()
+        return None, bool(literal_value)
 
     def last(
         self,
@@ -111,6 +125,10 @@ class Aggregates:
         ----------
         query : Optional[QUERY], optional
             A query to apply to the data before creating the pivot, by default None
+        active_only : bool, optional
+            Whether to only include predictors with EntryType "Active".
+            When False, all non-classifier predictors are included,
+            by default False
         by : str, optional
             A group by which to 'facet', by default "Name".
             If, for instance, the 'by' argument is set to 'Configuration',
@@ -133,6 +151,7 @@ class Aggregates:
                 (pl.col("EntryType") == "Active") if active_only else (pl.col("EntryType") != "Classifier"),
             ),
             query,
+            allow_empty=True,
         )
         unique_predictors = df.select(pl.col("PredictorName").unique()).collect()["PredictorName"]
 
@@ -285,7 +304,7 @@ class Aggregates:
                 .agg(
                     pl.col("PredictorName").sort_by(metric, descending=True).head(top_n),
                 )
-                .explode("PredictorName"),
+                .explode("PredictorName", empty_as_null=True),
                 on=(*facets, "PredictorName"),
             )
 
@@ -496,6 +515,7 @@ class Aggregates:
         model_data: pl.LazyFrame,
         debug: bool,
     ) -> pl.LazyFrame:
+        treatment_summary: pl.LazyFrame | None = None
         if "Treatment" in self.datamart.context_keys:
             treatment_summary = (
                 model_data.filter(pl.col("Treatment") != "")
@@ -551,7 +571,9 @@ class Aggregates:
 
         if "Treatment" in self.datamart.context_keys:
             return action_summary.join(
-                treatment_summary,
+                treatment_summary
+                if treatment_summary is not None
+                else action_summary.select(grouping).with_columns(Treatments=pl.lit(0)),
                 on=grouping,
                 nulls_equal=True,
                 how="left",
@@ -706,7 +728,7 @@ class Aggregates:
             .collect()
             .lazy()
             .drop(["literal"] if every is None else [])
-            .explode(["Channel", "Direction", "OmniChannel"])
+            .explode(["Channel", "Direction", "OmniChannel"], empty_as_null=True)
         )
 
         result = (
@@ -750,6 +772,31 @@ class Aggregates:
             )
 
         return result
+
+    def channel_overview(
+        self,
+        *,
+        query: QUERY | None = None,
+    ) -> pl.DataFrame:
+        """Return the display-ready channel overview table."""
+        normalized_query, literal_value = self._normalize_literal_query(query)
+        overview = (
+            self.summary_by_channel(
+                query=normalized_query,
+                format_flags=True,
+            )
+            .drop(
+                [
+                    "ChannelDirectionGroup",
+                    "DateRange Min",
+                    "DateRange Max",
+                ]
+            )
+            .collect()
+        )
+        if literal_value is False:
+            return overview.head(0)
+        return overview
 
     def summary_by_configuration(
         self,
@@ -833,6 +880,34 @@ class Aggregates:
 
         return configuration_summary
 
+    def configuration_overview(
+        self,
+        *,
+        query: QUERY | None = None,
+    ) -> pl.DataFrame:
+        """Return the display-ready configuration overview table."""
+        normalized_query, literal_value = self._normalize_literal_query(query)
+        overview = (
+            self.summary_by_configuration(query=normalized_query)
+            .with_columns(
+                NBAD=pl.when(pl.col("usesNBAD").is_null())
+                .then(pl.lit("?"))
+                .when(pl.col("usesNBAD"))
+                .then(pl.lit("Yes"))
+                .otherwise(pl.lit("No")),
+                AGB=pl.when(pl.col("usesAGB").is_null())
+                .then(pl.lit("?"))
+                .when(pl.col("usesAGB"))
+                .then(pl.lit("Yes"))
+                .otherwise(pl.lit("No")),
+            )
+            .drop("usesNBAD", "usesAGB")
+            .collect()
+        )
+        if literal_value is False:
+            return overview.head(0)
+        return overview
+
     def predictors_global_overview(
         self,
         *,
@@ -890,6 +965,18 @@ class Aggregates:
             )
             .sort("PredictorName")
         )
+
+    def global_predictor_overview(
+        self,
+        *,
+        query: QUERY | None = None,
+    ) -> pl.DataFrame:
+        """Return the display-ready global predictor overview table."""
+        normalized_query, literal_value = self._normalize_literal_query(query)
+        overview = self.predictors_global_overview(query=normalized_query).collect()
+        if literal_value is False:
+            return overview.head(0)
+        return overview
 
     def predictors_overview(
         self,
@@ -1145,11 +1232,17 @@ class Aggregates:
         )
 
         if every is None:
+            # Join by row position to preserve horizontal concat padding
+            # without relying on version-specific Polars concat modes.
             return (
-                pl.concat(
-                    [overall_summary, best_worst_channel_summary],
-                    how="horizontal",
+                overall_summary.with_row_index("__summary_row")
+                .join(
+                    best_worst_channel_summary.with_row_index("__summary_row"),
+                    on="__summary_row",
+                    how="full",
+                    coalesce=True,
                 )
+                .drop("__summary_row")
                 .with_columns(
                     cs.categorical().cast(pl.Utf8),
                     pl.col("Number of Valid Channels").fill_null(0),

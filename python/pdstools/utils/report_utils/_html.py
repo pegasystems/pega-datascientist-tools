@@ -1,8 +1,9 @@
-"""HTML post-processing: CSS inlining, zip bundling, error scanning."""
+"""HTML post-processing: local asset inlining, zip bundling, error scanning."""
 
 from __future__ import annotations
 
-import os
+import base64
+import mimetypes
 import re
 import shutil
 import zipfile
@@ -15,6 +16,134 @@ _LINK_STYLESHEET_RE = re.compile(
     re.IGNORECASE,
 )
 _HREF_ATTR_RE = re.compile(r"\bhref=[\"']([^\"']+)[\"']", re.IGNORECASE)
+_SCRIPT_SRC_RE = re.compile(
+    r"<script\b[^>]*\bsrc=[\"']([^\"']+)[\"'][^>]*>\s*</script>",
+    re.IGNORECASE,
+)
+_SCRIPT_OPEN_TAG_RE = re.compile(r"<script\b[^>]*>", re.IGNORECASE)
+_CSS_URL_RE = re.compile(r"url\(\s*([\"']?)([^\"')]+)\1\s*\)", re.IGNORECASE)
+_HTML_ATTR_RE = re.compile(r"\s+([^\s=/>]+)(?:\s*=\s*(\"[^\"]*\"|'[^']*'|[^\s>]+))?")
+_MODULE_NAMESPACE_IMPORT_RE = re.compile(
+    r"^\s*import\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from\s+[\"']([^\"']+)[\"'];\s*$",
+    re.MULTILINE,
+)
+_JS_EXPORT_DECL_RE = re.compile(
+    r"(^\s*)export\s+(async\s+function|function|class|const|let|var)\s+([A-Za-z_$][\w$]*)",
+    re.MULTILINE,
+)
+_JS_EXPORT_LIST_RE = re.compile(r"^\s*export\s*\{([^}]+)\};?\s*$", re.MULTILINE)
+
+# References we never try to localise: they are already remote or self-contained.
+_REMOTE_PREFIXES = ("http://", "https://", "//", "data:", "#", "about:")
+_STYLE_ATTR_ALLOWLIST = {"id", "class", "media", "nonce", "title", "type"}
+_STYLE_DROP_ATTRS = {"href", "rel", "integrity", "crossorigin", "referrerpolicy"}
+_SCRIPT_DROP_ATTRS = {"src", "integrity", "crossorigin", "referrerpolicy"}
+
+
+def _is_remote(reference: str) -> bool:
+    """Whether a URL reference points somewhere other than the local filesystem."""
+    return reference.strip().startswith(_REMOTE_PREFIXES)
+
+
+def _as_data_uri(path: Path) -> str:
+    """Encode a binary asset (font, image) as a base64 ``data:`` URI."""
+    mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+    return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"
+
+
+def _preserved_attrs(
+    tag: str,
+    *,
+    drop_attrs: set[str],
+    allow_attrs: set[str] | None = None,
+) -> str:
+    """Return attributes safe to carry onto an inlined replacement tag."""
+    attrs: list[str] = []
+    for match in _HTML_ATTR_RE.finditer(tag):
+        name = match.group(1)
+        attr_name = name.lower()
+        if attr_name in drop_attrs:
+            continue
+        if allow_attrs is not None and attr_name not in allow_attrs and not attr_name.startswith("data-"):
+            continue
+        value = match.group(2)
+        attrs.append(name if value is None else f"{name}={value}")
+    return f" {' '.join(attrs)}" if attrs else ""
+
+
+def _strip_module_exports(js_content: str) -> tuple[str, list[str]]:
+    """Strip named exports from a local ES module and return their names."""
+    exports: list[str] = []
+
+    def _replace_declaration(match: re.Match) -> str:
+        exports.append(match.group(3))
+        return f"{match.group(1)}{match.group(2)} {match.group(3)}"
+
+    def _replace_export_list(match: re.Match) -> str:
+        for item in match.group(1).split(","):
+            parts = item.strip().split()
+            if len(parts) == 3 and parts[1] == "as":
+                exports.append(f"{parts[2]}: {parts[0]}")
+            elif len(parts) == 1 and parts[0]:
+                exports.append(parts[0])
+        return ""
+
+    js_content = _JS_EXPORT_DECL_RE.sub(_replace_declaration, js_content)
+    js_content = _JS_EXPORT_LIST_RE.sub(_replace_export_list, js_content)
+    return js_content, exports
+
+
+def _inline_local_module_imports(js_content: str, js_dir: Path) -> str:
+    """Inline local ``import * as name from './module.js'`` dependencies."""
+
+    def _replace(match: re.Match) -> str:
+        namespace = match.group(1)
+        reference = match.group(2)
+        if _is_remote(reference):
+            return match.group(0)
+        module_path = (js_dir / reference).resolve()
+        if not module_path.is_file():
+            logger.warning("JS module file not found, leaving import intact: %s", module_path)
+            return match.group(0)
+        module_content = _inline_local_module_imports(module_path.read_text(encoding="utf-8"), module_path.parent)
+        module_content, exports = _strip_module_exports(module_content)
+        return f"const {namespace} = (() => {{\n{module_content}\nreturn {{{', '.join(exports)}}};\n}})();"
+
+    return _MODULE_NAMESPACE_IMPORT_RE.sub(_replace, js_content)
+
+
+def _inline_css_urls(css: str, css_dir: Path) -> str:
+    """Rewrite relative ``url(...)`` references in a stylesheet to data URIs.
+
+    Stylesheets pull in fonts and images by relative path. Once the CSS text is
+    lifted into a ``<style>`` block those paths break, so the referenced assets
+    are embedded directly. Remote and already-inline references are untouched,
+    as are references that do not resolve to a file on disk.
+
+    Parameters
+    ----------
+    css : str
+        Stylesheet text.
+    css_dir : Path
+        Directory of the stylesheet, used to resolve relative references.
+
+    Returns
+    -------
+    str
+        The stylesheet with resolvable local references replaced by data URIs.
+    """
+
+    def _replace(match: re.Match) -> str:
+        reference = match.group(2).strip()
+        if _is_remote(reference):
+            return match.group(0)
+        # Strip cache-busting query strings and fragments: "font.woff?v=2#iefix".
+        asset_path = (css_dir / reference.split("?")[0].split("#")[0]).resolve()
+        if not asset_path.is_file():
+            return match.group(0)
+        return f'url("{_as_data_uri(asset_path)}")'
+
+    return _CSS_URL_RE.sub(_replace, css)
 
 
 def _inline_css(html_path: Path, base_dir: Path) -> int:
@@ -22,6 +151,7 @@ def _inline_css(html_path: Path, base_dir: Path) -> int:
 
     Replaces each ``<link rel="stylesheet" href="...">`` whose ``href`` is a
     relative path with an inline ``<style>`` block containing the CSS text.
+    Fonts and images referenced from within that CSS are embedded as data URIs.
     Absolute URLs (``http://``, ``https://``, ``//``) are left untouched.
     Missing files are logged as warnings and left alone.
 
@@ -46,16 +176,21 @@ def _inline_css(html_path: Path, base_dir: Path) -> int:
         href_match = _HREF_ATTR_RE.search(tag)
         if not href_match:
             return tag
-        href = href_match.group(1)
-        if href.startswith(("http://", "https://", "//")):
+        href = str(href_match.group(1))
+        if _is_remote(href):
             return tag
         css_path = (base_dir / href).resolve()
         if not css_path.is_file():
             logger.warning("CSS file not found, leaving <link> tag intact: %s", css_path)
             return tag
-        css_content = css_path.read_text(encoding="utf-8")
+        css_content = _inline_css_urls(css_path.read_text(encoding="utf-8"), css_path.parent)
+        style_attrs = _preserved_attrs(
+            tag,
+            drop_attrs=_STYLE_DROP_ATTRS,
+            allow_attrs=_STYLE_ATTR_ALLOWLIST,
+        )
         inlined += 1
-        return f"<style>\n{css_content}\n</style>"
+        return f"<style{style_attrs}>\n{css_content}\n</style>"
 
     patched = _LINK_STYLESHEET_RE.sub(_replace, content)
     if inlined:
@@ -64,7 +199,127 @@ def _inline_css(html_path: Path, base_dir: Path) -> int:
     return inlined
 
 
-def generate_zipped_report(output_filename: str, folder_to_zip: str):
+def _inline_js(html_path: Path, base_dir: Path) -> int:
+    """Inline relative ``<script src="...">`` tags in an HTML file.
+
+    Replaces each script tag whose ``src`` is a relative path with an inline
+    ``<script>`` block containing the JavaScript source. Absolute URLs are left
+    untouched, so CDN-hosted libraries keep loading from the CDN. Missing files
+    are logged as warnings and left alone.
+
+    Parameters
+    ----------
+    html_path : Path
+        HTML file to patch in-place.
+    base_dir : Path
+        Directory used to resolve relative ``src`` values.
+
+    Returns
+    -------
+    int
+        Number of JavaScript files successfully inlined.
+    """
+    content = html_path.read_text(encoding="utf-8")
+    inlined = 0
+
+    def _replace(match: re.Match) -> str:
+        nonlocal inlined
+        src = str(match.group(1))
+        if _is_remote(src):
+            return match.group(0)
+        js_path = (base_dir / src).resolve()
+        if not js_path.is_file():
+            logger.warning("JS file not found, leaving <script> tag intact: %s", js_path)
+            return match.group(0)
+        js_content = _inline_local_module_imports(js_path.read_text(encoding="utf-8"), js_path.parent)
+        # A literal "</script>" inside the source would close the tag early.
+        js_content = js_content.replace("</script>", "<\\/script>")
+        open_tag_match = _SCRIPT_OPEN_TAG_RE.search(match.group(0))
+        script_attrs = (
+            _preserved_attrs(open_tag_match.group(0), drop_attrs=_SCRIPT_DROP_ATTRS) if open_tag_match else ""
+        )
+        inlined += 1
+        return f"<script{script_attrs}>\n{js_content}\n</script>"
+
+    patched = _SCRIPT_SRC_RE.sub(_replace, content)
+    if inlined:
+        html_path.write_text(patched, encoding="utf-8")
+        logger.debug("Inlined %d JS file(s) into %s", inlined, html_path.name)
+    return inlined
+
+
+def inline_local_assets(html_path: Path, base_dir: Path) -> tuple[int, int]:
+    """Inline every locally-hosted CSS and JS asset an HTML report depends on.
+
+    This is the CDN-mode counterpart to Quarto's ``embed-resources``: it makes
+    the HTML self-contained without invoking esbuild, which is unavailable in
+    hardened environments. Remote (CDN) references are deliberately preserved.
+
+    Parameters
+    ----------
+    html_path : Path
+        HTML file to patch in-place.
+    base_dir : Path
+        Directory used to resolve relative references.
+
+    Returns
+    -------
+    tuple[int, int]
+        Number of CSS and JS files inlined, respectively.
+    """
+    return _inline_css(html_path, base_dir), _inline_js(html_path, base_dir)
+
+
+def drop_inlined_resources(html_path: Path, *resource_stems: str) -> int:
+    """Delete Quarto resources folders once nothing references them.
+
+    Called after :func:`inline_local_assets`. If the HTML still mentions the
+    resources folder — an asset type we do not inline, or a file that failed to
+    resolve — the folder is kept so the report is not broken.
+
+    Parameters
+    ----------
+    html_path : Path
+        The rendered HTML file whose companion resources folders to consider.
+    *resource_stems : str
+        Optional additional stems for resources folders. Quarto usually names
+        the folder after the source ``.qmd`` file, which can differ from the
+        output HTML stem when the report filename includes a suffix.
+
+    Returns
+    -------
+    int
+        Number of resources folders removed.
+    """
+    html_path = Path(html_path)
+    if not html_path.is_file():
+        return 0
+
+    stems = dict.fromkeys((html_path.stem, *resource_stems))
+    content = html_path.read_text(encoding="utf-8")
+    removed = 0
+    for stem in stems:
+        if not stem:
+            continue
+        resources_dir = html_path.with_name(f"{stem}_files")
+        if not resources_dir.is_dir():
+            continue
+        if resources_dir.name in content:
+            logger.info(
+                "%s still references %s; keeping the resources folder.",
+                html_path.name,
+                resources_dir.name,
+            )
+            continue
+
+        # Only delete the folder after every reference to it has been inlined.
+        shutil.rmtree(resources_dir, ignore_errors=True)
+        logger.debug("Removed fully inlined resources folder %s", resources_dir.name)
+        removed += 1
+    return removed
+
+
+def generate_zipped_report(output_filename: str, folder_to_zip: Path):
     """Generate a zipped archive of a directory.
 
     This is a general-purpose utility function that can compress any directory
@@ -75,7 +330,7 @@ def generate_zipped_report(output_filename: str, folder_to_zip: str):
     ----------
     output_filename : str
         Name of the output file (extension will be replaced with .zip)
-    folder_to_zip : str
+    folder_to_zip : Path
         Path to the directory to be compressed
 
     Returns
@@ -89,22 +344,22 @@ def generate_zipped_report(output_filename: str, folder_to_zip: str):
 
     Examples
     --------
-    >>> generate_zipped_report("my_archive.zip", "/path/to/directory")
-    >>> generate_zipped_report("report_2023", "/tmp/report_output")
+    >>> generate_zipped_report("my_archive.zip", Path("/path/to/directory"))
+    >>> generate_zipped_report("report_2023", Path("/tmp/report_output"))
 
     """
-    if not os.path.isdir(folder_to_zip):
-        logger.error(f"The output path {folder_to_zip} is not a directory.")
-        return
-
-    if not os.path.exists(folder_to_zip):
+    if not folder_to_zip.exists():
         logger.warning(
             f"The {folder_to_zip} directory does not exist. Skipping zip creation.",
         )
         return
 
-    base_filename = os.path.splitext(output_filename)[0]
-    zippy = shutil.make_archive(base_filename, "zip", folder_to_zip)
+    if not folder_to_zip.is_dir():
+        logger.error(f"The output path {folder_to_zip} is not a directory.")
+        return
+
+    base_filename = Path(output_filename).with_suffix("")
+    zippy = shutil.make_archive(str(base_filename), "zip", str(folder_to_zip))
     logger.info(f"created zip file...{zippy}")
 
 
@@ -142,6 +397,7 @@ def bundle_quarto_resources(output_path: Path) -> Path:
     if not resources_dir.is_dir():
         return output_path
 
+    # Fallback: if local resources remain, ship a complete ZIP rather than broken HTML.
     zip_path = output_path.with_suffix(".zip")
     logger.info(
         f"Bundling {output_path.name} with resources folder {resources_dir.name} into {zip_path.name}",

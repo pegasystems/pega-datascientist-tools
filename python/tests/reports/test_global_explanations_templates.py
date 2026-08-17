@@ -1,7 +1,7 @@
 """Tests for GlobalExplanations template validation."""
 
-from pathlib import Path
 import re
+from pathlib import Path
 
 import pytest
 
@@ -19,6 +19,7 @@ TEMPLATE_PLACEHOLDERS: dict[str, set[str]] = {
     },
     "overview.qmd": {
         "{DATA_FOLDER}",
+        "{PLOTLY_RENDERER}",
         "{TOP_N}",
         "{TOP_K}",
         "{SORT_BY}",
@@ -35,6 +36,7 @@ TEMPLATE_PLACEHOLDERS: dict[str, set[str]] = {
     "all_context_header.qmd": {
         "{DATA_FOLDER}",
         "{DATA_PATTERN}",
+        "{PLOTLY_RENDERER}",
         "{TOP_N}",
         "{SORT_BY_TEXT}",
     },

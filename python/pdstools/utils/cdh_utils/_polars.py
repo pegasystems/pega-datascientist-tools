@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import overload, TYPE_CHECKING
+from typing import TYPE_CHECKING, cast, overload
 
 import polars as pl
 
@@ -12,8 +12,9 @@ from ._dates import parse_pega_date_time_formats
 from ._namespacing import _capitalize
 
 if TYPE_CHECKING:
-    from ..types import QUERY
     from collections.abc import Iterable
+
+    from ..types import QUERY
 
 
 # Pattern for validating Polars duration strings (e.g., "1d", "2w", "1h30m")
@@ -95,7 +96,7 @@ def _apply_query(df: F, query: QUERY | None = None, allow_empty: bool = False) -
         if not query:  # Handle empty dict
             return df
         col_names = set(query.keys())
-        query = [pl.col(k).is_in(v) for k, v in query.items()]
+        query = [pl.col(cast("str", k)).is_in(v) for k, v in query.items()]
     else:
         raise ValueError(f"Unsupported query type: {type(query)}")
 
@@ -122,7 +123,7 @@ def _combine_queries(existing_query: QUERY, new_query: pl.Expr) -> QUERY:
         return [*existing_query, new_query]
     if isinstance(existing_query, dict):
         # Convert the dictionary to a list of expressions
-        existing_exprs = [pl.col(k).is_in(v) for k, v in existing_query.items()]
+        existing_exprs = [pl.col(cast("str", k)).is_in(v) for k, v in existing_query.items()]
         return [*existing_exprs, new_query]
     raise ValueError("Unsupported query type")
 
@@ -242,24 +243,31 @@ def _extract_keys(
     overlap = set(df.collect_schema().names()).intersection(
         keys_decoded.collect_schema().names(),
     )
-    return (
-        df.join(
-            keys_decoded.lazy() if isinstance(df, pl.LazyFrame) else keys_decoded,
+    if isinstance(df, pl.LazyFrame):
+        joined = df.join(
+            keys_decoded.lazy(),
             left_on=key,
             right_on="__original",
             coalesce=True,
             suffix="_decoded",
             how="left",
         )
-        # Overwrite values from columns that also appear in the decoded keys
-        .with_columns(
-            [
-                pl.when(pl.col(f"{c}_decoded").is_not_null()).then(pl.col(f"{c}_decoded")).otherwise(pl.col(c)).alias(c)
-                for c in overlap
-            ],
+    else:
+        joined = df.join(
+            keys_decoded,
+            left_on=key,
+            right_on="__original",
+            coalesce=True,
+            suffix="_decoded",
+            how="left",
         )
-        .drop([f"{c}_decoded" for c in overlap])
-    )
+
+    return joined.with_columns(
+        [
+            pl.when(pl.col(f"{c}_decoded").is_not_null()).then(pl.col(f"{c}_decoded")).otherwise(pl.col(c)).alias(c)
+            for c in overlap
+        ],
+    ).drop([f"{c}_decoded" for c in overlap])
 
 
 def weighted_average_polars(
@@ -306,6 +314,9 @@ def overlap_matrix(
         The name of the column containing the lists. Each element in this column should be a list.
     by : str
         The name of the column to use for grouping and labeling the rows in the result matrix.
+    show_fraction : bool, default True
+        When True the cells hold the overlap as a fraction of the row's list
+        size; when False they hold the raw intersection counts.
 
     Returns
     -------

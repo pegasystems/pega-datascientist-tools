@@ -3,6 +3,7 @@
 import datetime
 import os
 import pathlib
+from unittest.mock import patch
 
 import polars as pl
 import pytest
@@ -220,6 +221,47 @@ def test_predictor_categorization_custom_expression(sample):
     assert _check_cat(sample, "Customer.RiskScore") == "External Model"
 
 
+def test_predictor_categorization_fills_null_source_categories():
+    model_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1"],
+            "Configuration": ["Config"],
+            "SnapshotTime": [datetime.datetime(2024, 1, 1)],
+            "Positives": [10.0],
+            "Negatives": [90.0],
+            "ResponseCount": [100.0],
+            "Performance": [0.7],
+        },
+    )
+    predictor_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m1"],
+            "PredictorName": ["Customer.Score", "Classifier"],
+            "PredictorCategory": [None, None],
+            "EntryType": ["Active", "Classifier"],
+            "BinIndex": [1, 1],
+            "BinPositives": [8.0, 4.0],
+            "BinNegatives": [12.0, 16.0],
+            "ResponseCount": [20.0, 20.0],
+            "Performance": [0.72, 0.62],
+            "SnapshotTime": [datetime.datetime(2024, 1, 1), datetime.datetime(2024, 1, 1)],
+        },
+    )
+
+    datamart = ADMDatamart(model_df=model_df, predictor_df=predictor_df)
+
+    categories = (
+        datamart.predictor_data.select("PredictorName", "PredictorCategory")
+        .collect()
+        .sort("PredictorName")
+        .to_dict(as_series=False)
+    )
+    assert categories == {
+        "PredictorName": ["Classifier", "Customer.Score"],
+        "PredictorCategory": [None, "Customer"],
+    }
+
+
 def test_predictor_categorization_dictionary(sample):
     categorization = {"XGBoost Model": "Score"}
 
@@ -240,6 +282,56 @@ def test_predictor_categorization_dictionary(sample):
     # )
     assert cats == ["Customer", "IH", "Param", "XGBoost Model"]
     assert _check_cat(sample, "Customer.CreditScore") == "XGBoost Model"
+
+
+def test_predictor_categorization_falls_back_to_default_when_existing_category_is_null():
+    model_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1"],
+            "SnapshotTime": ["20240101"],
+            "Configuration": ["Config"],
+            "Issue": ["Issue"],
+            "Group": ["Group"],
+            "Name": ["Action"],
+            "Channel": ["Web"],
+            "Direction": ["Inbound"],
+            "Performance": [0.7],
+            "ResponseCount": [100],
+            "Positives": [10],
+        },
+    )
+    predictor_df = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m1"],
+            "PredictorName": ["Customer.Account.Balance", "Customer.Propensity"],
+            "PredictorCategory": [None, None],
+            "EntryType": ["Active", "Active"],
+            "BinIndex": [1, 1],
+            "BinPositives": [4.0, 8.0],
+            "BinNegatives": [16.0, 12.0],
+            "BinResponseCount": [20.0, 20.0],
+            "ResponseCount": [20.0, 20.0],
+            "Performance": [0.62, 0.72],
+            "SnapshotTime": ["20240101", "20240101"],
+            "Type": ["numeric", "numeric"],
+        },
+    )
+
+    datamart = ADMDatamart(model_df=model_df, predictor_df=predictor_df)
+    datamart.apply_predictor_categorization({"External Model": "Propensity"})
+
+    categories = (
+        datamart.predictor_data.select("PredictorName", "PredictorCategory")
+        .unique()
+        .sort("PredictorName")
+        .collect()
+        .to_dict(as_series=False)
+    )
+
+    assert categories == {
+        "PredictorName": ["Customer.Account.Balance", "Customer.Propensity"],
+        "PredictorCategory": ["Customer", "External Model"],
+    }
 
 
 def test_predictor_categorization_dictionary_regexps(sample):
@@ -274,9 +366,7 @@ def test_get_last_data_for_report(sample: ADMDatamart):
     """Test get_last_data_for_report formatting."""
     report_data = sample.get_last_data_for_report()
 
-    # Should return a collected DataFrame
-    assert isinstance(report_data, pl.DataFrame)
-    assert report_data.height > 0
+    assert report_data.shape == (68, 31)
 
     # Check that nulls are filled with "NA" for string columns
     string_cols = [col for col in report_data.columns if report_data[col].dtype == pl.Utf8]
@@ -287,12 +377,10 @@ def test_get_last_data_for_report(sample: ADMDatamart):
 
     # Check SuccessRate and Performance are filled with 0 for null/nan
     if "SuccessRate" in report_data.columns:
-        success_rates = report_data["SuccessRate"].to_list()
-        assert all(v is not None or v == 0 for v in success_rates)
+        assert report_data["SuccessRate"].null_count() == 0
 
     if "Performance" in report_data.columns:
-        performances = report_data["Performance"].to_list()
-        assert all(v is not None or v == 0 for v in performances)
+        assert report_data["Performance"].null_count() == 0
 
     # Check Channel/Direction concatenated column exists
     assert "Channel/Direction" in report_data.columns
@@ -385,9 +473,8 @@ def test_from_s3_downloads_and_delegates(monkeypatch, tmp_path):
             boto3_client=client,
         )
 
-    assert dm.model_data is not None
-    assert dm.predictor_data is not None
-    assert dm.model_data.collect().height > 0
+    assert dm.model_data.collect().height == 1047
+    assert dm.predictor_data.collect().height == 70735
 
 
 def test_from_s3_model_only(monkeypatch):
@@ -409,7 +496,7 @@ def test_from_s3_model_only(monkeypatch):
             boto3_client=client,
         )
 
-    assert dm.model_data is not None
+    assert dm.model_data.collect().height == 1047
     assert dm.predictor_data is None
 
 
@@ -486,6 +573,15 @@ def test_normalize_performance_scale_no_performance_column():
     assert "Performance" not in out.columns
 
 
+def test_normalize_performance_scale_is_lazy():
+    df = pl.LazyFrame({"Performance": [55.0, 70.0, 100.0]})
+
+    with patch.object(pl.LazyFrame, "collect", side_effect=RuntimeError("should stay lazy")):
+        out = ADMDatamart._normalize_performance_scale(df)
+
+    assert out.collect()["Performance"].to_list() == pytest.approx([0.55, 0.7, 1.0])
+
+
 # ---- _validate_model_data -------------------------------------------------
 
 
@@ -506,6 +602,18 @@ def test_validate_model_data_adds_success_rate_and_modeltechnique():
     # ModelTechnique synthesised when absent
     assert "ModelTechnique" in out.columns
     assert out["ModelTechnique"].to_list() == [None, None]
+
+
+def test_validate_model_data_adds_missing_channel_direction():
+    df = _minimal_model_df().drop("Channel", "Direction")
+
+    dm = ADMDatamart(model_df=df)
+    out = dm._require_model_data().collect()
+
+    assert out["Channel"].to_list() == [None, None]
+    assert out["Direction"].to_list() == [None, None]
+    assert "Channel" in dm.context_keys
+    assert "Direction" in dm.context_keys
 
 
 def test_validate_model_data_success_rate_zero_when_no_responses():
@@ -723,8 +831,11 @@ def test_require_first_action_dates_raises_when_missing():
 
 def test_require_model_data_returns_lazyframe_when_present():
     dm = ADMDatamart(model_df=_minimal_model_df())
-    assert isinstance(dm._require_model_data(), pl.LazyFrame)
-    assert isinstance(dm._require_first_action_dates(), pl.LazyFrame)
+    assert dm._require_model_data().collect().shape == (2, 16)
+    assert dm._require_first_action_dates().collect().to_dict(as_series=False) == {
+        "Name": ["Action A"],
+        "ActionFirstSnapshotTime": [datetime.datetime(2024, 1, 1, 0, 0)],
+    }
 
 
 def _agb_mixed_modeldata():

@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import TYPE_CHECKING, Any, TypeAlias
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import polars as pl
+
+from .metric_limits import MetricLimits
 
 if TYPE_CHECKING:
     from plotly.graph_objs import Figure as _Figure
@@ -41,14 +43,46 @@ LIFT_DIRECTION_COLORS: dict[str, str] = {
 # Colorscales for metric visualizations in Plotly charts
 # These define continuous color gradients based on metric values
 
+PERFORMANCE_RANGE_MIN = 0.5
+PERFORMANCE_RANGE_MAX = 1.0
+
+
+def _scale_performance_limit(value: float) -> float:
+    return (value - PERFORMANCE_RANGE_MIN) / (PERFORMANCE_RANGE_MAX - PERFORMANCE_RANGE_MIN)
+
+
+def _model_performance_colorscale() -> list[tuple[float, str]]:
+    limits = MetricLimits.get_limit_for_metric("ModelPerformance")
+    minimum = limits.get("minimum")
+    best_practice_min = limits.get("best_practice_min")
+    best_practice_max = limits.get("best_practice_max")
+    maximum = limits.get("maximum")
+
+    if minimum is None or best_practice_min is None or best_practice_max is None or maximum is None:
+        raise ValueError("ModelPerformance must define all color-scale thresholds in MetricLimits.csv.")
+
+    min_position = _scale_performance_limit(float(minimum))
+    best_practice_min_position = _scale_performance_limit(float(best_practice_min))
+    best_practice_max_position = _scale_performance_limit(float(best_practice_max))
+    max_position = _scale_performance_limit(float(maximum))
+
+    return [
+        (0, "#d91c29"),
+        (min_position, "#d91c29"),
+        (min_position, "#F76923"),
+        (best_practice_min_position, "#F76923"),
+        (best_practice_min_position, "#20aa50"),
+        (best_practice_max_position, "#20aa50"),
+        (best_practice_max_position, "#F76923"),
+        (max_position, "#F76923"),
+        (max_position, "#d91c29"),
+        (1, "#d91c29"),
+    ]
+
+
 COLORSCALES: dict[str, Any] = {
-    "Performance": [
-        (0, "#d91c29"),  # Red - poor performance
-        (0.01, "#F76923"),  # Orange - below threshold
-        (0.3, "#20aa50"),  # Green - acceptable
-        (0.8, "#20aa50"),  # Green - good
-        (1, "#0000FF"),  # Blue - exceptional (overfit?)
-    ],
+    "Performance": _model_performance_colorscale(),
+    # Keep hardcoded until a canonical SuccessRate metric exists in MetricLimits.csv.
     "SuccessRate": [
         (0, "#d91c29"),  # Red - no success
         (0.01, "#F76923"),  # Orange - low success
@@ -85,7 +119,10 @@ def get_colorscale(
     ['#d91c29', '#F76923', '#20aa50']
 
     """
-    return COLORSCALES.get(metric, COLORSCALES.get(default, COLORSCALES["other"]))
+    return cast(
+        "list[tuple[float, str]] | list[str]",
+        COLORSCALES.get(metric, COLORSCALES.get(default, COLORSCALES["other"])),
+    )
 
 
 DEFAULT_LABEL_MAX_LENGTH = 25
@@ -222,8 +259,8 @@ def hide_metric_annotations_on_non_rightmost(fig: "Figure") -> "Figure":
     than ``facet_col_wrap``. This function suppresses annotation text on non-rightmost
     subplots, using only axes that have actual traces to exclude phantom empty-slot axes.
 
-    Annotations whose text contains ``"="`` are assumed to be facet titles and are
-    left untouched.
+    Facet-title annotations are left untouched, including after
+    :func:`simplify_facet_titles` has removed the ``"<column>="`` prefix.
 
     Parameters
     ----------
@@ -267,7 +304,8 @@ def hide_metric_annotations_on_non_rightmost(fig: "Figure") -> "Figure":
     rightmost_xrefs = {v["xref"] for v in rows.values()}
 
     for a in fig.layout.annotations:
-        if "=" not in (a.text or "") and a.xref not in rightmost_xrefs:
+        is_facet_title = "=" in (a.text or "") or (a.xref == "paper" and a.yref == "paper" and not a.showarrow)
+        if not is_facet_title and a.xref not in rightmost_xrefs:
             a.text = ""
     return fig
 

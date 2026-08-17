@@ -8,9 +8,9 @@ seeded via the ``seeded_decision_analyzer`` fixture.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
 from streamlit.testing.v1 import AppTest
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pathlib import Path

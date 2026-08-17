@@ -11,7 +11,7 @@ __all__ = ["ReportOptions", "Reports"]
 import logging
 import shutil
 from pathlib import Path
-from typing import ClassVar, Literal, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 import polars as pl
 from typing_extensions import TypedDict, Unpack
@@ -27,11 +27,13 @@ from ..utils.report_utils import (
 )
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
-    from os import PathLike
     from collections.abc import Callable
+    from os import PathLike
+
     from ..prediction.Prediction import Prediction
+    from ..utils.types import QUERY
     from .ADMDatamart import ADMDatamart
+    from .Analysis import HealthCheckPreAggregates
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +141,7 @@ class Reports(LazyNamespace):
         *,
         name: str | None = None,
         only_active_predictors: bool = True,
+        confidence_level: float = 0.95,
         progress_callback: Callable[[int, int], None] | None = None,
         model_file_path: str | PathLike[str] | None = None,
         predictor_file_path: str | PathLike[str] | None = None,
@@ -154,6 +157,8 @@ class Reports(LazyNamespace):
             Base file name of the report.
         only_active_predictors : bool, default=True
             Whether to only include active predictor details.
+        confidence_level : float, default=0.95
+            Two-sided confidence level for AUC confidence intervals.
         progress_callback : callable, optional
             Function called as ``progress_callback(current, total)`` after each model
             report is rendered. Used by the Streamlit app.
@@ -196,6 +201,7 @@ class Reports(LazyNamespace):
             model_ids = [model_ids]
         if not model_ids or not all(isinstance(i, str) for i in model_ids):
             raise ValueError("No valid model IDs")
+        cdh_utils.validate_confidence_level(confidence_level)
 
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
 
@@ -235,6 +241,8 @@ class Reports(LazyNamespace):
                         "predictor_file_path": str(predictor_file_path),
                         "model_id": model_id,
                         "only_active_predictors": only_active_predictors,
+                        "confidence_level": confidence_level,
+                        "full_embed": full_embed,
                         "title": title,
                         "subtitle": subtitle,
                         "disclaimer": disclaimer,
@@ -262,9 +270,10 @@ class Reports(LazyNamespace):
                 if progress_callback:
                     progress_callback(i + 1, len(model_ids))
 
+            bundled_file_name = output_path if len(output_file_paths) == 1 else Path("ModelReports.zip")
             file_data, file_name = cdh_utils.process_files_to_bytes(
                 output_file_paths,
-                base_file_name=output_path,
+                base_file_name=bundled_file_name,
             )
             final_path = output_dir / file_name
             with open(final_path, "wb") as f:
@@ -272,11 +281,9 @@ class Reports(LazyNamespace):
             if not final_path.exists():
                 raise ValueError(f"Failed to generate report: {file_name}")
 
+            logger.info("Data exported to %s", final_path)
             return final_path
 
-        except Exception as e:
-            logger.error(e)
-            raise
         finally:
             if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
                 shutil.rmtree(temp_dir, ignore_errors=True)
@@ -363,7 +370,20 @@ class Reports(LazyNamespace):
             if (model_file_path is None and self.datamart.model_data is not None) or (
                 predictor_file_path is None and self.datamart.predictor_data is not None
             ):
-                model_file_path, predictor_file_path = self.datamart.save_data(temp_dir)
+                selected_model_ids = None
+                if self.datamart.model_data is not None and self.datamart.predictor_data is not None:
+                    model_data_for_cache = (
+                        cdh_utils._apply_query(self.datamart.model_data, query)
+                        if query is not None
+                        else self.datamart.model_data
+                    )
+                    selected_model_ids = (
+                        model_data_for_cache.select("ModelID").unique().collect(engine="streaming")["ModelID"].to_list()
+                    )
+                model_file_path, predictor_file_path = self.datamart.save_data(
+                    temp_dir,
+                    selected_model_ids=selected_model_ids,
+                )
 
             if prediction_file_path is None and prediction is not None:
                 prediction_file_path = prediction.save_data(temp_dir)
@@ -378,6 +398,7 @@ class Reports(LazyNamespace):
                     "predictor_file_path": str(predictor_file_path) if predictor_file_path is not None else "",
                     "prediction_file_path": str(prediction_file_path) if prediction_file_path is not None else "",
                     "query": serialize_query(query),
+                    "full_embed": full_embed,
                     "title": title,
                     "subtitle": subtitle,
                     "disclaimer": disclaimer,
@@ -408,11 +429,90 @@ class Reports(LazyNamespace):
             final_path = output_dir / output_path.name
             shutil.copy(output_path, final_path)
 
+            logger.info("Data exported to %s", final_path)
             return final_path
 
         finally:
             if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
                 shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def health_check_markdown(
+        self,
+        name: str | None = None,
+        *,
+        query: QUERY | None = None,
+        prediction: Prediction | None = None,
+        preaggregates: HealthCheckPreAggregates | None = None,
+        title: str = "ADM Health Check",
+        subtitle: str = "",
+        disclaimer: str = "",
+        output_dir: str | PathLike[str] | None = None,
+    ) -> Path:
+        """Generate a Markdown health check report.
+
+        Unlike :meth:`health_check`, this method does not use Quarto. It renders
+        a lightweight GitHub-flavored Markdown document directly from
+        ``dm.analysis.findings()``.
+
+        Parameters
+        ----------
+        name : str, optional
+            Base file name of the report.
+        query : QUERY, optional
+            Extra filter applied to the datamart data before rendering.
+        prediction : Prediction, optional
+            Prediction object to include in the report.
+        preaggregates : HealthCheckPreAggregates, optional
+            Reusable precomputed summaries produced by
+            ``dm.analysis.compute_health_check_preaggregates()``. When
+            provided, the markdown report reuses them instead of recomputing
+            the same health-check summaries.
+        title : str, default "ADM Health Check"
+            Title shown at the top of the markdown report.
+        subtitle : str, default ""
+            Optional subtitle shown under the title.
+        disclaimer : str, default ""
+            Optional disclaimer rendered near the top of the report.
+        output_dir : str or path-like, optional
+            Directory where the markdown file will be written. Defaults to the
+            current working directory.
+
+        Returns
+        -------
+        Path
+            The path to the generated markdown file.
+        """
+        target_datamart = self.datamart
+        if query is not None and preaggregates is not None:
+            raise ValueError(
+                "health_check_markdown() does not support passing both query and preaggregates; "
+                "preaggregates must match the filtered datamart scope."
+            )
+        if query is not None:
+            from .ADMDatamart import ADMDatamart
+
+            target_datamart = ADMDatamart(
+                model_df=self.datamart.model_data,
+                predictor_df=self.datamart.predictor_data,
+                query=query,
+                extract_pyname_keys=False,
+            )
+
+        output_dir_path = Path(output_dir) if output_dir is not None else Path.cwd()
+        output_dir_path.mkdir(parents=True, exist_ok=True)
+        output_filename = get_output_filename(name, "HealthCheck", None, "md")
+        output_path = output_dir_path / output_filename
+        output_path.write_text(
+            target_datamart.analysis.markdown(
+                title=title,
+                subtitle=subtitle,
+                disclaimer=disclaimer,
+                prediction=prediction,
+                preaggregates=preaggregates,
+            ),
+            encoding="utf-8",
+        )
+        return output_path
 
     def excel_report(
         self,

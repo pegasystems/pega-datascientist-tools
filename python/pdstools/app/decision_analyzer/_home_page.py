@@ -116,10 +116,12 @@ def render(locked_page_titles: list[str] | None = None) -> None:
         get_filter_specs,
         get_sample_limit,
         get_temp_dir,
-        set_active_app as _set_active_app,
         show_sidebar_branding,
         show_version_header,
         standard_page_config,
+    )
+    from pdstools.utils.streamlit_utils import (
+        set_active_app as _set_active_app,
     )
 
     standard_page_config(page_title="Decision Analysis")
@@ -252,7 +254,7 @@ zoom, and hover for details.
                 )
 
                 row_count = raw_data.select(pl.len()).collect().item()
-                target_n = sample_kwargs.get("n", int(row_count * sample_kwargs.get("fraction", 1.0)))
+                target_n = int(sample_kwargs.get("n", int(row_count * sample_kwargs.get("fraction", 1.0))))
                 min_time, max_time = estimate_sampling_time(row_count, target_n)
                 time_msg = format_time_estimate(min_time, max_time)
                 sampling_msg += f" (estimated: {time_msg})"

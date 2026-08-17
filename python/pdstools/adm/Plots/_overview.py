@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import polars as pl
 
@@ -17,6 +17,7 @@ from ._helpers import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
     from ...utils.types import QUERY
 
 
@@ -45,6 +46,8 @@ class _OverviewPlotsMixin(_PlotsBase):
             The query to apply to the data, by default None
         facet : Optional[Union[str, pl.Expr]], optional
             Column name or Polars expression to facet the plot into subplots, by default None
+        color : str, optional
+            Column name used to colour the bubbles, by default "Performance"
         show_metric_limits : bool, optional
             Whether to show dashed vertical lines at the ModelPerformance
             metric limit thresholds (from MetricLimits.csv), by default False
@@ -132,7 +135,7 @@ class _OverviewPlotsMixin(_PlotsBase):
             hover_data=["ModelID", *self.datamart.context_keys, "LastUpdate"],
             title=f"Bubble Chart {title}",
             template="pega",
-            facet_row_spacing=0.11,
+            facet_row_spacing=0.06,
             labels={"LastUpdate": "Last Updated"},
         )
         fig = add_bottom_left_text_to_bubble_plot(fig, df, 1)
@@ -314,7 +317,7 @@ class _OverviewPlotsMixin(_PlotsBase):
 
         plt = px.imshow(
             overlap_data.drop(group_col_name),
-            text_auto=".1%" if show_fraction else ".d",
+            text_auto=cast(Any, ".1%" if show_fraction else ".d"),
             aspect="equal",
             title=f"Overlap of {overlap_col}s",
             x=overlap_data[group_col_name],

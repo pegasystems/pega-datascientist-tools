@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, overload, TYPE_CHECKING
-
+from typing import TYPE_CHECKING, Literal, overload
 
 from .....internal._exceptions import NoMonitoringExportError, PegaException
 from .....internal._pagination import PaginatedList
@@ -15,6 +14,7 @@ from ._mixin import _PredictionStudioV24_2Mixin
 
 if TYPE_CHECKING:
     import polars as pl
+
     from ...types import NotificationCategory
 
 
@@ -74,7 +74,7 @@ class PredictionStudio(_PredictionStudioV24_2Mixin, PredictionStudioPrevious):
 
         return pages.as_df()
 
-    @overload  # type: ignore[override]  # intentionally widens parent signature with return_df
+    @overload
     def list_predictions(
         self,
         return_df: Literal[False] = False,

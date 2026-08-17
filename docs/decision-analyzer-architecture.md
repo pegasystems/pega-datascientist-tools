@@ -1,6 +1,6 @@
 # Decision Analyzer Architecture
 
-**Updated:** April 1, 2026 — Guide for making changes to the Decision Analysis Tool.
+**Updated:** July 8, 2026 — Guide for making changes to the Decision Analysis Tool.
 
 For method signatures, column definitions, and page docstrings, read the source
 directly. This document captures the non-obvious design decisions and patterns.
@@ -124,6 +124,65 @@ level pages analyze. `get_possible_scope_values()` returns available levels base
 on what columns exist. Page 6 (Win/Loss) uses this hierarchy for comparison group
 definition.
 
+### Aggregate Summaries and Row Cohorts
+
+Decision Analyzer exposes two related but distinct API shapes:
+
+- **Aggregate summary methods** answer chart/table questions compactly. Examples:
+   `da.aggregates.get_funnel_data(...)`,
+   `da.aggregates.get_decisions_without_actions_data(...)`, and
+   `da.aggregates.get_filter_component_data(...)`.
+- **Row-producing cohort methods** return the decision rows behind a cohort and
+   must include `Interaction ID`. Examples:
+   `da.aggregates.remaining_at_stage(...)`,
+   `da.aggregates.filtered_at_stage(...)`, and
+   `da.aggregates.filtered_by_component(...)`.
+
+When a user-facing aggregate may need downstream handoff, keep the cohort logic
+in a row-producing method first, then build the summary from that row set or add
+an explicit row counterpart. Do not make downstream consumers reconstruct a
+cohort from an aggregate table, and do not add one-off `*_interactions()` wrapper
+methods for every summary.
+
+The generic handoff APIs live on `DecisionAnalyzer`:
+
+```python
+ids = da.get_interaction_ids("aggregates.filtered_at_stage", "Engagement Policies")
+count = ids.height
+```
+
+`get_interaction_ids` accepts a public dotted method path, calls that
+row-producing method with the remaining arguments, and projects unique
+`Interaction ID` values. Call `.height` (or `len(...)`) on the returned frame
+when you need the cohort size. `Interaction ID` is the boundary: Decision
+Analyzer must not resolve it to customer IDs, subject IDs, decision dates,
+accounts, households, or profile attributes. That join belongs in the downstream
+application that owns the identity model and retention rules.
+
+Canonical aggregate-to-row mappings:
+
+| Summary question | Aggregate method | Row-producing method for IDs |
+| --- | --- | --- |
+| Distribution at a stage | `da.aggregates.get_distribution_data(...)` | `aggregates.remaining_at_stage` with the same stage and cell filters |
+| Funnel available actions | `da.aggregates.get_funnel_data(...)[0]` | `aggregates.available_at_stage` |
+| Funnel passing actions | `da.aggregates.get_funnel_data(...)[1]` | `aggregates.passing_at_stage` |
+| Funnel filtered actions | `da.aggregates.get_funnel_data(...)[2]` | `aggregates.filtered_at_stage` |
+| Decisions left without actions | `da.aggregates.get_decisions_without_actions_data(...)` | `aggregates.without_actions_at_stage` |
+| Top filter components | `da.aggregates.get_filter_component_data(...)` | `aggregates.filtered_by_component` |
+
+Rules of thumb:
+
+- Put aggregate and row-cohort methods in `_aggregates.py` under
+   `da.aggregates`, not directly on `DecisionAnalyzer`.
+- Use full `decision_data` for exact row cohorts. Sample-backed scoring methods
+   can stay sample-backed for performance, but they should not pretend to provide
+   exact downstream cohorts.
+- If an aggregate method collapses away row identity, document or add its
+   row-producing counterpart before exposing it as a downstream handoff path.
+- Keep aggregate outputs compact. They should not carry subject/customer/date
+   details or embedded interaction-ID lists unless the method is explicitly a row
+   cohort.
+
 ---
 
 ## Patterns to Follow When Adding/Modifying Pages
@@ -149,12 +208,24 @@ definition.
 
 ### Adding a New DA Method
 
-1. Add method to `DecisionAnalyzer` class with `additional_filters` parameter
-2. Use `apply_filter(self.sample, additional_filters)` for filtered sample access
-3. If expensive, consider adding to one of the cache layers
-4. If it needs stage filtering, use `_remaining_at_stage(stage, additional_filters)`
-5. Add corresponding plot function in `plots.py` if visualization needed
-6. Wrap in `da_streamlit_utils.py` with `@st.cache_data` if called from Streamlit
+1. Choose the right namespace first: `da.aggregates` for summary and row-cohort
+   queries, `da.scoring` for sample-backed scoring/reranking questions,
+   `da.plot` for figures, and top-level `DecisionAnalyzer` only for shared
+   lifecycle or compatibility surface.
+2. Add an `additional_filters` parameter when callers need reusable filtering.
+3. Use `apply_filter(self.da.decision_data, additional_filters)` for exact
+   full-data row cohorts and `apply_filter(self.da.sample, additional_filters)`
+   for explicitly sample-backed methods.
+4. If a summary identifies a cohort that downstream may need, add or reuse a
+   row-producing method that returns rows with `Interaction ID`, then let callers
+   use `get_interaction_ids("aggregates.method_name", ...)` and call `.height` on
+   the result for the cohort size.
+5. If it needs stage filtering, reuse the aggregate namespace stage helpers such
+   as `remaining_at_stage(...)`, `available_at_stage(...)`, or
+   `filtered_at_stage(...)`.
+6. If expensive, consider adding to one of the cache layers.
+7. Add corresponding plot function in `plots.py` if visualization is needed.
+8. Wrap in `da_streamlit_utils.py` with `@st.cache_data` if called from Streamlit.
 
 ---
 

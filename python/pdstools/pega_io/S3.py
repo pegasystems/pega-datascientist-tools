@@ -105,7 +105,8 @@ class S3Data:
             return f"{self.temp_dir}/{file}"
 
         def split_new_files(files: list[str]) -> tuple[list[str], list[str]]:
-            new_files, already_on_disk = [], []
+            new_files: list[str] = []
+            already_on_disk: list[str] = []
             for file in files:
                 (already_on_disk if os.path.exists(local_path(file)) else new_files).append(file)
             return new_files, already_on_disk
@@ -156,7 +157,7 @@ class S3Data:
                 await task
 
         if verbose:
-            print(
+            print(  # noqa: T201 - user-facing progress
                 f"Completed {prefix}. Imported {len(files)} files, skipped {len(already_on_disk)} files.",
             )
         return [local_path(f) for f in (*files, *already_on_disk)]

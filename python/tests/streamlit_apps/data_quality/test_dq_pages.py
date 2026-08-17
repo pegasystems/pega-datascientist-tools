@@ -58,9 +58,22 @@ def sample_dq() -> TopicDataQuality:
         }
     )
     dq = TopicDataQuality.from_dataframe(df, text_col="text", topic_col="topic")
-    # Pre-compute so the page doesn't need sentence-transformers
-    dq.compute.embeddings()
-    dq.compute.umap()
+    # Seed deterministic artifacts so page tests do not download or load the
+    # sentence-transformer model, or fit UMAP, for every test invocation.
+    centers = {
+        "animals": np.array([1.0, 0.0, 0.0]),
+        "tech": np.array([0.0, 1.0, 0.0]),
+        "finance": np.array([0.0, 0.0, 1.0]),
+    }
+    topics = df.get_column("topic").to_list()
+    offsets = np.linspace(-0.03, 0.03, df.height)
+    dq._embeddings = np.array(
+        [
+            centers[topic] + np.array([offset, offset / 2, -offset])
+            for topic, offset in zip(topics, offsets, strict=True)
+        ]
+    )
+    dq._umap_coords = dq._embeddings[:, :2]
     dq.compute.topic_similarity()
     return dq
 

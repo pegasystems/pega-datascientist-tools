@@ -2,18 +2,24 @@ from __future__ import annotations
 
 import pathlib
 import warnings
-
-from ..adm.ADMDatamart import ADMDatamart
-from ..adm.trees import ADMTreesModel
-from ..valuefinder.ValueFinder import ValueFinder
 from typing import TYPE_CHECKING
 
+from ..adm.ADMDatamart import ADMDatamart
+from ..valuefinder.ValueFinder import ValueFinder
+
+_RAW_GITHUB_DATA_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data"
 _REPO_DATA_DIR = pathlib.Path(__file__).parent.parent.parent.parent / "data" / "agb"
 _SAMPLE_TREES_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/agb/ModelExportWithSampleCount.json"
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
+    from ..adm.trees import ADMTreesModel
     from ..data_quality._topic_data_quality import TopicDataQuality
+    from ..explanations.Explanations import Explanations
     from ..utils.types import QUERY
+else:
+    ADMTreesModel = None
 
 
 def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
@@ -62,6 +68,12 @@ def sample_trees():
     source = local if local.exists() else _SAMPLE_TREES_URL
     with warnings.catch_warnings(record=True) as w:
         try:
+            global ADMTreesModel
+            if ADMTreesModel is None:
+                from ..adm.trees import ADMTreesModel as _ADMTreesModel
+
+                ADMTreesModel = _ADMTreesModel
+
             return ADMTreesModel.from_file(source)
         except Exception as e:
             raise RuntimeError(
@@ -96,6 +108,50 @@ def sample_value_finder(threshold: float | None = None) -> ValueFinder:
         except Exception as e:
             raise RuntimeError(
                 f"Error importing the Value Finder dataset. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
+            ) from e
+
+
+def sample_explanations(
+    *,
+    model_name: str = "AdaptiveBoostCT",
+    from_date: datetime | None = None,
+    to_date: datetime | None = None,
+) -> "Explanations":
+    """Import a sample set of pre-aggregated AGB global explanations.
+
+    These were generated from a stock CDH Sample system. The aggregates are
+    fetched from the pdstools repository over HTTPS, so this works from an
+    installed package as well as from a repository checkout.
+
+    Parameters
+    ----------
+    model_name : str, keyword-only, default "AdaptiveBoostCT"
+        Name of the model rule. Used for report metadata only.
+    from_date : datetime | None, keyword-only, optional
+        Start of the reporting window. Defaults to a week before ``to_date``.
+    to_date : datetime | None, keyword-only, optional
+        End of the reporting window. Defaults to today.
+
+    Returns
+    -------
+    Explanations
+        The Explanations class populated with the sample aggregates.
+
+    """
+    from ..explanations import Explanations
+
+    base_path = f"{_RAW_GITHUB_DATA_URL}/explanations/aggregated_data"
+    with warnings.catch_warnings(record=True) as w:
+        try:
+            return Explanations.from_aggregates(
+                base_path=base_path,
+                model_name=model_name,
+                from_date=from_date,
+                to_date=to_date,
+            )
+        except Exception as e:
+            raise RuntimeError(
+                f"Error importing the sample Explanations dataset. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
             ) from e
 
 

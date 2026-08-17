@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import get_args
+from typing import Any, cast, get_args
 
 import polars as pl
 from pydantic import BaseModel, ConfigDict
@@ -94,7 +94,7 @@ class ResourceData(BaseModel):
         for name, field in cls.model_fields.items():
             non_none = [arg for arg in get_args(field.annotation) if arg is not type(None)]
             base_type = non_none[0] if non_none else field.annotation
-            schema[name] = _PY_TO_POLARS.get(base_type, pl.String())
+            schema[name] = _PY_TO_POLARS.get(cast("type[Any]", base_type), pl.String())
         return schema
 
     @property

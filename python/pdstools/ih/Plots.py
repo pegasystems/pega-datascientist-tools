@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import ClassVar, Literal, TYPE_CHECKING, cast, overload
+from typing import TYPE_CHECKING, ClassVar, Literal, cast, overload
 
 import polars as pl
 
@@ -14,8 +14,9 @@ from ..utils.plot_utils import Figure, simplify_facet_titles
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
     from datetime import timedelta
+
+    from ..utils.types import QUERY
     from .IH import IH as IH_Class
 
 

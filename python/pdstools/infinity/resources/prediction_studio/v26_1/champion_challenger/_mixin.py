@@ -42,7 +42,7 @@ class _ChampionChallengerv26_1Mixin:
         champion_percentage: float | None = None,
         model_objective: str | None = None,
     ):
-        super().__init__(client=client)  # type: ignore[call-arg]
+        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative mixin init resolves at runtime; mypy sees object.__init__
         self.prediction_id = prediction_id
         self.cc_id = cc_id
         self.context = context
@@ -118,10 +118,10 @@ class _ChampionChallengerv26_1Mixin:
                     self.challenger_model = None
                 break
 
-    async def _status(self):
+    async def _status(self) -> dict[str, Any]:
         """Checks the update status of the champion challenger configuration."""
         if not self.cc_id:
-            return "Active"
+            return {"ModelUpdateStatus": "Active", "message": "Active"}
         endpoint = f"/prweb/api/PredictionStudio/v4/predictions/operations/{self.cc_id}"
         return await self._a_get(endpoint)
 
@@ -180,7 +180,7 @@ class _ChampionChallengerv26_1Mixin:
             from tqdm import tqdm
         except ImportError:
 
-            class tqdm:  # type: ignore[no-redef]
+            class tqdm:  # type: ignore[no-redef]  # intentional fallback shadowing the imported name
                 def __init__(self, total=None):
                     self.n = 0
 

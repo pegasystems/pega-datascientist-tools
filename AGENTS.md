@@ -10,9 +10,21 @@ dependencies and execution.
 
 - **Open source repo.** Never include customer names, customer data, or
   internal project names anywhere (code, comments, commit messages, tests).
+- **Never push without repo-local pre-commit installed and run.** Before
+  pushing any branch, install hooks in that checkout with
+  `uv run pre-commit install` and run `uv run pre-commit run --all-files`
+  using this repo's `.pre-commit-config.yaml`. If `pre-commit` is not
+  installed yet, stop and prompt the user to allow installing the dev
+  tooling (`uv sync --extra dev`) rather than pushing unhooked.
 - **Git workflow.** Do not `git commit` on the user's working branch.
   Stage with `git add` and let the user commit. Exception: branches you
   created yourself, or when the user explicitly asks for a commit/PR.
+- **PR creation auth workaround.** If GitHub MCP or the VS Code PR tool
+  fails with `Enterprise Managed User` authorization errors after a
+  branch has already been pushed, check `gh auth status` for a
+  non-EMU account that can access the repo. Use that local `gh` account
+  to create the PR, then switch `gh` back to the user's preferred
+  account.
 - **Stay focused, but fix tightly-coupled bugs.** Don't fix
   pre-existing issues unrelated to the task at hand. However, if a
   refactor surfaces a bug that is directly caused by or tightly
@@ -72,6 +84,12 @@ Optional extras by area:
 - Docs: `uv sync --extra docs --extra all`
 - Pre-commit hooks: `uv sync --extra dev`
 
+One-time hook install for any checkout that may be pushed:
+
+```bash
+uv run pre-commit install
+```
+
 ## Build / Lint / Test commands
 
 ### Linting and formatting
@@ -80,6 +98,9 @@ Preferred: run the pre-commit hooks (uses ruff + ruff-format + nb-clean).
 ```bash
 uv run pre-commit run --all-files
 ```
+
+Before pushing a branch, this is mandatory even if you already ran narrower
+checks while iterating.
 
 If you want to run ruff directly:
 
@@ -189,9 +210,9 @@ python -m build --sdist --wheel --outdir dist/ .
 ## Code style guidelines
 
 ### Imports
-- Order: stdlib, third-party, local (`pdstools...`).
-- Prefer explicit imports; avoid wildcard imports.
-- Keep imports at top of file; use `# noqa: F401` for intentional re-exports.
+Ordering, wildcards and placement are linted; use `# noqa: F401` for
+intentional re-exports.
+
 - **Optional dependencies**: use lazy imports inside the method that needs
   them (see `local_model_utils.py` for the pattern). Do not use
   module-level `try/except ImportError` blocks. For sub-namespace
@@ -205,9 +226,9 @@ python -m build --sdist --wheel --outdir dist/ .
   per-class missing-dep stand-in needed.
 
 ### Formatting
-- Use ruff-format (black-compatible). Do not hand-format.
-- Keep line length conservative; let the formatter decide.
-- Use trailing commas in multi-line literals and call arguments.
+Do not hand-format; ruff-format owns this. Use trailing commas in
+multi-line literals and call arguments so the formatter keeps them
+exploded.
 
 ### Docstring style: numpy
 - Use **numpy-style docstrings** for all public APIs (and any non-trivial
@@ -216,8 +237,7 @@ python -m build --sdist --wheel --outdir dist/ .
   this way; a Google-style (`Args:` / `Returns:`) or Sphinx-RST
   (`:param x:`) block in the middle of an otherwise numpy-style module
   is a stylistic break and renders inconsistently in the docs.
-- Sections use a header word followed by a dashed underline of equal
-  length. The common ones:
+- Section syntax is linted; the shape to aim for is:
 
   ```python
   def foo(x: int, y: str = "a") -> bool:
@@ -277,9 +297,29 @@ python -m build --sdist --wheel --outdir dist/ .
 ### Types and typing
 - Use type hints for public APIs and complex internal functions.
 - Reuse aliases from `python/pdstools/utils/types.py` where suitable.
-- Python 3.10+: use `list[str]`, `dict[str, ...]`, `X | None` (not
-  `Optional[X]`). Do not import `Optional`, `Union`, `List`, `Dict`
-  from `typing`.
+- **Reuse the shared frame TypeVar.** For helpers that accept and
+  return the same polars frame type, import
+  `F` from `pdstools.utils.cdh_utils._common`
+  (`F = TypeVar("F", pl.DataFrame, pl.LazyFrame)`) rather than
+  declaring a local one. Don't reach for `@overload` to express
+  "same type in, same type out" — that's what the constrained TypeVar
+  is for. And don't make a helper generic that only one frame type
+  ever reaches; annotate it concretely.
+
+#### `Enum` vs `Literal` vs module constants
+Default to **`Literal`** for public parameters that accept a fixed set
+of strings, and **plain module-level constants** for column names and
+sentinel values. Reserve `Enum` for external vocabularies that need
+bidirectional mapping, iteration, or attached behaviour (see
+`pdstools.infinity`).
+
+An `Enum` used purely as a namespace for string constants is a net
+loss: every use site pays `.value` noise, `name` and `value` drift
+apart silently (an `Enum` whose `name` is `MISSING` and `value` is
+`"missing"` will match nothing if the data holds `"MISSING"`), and it
+buys no validation against the actual schema. If you need to validate
+a `Literal` argument at runtime, write a small
+`validate_*()` helper that raises `ValueError` with the allowed values.
 
 #### `# type: ignore` is a smell, not a tool
 Treat `# type: ignore` as a last resort, and treat existing ones as
@@ -317,6 +357,17 @@ suspicious during any refactor — they often hide real bugs.
   the translation in the serialization layer — use Pydantic
   `serialization_alias` / `alias`, a custom encoder, or a `to_json()`
   method.
+- **Don't repeat the namespace in its method names.** A method reached
+  through a namespace attribute is already qualified by it, so the
+  prefix is pure noise: `dm.plot.predictor_binning()`, never
+  `dm.plot.plot_predictor_binning()`. Same for `generate`, `aggregates`,
+  `agb`.
+- **No `get_` prefix.** If it takes no arguments, make it a
+  `property` (or `cached_property` when the work is non-trivial). If it
+  does take arguments, name it for what it returns
+  (`predictor_contributions(...)`, not `get_predictor_contributions(...)`).
+- **Namespace classes that return aggregations are plural**
+  (`Aggregates`, `Plots`), matching the accessor they're bound to.
 
 ### Error handling
 - Raise specific exceptions; provide actionable messages.
@@ -328,8 +379,9 @@ suspicious during any refactor — they often hide real bugs.
   the user choose their tool.
 
 ### Logging
-- Use module-level `logger = logging.getLogger(__name__)`.
-- No `print()` in library code; log at `debug`/`info` levels.
+- Log at `debug`/`info` levels. The module-logger and no-`print` rules
+  are linted; `# noqa: T201` with a reason is the escape hatch for
+  genuinely user-facing CLI output.
 - `debug` as a parameter name: only when it changes the **return value**
   (extra columns, etc.), not for controlling log output.
 
@@ -376,6 +428,15 @@ them.
 ### Tests
 - Use pytest fixtures for shared setup.
 - Keep tests deterministic and data-driven.
+- **Do not download or execute third-party ML models in unit or UI smoke
+  tests.** Tests should use deterministic synthetic arrays and mocks to
+  verify pdstools' orchestration, caching, input/output handling, and error
+  paths; they must not validate vendor model quality, algorithm internals,
+  network access, or model-cache availability.
+- Real model or external-algorithm integration tests are opt-in only:
+  isolate them in explicitly marked slow/integration tests, keep them out of
+  the default test path, and never make ordinary CI depend on remote model
+  downloads.
 - Mark slow tests with `@pytest.mark.slow`.
 - Use `pytest.skip` for missing external tools (Quarto, Pandoc).
 - **Minimum coverage: 80 %** for new and overall code (CI-enforced).
@@ -563,6 +624,42 @@ test in the same PR.
 - Keep heavy computation out of page scripts; delegate to cached
   functions or the library layer.
 
+### Checking private customer data for ADM Health Check caches
+
+When asked to scan a private customer-data folder for newer or missing
+ADM Health Check cache candidates, keep the work read-only until the
+user explicitly approves conversion or replacement. These folders can
+contain private customer files, so do not write customer names, source
+paths, filenames, row samples, or generated reports into tracked repo
+files. Use temporary scripts under `/tmp` for any helper code and remove
+them when done.
+
+Workflow:
+- Inventory existing top-level `HC` folders and canonical cache files:
+  `PR_DATA_DM_ADMMART_MDL_FACT.parquet`,
+  `PR_DATA_DM_ADMMART_PRED.parquet`, and optional
+  `PR_DATA_DM_SNAPSHOTS.parquet`.
+- Search candidate source files by role using filenames such as model
+  snapshot, predictor binning snapshot, prediction snapshot,
+  `PR_DATA_DM_ADMMART_MDL_FACT`, `PR_DATA_DM_ADMMART_PRED`, and
+  `PR_DATA_DM_SNAPSHOTS`. Exclude existing `HC` output folders from
+  the source scan.
+- Summarize candidates by customer folder and source subfolder before
+  reading data content. Use metadata first: role coverage, file counts,
+  modified dates, and sizes.
+- Validate only shortlisted candidates through the same library path the
+  app uses: `import_health_check_data(...)`. Do not call
+  `save_health_check_parquet(...)` during the recommendation phase.
+- Compare validated row counts against any existing canonical `HC`
+  parquet row counts. Treat newer dumps with much smaller model counts,
+  missing predictor data, parse errors, or selected/filtered naming as
+  "do not replace blindly" candidates.
+- In the chat report, keep it concise: client name, folder name, row
+  counts when validated, and the suggested action. Clearly separate
+  "create HC", "replace existing HC", "needs manual/import-option pass",
+  and "skip". Do not modify or replace private data until the user
+  confirms the recommendation.
+
 ## Design principles for new functionality
 
 These principles apply when adding new features, modules, or classes —
@@ -581,6 +678,22 @@ unless the complexity genuinely demands them. If a Pydantic model gives
 you validation, defaults, and serialization for free, use its
 constructor directly. A fluent builder that only assigns fields and
 calls a constructor adds indirection without benefit.
+
+### One module per domain class — no `*Utils.py` grab-bags
+A class belongs in a module named after it (`ContextOperations.py`,
+not `ExplanationsUtils.py`). A `*Utils` module signals that nobody
+decided what the code *is*, and it becomes a magnet: constants,
+enums, a domain class, and a few loose functions accumulate with no
+cohesion and no obvious import site.
+
+If you find yourself reaching for `Utils`, split by what the contents
+actually are:
+- Shared vocabulary (column names, sentinels, `Literal` aliases and
+  their validators) → a private `_constants.py`.
+- A class with state and behaviour → its own `PascalCase.py` module.
+- Genuinely generic, cross-module helpers → the existing
+  `pdstools/utils/` package, in the topical module that fits
+  (`cdh_utils`, `namespaces`, `types`), not a new per-feature one.
 
 ### One concern per PR
 Keep pull requests focused on a single, well-defined change. If a
@@ -663,6 +776,13 @@ completion reveals everything) without ballooning the parent into a
 multi-thousand-line god class. Use the same pattern when refactoring
 existing fat classes — don't invent a new convention.
 
+**`super().__init__()` is required in `LazyNamespace` subclasses.** It
+looks removable — the base `__init__` takes no arguments and Python 3
+doesn't need it for plain object construction — but
+`LazyNamespace.__init__` sets `_dependencies_checked`, and without it
+the optional-dependency machinery breaks at first attribute access.
+Don't strip it in a cleanup pass.
+
 ### I/O lives in classmethods, not `__init__`
 Keep `__init__` pure: it should only accept already-loaded data
 structures (typically `pl.LazyFrame`s) and configuration. All file,
@@ -682,6 +802,15 @@ on the analyzer class — every analyzer benefits and the entry point
 stays singular. Use the more specialised `read_ds_export` only when
 you need its ADM-specific smart-name lookup (`"model_data"`,
 `"predictor_data"`) or remote-URL fetching.
+
+**Validate at the point of use, not ahead of it.** Don't write
+`validate_data_folder()`-style guards that stat paths, check for
+expected filenames, and raise before the real read happens. They
+duplicate logic the reader already has, drift out of sync with it,
+introduce a TOCTOU gap, and turn one clear `FileNotFoundError` into
+two competing error messages. Let the `read_data` / `scan_*` call
+fail, and if its message isn't actionable enough, improve it there —
+every caller benefits.
 
 The whole `pdstools.pega_io` module is the single funnel for
 user-facing path → polars reads (CodeQL `py/path-injection` is
@@ -932,19 +1061,16 @@ worktree — the `.venv` is per-worktree, not shared.
 `.git/hooks/` directory is per-worktree, so the symlinks created by
 `pre-commit install` in the main checkout don't carry over. A
 sub-agent that just runs `git commit` in a fresh worktree will bypass
-the hooks entirely, and the lint failure shows up later in CI. Two
-fixes, pick one:
+the hooks entirely, and the lint failure shows up later in CI.
 
-- **Install hooks in the worktree:** `uv run pre-commit install` once
-  per worktree, after `uv sync`. Then `git commit` is gated by the
-  same hooks as the main checkout.
-- **Run hooks explicitly before committing:**
-  `uv run pre-commit run --all-files` as the final step of the
-  agent's workflow. Mirrors what CI runs and catches everything.
+**Required workflow for every push-capable worktree:**
 
-Either is fine; the second is a hard requirement when dispatching
-sub-agents (they don't get the developer-side `pre-commit install`
-muscle memory).
+- Run `uv sync --extra dev` if `pre-commit` is not available yet. If
+  the environment still does not have `pre-commit`, stop and prompt the
+  user before pushing anything.
+- Run `uv run pre-commit install` once per worktree after `uv sync`.
+- Run `uv run pre-commit run --all-files` as the final step before any
+  push. CI mirrors this exact repo-local config.
 
 If a batch of agent PRs all fail the lint check at once, the rescue
 loop is:

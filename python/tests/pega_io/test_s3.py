@@ -4,7 +4,6 @@ import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from pdstools.pega_io.S3 import S3Data
 
 

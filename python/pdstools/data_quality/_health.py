@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 import polars as pl
 
 from pdstools.utils.namespaces import LazyNamespace
 
 if TYPE_CHECKING:
+    import decimal
+
     from ._topic_data_quality import TopicDataQuality
 
 logger = logging.getLogger(__name__)
@@ -398,7 +400,8 @@ class Health(LazyNamespace):
             score -= overlap_penalty
 
         # Sample size (max -20)
-        min_samples = self.parent.topic_counts.get_column("count").min()
+        min_samples_value = self.parent.topic_counts.get_column("count").min()
+        min_samples = 0 if min_samples_value is None else int(cast("int | float | decimal.Decimal", min_samples_value))
         if min_samples < 10:
             penalty = 20
             reasons.append(f"Very low samples for some topics (-{penalty} pts)")
@@ -574,7 +577,8 @@ class Health(LazyNamespace):
         high_pairs = self.parent.high_similarity_pairs()
         tightness = self.calculate_cluster_tightness()
 
-        avg_tightness = tightness.get_column("Tightness Score").mean() if tightness.height > 0 else 0.0
+        avg_tightness_value = tightness.get_column("Tightness Score").mean() if tightness.height > 0 else 0.0
+        avg_tightness = float(cast("int | float | decimal.Decimal", avg_tightness_value))
 
         return pl.DataFrame(
             {

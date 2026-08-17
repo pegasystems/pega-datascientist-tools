@@ -23,6 +23,7 @@ an underscore separator instead.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import streamlit as st
 
@@ -37,7 +38,7 @@ _ABOUT_SCRIPT = Path(__file__).parent / "_about.py"
 # rerun even when the user only ever clicks into one tool. After the
 # first call sys.modules caches the module so subsequent reruns are
 # free.
-def _hc_section(active: bool) -> list[st.Page]:
+def _hc_section(active: bool) -> list[Any]:
     from pdstools.app.health_check._navigation import pages
 
     return pages(
@@ -48,7 +49,7 @@ def _hc_section(active: bool) -> list[st.Page]:
     )
 
 
-def _da_section(active: bool) -> list[st.Page]:
+def _da_section(active: bool) -> list[Any]:
     from pdstools.app.decision_analyzer._navigation import pages
 
     return pages(
@@ -59,7 +60,7 @@ def _da_section(active: bool) -> list[st.Page]:
     )
 
 
-def _ia_section(active: bool) -> list[st.Page]:
+def _ia_section(active: bool) -> list[Any]:
     from pdstools.app.impact_analyzer._navigation import pages
 
     return pages(
@@ -70,7 +71,7 @@ def _ia_section(active: bool) -> list[st.Page]:
     )
 
 
-def _dq_section(active: bool) -> list[st.Page]:
+def _dq_section(active: bool) -> list[Any]:
     from pdstools.app.data_quality._navigation import pages
 
     return pages(
@@ -112,7 +113,7 @@ set_app_pages(
 # top-to-bottom in the same sequence the user just saw on the landing
 # page. The shared About page lives in its own section so it reads as
 # a top-level entry, not buried under any one tool.
-sections: dict[str, list[st.Page]] = {
+sections: dict[str, list[Any]] = {
     "pdstools": [_picker_page],
     "ADM Health Check": hc_pages,
     "Decision Analysis": da_pages,

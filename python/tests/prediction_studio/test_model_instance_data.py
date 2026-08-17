@@ -10,17 +10,16 @@ from __future__ import annotations
 
 import datetime
 
-import pytest
 import polars as pl
-
+import pytest
+from pdstools.infinity.resources.prediction_studio.base import (
+    AsyncModelInstance,
+    ModelInstance,
+)
 from pdstools.infinity.resources.prediction_studio.schemas import (
     ModelInstanceData,
     ResourceData,
     parse_pega_datetime,
-)
-from pdstools.infinity.resources.prediction_studio.base import (
-    ModelInstance,
-    AsyncModelInstance,
 )
 
 _PAYLOAD = {

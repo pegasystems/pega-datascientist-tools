@@ -177,12 +177,18 @@ def create_win_distribution_plot(
 
     if scope_config["x_col"] == "Group" and "Issue" in plot_data.columns:
         hover_template = "<b>%{text}</b><br>Issue: %{customdata}<br>Win Count: %{y}<extra></extra>"
-        customdata = plot_data["Issue"]
+        customdata = plot_data.get_column("Issue").to_list()
     elif scope_config["x_col"] == "Action" and "Group" in plot_data.columns and "Issue" in plot_data.columns:
         hover_template = (
             "<b>%{text}</b><br>Group: %{customdata[0]}<br>Issue: %{customdata[1]}<br>Win Count: %{y}<extra></extra>"
         )
-        customdata = list(zip(plot_data["Group"], plot_data["Issue"], strict=False))
+        customdata = list(
+            zip(
+                plot_data["Group"].to_list(),
+                plot_data.get_column("Issue").to_list(),
+                strict=False,
+            )
+        )
     else:
         hover_template = "<b>%{text}</b><br>Win Count: %{y}<extra></extra>"
         customdata = None
@@ -199,7 +205,7 @@ def create_win_distribution_plot(
     )
 
     colors = ["grey"] * plot_data.shape[0]
-    x_values = list(plot_data[scope_config["x_col"]])
+    x_values = plot_data.get_column(cast(str, scope_config["x_col"])).to_list()
 
     try:
         selected_index = x_values.index(scope_config["selected_value"])

@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import polars as pl
 import streamlit as st
+
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
     ensure_data,
     polars_lazyframe_hashing,
 )
-
 from pdstools.decision_analyzer.plots import offer_quality_single_pie
 from pdstools.utils.streamlit_utils import standard_page_config
 
@@ -154,6 +154,8 @@ with col1:
         Shows how many offers reach customers and how likely they are to respond. More
         offers typically means higher engagement.
         """
+        if best_stage_for_overview is None:
+            raise RuntimeError("Expected best_stage_for_overview when arbitration data is available.")
         st.plotly_chart(
             _propensity_vs_optionality_plot(best_stage_for_overview, da.level),
         )
@@ -188,6 +190,8 @@ with col2:
         above 10th percentile), while red shows customers without offers. Orange shows
         customers with only irrelevant offers (propensity below 10th percentile).
         """
+        if best_stage_for_overview is None:
+            raise RuntimeError("Expected best_stage_for_overview when arbitration data is available.")
         pie_fig = _offer_quality_pie(best_stage_for_overview, da.level)
         if pie_fig is not None:
             st.plotly_chart(pie_fig)

@@ -16,10 +16,9 @@ dynamic = ["version"]
 description = "Open source tooling that helps Data Scientists to analyze Pega models and conduct impactful analyses."
 readme = "README.md"
 authors = [ { name = "Stijn Kas", email = "stijn.kas@pega.com" } ]
-license = {text = "Apache-2.0"}
+license = "Apache-2.0"
 classifiers = [
-    "License :: OSI Approved :: Apache Software License",
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
 ]
@@ -41,6 +40,7 @@ requires-python = ">=3.10,<3.15"
 # major deps (requests, pyyaml, ipywidgets, etc.) can stay loose.
 dependencies = [
     "polars>=1.37,!=1.35.1,<2",
+    "pre-commit>=4.6.1",
     'typing_extensions',
 ]
 
@@ -49,14 +49,14 @@ version = {attr="pdstools.__version__"}
 
 [project.optional-dependencies]
 adm = [
-    "plotly[express]>=6.0,<7",
+    "plotly[express]>=6.7,<7",
     'pydot>=4.0,<5',
     'requests',
 ]
 pega_io = ['aioboto3>=15.5,<16', 'polars_hash>=0.5,<1']
 api = ['httpx>=0.27,<1', 'pydantic>=2.10,<3', 'anyio>=4.0,<5']
-healthcheck = ['pdstools[adm]', 'great_tables>=0.13,<1', 'quarto', 'papermill>=2.6,<3', 'xlsxwriter>=3.0,<4', 'pydot>=4.0,<5', 'ipykernel>=6,<8']
-explanations = ['duckdb>=1.1,<2', "plotly[express]>=6.0,<7", "pyarrow>=18,<25", "pyyaml>=6,<7", "ipywidgets"]
+healthcheck = ['pdstools[adm]', 'great_tables>=0.13,<1', 'quarto', 'papermill>=2.6,<3', 'xlsxwriter>=3.0,<4', 'pydot>=4.0,<5', 'ipykernel>=6,<8', 'packaging>=24,<27']
+explanations = ["plotly[express]>=6.0,<7", "pyyaml>=6,<7"]
 nlp = [
     # sentence-transformers depends on torch; depend on the [torch] extra
     # explicitly so onnxscript and the pinned torch range come along.
@@ -65,7 +65,7 @@ nlp = [
     'scikit-learn',
     "sentence-transformers; python_version < '3.14'",
     "umap-learn; python_version < '3.14'",
-    "plotly[express]>=6.0,<7",
+    "plotly[express]>=6.7,<7",
     "cleanlab[datalab]; python_version < '3.14'",
 ]
 app = [
@@ -79,7 +79,7 @@ app = [
 onnx = [
     'scikit-learn>=1.6.1',
     'skl2onnx>=1.19.1', # Updated to be compatible with onnx 1.19.0+
-    'onnx>=1.18,<1.22', # Using ONNX 1.18.x specifically
+    'onnx>=1.18,<1.23', # Using ONNX 1.18.x specifically
     'pdstools[api]',
     # onnxruntime 1.24+ dropped cp310 wheels; keep py3.10 on the 1.23.x line.
     "onnxruntime>=1.22,<1.24; python_version < '3.11'",
@@ -95,7 +95,7 @@ torch = [
 # everything install `pdstools[all,torch,nlp]`. CI runs torch- and nlp-
 # requiring tests in the dedicated TorchTests job.
 all = ['pdstools[app, pega_io, onnx, explanations]']
-dev = ['pre-commit']
+dev = ['pre-commit', 'ruff>=0.15.19,<0.17', 'mypy>=1.18,<3', 'pyright>=1.1.411,<2', 'pyrefly>=1.1.1,<2', 'types-PyYAML', 'types-requests']
 docs = ['sphinx','furo','sphinx-autoapi','nbsphinx','sphinx-copybutton','sphinx-tabs','myst-parser', 'sphinx-argparse', 'xgboost', 'pydantic', 'httpx', 'streamlit', 'duckdb', 'anyio']
 tests = [
     'testbook>=0.4',
@@ -110,6 +110,9 @@ tests = [
     'pdstools[all]',
     'coverage>=7',
     'itables>=2',
+    'matplotlib>=3.8,<4',
+    'numpy>=2.0,<3',
+    'pyparsing>=3.0,<4',
 ]
 
 [project.urls]
@@ -132,6 +135,14 @@ line-length = 120
 
 [tool.ruff.lint]
 extend-select = [
+    "I",       # isort (stdlib / third-party / local import order)
+    "T20",     # flake8-print (no print() in library code; use logging)
+    "TID251",  # banned-api (see flake8-tidy-imports.banned-api below)
+    "D417",    # undocumented-param (documented sections must cover every param)
+    # NOT COM812 (missing-trailing-comma): ruff warns it conflicts with the
+    # formatter, and it does — it adds a comma to calls that fit on one line,
+    # which then trips magic-trailing-comma and explodes them. ruff-format
+    # already preserves trailing commas where they are written.
     "UP006",   # deprecated-collection-type (Dict -> dict, List -> list, etc.)
     "UP007",   # non-pep604-annotation (Union[X, Y] -> X | Y)
     "UP012",   # unnecessary-encode-utf8 (.encode("utf-8") -> .encode())
@@ -146,6 +157,8 @@ extend-select = [
     "B019",    # cached-instance-method (functools.lru_cache on methods)
     "B024",    # abstract-base-class-without-abstract-method
     "B028",    # no-explicit-stacklevel (warnings.warn without stacklevel)
+    "S101",    # assert (no asserts in library code; use real exceptions)
+    "TRY400",  # error-instead-of-exception (logger.exception inside except blocks)
     "RET504",  # unnecessary-assign (return temporary variable)
     "RET505",  # superfluous-else-return
     "RET506",  # superfluous-else-raise
@@ -174,6 +187,15 @@ extend-select = [
 # and test fixtures (e.g. "5 × 10 grid", "ℹ info" headers, en-dashes in ranges).
 allowed-confusables = ["×", "ℹ", "–", "‑"]
 
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"streamlit.experimental_memo".msg = "Removed from Streamlit. Use st.cache_data."
+"streamlit.experimental_singleton".msg = "Removed from Streamlit. Use st.cache_resource."
+"streamlit.experimental_rerun".msg = "Removed from Streamlit. Use st.rerun."
+"typing.Optional".msg = "Use `X | None` (PEP 604)."
+"typing.Union".msg = "Use `X | Y` (PEP 604)."
+"typing.List".msg = "Use `list[...]`."
+"typing.Dict".msg = "Use `dict[...]`."
+
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
@@ -194,15 +216,27 @@ extend-immutable-calls = [
 "python/pdstools/ih/*" = ["D100", "D101", "D102", "D103"]
 "python/pdstools/infinity/*" = ["D100", "D101", "D102", "D103"]
 "python/pdstools/cli.py" = ["T20"]
-"python/tests/*" = ["D100", "D101", "D102", "D103", "RUF012"]
-"python/docs/*" = ["D100", "D101", "D102", "D103"]
+# Plot methods are defined as module-level functions taking `self` and bound
+# onto the namespace class in __init__.py; D417 reads `self` as a real param.
+"python/pdstools/decision_analyzer/plots/*" = ["D417"]
+# Printing the version report *is* the function's purpose.
+"python/pdstools/utils/show_versions.py" = ["T20"]
+"python/tests/**" = ["D100", "D101", "D102", "D103", "RUF012", "S101", "T20"]
+"python/docs/*" = ["D100", "D101", "D102", "D103", "T20"]
 # Notebooks and one-off scripts: relax docstring + style rules outside the library
 "examples/**/*.ipynb" = ["D100", "D101", "D102", "D103", "E401", "E402", "E703", "E722", "F401", "F541", "F811", "F821", "B905", "RUF005", "RUF015", "RET505"]
 "scripts/*" = ["D100", "D101", "D102", "D103", "T20"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 addopts = "--strict-markers"
+# Surface runtime API removals in dependency-update CI jobs.
+filterwarnings = [
+    "error::DeprecationWarning",
+    "error::PendingDeprecationWarning",
+    "ignore:^'[A-Za-z][A-Za-z0-9]*' deprecated - use '[a-z_][a-z0-9_]*':DeprecationWarning",
+]
 markers = [
     "slow: marks tests as slow (report generation, integration tests)",
     "ui: UI tests requiring a running Streamlit app and Playwright (deselect with '-m \"not ui\"')",
@@ -240,3 +274,11 @@ python_version = "3.10"
 ignore_missing_imports = true
 warn_unused_ignores = true
 no_implicit_optional = true
+
+[tool.pyrefly]
+python-version = "3.10.0"
+preset = "legacy"
+ignore-missing-imports = ["*"]
+
+[tool.pyrefly.errors]
+unexpected-keyword = "ignore"

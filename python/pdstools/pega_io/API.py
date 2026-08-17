@@ -50,7 +50,7 @@ def get_token(credential_file: PathLike, verify: bool = True) -> str:  # pragma:
     str
         The bearer access token.
     """
-    import requests  # type: ignore[import-untyped]  # requests has no PEP 561 stubs
+    import requests
 
     creds = _read_client_credential_file(credential_file)
     response = requests.post(
@@ -61,4 +61,4 @@ def get_token(credential_file: PathLike, verify: bool = True) -> str:  # pragma:
     ).json()
     if "errors" in response:
         raise ConnectionRefusedError(f"Error when connecting to Infinity: {response}")
-    return response["access_token"]
+    return str(response["access_token"])

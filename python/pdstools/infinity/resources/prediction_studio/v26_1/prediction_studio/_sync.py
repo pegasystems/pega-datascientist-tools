@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, overload, TYPE_CHECKING
-
+from typing import TYPE_CHECKING, Literal, overload
 
 from .....internal._exceptions import NoMonitoringExportError, PegaException
 from .....internal._pagination import PaginatedList
@@ -15,6 +14,7 @@ from ._mixin import _PredictionStudiov26_1Mixin
 
 if TYPE_CHECKING:
     import polars as pl
+
     from ...types import NotificationCategory
 
 
@@ -109,7 +109,7 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
 
         return pages.as_df()
 
-    @overload  # type: ignore[override]  # intentionally widens parent signature with return_df
+    @overload
     def list_predictions(
         self,
         return_df: Literal[False] = False,
@@ -155,6 +155,8 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
             The unique ID of the prediction.
         label : str, optional
             The label of the prediction.
+        **kwargs : Any
+            Additional attribute name/value pairs to match the prediction on.
 
         Returns
         -------
@@ -191,6 +193,8 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
             The unique ID of the model.
         label : str, optional
             The label of the model.
+        **kwargs : Any
+            Additional attribute name/value pairs to match the model on.
 
         Returns
         -------

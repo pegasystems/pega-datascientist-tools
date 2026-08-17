@@ -6,18 +6,235 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-- Impact Analyzer Streamlit app: restructured pages into **Channel
-  Performance** (was *Overall Summary*) and **Details** (was *Channels*).
-  Both pages share a single sidebar **Channel / Direction** filter. The
-  Details page is now a flat per-experiment metrics table; previous
-  per-channel visuals (lift bar chart, response-rate heatmap, impression
-  redistribution) were removed pending a redesign.
+### Added
 
-## [5.0.0] — TBD
+- Added a programmatic Health Check import API for model, predictor, and
+  prediction sources, including configurable delimited-text, Excel, timestamp,
+  and missing-field repair options.
+- `pega_io.read_data` now supports TSV/TXT inputs, reader option forwarding,
+  and in-memory Excel uploads.
+- `explanations.Schema` narrows and casts the aggregated parquet files on
+  read, so downstream aggregations see stable dtypes.
+- `ADMTreesModel.sanity_check()` flags underdeveloped or suspicious AGB
+  exports, so a model that never grew past stumps is caught before its
+  statistics are read as meaningful.
+
+### Fixed
+
+- Full-embed HealthCheck and Model Report HTML output no longer duplicates the
+  embedded Plotly.js bundle once per chart. Because the Quarto renderer wasn't
+  told which resource mode to use before figures were drawn, ``full_embed=True``
+  reports could balloon to 100+ MB per report (multiple GB across a batch
+  run) as each chart inlined its own ~5 MB copy of the Plotly library; embed
+  output now contains a single shared copy, as intended. See
+  [#909](https://github.com/pegasystems/pega-datascientist-tools/issues/909)
+  for the postmortem write-up and manual validation steps.
+- AGB: tree statistics and plot data paths no longer fail on stump models
+  (a single leaf, no split) or otherwise empty exports.
+- CDN-mode HTML reports (``full_embed=False``) are now genuinely
+  self-contained single files. Quarto's local JavaScript assets are inlined
+  alongside the CSS that #679 already handled, and fonts/images referenced
+  from within that CSS are embedded as data URIs. The now-unreferenced
+  ``<basename>_files/`` folder is dropped, so ``bundle_quarto_resources``
+  no longer has a resources folder to zip and the Health Check returns
+  ``HealthCheck.html`` rather than ``HealthCheck.zip``. This gives an
+  esbuild-free path to a standalone report, which matters for hardened
+  images that strip the esbuild binary for CVE reasons. Remote CDN
+  references (Plotly, MathJax) are deliberately left untouched.
+- Explanations: `missing=False` had no effect on
+  `predictor_contributions` (the exclusion filter compared two literals) and
+  was never applied at all on the value-level path.
+- Explanations: the `MISSING` bin filter compared against the wrong column,
+  and `_label_remaining` compared a column against an enum member rather
+  than its value.
+- Explanations: `predictor_contributions` /
+  `predictor_value_contributions` and the plot methods produced
+  non-deterministic row and figure order, because `unique()` does not
+  preserve order and the following sort keys had ties.
+- Explanations: `top_n=0` was silently accepted and `top_n=1` was rejected;
+  both are now validated as "positive integer", and `True` is rejected.
+- Explanations: `create_unique_contexts_file` reused an existing
+  `unique_contexts.json` as a cache, so a stale mapping from an earlier run
+  (or a changed `PDSTOOLS_FILE_BATCH_LIMIT`) silently drove which contexts
+  were written to the batch parquet files. It now always rewrites.
+- Explanations: context keys appearing only beyond the 100th unique context
+  were silently dropped from the context table, because `pl.from_dicts`
+  infers its schema from the first 100 rows. Decoding is now vectorised via
+  `str.json_decode(infer_schema_length=None)`.
+- `pega_io.scan_parquet_path` now raises `FileNotFoundError` for a missing
+  non-glob path instead of deferring the failure to a later `collect()`.
+- Explanations: the default `report.generate(output_dir=".tmp/reports")` wrote
+  a relative `data_folder` into `params.yml`. The Quarto pre-render script runs
+  with the report folder as its cwd and resolves a relative `data_folder`
+  against that folder's parent, so the report looked for its data in
+  `<cwd>/.tmp/.tmp/reports/data` and found nothing. `output_dir` is now
+  resolved to an absolute path.
+- Explanations: `from_aggregates` mishandled a URL `base_path` combined with an
+  absolute local filename, producing `https://host/agg//abs/f.parquet`. A full
+  path in either filename now wins in all cases, as documented.
+- Explanations: re-running `report.generate()` into a directory used by an
+  earlier run left orphaned `batches/BATCH_<n>.parquet` files and by-context
+  `.qmd` pages behind, contradicting the documented "rewritten on every call"
+  behaviour. Both are now cleared before being regenerated.
+- Explanations: an empty contextual dataset raised `StructFieldNotFoundError`
+  instead of simply yielding no contexts.
+- Explanations: the article notebook loaded its aggregates from a relative
+  repository path. `data/` is not shipped in PyPI releases, so the notebook
+  could not run from an installed package; it now uses
+  `pdstools.sample_explanations()`.
+
+### Changed
+
+- **Breaking (explanations):** the module now follows the same conventions
+  as `ADMDatamart` — `Explanations.aggregate` is now `aggregates`, the
+  `Aggregate` class is `Aggregates`, `get_` prefixes are dropped from
+  accessors, and `plot.plot_contributions_*` becomes
+  `plot.contributions_overall` / `plot.contributions_by_context`. See
+  [`docs/migration-v4-to-v5.md`](docs/migration-v4-to-v5.md).
+- **Breaking (explanations):** `Explanations.__init__` is now pure
+  configuration and accepts the two already-scanned `LazyFrame`s; all file
+  reading moved into `from_aggregates`, which raises `FileNotFoundError`
+  immediately for a missing or empty folder. The frames are plain attributes
+  on the parent (`Explanations.overall` / `.contextual`), matching
+  `ADMDatamart.model_data` / `.predictor_data`, and are no longer reachable
+  via the `aggregates` namespace.
+- **Breaking (explanations):** `from_aggregates` now mirrors
+  `ADMDatamart.from_ds_export` — `from_aggregates(overall_filename,
+  contextual_filename, base_path)` replaces `data_folder` / `root_dir` /
+  the mutable `Aggregates.data_pattern` hook. A full path in either filename
+  ignores `base_path`. The implicit `.tmp/aggregated_data` default is gone;
+  `base_path` defaults to `"."`.
+- **Breaking (explanations):** `root_dir` is removed from `Explanations`; the
+  report output folder is now `report.generate(output_dir=...)`, defaulting to
+  `".tmp/reports"`. `Reports` no longer stores `report_folderpath`,
+  `report_output_dir`, `aggregate_folder` or `params_file`.
+- **Breaking (explanations):** `Explanations` no longer has a
+  `data_folderpath`. It holds only LazyFrames, so the aggregates may live
+  anywhere polars can read from — including an `http(s)://` URL via
+  `from_aggregates(base_path=...)`. The report pipeline now materialises the
+  frames into its own working directory (`<output_dir>/data/`) with the new
+  `Explanations.save_data()`, mirroring `ADMDatamart.save_data`, instead of
+  writing `unique_contexts.json` and `batches/` back into the source folder.
+  `ContextOperations.create_unique_contexts_file()` and
+  `create_batch_parquet_files()` are merged into a single
+  `write_batches(target_dir)` that produces both artifacts from one batch
+  assignment, streaming to disk via `sink_parquet(pl.PartitionBy(...))` so the
+  contextual frame is never collected. The `unique_contexts_file` property is
+  removed.
+- Added `pdstools.sample_explanations()`, a sample set of pre-aggregated AGB
+  global explanations, alongside the existing `cdh_sample()` /
+  `sample_value_finder()` datasets.
+- `pega_io.scan_parquet_path` accepts `http(s)://` URLs; the new
+  `pega_io.is_url` helper exempts them from the local-existence check.
+- Explanations: `_set_date_range` (four sequential `if`s that assigned to
+  `self`, plus an unused `days` knob) is now a pure
+  `_resolve_date_range` returning `tuple[datetime, datetime]`. The dates are
+  never `None`, so the unreachable `if from_date and to_date` guard in the
+  report pipeline is gone.
+- ADM and Global Explanations Quarto reports now explicitly set Plotly's
+  renderer for CDN-backed vs fully embedded HTML output. Global Explanations
+  report generation also accepts ``full_embed`` while preserving CDN output as
+  the programmatic default.
+- ADM Health Check app data import now shows upload controls immediately,
+  keeps file paths as an optional fallback, and uses the new import API for
+  advanced parsing and processed parquet cache output.
+- ADM Health Check prediction imports now infer the full schema for Prediction
+  Table exports so late-arriving prediction fields are recognized, and report,
+  Excel, and individual model-report generation default to the import ``HC``
+  folder when processed parquet output was kept.
+- AGB plots now use the ADM `PredictorCategory` terminology and default
+  colours, matching the rest of the ADM tooling, and lay out long labels and
+  horizontal category charts more readably.
+- AGB weighted AUC and coverage are documented more explicitly, including the
+  caveats on interpreting them.
+
+## [5.0.0] — 2026-06-25
 
 Major release. **Breaking changes** — see
 [`docs/migration-v4-to-v5.md`](docs/migration-v4-to-v5.md) for the upgrade
 guide.
+
+### Highlights
+
+- **Four Streamlit apps, one launcher.** pdstools now ships four
+  end-to-end apps reachable from a single tile-based landing page
+  (`pdstools all`), with a shared sidebar and About section:
+  - **ADM Health Check** — the long-standing report builder, now
+    with a richer programmatic findings namespace (`dm.analysis`).
+  - **Decision Analysis Tool** — substantially refactored and more
+    versatile (see below).
+  - **Impact Analyzer** — **new in v5** (see below).
+  - **Topic Data Quality** — **new in v5**: an NLP-focused app for
+    inspecting topic data — text quality, duplicates, adequacy,
+    tightness, outliers and confused samples, plus UMAP / TF-IDF
+    similarity visualisations and a single "health score" summary.
+- **New Markdown ADM Health Check.** Alongside the existing Quarto
+  report, `dm.generate.health_check_markdown(...)` now produces a
+  compact, Quarto-free Markdown digest of the same findings — ideal
+  for piping into an LLM agent, posting in a chat, or embedding in
+  another report. The Quarto output (HTML/PDF) remains the polished
+  artefact for humans; the Markdown version is the agent-friendly
+  counterpart.
+- **Impact Analyzer is new.** The app reads **Pega Scenario Planner Actuals**, and lets you
+  define the **outcome labels** in the UI so they match the customer
+  implementation. Every metric card now carries an explicit
+  **formula** expander — engagement lift, accept-rate lift, standard
+  errors, confidence intervals (95 % two-sided / 97.5 % one-sided),
+  EWMA trend bands — so the math behind every number is visible
+  inline. New Channel Performance and Click-Through Rates pages
+  (Control Fraction heatmap, CTR trend) replace the old Drill Down
+  view.
+- **Decision Analysis Tool refactor + Single Decision page.** The
+  `DecisionAnalyzer` class is now a namespace facade
+  (`da.aggregates.*` / `da.scoring.*`) matching the `ADMDatamart`
+  pattern. The app gains a new **Single Decision** debugging page
+  that walks through one decision's full pipeline — every action ×
+  every stage — showing how many actions passed, how many were
+  filtered, and which components did the filtering, so individual
+  decisions can be explained end-to-end. Auto-detection of mandatory
+  actions (priority ≥ 5M) is on by default and shown in the
+  win/loss and Global Sensitivity views. The app now routes through
+  `st.navigation()`, hides data-dependent pages until data is
+  uploaded, and uses a global category→colour map so legends stay
+  consistent across plots.
+- **Prediction Studio Python client is now Pydantic-backed.** Models,
+  predictions, model instances and notifications all have
+  schema-locked data models; `return_df=True` paths emit consistent
+  Polars frames even for empty / all-null payloads; the v26.1
+  model-instances endpoint is wrapped; and the data models are
+  re-exported from `pdstools.infinity` for direct validation /
+  schema introspection.
+- **New "AGB Explained" notebook.** A bundled walkthrough of Pega's
+  Adaptive Gradient Boosting algorithm, end-to-end and grounded in
+  the official Pega whitepaper terminology:
+  1. how a single decision tree works — nodes, splits, and the
+     XGBoost-style gradient split-gain formula with ADWIN-driven
+     pruning;
+  2. how trees combine into an additive ensemble, with cold-start /
+     warm-start behaviour and per-tree gain decay;
+  3. tracing a single customer through every tree to reproduce the
+     final propensity by hand;
+  4. feature importance by total split gain — including
+     Predictor-Group breakdowns (Context Keys, IH, Customer,
+     External Models), early-vs-late-refiner analysis, and a
+     feature role map (depth × coverage × gain);
+  5. a model-health diagnostic section aligned with SOP-ADM009 —
+     splits-per-tree, saturation, "not developing" signals;
+  6. AUC and calibration — PAVA isotonic mapping, test-then-train
+     validation, and the pooled-vs-weighted-average AUC distinction.
+
+  New `ADMTreesModel` plots (`gain_per_tree`,
+  `cumulative_gain_share`, `training_stream_timeline`,
+  `inter_tree_gaps`, `gain_decay_dual_lens`, `early_vs_late_gain`,
+  `feature_role_map`, …) back the notebook, and pdstools now ships
+  a **bundled local AGB sample** so the notebook runs without
+  network access.
+- **Other notables.** Python 3.14 support; `ADMDatamart.from_s3`,
+  `Prediction.from_s3` / `from_dataflow_export`, and `IH.from_s3`
+  are now real implementations (were no-op / `NotImplementedError`
+  stubs); `pdstools doctor` and `pdstools list` CLI commands.
+
+See sections below for the full per-area detail.
 
 ### Added
 
@@ -38,15 +255,12 @@ guide.
   form — enables grouping by Channel × Direction etc. in Health Check /
   Model Reports (#700).
 - `ImpactAnalyzer.from_excel` classmethod reads the **Pega Infinity Impact
-  Analyzer Excel export** — specifically the `Data` sheet, which carries
-  one row per (Date × Channel × Direction × Action × Treatment ×
-  Experiment) with pre-paired Test/Control counts. Rows are exploded
-  into the long IA format (`from_vbd`-style); NBA test traffic that
-  appears across multiple NBA-vs-X experiments is deduplicated to avoid
-  double-counting. Date and number parsing is locale-tolerant
-  (handles ISO/US/EU formats and Excel serial dates). Uses polars'
-  built-in calamine engine; no extra deps required. The Streamlit app
-  and `--data-path` CLI flag accept `.xlsx` uploads with auto-detection.
+  Analyzer Excel export** (`Data` sheet from the Scenario Planner
+  *Actuals* download). Rows are exploded into the long IA format
+  (`from_vbd`-style) with NBA test traffic deduplicated across
+  NBA-vs-X experiments; date / number parsing is locale-tolerant.
+  The Streamlit app and `--data-path` CLI flag accept `.xlsx` uploads
+  with auto-detection.
 - `pega_io.read_data` now recognises `.xlsx` / `.xls` and owns the
   `fastexcel` optional-dependency shim.
 - `Prediction.from_s3(bucket, key, *, region=None, ...)` is now
@@ -63,10 +277,17 @@ guide.
 - Decision Analyzer auto-detects mandatory actions (priority ≥ 5M) when
   no `mandatory_expr` is passed, and flags them visually in the global
   win/loss distribution pie and on the Global Sensitivity page (#698).
+- `ADMDatamart.analysis` adds a programmatic ADM health-check findings
+  namespace, reusable preaggregates, and direct Markdown report
+  generation via `dm.generate.health_check_markdown(...)` / the thin
+  file-writing `health_check_agent(...)` wrapper (#848).
 - Health Check `--full-embed` / `--no-full-embed` CLI flag, propagated to
   the Streamlit Reports page as a new "Embed JS/CSS for offline viewing"
   toggle in the Advanced expander. Defaults preserve the previous
   behaviour (#688).
+- The CLI now also exposes `pdstools doctor`, `pdstools list`, a unified
+  `launcher` app (`pdstools all`), and the Topic Data Quality app
+  (`pdstools data_quality` / `dq`).
 - `pdstools.valuefinder.__init__` now re-exports `ValueFinder` (was empty).
 - `CHANGELOG.md` (this file).
 - `docs/migration-v4-to-v5.md`.
@@ -74,11 +295,12 @@ guide.
   per-node `sampleCount` data, and pdstools now ships a bundled local AGB
   sample export plus the new **AGB Explained** notebook instead of relying
   on a remote sample URL (#833).
-- AppTest-based smoke tests for all three Streamlit apps under
+- AppTest-based smoke tests for all four Streamlit apps under
   `python/tests/streamlit_apps/` — covers Decision Analyzer (Home + 10
-  sub-pages), Health Check (Home + 3 sub-pages) and Impact Analyzer
-  (Home + 3 sub-pages). Uses seeded fixtures so pages render the
-  populated branch, not the upload-prompt branch.
+  sub-pages), Health Check (Home + 3 sub-pages), Impact Analyzer
+  (Home + 3 sub-pages) and Topic NLP Data Quality (Home + state
+  transitions). Uses seeded fixtures so pages render the populated
+  branch, not the upload-prompt branch.
 - AppTest state-transition coverage for Streamlit widgets: Decision
   Analyzer threshold sliders and arbitration scope selector, plus Health
   Check report generation and dataframe filter widgets (#823).
@@ -87,20 +309,22 @@ guide.
 
 ### Changed
 
-- **`Explanations.__init__` no longer accepts filesystem paths.** The
-  `root_dir`, `data_folder`, and `data_file` parameters have moved to a
-  new `Explanations.from_local_directory(...)` classmethod. The
+- **`Explanations.__init__` no longer loads explanation data.** The
+  explanations API now expects pre-aggregated parquet files loaded through
+  `Explanations.from_aggregates(...)`. The
   constructor now takes only configuration (`model_name`, `from_date`,
   `to_date`) and performs no I/O — matching the pure-`__init__` pattern
   used by `ADMDatamart`, `IH`, `Prediction`, and other analyzer classes.
-  All path-keyword arguments are now keyword-only on the classmethod.
+  All aggregate path-keyword arguments are now keyword-only on the classmethod.
   **Migration:**
   `Explanations(data_folder="...", model_name="...", from_date=..., to_date=...)`
-  → `Explanations.from_local_directory(data_folder="...", model_name="...", from_date=..., to_date=...)`.
+  → `Explanations.from_aggregates(data_folder="...", model_name="...", from_date=..., to_date=...)`.
+  Raw single-file / remote-URL aggregation has been removed from this API;
+  provide `BY_CONTEXT.parquet` and `OVERVIEW.parquet` in the aggregate folder.
   Quarto report templates that previously did
   `Explanations(root_dir="...")` followed by manual
-  `aggregate.data_folderpath = "..."` should drop the `root_dir`
-  argument and call `Explanations()` with no arguments.
+  `aggregate.data_folderpath = "..."` should use explicit path configuration
+  on `Explanations` (`from_aggregates(root_dir=..., data_folder=...)`).
 - **BREAKING:** `IH.from_ds_export`'s `query` parameter is now
   keyword-only. Update positional callers to
   `IH.from_ds_export(path, query=...)`.
@@ -201,7 +425,7 @@ guide.
   `from_client_id_and_secret` classmethods are unchanged (#714).
 - Explanations: `sort_by`, `display_by`, `descending`, `missing`,
   `remaining`, `include_numeric_single_bin` are now explicit keyword-only
-  parameters with literal defaults across `Plots.contributions`,
+  parameters with literal defaults across
   `Plots.plot_contributions_for_overall`,
   `Plots.plot_contributions_by_context`,
   `Aggregate.get_predictor_contributions`,
@@ -231,6 +455,12 @@ guide.
   on call sites that drive genuine user-facing progress (S3,
   `read_multi_zip`, `Anonymization`). `Reports.health_check` no longer
   couples `verbose` to cache / error-reporting paths (#647).
+- Impact Analyzer Streamlit app: restructured pages into **Channel
+  Performance** (was *Overall Summary*) and **Details** (was *Channels*).
+  Both pages share a single sidebar **Channel / Direction** filter. The
+  Details page is now a flat per-experiment metrics table; previous
+  per-channel visuals (lift bar chart, response-rate heatmap, impression
+  redistribution) were removed pending a redesign.
 - `BinAggregator` constructor parameter renamed `dm=` → `datamart=`,
   matching every other sub-namespace on `ADMDatamart`. No deprecated
   alias — the class is always constructed via

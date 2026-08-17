@@ -1,0 +1,21 @@
+{
+  "include": [
+    "python/pdstools"
+  ],
+  "extraPaths": [
+    "python"
+  ],
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.10",
+  "typeCheckingMode": "basic",
+  "reportAttributeAccessIssue": "none",
+  "reportAssignmentType": "none",
+  "reportCallIssue": "none",
+  "reportIncompatibleVariableOverride": "none",
+  "reportMissingImports": "none",
+  "reportMissingTypeStubs": "none",
+  "reportOperatorIssue": "none",
+  "reportOverlappingOverload": "none",
+  "reportUnsupportedDunderAll": "none"
+}

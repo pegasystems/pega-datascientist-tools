@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from urllib.parse import quote as _quote
 from datetime import date, timedelta
 from typing import TYPE_CHECKING, Any, Literal
+from urllib.parse import quote as _quote
 
 import polars as pl
 from pydantic import validate_call
@@ -40,7 +40,7 @@ class _Predictionv26_1Mixin:
         performanceMeasure: str | None = None,
         **kwargs,
     ):
-        super().__init__(  # type: ignore[call-arg]
+        super().__init__(  # type: ignore[call-arg]  # cooperative base init resolves at runtime; mypy sees object.__init__
             client=client,
             predictionId=predictionId,
             label=label,

@@ -14,6 +14,7 @@ r/*.csv
 r/tests/testthat/*.pdf
 **/*.gz
 *.pyc
+__pycache__/
 build/
 *.egg-info/
 .vscode
@@ -51,5 +52,20 @@ test_consolidation.py
 # Local healthcheck batch outputs (may contain customer names)
 /healthcheck_reports/
 
+# Generated Quarto report artifacts
+/python/pdstools/reports/.quarto/
+/python/pdstools/reports/HealthCheck_files/
+
+# Local data exports (may contain customer names or customer data)
+/export_*.json
+
 # Claude / Copilot local settings (machine-specific, may contain tokens)
 .claude/settings.json
+
+# SpecKit local state and generated specifications
+/.specify/
+/.github/agents/speckit*.agent.md
+/.github/prompts/speckit*.prompt.md
+
+# Spec Kit generated artifacts
+/specs/

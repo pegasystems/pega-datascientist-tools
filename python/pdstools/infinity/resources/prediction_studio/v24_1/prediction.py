@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from urllib.parse import quote as _quote
 from typing import TYPE_CHECKING, Any, Literal
+from urllib.parse import quote as _quote
 
 import polars as pl
 from pydantic import validate_call

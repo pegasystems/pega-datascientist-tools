@@ -1,7 +1,48 @@
-import polars as pl
 import plotly.express as px
+import polars as pl
+import pytest
+from pdstools.utils.metric_limits import MetricLimits
+from pdstools.utils.plot_utils import (
+    fig_update_facet,
+    get_colorscale,
+    hide_metric_annotations_on_non_rightmost,
+)
 
-from pdstools.utils.plot_utils import fig_update_facet, hide_metric_annotations_on_non_rightmost
+
+def test_performance_colorscale_uses_metric_limits():
+    limits = MetricLimits.get_limit_for_metric("ModelPerformance")
+
+    def position(limit_name: str) -> float:
+        return (limits[limit_name] - 0.5) / 0.5
+
+    colorscale = get_colorscale("Performance")
+
+    assert [color for _, color in colorscale] == [
+        "#d91c29",
+        "#d91c29",
+        "#F76923",
+        "#F76923",
+        "#20aa50",
+        "#20aa50",
+        "#F76923",
+        "#F76923",
+        "#d91c29",
+        "#d91c29",
+    ]
+    assert [scale_position for scale_position, _ in colorscale] == pytest.approx(
+        [
+            0,
+            position("minimum"),
+            position("minimum"),
+            position("best_practice_min"),
+            position("best_practice_min"),
+            position("best_practice_max"),
+            position("best_practice_max"),
+            position("maximum"),
+            position("maximum"),
+            1,
+        ],
+    )
 
 
 def _make_faceted_scatter(n_facets: int, col_wrap: int = 2) -> "px.Figure":
@@ -116,6 +157,19 @@ class TestHideMetricAnnotationsOnNonRightmost:
         hide_metric_annotations_on_non_rightmost(fig)
         facet_titles = [a.text for a in fig.layout.annotations if "=" in (a.text or "")]
         assert len(facet_titles) == 3
+
+    def test_simplified_facet_title_annotations_are_preserved(self):
+        """Facet titles remain visible after fig_update_facet strips 'f=' prefixes."""
+        fig = _make_faceted_line(2, col_wrap=2)
+        fig.add_hline(y=52, annotation_text="Min (52)")
+        fig_update_facet(fig, n_cols=2)
+
+        hide_metric_annotations_on_non_rightmost(fig)
+
+        visible_annotations = [a.text for a in fig.layout.annotations if a.text]
+        assert "A" in visible_annotations
+        assert "B" in visible_annotations
+        assert "Min (52)" in visible_annotations
 
     def test_single_subplot_keeps_label(self):
         """Single subplot is by definition the rightmost — label must be kept."""

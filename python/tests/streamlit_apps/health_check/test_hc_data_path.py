@@ -13,7 +13,6 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-
 from pdstools.app.health_check import hc_streamlit_utils as hc_utils
 
 DATA_DIR = Path(__file__).resolve().parents[4] / "data"
@@ -64,9 +63,34 @@ def test_returns_none_when_no_data_path_set():
     assert hc_utils.handle_data_path_hc() is None
 
 
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("'/Users/example/AT&T'", "/Users/example/AT&T"),
+        ('"/Users/example/AT&T"', "/Users/example/AT&T"),
+        ("/Users/example/O'Brien", "/Users/example/O'Brien"),
+        (" '/Users/example/AT&T' ", "/Users/example/AT&T"),
+        ("'/Users/example/O'Brien'", "/Users/example/O'Brien"),
+    ],
+)
+def test_strip_outer_path_quotes(raw: str, expected: str):
+    assert hc_utils._strip_outer_path_quotes(raw) == expected
+
+
 def test_returns_none_when_path_does_not_exist(monkeypatch):
     monkeypatch.setenv("PDSTOOLS_DATA_PATH", "/nonexistent/path/does/not/exist")
     assert hc_utils.handle_data_path_hc() is None
+
+
+def test_single_quoted_data_path_loads(monkeypatch, sample_dir: Path):
+    import streamlit as st
+
+    monkeypatch.setenv("PDSTOOLS_DATA_PATH", f"'{sample_dir}'")
+    dm = hc_utils.handle_data_path_hc()
+    assert dm.model_data.collect().height == 1047
+    assert dm.predictor_data.collect().height == 70735
+    assert st.session_state["dm"] is dm
+    assert st.session_state["data_source"] == "Direct file path"
 
 
 def test_directory_with_all_files_loads_dm(monkeypatch, sample_dir: Path):
@@ -74,11 +98,10 @@ def test_directory_with_all_files_loads_dm(monkeypatch, sample_dir: Path):
 
     monkeypatch.setenv("PDSTOOLS_DATA_PATH", str(sample_dir))
     dm = hc_utils.handle_data_path_hc()
-    assert dm is not None
+    assert dm.model_data.collect().height == 1047
     assert st.session_state["dm"] is dm
     assert st.session_state["data_source"] == "Direct file path"
-    # Predictor was found, so the dm has a non-empty predictor frame.
-    assert dm.predictor_data is not None
+    assert dm.predictor_data.collect().height == 70735
 
 
 def test_directory_model_only_loads_dm_without_predictor(monkeypatch, model_only_dir: Path):
@@ -86,7 +109,8 @@ def test_directory_model_only_loads_dm_without_predictor(monkeypatch, model_only
 
     monkeypatch.setenv("PDSTOOLS_DATA_PATH", str(model_only_dir))
     dm = hc_utils.handle_data_path_hc()
-    assert dm is not None
+    assert dm.model_data.collect().height == 1047
+    assert dm.predictor_data is None
     assert st.session_state["dm"] is dm
     assert st.session_state["data_source"] == "Direct file path"
 
@@ -110,7 +134,8 @@ def test_zip_file_extracts_and_loads(monkeypatch, sample_dir: Path, tmp_path: Pa
 
     monkeypatch.setenv("PDSTOOLS_DATA_PATH", str(zip_path))
     dm = hc_utils.handle_data_path_hc()
-    assert dm is not None
+    assert dm.model_data.collect().height == 1047
+    assert dm.predictor_data.collect().height == 70735
     assert st.session_state["dm"] is dm
     assert st.session_state["data_source"] == "Direct file path"
 

@@ -2,14 +2,15 @@
 
 import datetime
 import math
+from unittest.mock import patch
+from zoneinfo import ZoneInfo as timezone
 
 import numpy as np
 import polars as pl
 import pytest
 from pdstools import datasets
 from pdstools.utils import cdh_utils
-from zoneinfo import ZoneInfo as timezone
-
+from pdstools.utils.cdh_utils import _metrics
 from pdstools.utils.cdh_utils._io import (
     _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS,
     _DATABRICKS_PREDICTION_COLUMNS,
@@ -70,6 +71,277 @@ def test_auc_from_bincounts():
     positives = [50, 70, 75, 80, 85, 90, 110, 130, 150, 160]
     negatives = [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450]
     assert abs(cdh_utils.auc_from_bincounts(positives, negatives) - 0.6871) < 1e-6
+
+
+def test_auc_variance_delong_grouped_returns_positive_value():
+    positives = [50, 70, 75, 80, 85, 90, 110, 130, 150, 160]
+    negatives = [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450]
+    variance = cdh_utils.auc_variance_delong_grouped(positives, negatives)
+
+    assert abs(variance - 7.62652860183219e-05) < 1e-12
+
+
+def test_auc_ci_from_bincounts_includes_auc_and_bounds():
+    positives = [50, 70, 75, 80, 85, 90, 110, 130, 150, 160]
+    negatives = [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450]
+
+    payload = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert payload["ci_available"] is True
+    assert abs(payload["auc"] - 0.6871) < 1e-12
+    assert abs(payload["variance"] - 7.62652860183219e-05) < 1e-12
+    assert abs(payload["ci_lower"] - 0.6699836348576035) < 1e-12
+    assert abs(payload["ci_upper"] - 0.7042163651423964) < 1e-12
+    assert abs(payload["safe_ci_lower"] - 0.6699836348576035) < 1e-12
+    assert abs(payload["safe_ci_upper"] - 0.7042163651423964) < 1e-12
+
+
+def test_safe_range_interval_reflects_bounds_around_chance_auc():
+    assert cdh_utils.safe_range_interval(0.55, 0.70) == pytest.approx((0.55, 0.70))
+    assert cdh_utils.safe_range_interval(0.30, 0.45) == pytest.approx((0.55, 0.70))
+    assert cdh_utils.safe_range_interval(0.48, 0.62) == pytest.approx((0.50, 0.62))
+    assert cdh_utils.safe_range_interval(-0.10, 1.10) == pytest.approx((0.50, 1.00))
+
+
+def test_safe_range_interval_rejects_invalid_endpoints():
+    with pytest.raises(ValueError, match="finite"):
+        cdh_utils.safe_range_interval(float("nan"), 0.7)
+    with pytest.raises(ValueError, match="finite"):
+        cdh_utils.safe_range_interval(0.4, float("inf"))
+    with pytest.raises(ValueError, match="less than or equal"):
+        cdh_utils.safe_range_interval(0.7, 0.4)
+
+
+def test_native_auc_ci_expressions_match_series_calculation():
+    positives = [50, 70, 75, 80, 85, 90, 110, 130, 150, 160]
+    negatives = [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450]
+    bins = pl.DataFrame(
+        {
+            "ModelID": ["model"] * len(positives),
+            "Positives": positives,
+            "Negatives": negatives,
+        },
+    ).lazy()
+
+    result = _metrics._auc_ci_from_binned_rows(
+        bins,
+        group_col="ModelID",
+        positive_col="Positives",
+        negative_col="Negatives",
+        confidence_level=0.95,
+    ).collect()
+    expected = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert result["AUC"].item() == pytest.approx(expected["auc"], abs=1e-12)
+    assert result["AUC_CI_Variance"].item() == pytest.approx(
+        expected["variance"],
+        abs=1e-12,
+    )
+    assert result["AUC_CI_Lower"].item() == pytest.approx(
+        expected["ci_lower"],
+        abs=1e-12,
+    )
+    assert result["AUC_CI_Upper"].item() == pytest.approx(
+        expected["ci_upper"],
+        abs=1e-12,
+    )
+    assert result["AUC_CI_Safe_Lower"].item() == pytest.approx(
+        expected["safe_ci_lower"],
+        abs=1e-12,
+    )
+    assert result["AUC_CI_Safe_Upper"].item() == pytest.approx(
+        expected["safe_ci_upper"],
+        abs=1e-12,
+    )
+
+
+def test_native_auc_ci_expressions_fold_intervals_crossing_chance_auc():
+    positives = [11, 10]
+    negatives = [10, 11]
+    bins = pl.DataFrame(
+        {
+            "ModelID": ["model"] * len(positives),
+            "Positives": positives,
+            "Negatives": negatives,
+        },
+    ).lazy()
+
+    result = _metrics._auc_ci_from_binned_rows(
+        bins,
+        group_col="ModelID",
+        positive_col="Positives",
+        negative_col="Negatives",
+        confidence_level=0.95,
+    ).collect()
+    expected = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert result["AUC_CI_Lower"].item() < 0.5
+    assert result["AUC_CI_Upper"].item() > 0.5
+    assert result["AUC_CI_Safe_Lower"].item() == pytest.approx(0.5)
+    assert result["AUC_CI_Safe_Upper"].item() == pytest.approx(
+        expected["safe_ci_upper"],
+        abs=1e-12,
+    )
+
+
+def test_weighted_auc_ci_from_estimates_propagates_variance():
+    payload = cdh_utils.weighted_auc_ci_from_estimates(
+        [0.6, 0.8],
+        [0.01, 0.04],
+        [1, 3],
+    )
+
+    assert payload["auc"] == pytest.approx(0.75)
+    assert payload["variance"] == pytest.approx(0.023125)
+    assert payload["ci_lower"] == pytest.approx(0.4519501, abs=1e-6)
+    assert payload["ci_upper"] == pytest.approx(1.0)
+    assert payload["safe_ci_lower"] == pytest.approx(0.5)
+    assert payload["safe_ci_upper"] == pytest.approx(1.0)
+    assert payload["ci_available"] is True
+
+
+def test_weighted_auc_ci_from_estimates_returns_unavailable_for_no_estimates():
+    payload = cdh_utils.weighted_auc_ci_from_estimates([], [], [])
+
+    assert payload == {
+        "auc": None,
+        "variance": None,
+        "ci_lower": None,
+        "ci_upper": None,
+        "safe_ci_lower": None,
+        "safe_ci_upper": None,
+        "ci_available": False,
+        "ci_reason": "no_estimates",
+    }
+
+
+def test_auc_ci_from_bincounts_insufficient_data_returns_unavailable():
+    payload = cdh_utils.auc_ci_from_bincounts([0, 0, 1], [0, 0, 0])
+
+    assert payload["ci_available"] is False
+    assert payload["ci_reason"] == "insufficient_class_volume"
+    assert payload["ci_lower"] is None
+    assert payload["ci_upper"] is None
+    assert payload["safe_ci_lower"] is None
+    assert payload["safe_ci_upper"] is None
+
+
+def test_auc_ci_from_bincounts_confidence_level_changes_width_not_auc():
+    positives = [50, 70, 75, 80, 85, 90, 110, 130, 150, 160]
+    negatives = [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450]
+
+    ci_90 = cdh_utils.auc_ci_from_bincounts(positives, negatives, confidence_level=0.90)
+    ci_99 = cdh_utils.auc_ci_from_bincounts(positives, negatives, confidence_level=0.99)
+
+    assert abs(ci_90["auc"] - ci_99["auc"]) < 1e-12
+    width_90 = ci_90["ci_upper"] - ci_90["ci_lower"]
+    width_99 = ci_99["ci_upper"] - ci_99["ci_lower"]
+    assert width_99 >= width_90
+
+
+def test_auc_ci_from_bincounts_is_deterministic():
+    positives = [10, 15, 22, 30, 44]
+    negatives = [90, 80, 70, 50, 30]
+
+    first = cdh_utils.auc_ci_from_bincounts(positives, negatives, confidence_level=0.95)
+    second = cdh_utils.auc_ci_from_bincounts(positives, negatives, confidence_level=0.95)
+
+    assert first == second
+
+
+def test_auc_ci_from_bincounts_handles_variance_unavailable():
+    positives = [10, 15, 22, 30, 44]
+    negatives = [90, 80, 70, 50, 30]
+
+    with patch("pdstools.utils.cdh_utils._metrics.auc_variance_delong_grouped", return_value=None):
+        payload = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert payload["ci_available"] is False
+    assert payload["ci_reason"] == "variance_unavailable"
+    assert payload["ci_lower"] is None
+    assert payload["ci_upper"] is None
+    assert payload["safe_ci_lower"] is None
+    assert payload["safe_ci_upper"] is None
+
+
+def test_auc_ci_from_bincounts_zero_variance_collapses_interval():
+    positives = [10, 15, 22, 30, 44]
+    negatives = [90, 80, 70, 50, 30]
+
+    with patch("pdstools.utils.cdh_utils._metrics.auc_variance_delong_grouped", return_value=0.0):
+        payload = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert payload["ci_available"] is True
+    assert payload["ci_reason"] is None
+    assert payload["variance"] == 0.0
+    assert payload["ci_lower"] == payload["ci_upper"]
+    assert payload["ci_lower"] == payload["auc"]
+    assert payload["safe_ci_lower"] == payload["safe_ci_upper"]
+    assert payload["safe_ci_lower"] == payload["auc"]
+
+
+def test_validate_confidence_level_rejects_out_of_range_values():
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(0.0)
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(1.0)
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(-0.1)
+
+
+def test_validate_confidence_level_rejects_non_finite_values():
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(float("nan"))
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(float("inf"))
+
+
+def test_auc_ci_from_bincounts_rejects_empty_counts():
+    with pytest.raises(ValueError, match="non-empty"):
+        cdh_utils.auc_ci_from_bincounts([], [])
+
+
+def test_auc_ci_from_bincounts_rejects_mismatched_count_lengths():
+    with pytest.raises(ValueError, match="same length"):
+        cdh_utils.auc_ci_from_bincounts([1, 2], [3])
+
+
+def test_auc_ci_from_bincounts_rejects_negative_counts():
+    with pytest.raises(ValueError, match="non-negative"):
+        cdh_utils.auc_ci_from_bincounts([1, -1], [2, 3])
+
+
+def test_auc_ci_from_bincounts_rejects_mismatched_probs_length():
+    with pytest.raises(ValueError, match="same length"):
+        cdh_utils.auc_ci_from_bincounts([1, 2], [3, 4], probs=[0.9])
+
+
+def test_weighted_sample_variance_returns_none_for_small_total_weight():
+    variance = _metrics._weighted_sample_variance(
+        values=pl.Series([0.25], dtype=pl.Float64),
+        weights=pl.Series([1.0], dtype=pl.Float64),
+    )
+
+    assert variance is None
+
+
+def test_auc_variance_delong_grouped_returns_none_for_insufficient_class_volume():
+    variance = cdh_utils.auc_variance_delong_grouped(pos=[1, 0], neg=[3, 2])
+
+    assert variance is None
+
+
+def test_auc_variance_delong_grouped_handles_weighted_variance_unavailable():
+    with patch(
+        "pdstools.utils.cdh_utils._metrics._weighted_sample_variance",
+        side_effect=[0.01, None],
+    ):
+        variance = cdh_utils.auc_variance_delong_grouped(
+            pos=[10, 15, 22, 30, 44],
+            neg=[90, 80, 70, 50, 30],
+        )
+
+    assert variance is None
 
 
 def test_aucpr_from_probs():
@@ -291,7 +563,7 @@ def test_overlap_lists_polars_overall_summary():
             .alias("Overlap"),
         )
         .drop("literal")
-        # .explode(["Channel", "Overlap"])
+        # .explode(["Channel", "Overlap"], empty_as_null=True)
     )
 
     # print(summary_df)
@@ -944,7 +1216,9 @@ def test_extract_keys():
 # "%Y-%m-%d %H:%M:%S"
 #     - "%Y%m%dT%H%M%S.%f %Z"
 #     - "%d-%b-%y"
+#     - "%d/%b/%y"
 #     - "%d%b%Y:%H:%M:%S"
+#     - "%m/%d/%Y %I:%M %p"
 #     - "%Y%m%d"
 
 
@@ -954,11 +1228,13 @@ def test_parse_pega_date_time_formats():
             "Snappy": [
                 "2020-01-01 15:05:03",
                 "20241201T150503.847 GMT",
-                # "31-Mar-23", # should work?! or give null. polars panics in 1.28
+                "30-Sep-24",
+                "30/Sep/24",
                 "31032023:15:05:03",
                 "20180316T134127.847345",
                 "20180316T134127.8",
                 "20180316T134127",
+                "09/30/2024 06:00 PM",
                 "20241201",
                 # "09MAY2025:06:00:05" # Polars panics. Invariant when calling StrpTimeState.parse was not upheld. https://github.com/pola-rs/polars/issues/22495
             ],
@@ -976,10 +1252,10 @@ def test_parse_pega_date_time_formats():
 
     assert df.schema["SnapshotTime"] == pl.Datetime
     assert df.schema["SnapshotDate"] == pl.Date
-    assert df["SnapshotTime"].to_list()[2] is None
-    assert df.select(pl.col("SnapshotTime").is_not_null().sum()).item() == 6
-    assert df["SnapshotTime2"].to_list()[2] is not None
-    assert df.select(pl.col("SnapshotTime2").is_not_null().sum()).item() == 7
+    assert df["SnapshotTime"].to_list()[4] is None
+    assert df.select(pl.col("SnapshotTime").is_not_null().sum()).item() == 9
+    assert df["SnapshotTime2"].to_list()[4] == datetime.datetime(2023, 3, 31, 15, 5, 3)
+    assert df.select(pl.col("SnapshotTime2").is_not_null().sum()).item() == 10
 
 
 # ── Tests for _combine_queries ──────────────────────────────────────────────
@@ -1054,7 +1330,6 @@ def test_safe_flatten_list_unhashable_items():
     expr_a = pl.col("a")
     expr_b = pl.col("b")
     result = cdh_utils.safe_flatten_list([expr_a, expr_b, expr_a])
-    assert result is not None
     assert len(result) == 2
     assert result[0] is expr_a
     assert result[1] is expr_b
@@ -1064,7 +1339,6 @@ def test_safe_flatten_list_unhashable_extras_dedup():
     """Same unhashable item in extras and alist should not be duplicated."""
     expr = pl.col("x")
     result = cdh_utils.safe_flatten_list([expr], extras=[expr])
-    assert result is not None
     assert len(result) == 1
 
 
@@ -1164,7 +1438,6 @@ def test_create_working_and_temp_dir_custom_working_dir(tmp_path):
 def test_lazy_sample_with_replacement():
     df = pl.DataFrame({"x": list(range(100)), "y": list(range(100))})
     sampled = cdh_utils.lazy_sample(df, n_rows=10, with_replacement=True)
-    assert isinstance(sampled, pl.DataFrame)
     assert sampled.shape[0] == 10
     assert sampled.columns == ["x", "y"]
 
@@ -1172,7 +1445,6 @@ def test_lazy_sample_with_replacement():
 def test_lazy_sample_without_replacement():
     df = pl.DataFrame({"x": list(range(100)), "y": list(range(100))})
     sampled = cdh_utils.lazy_sample(df, n_rows=10, with_replacement=False)
-    assert isinstance(sampled, pl.DataFrame)
     # binomial sampling has no seed: exact count is non-deterministic; bounds are the best we can assert
     assert sampled.shape[0] > 0
     assert sampled.shape[0] <= 100
@@ -1182,7 +1454,6 @@ def test_lazy_sample_without_replacement():
 def test_lazy_sample_n_larger_than_data_without_replacement():
     df = pl.DataFrame({"x": [1, 2, 3]})
     sampled = cdh_utils.lazy_sample(df, n_rows=100, with_replacement=False)
-    assert isinstance(sampled, pl.DataFrame)
     # When n_rows > len, all rows should be returned
     assert sampled.shape[0] == 3
 
@@ -1423,7 +1694,6 @@ class TestValidateDatabricksSchema:
     def test_predictions_exact_schema_returns_frame(self):
         df = _make_lazy(list(_DATABRICKS_PREDICTION_COLUMNS))
         result = cdh_utils._validate_databricks_predictions(df)
-        assert isinstance(result, pl.LazyFrame)
         assert set(result.collect_schema().names()) == _DATABRICKS_PREDICTION_COLUMNS
 
     def test_predictions_missing_columns_raises(self):
@@ -1438,7 +1708,7 @@ class TestValidateDatabricksSchema:
         df = _make_lazy(extra_cols)
         with caplog.at_level(logging.WARNING):
             result = cdh_utils._validate_databricks_predictions(df)
-        assert isinstance(result, pl.LazyFrame)
+        assert set(result.collect_schema().names()) == set(extra_cols)
         assert "Unexpected columns" in caplog.text
         assert "_DATABRICKS_PREDICTION_COLUMNS" in caplog.text
 
@@ -1449,7 +1719,6 @@ class TestValidateDatabricksSchema:
     def test_model_snapshots_exact_schema_returns_frame(self):
         df = _make_lazy(list(_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS))
         result = cdh_utils._validate_databricks_model_snapshots(df)
-        assert isinstance(result, pl.LazyFrame)
         assert set(result.collect_schema().names()) == _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS
 
     def test_model_snapshots_missing_columns_raises(self):
@@ -1464,7 +1733,7 @@ class TestValidateDatabricksSchema:
         df = _make_lazy(extra_cols)
         with caplog.at_level(logging.WARNING):
             result = cdh_utils._validate_databricks_model_snapshots(df)
-        assert isinstance(result, pl.LazyFrame)
+        assert set(result.collect_schema().names()) == set(extra_cols)
         assert "Unexpected columns" in caplog.text
         assert "_DATABRICKS_MODEL_SNAPSHOTS_COLUMNS" in caplog.text
 

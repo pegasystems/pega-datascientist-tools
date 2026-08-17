@@ -2,11 +2,13 @@ from __future__ import annotations
 
 __all__ = ["ADMDatamart"]
 
+import colorsys
 import datetime
 import logging
 import os
 from functools import cached_property
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import polars as pl
 import polars.selectors as cs
@@ -16,20 +18,78 @@ from ..pega_io.File import read_dataflow_output, read_ds_export
 from ..utils import cdh_utils
 from ..utils.cdh_utils import _polars_capitalize
 from ..utils.cdh_utils._io import _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS
+from ..utils.cdh_utils._metrics import _auc_ci_from_binned_rows
 from . import Schema
-from .trees import AGB
 from .Aggregates import Aggregates
+from .Analysis import Analysis
 from .BinAggregator import BinAggregator
 from .Plots import Plots
 from .Reports import Reports
-from typing import TYPE_CHECKING
+from .trees import AGB
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
+
     from ..utils.types import QUERY
-    from collections.abc import Callable
-    from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
+
+_STANDARD_PREDICTOR_CATEGORY_COLORS = {
+    "Customer": "#001F5F",
+    "IH": "#10A5AC",
+    "Primary": "#63666F",
+    "Param": "#F76923",
+    "Account": "#661D34",
+    "External Model": "#DE4342",
+}
+
+# Colors for non-standard (custom) predictor categories. Deliberately chosen
+# to be perceptually distinct from the standard category colors above — which
+# cluster around navy, teal, grey, orange, wine and red — so a custom category
+# never renders as a shaded-out variant of a standard one (e.g. an "Asset"
+# category looking like a lighter "IH" teal). Assigned in order.
+_FALLBACK_PREDICTOR_CATEGORY_COLORS = [
+    "#2CA02C",  # green
+    "#9467BD",  # purple
+    "#FFC836",  # gold
+    "#E377C2",  # pink
+    "#8C564B",  # brown
+    "#BCBD22",  # olive
+    "#5F67B9",  # periwinkle
+]
+
+
+def _fallback_predictor_category_color(index: int) -> str:
+    """Return a distinct fallback color for the *index*-th custom category.
+
+    The first colors come from the curated
+    :data:`_FALLBACK_PREDICTOR_CATEGORY_COLORS` palette. Once that is
+    exhausted, additional colors are generated on the fly using golden-angle
+    hue rotation. This keeps the common case (a handful of categories) on the
+    hand-picked palette while imposing no hard limit on the number of custom
+    predictor categories — every category still gets its own distinct color.
+
+    Parameters
+    ----------
+    index : int
+        Zero-based position of the custom category among all custom
+        (non-standard) categories.
+
+    Returns
+    -------
+    str
+        A hex color string, e.g. ``"#2CA02C"``.
+    """
+    palette = _FALLBACK_PREDICTOR_CATEGORY_COLORS
+    if index < len(palette):
+        return palette[index]
+
+    # Golden-angle hue rotation spreads generated hues as evenly as possible,
+    # so consecutively-assigned colors stay visually distinct for any count.
+    golden_angle = 0.6180339887498949
+    hue = (0.11 + (index - len(palette) + 1) * golden_angle) % 1.0
+    r, g, b = colorsys.hsv_to_rgb(hue, 0.6, 0.8)
+    return f"#{round(r * 255):02X}{round(g * 255):02X}{round(b * 255):02X}"
 
 
 class ADMDatamart:
@@ -47,6 +107,7 @@ class ADMDatamart:
     - `.plot` contains ready-made plots to analyze the data with
     - `.aggregates` contains mostly internal data aggregations queries
     - `.agb` contains analysis utilities for Adaptive Gradient Boosting models
+    - `.analysis` contains programmatic health findings and diagnostics
     - `.generate` leads to some ready-made reports, such as the Health Check
     - `.bin_aggregator` allows you to compare the bins across various models
 
@@ -101,6 +162,8 @@ class ADMDatamart:
     plot: Plots
     aggregates: Aggregates
     agb: AGB
+    analysis: Analysis
+    """Programmatic health findings accessor."""
     generate: Reports
     bin_aggregator: BinAggregator
     first_action_dates: pl.LazyFrame | None
@@ -124,14 +187,17 @@ class ADMDatamart:
         self.plot = Plots(datamart=self)
         self.aggregates = Aggregates(datamart=self)
         self.agb = AGB(datamart=self)
+        self.analysis = Analysis(datamart=self)
         self.generate = Reports(datamart=self)
 
+        logger.info("Validating ADM model data.")
         model_data_validated = self._validate_model_data(
             model_df,
             extract_pyname_keys=extract_pyname_keys,
         )
 
         # First occurence of actions (before filtering!) kept here so we can derive the "New Actions"
+        logger.info("Preparing ADM first action dates.")
         self.first_action_dates = self._get_first_action_dates(model_data_validated)
 
         self.model_data = (
@@ -143,8 +209,10 @@ class ADMDatamart:
         # contain rows for ModelIDs no longer in the filtered model_data.
         # Downstream joins handle this; revisit if a stricter intersection
         # is needed.
+        logger.info("Validating ADM predictor data.")
         self.predictor_data = self._validate_predictor_data(predictor_df)
 
+        logger.info("Preparing combined ADM data.")
         self.combined_data = self.aggregates._combine_data(
             self.model_data,
             self.predictor_data,
@@ -549,14 +617,20 @@ class ADMDatamart:
         if extract_pyname_keys and "Name" in schema.names():
             df = cdh_utils._extract_keys(df)
 
+        missing_context_columns = [col for col in ("Channel", "Direction") if col not in schema.names()]
+        if missing_context_columns:
+            df = df.with_columns(pl.lit(None, dtype=pl.Categorical).alias(col) for col in missing_context_columns)
+            schema = df.collect_schema()
+
         if "Treatment" in schema.names():
             self.context_keys.append("Treatment")
 
         # Model technique (NaiveBayes or GradientBoost) added in '24 (US-648869 and related)
         if "ModelTechnique" not in schema.names():
             df = df.with_columns(
-                ModelTechnique=pl.lit(None),
+                ModelTechnique=pl.lit(None, dtype=pl.String),
             )
+            schema = df.collect_schema()
         self.context_keys = [k for k in self.context_keys if k in schema.names()]
 
         # Issue #667: AGB models emit an additional "totals" row per configuration
@@ -626,6 +700,15 @@ class ADMDatamart:
             df = self.apply_predictor_categorization(
                 df=df,
             )  # actual categorization not passed in?
+            if df is None:
+                raise ValueError("Predictor categorization returned no data.")
+        else:
+            df = df.with_columns(
+                PredictorCategory=pl.coalesce(
+                    "PredictorCategory",
+                    cdh_utils.default_predictor_categorization(),
+                ),
+            )
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
 
         return self._normalize_performance_scale(df)
@@ -635,12 +718,11 @@ class ADMDatamart:
         """Normalize Performance from Pega's 50-100 scale to 0.5-1.0 scale."""
         if "Performance" not in df.collect_schema().names():
             return df
-        perf_max = df.select(pl.col("Performance").max()).collect().item()
-        if perf_max is not None and perf_max > 1.0:
-            df = df.with_columns(
-                Performance=pl.col("Performance") / 100.0,
-            )
-        return df
+        return df.with_columns(
+            Performance=pl.when(pl.col("Performance").is_finite() & (pl.col("Performance") > 1.0))
+            .then(pl.col("Performance") / 100.0)
+            .otherwise(pl.col("Performance")),
+        )
 
     def apply_predictor_categorization(
         self,
@@ -669,7 +751,7 @@ class ADMDatamart:
             A Polars Expression (or method that returns one) that returns the
             predictor categories. Should be based on Polars' when.then.otherwise syntax.
             Alternatively can be a dictionary of categories to (list of) string matches
-            which can be either exact (the default) or regular expressions.
+            which can be either literal substring matches (the default) or regular expressions.
             By default, `pdstools.utils.cdh_utils.default_predictor_categorization` is used.
         use_regexp: bool, optional
             Treat the mapping patterns in the `categorization` dictionary as regular expressions
@@ -707,14 +789,24 @@ class ADMDatamart:
         def categorization_dict_to_polars_expr(categorization):
             # Dynamically constructing when/otherwise expression
             # see https://stackoverflow.com/questions/78818920/how-to-generate-when-then-constructs-in-polars-dynamically
-            expr = pl
+            expr: pl.Expr | None = None
             for key, values in categorization.items():
                 if not isinstance(values, list):
                     values = [values]
                 for value in values:
-                    expr = expr.when(
-                        pl.col("PredictorName").cast(pl.Utf8).str.contains(value, literal=not use_regexp, strict=False),
-                    ).then(pl.lit(key))
+                    condition = (
+                        pl.col("PredictorName")
+                        .cast(pl.Utf8)
+                        .str.contains(
+                            value,
+                            literal=not use_regexp,
+                            strict=False,
+                        )
+                    )
+                    branch = pl.when(condition).then(pl.lit(key))
+                    expr = branch.otherwise(expr if expr is not None else None)
+            if expr is None:
+                raise ValueError("Categorization mapping must contain at least one pattern.")
             return expr
 
         categorization_expr: pl.Expr | None = None
@@ -735,12 +827,18 @@ class ADMDatamart:
                     .unique()
                     .with_columns(NewPredictorCategory=categorization_expr)
                     .with_columns(
+                        DefaultPredictorCategory=cdh_utils.default_predictor_categorization().alias(
+                            "DefaultPredictorCategory",
+                        ),
+                    )
+                    .with_columns(
                         PredictorCategory=pl.coalesce(
                             "NewPredictorCategory",
                             "PredictorCategory",
+                            "DefaultPredictorCategory",
                         ),
                     )
-                    .drop("NewPredictorCategory")
+                    .drop("NewPredictorCategory", "DefaultPredictorCategory")
                 )
                 df = df.drop("PredictorCategory").join(
                     predictor_mapping,
@@ -763,6 +861,8 @@ class ADMDatamart:
             self.predictor_data = set_categories(self.predictor_data)
         if hasattr(self, "combined_data") and self.combined_data is not None:
             self.combined_data = set_categories(self.combined_data)
+        self.__dict__.pop("unique_predictor_categories", None)
+        self.__dict__.pop("predictor_category_color_map", None)
 
     def save_data(
         self,
@@ -889,10 +989,11 @@ class ADMDatamart:
     def predictor_category_color_map(self) -> dict[str, str]:
         """Stable color mapping for predictor categories across all plots.
 
-        Assigns a consistent color to each ``PredictorCategory`` value found
-        in the full dataset, using the Pega colorway and alphabetical ordering.
-        This prevents the same category from receiving different colors when
-        different subsets of categories appear in different chart partitions.
+        Assigns fixed colors to standard ``PredictorCategory`` values found in
+        the full dataset, and deterministic fallback colors to custom
+        categories. This prevents the same category from receiving different
+        colors when different subsets of categories appear in different chart
+        partitions.
 
         Returns
         -------
@@ -900,15 +1001,16 @@ class ADMDatamart:
             Mapping from category name to hex color, e.g.
             ``{"Customer": "#001F5F", "IH": "#10A5AC", ...}``.
         """
-        from ..utils.color_mapping import create_categorical_color_mappings
-        from ..utils.pega_template import colorway
+        color_map: dict[str, str] = {}
+        fallback_index = 0
+        for category in self.unique_predictor_categories:
+            if category in _STANDARD_PREDICTOR_CATEGORY_COLORS:
+                color_map[category] = _STANDARD_PREDICTOR_CATEGORY_COLORS[category]
+            else:
+                color_map[category] = _fallback_predictor_category_color(fallback_index)
+                fallback_index += 1
 
-        mappings = create_categorical_color_mappings(
-            self._require_predictor_data(),
-            ["PredictorCategory"],
-            colorway,
-        )
-        return mappings.get("PredictorCategory", {})
+        return color_map
 
     @cached_property
     def has_single_snapshot(self) -> bool:
@@ -1002,6 +1104,8 @@ class ADMDatamart:
     def active_ranges(
         self,
         model_ids: str | list[str] | None = None,
+        *,
+        confidence_level: float = 0.95,
     ) -> pl.LazyFrame:
         """Calculate the active, reachable bins in classifiers.
 
@@ -1017,11 +1121,26 @@ class ADMDatamart:
         This information can be used in the Health Check documents or when verifying the
         AUC numbers from the datamart.
 
+        AUC values and confidence-interval bounds are returned on the conventional
+        0-to-1 scale. The AUC point estimate uses ``safe_range_auc`` semantics:
+        values below 0.5 are reflected around 0.5 so the reported AUC stays in
+        the 0.5-to-1.0 range. The ``AUC_ActiveRange_CI_Safe_Lower`` and
+        ``AUC_ActiveRange_CI_Safe_Upper`` fields apply the same convention to the
+        interval bounds. To display the AUC and safe bounds on Pega's 50-to-100
+        scale, multiply them by 100. The raw ``AUC_ActiveRange_CI_Lower`` and
+        ``AUC_ActiveRange_CI_Upper`` fields remain the regular clipped interval
+        endpoints before that safe-range transform.
+        The confidence-interval variance is expressed on the corresponding squared
+        0-to-1 scale.
+
         Parameters
         ----------
         model_ids : Optional[Union[str, list[str]]], optional
             An optional list of model id's, or just a single one, to report on. When
             not given, the information is returned for all models.
+        confidence_level : float, default=0.95
+            Two-sided confidence level used to compute the active-range AUC
+            confidence interval.
 
         Returns
         -------
@@ -1035,6 +1154,13 @@ class ADMDatamart:
             - AUC_Datamart - The AUC value as reported in the datamart
             - AUC_FullRange - The AUC calculated from the full range of bins in the classifier
             - AUC_ActiveRange - The AUC calculated from only the active/reachable bins
+            - AUC_ActiveRange_CI_Variance - The variance of the active-range AUC estimate; null when unavailable
+            - AUC_ActiveRange_CI_Lower - Lower CI bound for active-range AUC
+            - AUC_ActiveRange_CI_Upper - Upper CI bound for active-range AUC
+            - AUC_ActiveRange_CI_Safe_Lower - Lower CI bound after applying Pega's safe AUC convention
+            - AUC_ActiveRange_CI_Safe_Upper - Upper CI bound after applying Pega's safe AUC convention
+            - AUC_ActiveRange_CI_Available - Whether CI could be estimated
+            - AUC_ActiveRange_CI_Reason - Unavailable reason when CI is missing
 
             Classifier Information:
             - Bins - The total number of bins in the classifier
@@ -1052,24 +1178,7 @@ class ADMDatamart:
             - idx_max - The maximum bin index that can be reached given the current binning of all predictors
 
         """
-        import numpy as np
-
-        def find_binindex(bounds, score):
-            if len(bounds) == 1:
-                return 0
-            # Polars has search_sorted but it seems it doesn't do
-            # the exact same thing as numpy searchsorted. We could
-            # also use python's native bisect but that seems slower.
-            return min(
-                max(1, np.searchsorted(bounds, score, side="right").item()),
-                len(bounds),
-            )
-
-        def auc_from_active_bins(pos, neg, idx_min, idx_max):
-            return cdh_utils.auc_from_bincounts(
-                pos[idx_min:idx_max],
-                neg[idx_min:idx_max],
-            )
+        cdh_utils.validate_confidence_level(confidence_level)
 
         if isinstance(model_ids, str):
             query = pl.col("ModelID") == model_ids
@@ -1095,84 +1204,145 @@ class ADMDatamart:
             allow_empty=True,
         )
 
-        classifier_info = (
+        scores = self._minMaxScoresPerModel(most_recent_binning_data)
+        classifier_bins = (
             most_recent_binning_data.filter(EntryType="Classifier")
-            .sort("BinIndex")
-            .group_by("ModelID", maintain_order=True)
-            .agg(
-                AUC_Datamart=pl.col("Performance").first(),
-                Bins=pl.len(),
-                classifierBounds=pl.col("BinLowerBound").cast(pl.Float64),
-                classifierPos=pl.col("BinPositives").cast(pl.Float64),
-                classifierNeg=pl.col("BinNegatives").cast(pl.Float64),
+            .select(
+                "ModelID",
+                "BinIndex",
+                AUC_Datamart=pl.col("Performance"),
+                _ClassifierBound=pl.col("BinLowerBound").cast(pl.Float64),
+                _ClassifierPositive=pl.col("BinPositives").cast(pl.Float64),
+                _ClassifierNegative=pl.col("BinNegatives").cast(pl.Float64),
+            )
+            .sort("ModelID", "BinIndex")
+            .join(scores, on="ModelID", how="left")
+            .with_columns(
+                Bins=pl.len().over("ModelID"),
+                _ValidBounds=pl.col("_ClassifierBound").is_not_null().sum().over("ModelID"),
+                _BinPosition=(pl.col("BinIndex").rank(method="ordinal").over("ModelID") - 1),
+                _MinInsertion=(
+                    pl.col("_ClassifierBound").is_not_null() & (pl.col("_ClassifierBound") <= pl.col("score_min"))
+                )
+                .sum()
+                .over("ModelID"),
+                _MaxInsertion=(
+                    pl.col("_ClassifierBound").is_not_null() & (pl.col("_ClassifierBound") <= pl.col("score_max"))
+                )
+                .sum()
+                .over("ModelID"),
+            )
+            .with_columns(
+                idx_min=pl.when(
+                    pl.col("score_min").is_null() | (pl.col("_ValidBounds") == 0),
+                )
+                .then(None)
+                .when(pl.col("_ValidBounds") == 1)
+                .then(-1)
+                .otherwise(
+                    pl.max_horizontal(
+                        1,
+                        pl.min_horizontal(
+                            "_MinInsertion",
+                            "_ValidBounds",
+                        ),
+                    )
+                    - 1,
+                )
+                .cast(pl.Int32),
+                idx_max=pl.when(
+                    pl.col("score_max").is_null() | (pl.col("_ValidBounds") == 0),
+                )
+                .then(None)
+                .when(pl.col("_ValidBounds") == 1)
+                .then(0)
+                .otherwise(
+                    pl.max_horizontal(
+                        1,
+                        pl.min_horizontal(
+                            "_MaxInsertion",
+                            "_ValidBounds",
+                        ),
+                    ),
+                )
+                .cast(pl.Int32),
             )
         )
 
-        scores = self._minMaxScoresPerModel(most_recent_binning_data)
+        classifier_info = classifier_bins.group_by("ModelID").agg(
+            AUC_Datamart=pl.col("AUC_Datamart").first(),
+            Bins=pl.col("Bins").first(),
+            nActivePredictors=pl.col("nActivePredictors").first(),
+            classifierLogOffset=pl.col("classifierLogOffset").first(),
+            sumMinLogOdds=pl.col("sumMinLogOdds").first(),
+            sumMaxLogOdds=pl.col("sumMaxLogOdds").first(),
+            score_min=pl.col("score_min").first(),
+            score_max=pl.col("score_max").first(),
+            idx_min=pl.col("idx_min").first(),
+            idx_max=pl.col("idx_max").first(),
+        )
+
+        full_range_auc = _auc_ci_from_binned_rows(
+            classifier_bins,
+            group_col="ModelID",
+            positive_col="_ClassifierPositive",
+            negative_col="_ClassifierNegative",
+            confidence_level=confidence_level,
+        ).select(
+            "ModelID",
+            AUC_FullRange=pl.col("AUC"),
+        )
+        active_range_auc = _auc_ci_from_binned_rows(
+            classifier_bins.filter(
+                (pl.col("_BinPosition") >= pl.col("idx_min")) & (pl.col("_BinPosition") < pl.col("idx_max")),
+            ),
+            group_col="ModelID",
+            positive_col="_ClassifierPositive",
+            negative_col="_ClassifierNegative",
+            confidence_level=confidence_level,
+        ).select(
+            "ModelID",
+            AUC_ActiveRange=pl.col("AUC"),
+            AUC_ActiveRange_CI_Variance=pl.col("AUC_CI_Variance"),
+            AUC_ActiveRange_CI_Lower=pl.col("AUC_CI_Lower"),
+            AUC_ActiveRange_CI_Upper=pl.col("AUC_CI_Upper"),
+            AUC_ActiveRange_CI_Safe_Lower=pl.col("AUC_CI_Safe_Lower"),
+            AUC_ActiveRange_CI_Safe_Upper=pl.col("AUC_CI_Safe_Upper"),
+            _ActivePositiveCount=pl.col("_PositiveCount"),
+            _ActiveNegativeCount=pl.col("_NegativeCount"),
+        )
 
         return (
-            classifier_info.join(scores, on="ModelID", how="left")
-            .with_columns(
-                AUC_FullRange=pl.map_groups(
-                    exprs=[
-                        pl.col("classifierPos").explode(),
-                        pl.col("classifierNeg").explode(),
-                    ],
-                    function=lambda data: cdh_utils.auc_from_bincounts(
-                        data[0],
-                        data[1],
-                    ),
-                    return_dtype=pl.Float64,
-                    returns_scalar=True,
-                ).over("ModelID"),
-                idx_min=(
-                    pl.map_groups(
-                        exprs=[
-                            pl.col("classifierBounds"),
-                            pl.col("score_min"),
-                        ],
-                        function=lambda data: find_binindex(
-                            data[0].to_list()[0],
-                            data[1].item(),
-                        ),
-                        return_dtype=pl.Int32,
-                        returns_scalar=True,
-                    )
-                    - 1
-                ).over("ModelID"),
-                idx_max=pl.map_groups(
-                    exprs=[
-                        pl.col("classifierBounds"),
-                        pl.col("score_max"),
-                    ],
-                    function=lambda data: find_binindex(
-                        data[0].to_list()[0],
-                        data[1].item(),
-                    ),
-                    return_dtype=pl.Int32,
-                    returns_scalar=True,
-                ).over("ModelID"),
+            classifier_info.join(
+                full_range_auc,
+                on="ModelID",
+                how="left",
+            )
+            .join(
+                active_range_auc,
+                on="ModelID",
+                how="left",
             )
             .with_columns(
-                AUC_ActiveRange=pl.map_groups(
-                    exprs=[
-                        pl.col("classifierPos"),
-                        pl.col("classifierNeg"),
-                        pl.col("idx_min"),
-                        pl.col("idx_max"),
-                    ],
-                    function=lambda data: auc_from_active_bins(
-                        data[0].to_list()[0],
-                        data[1].to_list()[0],
-                        data[2].item(),
-                        data[3].item(),
-                    ),
-                    return_dtype=pl.Float64,
-                    returns_scalar=True,
-                ).over("ModelID"),
+                AUC_ActiveRange_CI_Available=pl.col(
+                    "AUC_ActiveRange_CI_Variance",
+                ).is_not_null(),
+                AUC_ActiveRange_CI_Reason=pl.when(
+                    pl.col("idx_min").is_null() | pl.col("idx_max").is_null(),
+                )
+                .then(pl.lit("missing_score_range"))
+                .when(pl.col("AUC_ActiveRange").is_null())
+                .then(pl.lit("empty_active_range"))
+                .when(
+                    (pl.col("_ActivePositiveCount") <= 1) | (pl.col("_ActiveNegativeCount") <= 1),
+                )
+                .then(pl.lit("insufficient_class_volume"))
+                .when(pl.col("AUC_ActiveRange_CI_Variance").is_null())
+                .then(pl.lit("variance_unavailable"))
+                .otherwise(None),
             )
             .sort("ModelID")
-            .drop("classifierBounds", "classifierPos", "classifierNeg")
+            .drop("_ActivePositiveCount", "_ActiveNegativeCount")
             .select(cs.starts_with("AUC"), ~cs.starts_with("AUC"))
             .select("ModelID", ~cs.starts_with("ModelID"))
         )

@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import datetime
+from typing import TYPE_CHECKING, cast
 
 import polars as pl
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from polars._typing import PolarsTemporalType
@@ -23,7 +23,9 @@ def parse_pega_date_time_formats(
     - "%Y-%m-%d %H:%M:%S"
     - "%Y%m%dT%H%M%S.%f %Z"
     - "%d-%b-%y"
+    - "%d/%b/%y"
     - "%d%b%Y:%H:%M:%S"
+    - "%m/%d/%Y %I:%M %p"
     - "%Y%m%d"
 
     Removes timezones, and rounds to seconds, with a 'ns' time unit.
@@ -34,7 +36,7 @@ def parse_pega_date_time_formats(
 
     Parameters
     ----------
-    timestampCol: str, default = 'SnapshotTime'
+    timestamp_col: str, default = 'SnapshotTime'
         The column to parse
     timestamp_fmt: str, default = None
         An optional format to use rather than the default formats
@@ -61,10 +63,22 @@ def parse_pega_date_time_formats(
             strict=False,
             ambiguous="null",
         ),
+        pl.col(timestamp_col).str.strptime(
+            timestamp_dtype,
+            "%m/%d/%Y %I:%M %p",
+            strict=False,
+            ambiguous="null",
+        ),
         pl.col(timestamp_col).str.slice(0, 8).str.strptime(timestamp_dtype, "%Y%m%d", strict=False, ambiguous="null"),
         pl.col(timestamp_col).str.strptime(
             timestamp_dtype,
             "%d-%b-%y",
+            strict=False,
+            ambiguous="null",
+        ),
+        pl.col(timestamp_col).str.strptime(
+            timestamp_dtype,
+            "%d/%b/%y",
             strict=False,
             ambiguous="null",
         ),
@@ -96,6 +110,9 @@ def from_prpc_date_time(
     return_string: bool, default=False
         If True it will return the date in string format. If
         False it will return in datetime type
+    use_timezones: bool, default=True
+        Whether to honour the timezone suffix in the input string. When
+        False the timestamp is interpreted as naive local time.
 
     Returns
     -------
@@ -144,7 +161,7 @@ def to_prpc_date_time(dt: datetime.datetime) -> str:
 
     Parameters
     ----------
-    x: datetime.datetime
+    dt: datetime.datetime
         A datetime object
 
     Returns
@@ -188,12 +205,12 @@ def _get_start_end_date_args(
         )
     if not end_date:
         if window is None or start_date is None:
-            end_date = data_max_date
+            end_date = cast("datetime.datetime | None", data_max_date)
         else:
             end_date = start_date + window - datetime.timedelta(days=1)
     if not start_date:
         if window is None or end_date is None:
-            start_date = data_min_date
+            start_date = cast("datetime.datetime | None", data_min_date)
         else:
             start_date = end_date - window + datetime.timedelta(days=1)
 
