@@ -184,6 +184,32 @@ class ReportGenerator:
         return "-".join([v.replace(" ", "") for _, v in self._get_context_dict(context_info).items()])
 
     @staticmethod
+    def _safe_yaml_str(value: str) -> str:
+        """Serialise *value* to a YAML-safe scalar that is safe to embed in front matter.
+
+        ``yaml.dump`` produces a correctly quoted/escaped YAML scalar for any
+        string, including values containing newlines, colons, quotes, or other
+        metacharacters that would break the surrounding document structure if
+        inserted raw.  The trailing newline added by ``yaml.dump`` is stripped
+        so the result fits on a single front-matter line.
+        """
+        return yaml.dump(value, default_flow_style=True).rstrip("\n")
+
+    @staticmethod
+    def _safe_label(value: str) -> str:
+        """Return a filesystem- and Quarto-label-safe version of *value*.
+
+        Keeps only alphanumeric characters and hyphens, collapses runs of
+        invalid characters to a single hyphen, strips leading/trailing hyphens,
+        and caps the length to 128 characters to keep generated filenames
+        manageable.
+        """
+        import re
+
+        slug = re.sub(r"[^a-zA-Z0-9]+", "-", value).strip("-")[:128]
+        return slug or "context"
+
+    @staticmethod
     def _read_template(template_filename: str) -> str:
         """Read a template file and return its content.
 
@@ -216,7 +242,7 @@ class ReportGenerator:
             fw.write(
                 template.format(
                     EMBED_PATH_FOR_BATCH=embed_path_for_batch,
-                    CONTEXT_STR=context_str,
+                    CONTEXT_STR=self._safe_yaml_str(context_str),
                     CONTEXT_LABEL=context_label,
                     TOP_N=self.top_n,
                     SORT_BY_TEXT=self.sort_by_text,
@@ -290,7 +316,7 @@ class ReportGenerator:
 
             for context in batch_contexts:
                 context_str = self._get_context_string(context)
-                context_label = ("plt-" + context_str).lower()
+                context_label = self._safe_label(("plt-" + context_str).lower())
 
                 self._append_content_to_file(
                     filename=plots_for_batch_filepath,
