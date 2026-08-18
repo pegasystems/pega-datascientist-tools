@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import shutil
 from pathlib import Path
 from typing import cast
@@ -185,15 +186,14 @@ class ReportGenerator:
 
     @staticmethod
     def _safe_yaml_str(value: str) -> str:
-        """Serialise *value* to a YAML-safe scalar that is safe to embed in front matter.
+        """Serialise *value* to a YAML-safe double-quoted scalar for front matter.
 
-        ``yaml.dump`` produces a correctly quoted/escaped YAML scalar for any
-        string, including values containing newlines, colons, quotes, or other
-        metacharacters that would break the surrounding document structure if
-        inserted raw.  The trailing newline added by ``yaml.dump`` is stripped
-        so the result fits on a single front-matter line.
+        Always uses YAML double-quote style so the result is a single line with
+        all special characters (newlines, quotes, colons) escaped by the YAML
+        encoder. Safe to place directly after ``title:`` in a .qmd front matter
+        block without surrounding static quotes in the template.
         """
-        return yaml.dump(value, default_flow_style=True).rstrip("\n")
+        return yaml.dump(value, default_style='"').rstrip("\n")
 
     @staticmethod
     def _safe_label(value: str) -> str:
@@ -204,8 +204,6 @@ class ReportGenerator:
         and caps the length to 128 characters to keep generated filenames
         manageable.
         """
-        import re
-
         slug = re.sub(r"[^a-zA-Z0-9]+", "-", value).strip("-")[:128]
         return slug or "context"
 
@@ -278,7 +276,7 @@ class ReportGenerator:
             writer.write("\n")
             writer.write(
                 template.format(
-                    CONTEXT_DICT=context_dict,
+                    CONTEXT_DICT=json.dumps(context_dict),
                     CONTEXT_LABEL=context_label,
                     TOP_N=self.top_n,
                     TOP_K=self.top_k,
