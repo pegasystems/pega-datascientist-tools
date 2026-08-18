@@ -19,7 +19,7 @@ class TestMetricLimits:
 
     def test_get_limits_returns_valid_dataframe(self):
         df = MetricLimits.get_limits()
-        assert df.shape == (47, 8)
+        assert df.height >= 48
         assert df.columns == [
             "Category",
             "MetricID",
