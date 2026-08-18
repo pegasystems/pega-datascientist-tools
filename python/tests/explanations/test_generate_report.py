@@ -160,9 +160,7 @@ def test_hostile_context_dict_in_generated_qmd(tmp_path, monkeypatch):
     data_dir.mkdir()
 
     hostile = '}, os.system("rm -rf /"), {'
-    contexts = {
-        "0": [json.dumps({"partition": {"pyChannel": hostile}})]
-    }
+    contexts = {"0": [json.dumps({"partition": {"pyChannel": hostile}})]}
     (data_dir / "unique_contexts.json").write_text(json.dumps(contexts), encoding="utf-8")
 
     generator = ReportGenerator()
@@ -173,7 +171,6 @@ def test_hostile_context_dict_in_generated_qmd(tmp_path, monkeypatch):
 
     batch_qmd = (tmp_path / "by-model-context" / "plots_for_batch_0.qmd").read_text()
     assert "os.system" not in batch_qmd or (
-        '"}, os.system(\\"rm -rf /\\"), {"' in batch_qmd
-        or "os.system" in json.dumps(hostile)
+        '"}, os.system(\\"rm -rf /\\"), {"' in batch_qmd or "os.system" in json.dumps(hostile)
     )
     assert batch_qmd.count("{") == batch_qmd.count("}")
