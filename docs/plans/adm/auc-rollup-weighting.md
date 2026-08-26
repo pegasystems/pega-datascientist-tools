@@ -230,7 +230,9 @@ standalone NB model or a correlated segment of a shared AGB model.
 
 A genuine fix (an AGB-aware active-range/CI computation, or a different
 variance model that accounts for shared model-fit uncertainty across
-segments) is out of scope for this plan — noted as a follow-up.
+segments) is out of scope for this plan — see the
+[PR #948](https://github.com/pegasystems/pega-datascientist-tools/pull/948)
+follow-up below, which addresses this at the `active_ranges()` level.
 
 Restricting either weighting to models with `Positives > 0`
 (`*_PositivesOnly` columns) made no measurable difference in this data —
@@ -391,10 +393,35 @@ full customer-corpus run, check:
   and its agreement validation can be extended to AGB configurations,
   not just NB. [PR #947](https://github.com/pegasystems/pega-datascientist-tools/pull/947)
   fixed duplicate-row inflation in the existing calculation, but
-  `active_ranges()` still derives reachable scores by summing
+  `active_ranges()` still derived reachable scores by summing
   predictor-bin log odds, which is specific to Naive Bayes and does not
   represent an AGB tree ensemble. The grouped DeLong helper itself can
-  operate on valid classifier-bin counts, but it does not account for
+  operate on valid classifier-bin counts, but it did not account for
   shared model-fit uncertainty across an AGB model's issue/group/action
-  segments. Enabling validated AGB confidence intervals requires a
-  separate design and implementation.
+  segments.
+
+  [PR #948](https://github.com/pegasystems/pega-datascientist-tools/pull/948)
+  (about to be merged) addresses this properly: it derives AGB active
+  ranges from occupied classifier bins instead of the NB log-odds
+  reconstruction, and pools classifier-bin counts by `Configuration` so
+  segments sharing one fitted ensemble get a single grouped DeLong
+  interval instead of independent-looking per-segment ones. It adds
+  `AUC_ActiveRange_CI_Estimate` (the pooled interval's center),
+  `AUC_ActiveRange_CI_Scope`, and
+  `AUC_ActiveRange_CI_IncludesModelFitUncertainty` (explicitly `False` —
+  the interval quantifies validation-sample uncertainty conditional on
+  the exported fitted ensemble, not model-fit uncertainty, which can't be
+  identified from a single datamart export), while `AUC_ActiveRange`
+  keeps returning the segment-level AUC for diagnostics.
+
+  Once merged, `compute_auc_rollup_comparison` needs a follow-up change of
+  its own: it currently treats every `ModelID` row's
+  `AUC_ActiveRange_CI_Variance` as an independent estimate and
+  re-pools them per `Configuration` via
+  `weighted_auc_ci_from_estimates`. For AGB, that variance will now
+  already be the *pooled configuration-level* value repeated across every
+  segment row — re-pooling it again would double-count the same evidence
+  and understate the resulting uncertainty. The script should detect
+  already-pooled AGB rows (e.g. via `AUC_ActiveRange_CI_Scope`) and use
+  `AUC_ActiveRange_CI_Estimate`/its variance directly per `Configuration`
+  instead of running inverse-variance pooling across those rows again.
