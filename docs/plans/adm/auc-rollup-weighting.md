@@ -363,10 +363,6 @@ NaiveBayes model rows with a usable CI):
 `CI_Width ≈ 2.52 / sqrt(Positives)` (0-1 AUC scale), i.e.
 `CI_Width ≈ 252 / sqrt(Positives)` on Pega's 50-100 points scale.
 
-This replaces an earlier rule of thumb of `3.79 / sqrt(Positives)` with a
-constant fit directly from this codebase's DeLong CI computation. Same
-`1/sqrt(Positives)` functional form as before, just an updated constant.
-
 ## Follow-ups (not implemented in this plan)
 
 - Design a CI-width- or `Positives`-derived maturity metric to replace/
