@@ -178,6 +178,7 @@ Agreement with the DeLong reference, on the 0-1 AUC scale:
 | Naive mean | -0.078 | 0.091 | 0.122 | 0.61 | 0.40 |
 | **Current**: ResponseCount-weighted | -0.027 | 0.052 | 0.088 | 0.71 | 0.65 |
 | **Proposed**: PosNeg-weighted | -0.006 | 0.036 | 0.059 | 0.87 | 0.86 |
+| Positives-only-weighted | -0.014 | 0.033 | 0.057 | 0.89 | 0.86 |
 
 Plain Pearson r is misleading for this comparison (two methods can
 correlate highly while being systematically offset), so Bias/MAE/RMSE and
@@ -187,6 +188,20 @@ Negatives` weighting roughly halves the error against the DeLong
 reference compared to the current `ResponseCount` weighting** (MAE 0.036
 vs. 0.052; CCC 0.86 vs. 0.65), and is a feasible drop-in replacement that
 needs no classifier/predictor bin data.
+
+**Update from a later full-corpus run (with `AUC_Weighted_Positives`
+added):** plain `Positives` weighting matches `PosNeg` weighting almost
+exactly (MAE 0.033 vs. 0.036, CCC 0.86 vs. 0.86 — Positives-only is
+marginally tighter on MAE/RMSE, `PosNeg` has a smaller Bias magnitude).
+This confirms the imbalance-driven prediction above: since
+`Negatives >> Positives` in this data, `Var(AUC) ~= (Q2 - AUC^2) / n_pos`
+means the variance-optimal weight is governed almost entirely by
+`Positives`, and multiplying by `Negatives` on top (as `PosNeg` does)
+adds little further discriminative value between models. Either `PosNeg`
+or plain `Positives` weighting is a solid, feasible-to-implement upgrade
+over the current `ResponseCount` weighting; the choice between the two
+comes down to preference for a simpler formula (`Positives` alone) versus
+one that degrades gracefully if the imbalance ratio varies (`PosNeg`).
 
 ### Caveat: the DeLong reference is currently NB-only, and pooling assumptions differ by technique
 
@@ -373,12 +388,6 @@ full customer-corpus run, check:
 
 ## Follow-ups (not implemented in this plan)
 
-- Empirically validate `AUC_Weighted_Positives` against the DeLong
-  reference on a fresh full private-customer-corpus run (the Conclusions
-  section above reflects a run from before this column existed). Expect
-  it to track DeLong at least as well as `AUC_Weighted_PosNeg` given the
-  observed ~100x class imbalance; update the Conclusions table once
-  confirmed.
 - Design a CI-width- or `Positives`-derived maturity metric to replace/
   complement the `Positives > 200` heuristic in
   `Analysis.health_check_maturity_criteria` and `Aggregates.py`. This
