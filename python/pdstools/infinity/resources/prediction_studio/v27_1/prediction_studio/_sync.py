@@ -5,6 +5,7 @@ from typing import Literal, overload, TYPE_CHECKING
 
 from .....internal._exceptions import NoMonitoringExportError, PegaException
 from .....internal._pagination import PaginatedList
+from .....internal._resource import api_method
 from ...base import Notification
 from ...v24_1 import PredictionStudio as PredictionStudioPrevious
 from ..datamart_export import DatamartExport
@@ -21,8 +22,14 @@ if TYPE_CHECKING:
 class PredictionStudio(_PredictionStudiov27_1Mixin, PredictionStudioPrevious):
     version: str = "27.1"
 
-    def repository(self) -> Repository:
+    @api_method
+    async def repository(self) -> Repository:
         """Gets information about the repository from Prediction Studio.
+
+        The repository name is read from the Prediction Studio settings, which
+        as of v5 replaces the removed ``predictions/repository`` endpoint. The
+        settings payload does not carry the repository type, bucket name, root
+        path or datamart export location, so those are reported as ``None``.
 
         Returns
         -------
@@ -30,15 +37,15 @@ class PredictionStudio(_PredictionStudiov27_1Mixin, PredictionStudioPrevious):
             A simple object with the repository's details, ready to use.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v5/predictions/repository"
-        response = self._client.get(endpoint)
+        general_settings = await self._a_general_settings()
+        storage = general_settings.get("storage") or {}
         return Repository(
             client=self._client,
-            repository_name=response["repositoryName"],
-            type=response["repositoryType"],
-            bucket_name=response["bucketName"],
-            root_path=response["rootPath"],
-            datamart_export_location=response["datamartExportLocation"],
+            repository_name=storage.get("value"),
+            type=None,
+            bucket_name=None,
+            root_path=None,
+            datamart_export_location=None,
         )
 
     @property
