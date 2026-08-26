@@ -1109,10 +1109,10 @@ class ADMDatamart:
     ) -> pl.LazyFrame:
         """Calculate the active, reachable bins in classifiers.
 
-        The classifiers exported by Pega contain (in certain product versions) more than
-        the bins that can be reached given the current state of the predictors. This method
-        first calculates the min and max score range from the predictor log odds, then maps
-        that to the interval boundaries of the classifier(s) to find the min and max index.
+        For Naive Bayes models, this method calculates the minimum and maximum
+        score from predictor-bin log odds and maps that interval to the classifier
+        bins. For AGB models, predictor-bin log odds do not represent the tree
+        ensemble, so the active range spans the occupied classifier bins instead.
 
         It returns a LazyFrame with the score min/max, the min/max index, as well as the
         AUC as reported in the datamart data, when calculated from the full range, and when
@@ -1132,6 +1132,13 @@ class ADMDatamart:
         endpoints before that safe-range transform.
         The confidence-interval variance is expressed on the corresponding squared
         0-to-1 scale.
+
+        Naive Bayes intervals are computed per model. AGB configurations share one
+        fitted tree ensemble across issue, group, and action segments, so their
+        occupied classifier-bin counts are pooled by configuration and a single
+        conditional interval is attached to each segment. This interval quantifies
+        validation-sample uncertainty conditional on the exported fitted ensemble;
+        a single export cannot identify model-fit uncertainty.
 
         Parameters
         ----------
@@ -1154,6 +1161,7 @@ class ADMDatamart:
             - AUC_Datamart - The AUC value as reported in the datamart
             - AUC_FullRange - The AUC calculated from the full range of bins in the classifier
             - AUC_ActiveRange - The AUC calculated from only the active/reachable bins
+            - AUC_ActiveRange_CI_Estimate - The AUC estimate at the CI scope
             - AUC_ActiveRange_CI_Variance - The variance of the active-range AUC estimate; null when unavailable
             - AUC_ActiveRange_CI_Lower - Lower CI bound for active-range AUC
             - AUC_ActiveRange_CI_Upper - Upper CI bound for active-range AUC
@@ -1161,6 +1169,8 @@ class ADMDatamart:
             - AUC_ActiveRange_CI_Safe_Upper - Upper CI bound after applying Pega's safe AUC convention
             - AUC_ActiveRange_CI_Available - Whether CI could be estimated
             - AUC_ActiveRange_CI_Reason - Unavailable reason when CI is missing
+            - AUC_ActiveRange_CI_Scope - ``model`` for Naive Bayes or ``configuration`` for AGB
+            - AUC_ActiveRange_CI_IncludesModelFitUncertainty - Always false for exported classifier-bin intervals
 
             Classifier Information:
             - Bins - The total number of bins in the classifier
@@ -1204,8 +1214,33 @@ class ADMDatamart:
             allow_empty=True,
         )
 
-        scores = self._minMaxScoresPerModel(most_recent_binning_data)
-        classifier_bins = (
+        if self.model_data is None:
+            model_metadata = pl.LazyFrame(
+                schema={
+                    "ModelID": pl.String,
+                    "Configuration": pl.String,
+                    "ModelTechnique": pl.String,
+                },
+            )
+        else:
+            model_metadata = (
+                self.model_data.sort("SnapshotTime")
+                .group_by("ModelID")
+                .agg(
+                    pl.col("Configuration").cast(pl.String).last(),
+                    pl.col("ModelTechnique").last(),
+                )
+            )
+        agb_model_ids = model_metadata.filter(pl.col("ModelTechnique") == "GradientBoost").select("ModelID")
+        scores = self._minMaxScoresPerModel(
+            most_recent_binning_data.join(
+                agb_model_ids,
+                on="ModelID",
+                how="anti",
+            ),
+        )
+
+        classifier_rows = (
             most_recent_binning_data.filter(EntryType="Classifier")
             .select(
                 "ModelID",
@@ -1216,7 +1251,33 @@ class ADMDatamart:
                 _ClassifierNegative=pl.col("BinNegatives").cast(pl.Float64),
             )
             .sort("ModelID", "BinIndex")
-            .join(scores, on="ModelID", how="left")
+            .join(model_metadata, on="ModelID", how="left", maintain_order="left")
+            .join(scores, on="ModelID", how="left", maintain_order="left")
+            .with_columns(
+                _IsAGB=(pl.col("ModelTechnique") == "GradientBoost").fill_null(False),
+            )
+        )
+        agb_classifier_rows = classifier_rows.filter(pl.col("_IsAGB")).unique(
+            subset=[
+                "ModelID",
+                "AUC_Datamart",
+                "_ClassifierBound",
+                "_ClassifierPositive",
+                "_ClassifierNegative",
+                "Configuration",
+                "ModelTechnique",
+            ],
+            keep="first",
+            maintain_order=True,
+        )
+        classifier_bins = (
+            pl.concat(
+                [
+                    classifier_rows.filter(~pl.col("_IsAGB")),
+                    agb_classifier_rows,
+                ],
+            )
+            .sort("ModelID", "BinIndex")
             .with_columns(
                 Bins=pl.len().over("ModelID"),
                 _ValidBounds=pl.col("_ClassifierBound").is_not_null().sum().over("ModelID"),
@@ -1231,9 +1292,16 @@ class ADMDatamart:
                 )
                 .sum()
                 .over("ModelID"),
+                _Occupied=(pl.col("_ClassifierPositive") + pl.col("_ClassifierNegative")) > 0,
             )
             .with_columns(
-                idx_min=pl.when(
+                _OccupiedMin=pl.col("_BinPosition").filter(pl.col("_Occupied")).min().over("ModelID"),
+                _OccupiedMax=pl.col("_BinPosition").filter(pl.col("_Occupied")).max().over("ModelID") + 1,
+            )
+            .with_columns(
+                idx_min=pl.when(pl.col("_IsAGB"))
+                .then(pl.col("_OccupiedMin"))
+                .when(
                     pl.col("score_min").is_null() | (pl.col("_ValidBounds") == 0),
                 )
                 .then(None)
@@ -1250,7 +1318,9 @@ class ADMDatamart:
                     - 1,
                 )
                 .cast(pl.Int32),
-                idx_max=pl.when(
+                idx_max=pl.when(pl.col("_IsAGB"))
+                .then(pl.col("_OccupiedMax"))
+                .when(
                     pl.col("score_max").is_null() | (pl.col("_ValidBounds") == 0),
                 )
                 .then(None)
@@ -1267,19 +1337,30 @@ class ADMDatamart:
                 )
                 .cast(pl.Int32),
             )
+            .with_columns(
+                _CIScopeKey=pl.when(pl.col("_IsAGB"))
+                .then(pl.coalesce("Configuration", "ModelID"))
+                .otherwise(pl.col("ModelID")),
+            )
         )
 
         classifier_info = classifier_bins.group_by("ModelID").agg(
             AUC_Datamart=pl.col("AUC_Datamart").first(),
+            Configuration=pl.col("Configuration").first(),
+            ModelTechnique=pl.col("ModelTechnique").first(),
             Bins=pl.col("Bins").first(),
             nActivePredictors=pl.col("nActivePredictors").first(),
-            classifierLogOffset=pl.col("classifierLogOffset").first(),
-            sumMinLogOdds=pl.col("sumMinLogOdds").first(),
-            sumMaxLogOdds=pl.col("sumMaxLogOdds").first(),
-            score_min=pl.col("score_min").first(),
-            score_max=pl.col("score_max").first(),
+            classifierLogOffset=pl.when(pl.col("_IsAGB").first())
+            .then(None)
+            .otherwise(pl.col("classifierLogOffset").first()),
+            sumMinLogOdds=pl.when(pl.col("_IsAGB").first()).then(None).otherwise(pl.col("sumMinLogOdds").first()),
+            sumMaxLogOdds=pl.when(pl.col("_IsAGB").first()).then(None).otherwise(pl.col("sumMaxLogOdds").first()),
+            score_min=pl.when(pl.col("_IsAGB").first()).then(None).otherwise(pl.col("score_min").first()),
+            score_max=pl.when(pl.col("_IsAGB").first()).then(None).otherwise(pl.col("score_max").first()),
             idx_min=pl.col("idx_min").first(),
             idx_max=pl.col("idx_max").first(),
+            _IsAGB=pl.col("_IsAGB").first(),
+            _CIScopeKey=pl.col("_CIScopeKey").first(),
         )
 
         full_range_auc = _auc_ci_from_binned_rows(
@@ -1292,10 +1373,11 @@ class ADMDatamart:
             "ModelID",
             AUC_FullRange=pl.col("AUC"),
         )
+        active_classifier_bins = classifier_bins.filter(
+            (pl.col("_BinPosition") >= pl.col("idx_min")) & (pl.col("_BinPosition") < pl.col("idx_max")),
+        )
         active_range_auc = _auc_ci_from_binned_rows(
-            classifier_bins.filter(
-                (pl.col("_BinPosition") >= pl.col("idx_min")) & (pl.col("_BinPosition") < pl.col("idx_max")),
-            ),
+            active_classifier_bins,
             group_col="ModelID",
             positive_col="_ClassifierPositive",
             negative_col="_ClassifierNegative",
@@ -1303,13 +1385,39 @@ class ADMDatamart:
         ).select(
             "ModelID",
             AUC_ActiveRange=pl.col("AUC"),
+            _ActivePositiveCount=pl.col("_PositiveCount"),
+            _ActiveNegativeCount=pl.col("_NegativeCount"),
+        )
+        agb_ci_bins = (
+            active_classifier_bins.filter(pl.col("_IsAGB"))
+            .group_by("_CIScopeKey", "_ClassifierBound")
+            .agg(
+                pl.col("_ClassifierPositive").sum(),
+                pl.col("_ClassifierNegative").sum(),
+            )
+        )
+        non_agb_ci_bins = active_classifier_bins.filter(~pl.col("_IsAGB")).select(
+            "_CIScopeKey",
+            "_ClassifierBound",
+            "_ClassifierPositive",
+            "_ClassifierNegative",
+        )
+        scoped_active_range_ci = _auc_ci_from_binned_rows(
+            pl.concat([non_agb_ci_bins, agb_ci_bins]),
+            group_col="_CIScopeKey",
+            positive_col="_ClassifierPositive",
+            negative_col="_ClassifierNegative",
+            confidence_level=confidence_level,
+        ).select(
+            "_CIScopeKey",
+            AUC_ActiveRange_CI_Estimate=pl.col("AUC"),
             AUC_ActiveRange_CI_Variance=pl.col("AUC_CI_Variance"),
             AUC_ActiveRange_CI_Lower=pl.col("AUC_CI_Lower"),
             AUC_ActiveRange_CI_Upper=pl.col("AUC_CI_Upper"),
             AUC_ActiveRange_CI_Safe_Lower=pl.col("AUC_CI_Safe_Lower"),
             AUC_ActiveRange_CI_Safe_Upper=pl.col("AUC_CI_Safe_Upper"),
-            _ActivePositiveCount=pl.col("_PositiveCount"),
-            _ActiveNegativeCount=pl.col("_NegativeCount"),
+            _CIPositiveCount=pl.col("_PositiveCount"),
+            _CINegativeCount=pl.col("_NegativeCount"),
         )
 
         return (
@@ -1323,18 +1431,31 @@ class ADMDatamart:
                 on="ModelID",
                 how="left",
             )
+            .join(
+                scoped_active_range_ci,
+                on="_CIScopeKey",
+                how="left",
+            )
             .with_columns(
+                AUC_ActiveRange_CI_Scope=pl.when(pl.col("_IsAGB"))
+                .then(pl.lit("configuration"))
+                .otherwise(pl.lit("model")),
+                AUC_ActiveRange_CI_IncludesModelFitUncertainty=pl.lit(False),
                 AUC_ActiveRange_CI_Available=pl.col(
                     "AUC_ActiveRange_CI_Variance",
                 ).is_not_null(),
                 AUC_ActiveRange_CI_Reason=pl.when(
+                    pl.col("_IsAGB") & (pl.col("idx_min").is_null() | pl.col("idx_max").is_null()),
+                )
+                .then(pl.lit("empty_active_range"))
+                .when(
                     pl.col("idx_min").is_null() | pl.col("idx_max").is_null(),
                 )
                 .then(pl.lit("missing_score_range"))
                 .when(pl.col("AUC_ActiveRange").is_null())
                 .then(pl.lit("empty_active_range"))
                 .when(
-                    (pl.col("_ActivePositiveCount") <= 1) | (pl.col("_ActiveNegativeCount") <= 1),
+                    (pl.col("_CIPositiveCount") <= 1) | (pl.col("_CINegativeCount") <= 1),
                 )
                 .then(pl.lit("insufficient_class_volume"))
                 .when(pl.col("AUC_ActiveRange_CI_Variance").is_null())
@@ -1342,7 +1463,14 @@ class ADMDatamart:
                 .otherwise(None),
             )
             .sort("ModelID")
-            .drop("_ActivePositiveCount", "_ActiveNegativeCount")
+            .drop(
+                "_ActivePositiveCount",
+                "_ActiveNegativeCount",
+                "_CIPositiveCount",
+                "_CINegativeCount",
+                "_IsAGB",
+                "_CIScopeKey",
+            )
             .select(cs.starts_with("AUC"), ~cs.starts_with("AUC"))
             .select("ModelID", ~cs.starts_with("ModelID"))
         )

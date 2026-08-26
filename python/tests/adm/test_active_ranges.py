@@ -30,6 +30,7 @@ def test_active_ranges_basic(sample):
         "AUC_Datamart",
         "AUC_FullRange",
         "AUC_ActiveRange",
+        "AUC_ActiveRange_CI_Estimate",
         "AUC_ActiveRange_CI_Variance",
         "AUC_ActiveRange_CI_Lower",
         "AUC_ActiveRange_CI_Upper",
@@ -37,6 +38,8 @@ def test_active_ranges_basic(sample):
         "AUC_ActiveRange_CI_Safe_Upper",
         "AUC_ActiveRange_CI_Available",
         "AUC_ActiveRange_CI_Reason",
+        "AUC_ActiveRange_CI_Scope",
+        "AUC_ActiveRange_CI_IncludesModelFitUncertainty",
         "Bins",
         "nActivePredictors",
         "classifierLogOffset",
@@ -230,3 +233,138 @@ def test_active_ranges_missing_score_range_returns_unavailable_ci(sample, monkey
     assert result["AUC_ActiveRange"].item() is None
     assert result["AUC_ActiveRange_CI_Available"].item() is False
     assert result["AUC_ActiveRange_CI_Reason"].item() == "missing_score_range"
+
+
+def _agb_datamart(sample, *, duplicate_classifier_rows=False):
+    model_ids = (
+        sample._require_model_data()
+        .filter(pl.col("Configuration") == "OmniAdaptiveModel")
+        .select("ModelID")
+        .unique()
+        .collect()["ModelID"]
+        .to_list()
+    )
+    model_data = sample._require_model_data().with_columns(
+        ModelTechnique=pl.when(pl.col("ModelID").is_in(model_ids))
+        .then(pl.lit("GradientBoost"))
+        .otherwise(pl.col("ModelTechnique")),
+    )
+    predictor_data = sample._require_predictor_data().with_columns(
+        BinPositives=pl.when(
+            pl.col("ModelID").is_in(model_ids)
+            & (pl.col("EntryType") == "Classifier")
+            & (
+                pl.col("BinIndex")
+                == pl.col("BinIndex").filter(pl.col("EntryType") == "Classifier").min().over("ModelID")
+            ),
+        )
+        .then(0.0)
+        .otherwise(pl.col("BinPositives")),
+        BinNegatives=pl.when(
+            pl.col("ModelID").is_in(model_ids)
+            & (pl.col("EntryType") == "Classifier")
+            & (
+                pl.col("BinIndex")
+                == pl.col("BinIndex").filter(pl.col("EntryType") == "Classifier").min().over("ModelID")
+            ),
+        )
+        .then(0.0)
+        .otherwise(pl.col("BinNegatives")),
+    )
+    if duplicate_classifier_rows:
+        duplicates = predictor_data.filter(
+            pl.col("ModelID").is_in(model_ids),
+            pl.col("EntryType") == "Classifier",
+        ).with_columns(BinIndex=pl.col("BinIndex") + 100)
+        predictor_data = pl.concat([predictor_data, duplicates])
+
+    return (
+        ADMDatamart(
+            model_df=model_data,
+            predictor_df=predictor_data,
+            extract_pyname_keys=False,
+        ),
+        model_ids,
+    )
+
+
+def test_active_ranges_uses_occupied_bins_and_configuration_ci_for_agb(sample, monkeypatch):
+    """Pool AGB validation counts without applying Naive Bayes score math."""
+    datamart, model_ids = _agb_datamart(sample)
+    original_min_max_scores = ADMDatamart._minMaxScoresPerModel
+
+    def assert_agb_excluded(cls, data):
+        assert data.select("ModelID").unique().collect().height == 0
+        return original_min_max_scores(data)
+
+    monkeypatch.setattr(
+        ADMDatamart,
+        "_minMaxScoresPerModel",
+        classmethod(assert_agb_excluded),
+    )
+
+    result = datamart.active_ranges(model_ids).collect().sort("ModelID")
+    pooled_bins = (
+        datamart._require_predictor_data()
+        .filter(
+            pl.col("ModelID").is_in(model_ids),
+            pl.col("EntryType") == "Classifier",
+            (pl.col("BinPositives") + pl.col("BinNegatives")) > 0,
+        )
+        .group_by("BinLowerBound")
+        .agg(
+            pl.col("BinPositives").sum(),
+            pl.col("BinNegatives").sum(),
+        )
+        .collect()
+    )
+    expected_ci = cdh_utils.auc_ci_from_bincounts(
+        pooled_bins["BinPositives"],
+        pooled_bins["BinNegatives"],
+    )
+
+    assert result["idx_min"].to_list() == [1, 1]
+    assert result["score_min"].to_list() == [None, None]
+    assert result["score_max"].to_list() == [None, None]
+    assert result["AUC_ActiveRange_CI_Scope"].to_list() == ["configuration", "configuration"]
+    assert result["AUC_ActiveRange_CI_IncludesModelFitUncertainty"].to_list() == [False, False]
+    assert result["AUC_ActiveRange_CI_Estimate"].to_list() == pytest.approx([expected_ci["auc"]] * 2)
+    assert result["AUC_ActiveRange_CI_Variance"].to_list() == pytest.approx([expected_ci["variance"]] * 2)
+    assert result["AUC_ActiveRange_CI_Lower"].to_list() == pytest.approx([expected_ci["ci_lower"]] * 2)
+    assert result["AUC_ActiveRange_CI_Upper"].to_list() == pytest.approx([expected_ci["ci_upper"]] * 2)
+
+
+def test_active_ranges_ignores_malformed_duplicate_agb_classifier_rows(sample):
+    """Keep AGB occupied ranges and pooled intervals invariant to duplicate bins."""
+    baseline, model_ids = _agb_datamart(sample)
+    duplicated, _ = _agb_datamart(sample, duplicate_classifier_rows=True)
+
+    assert_frame_equal(
+        duplicated.active_ranges(model_ids).collect().sort("ModelID"),
+        baseline.active_ranges(model_ids).collect().sort("ModelID"),
+        check_row_order=True,
+        check_column_order=True,
+    )
+
+
+def test_active_ranges_uses_pooled_agb_volume_for_ci_availability(sample):
+    """Keep availability and reason consistent with configuration-level counts."""
+    datamart, model_ids = _agb_datamart(sample)
+    starved_model = model_ids[0]
+    datamart.predictor_data = datamart._require_predictor_data().with_columns(
+        BinPositives=pl.when(
+            (pl.col("ModelID") == starved_model) & (pl.col("EntryType") == "Classifier") & (pl.col("BinPositives") > 0),
+        )
+        .then(1.0 / pl.col("BinPositives").count().over("ModelID"))
+        .otherwise(pl.col("BinPositives")),
+        BinNegatives=pl.when(
+            (pl.col("ModelID") == starved_model) & (pl.col("EntryType") == "Classifier") & (pl.col("BinNegatives") > 0),
+        )
+        .then(1.0 / pl.col("BinNegatives").count().over("ModelID"))
+        .otherwise(pl.col("BinNegatives")),
+    )
+
+    result = datamart.active_ranges(model_ids).collect()
+
+    assert result["AUC_ActiveRange_CI_Available"].to_list() == [True, True]
+    assert result["AUC_ActiveRange_CI_Reason"].to_list() == [None, None]
