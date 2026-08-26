@@ -1204,6 +1204,36 @@ class ADMDatamart:
             allow_empty=True,
         )
 
+        if self.model_data is not None:
+            agb_model_ids = (
+                self.model_data.filter(pl.col("ModelTechnique") == "GradientBoost").select("ModelID").unique()
+            )
+            bin_columns = most_recent_binning_data.collect_schema().names()
+            deduplication_columns = [column for column in bin_columns if column != "BinIndex"]
+            agb_binning_data = (
+                most_recent_binning_data.join(
+                    agb_model_ids,
+                    on="ModelID",
+                    how="semi",
+                )
+                .sort("BinIndex")
+                .unique(
+                    subset=deduplication_columns,
+                    keep="first",
+                    maintain_order=True,
+                )
+            )
+            most_recent_binning_data = pl.concat(
+                [
+                    most_recent_binning_data.join(
+                        agb_model_ids,
+                        on="ModelID",
+                        how="anti",
+                    ),
+                    agb_binning_data,
+                ],
+            )
+
         scores = self._minMaxScoresPerModel(most_recent_binning_data)
         classifier_bins = (
             most_recent_binning_data.filter(EntryType="Classifier")
