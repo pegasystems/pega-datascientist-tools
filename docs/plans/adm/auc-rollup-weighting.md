@@ -1,11 +1,6 @@
 # AUC roll-up weighting: statistical comparison of aggregation methods
 
-Priority: P2
-
-Files touched: `scripts/batch_healthcheck.py`,
-`python/tests/healthcheck/test_batch_healthcheck.py`, possibly
-`python/pdstools/utils/cdh_utils/_metrics.py` (no new library API
-expected — existing functions are sufficient, see below).
+Review various weighting techniques for roll up of AUC for both NB and AGB. No functional changes in scope, just reporting in the batch run over client data.
 
 ## Problem
 
@@ -90,7 +85,7 @@ the `Positives * Negatives` vs. `Positives + Negatives` weighting itself.
 
 ## Proposed approach
 
-### Phase 1 — implement the five-way comparison in `batch_healthcheck.py`
+### Phase 1 (done) — implement the five-way comparison in `batch_healthcheck.py`
 
 Add a new analysis step to `process_dataset()`, alongside the existing CI
 maturity analysis:
@@ -130,7 +125,7 @@ maturity analysis:
    changes the library default (`Aggregates.model_summary`,
    `HealthCheck.qmd`, etc.) — out of scope for this plan.
 
-### Phase 2 — run across the private multi-customer dataset
+### Phase 2 (done) — run across the private multi-customer dataset
 
 Run `scripts/batch_healthcheck.py` over the full private customer corpus,
 inspect `auc_rollup_comparison.csv`:
@@ -144,10 +139,33 @@ inspect `auc_rollup_comparison.csv`:
   under-weighted by (c)/(e) relative to (b), or vice versa for
   high-volume-but-skewed-classes models?
 
-### Phase 3 — decide and (if warranted) change the library default
+See "Conclusions from the private customer-data run" below for the
+results.
 
-Out of scope for this plan; file a follow-up plan item if the data
-supports changing `weighted_performance_polars`'s default weighting.
+### Decision: keep the current `ResponseCount`-weighted default for now
+
+`PosNeg` (and plain `Positives`) weighting track the DeLong reference
+much more closely than the current `ResponseCount` weighting (see
+Conclusions below), and are feasible drop-in replacements. **We are not
+changing the library default at this time** — `Aggregates.model_summary`,
+`HealthCheck.qmd`, and `weighted_performance_polars` keep
+`ResponseCount` weighting. Reasons:
+
+- The DeLong reference is still NB-only in terms of empirical validation
+  on real customer data (see the AGB caveat below) — the AGB-aware CI
+  computation landed in [PR #948](https://github.com/pegasystems/pega-datascientist-tools/pull/948)
+  and `compute_auc_rollup_comparison` was updated to use it correctly,
+  but a fresh full-corpus run to confirm the conclusions hold for AGB
+  configurations hasn't happened yet.
+- `ResponseCount`-weighted and `PosNeg`/`Positives`-weighted answer
+  different questions (see "The two aggregates answer different
+  questions" below) — changing the default isn't just a precision
+  upgrade, it changes what the number means, which warrants a
+  deliberate, separately-reviewed decision rather than a side effect of
+  this investigation.
+
+If a future change is warranted, it stays tracked as a follow-up below,
+not decided here.
 
 ## Open questions / assumptions made
 
@@ -370,28 +388,27 @@ NaiveBayes model rows with a usable CI):
   `Analysis.health_check_maturity_criteria` and `Aggregates.py`. This
   touches library code (not just the batch script) and needs its own
   plan doc if pursued.
-- If the customer-data conclusions hold up, consider changing the
-  library default (`Aggregates.model_summary`, `HealthCheck.qmd`) from
-  `ResponseCount`- to `PosNeg`-weighted AUC roll-up — as a deliberate,
-  separately-reviewed change, not a silent side effect of this
-  investigation.
-- Build an AGB-aware active-range/CI computation, so the DeLong reference
-  and its agreement validation can be extended to AGB configurations,
-  not just NB. [PR #947](https://github.com/pegasystems/pega-datascientist-tools/pull/947)
+- Revisit the library default (`Aggregates.model_summary`,
+  `HealthCheck.qmd`) if a future need arises — see "Decision: keep the
+  current `ResponseCount`-weighted default for now" above. Not changing
+  it as part of this investigation.
+- **Resolved:** an AGB-aware active-range/CI computation was needed so
+  the DeLong reference and its agreement validation could extend to AGB
+  configurations, not just NB. [PR #947](https://github.com/pegasystems/pega-datascientist-tools/pull/947)
   fixed duplicate-row inflation in the existing calculation, but
   `active_ranges()` still derived reachable scores by summing
   predictor-bin log odds, which is specific to Naive Bayes and does not
-  represent an AGB tree ensemble. The grouped DeLong helper itself can
+  represent an AGB tree ensemble. The grouped DeLong helper itself could
   operate on valid classifier-bin counts, but it did not account for
   shared model-fit uncertainty across an AGB model's issue/group/action
   segments.
 
   [PR #948](https://github.com/pegasystems/pega-datascientist-tools/pull/948)
-  (about to be merged) addresses this properly: it derives AGB active
-  ranges from occupied classifier bins instead of the NB log-odds
-  reconstruction, and pools classifier-bin counts by `Configuration` so
-  segments sharing one fitted ensemble get a single grouped DeLong
-  interval instead of independent-looking per-segment ones. It adds
+  (merged) addressed this properly: it derives AGB active ranges from
+  occupied classifier bins instead of the NB log-odds reconstruction,
+  and pools classifier-bin counts by `Configuration` so segments sharing
+  one fitted ensemble get a single grouped DeLong interval instead of
+  independent-looking per-segment ones. It adds
   `AUC_ActiveRange_CI_Estimate` (the pooled interval's center),
   `AUC_ActiveRange_CI_Scope`, and
   `AUC_ActiveRange_CI_IncludesModelFitUncertainty` (explicitly `False` —
@@ -400,14 +417,17 @@ NaiveBayes model rows with a usable CI):
   identified from a single datamart export), while `AUC_ActiveRange`
   keeps returning the segment-level AUC for diagnostics.
 
-  Once merged, `compute_auc_rollup_comparison` needs a follow-up change of
-  its own: it currently treats every `ModelID` row's
-  `AUC_ActiveRange_CI_Variance` as an independent estimate and
-  re-pools them per `Configuration` via
-  `weighted_auc_ci_from_estimates`. For AGB, that variance will now
-  already be the *pooled configuration-level* value repeated across every
-  segment row — re-pooling it again would double-count the same evidence
-  and understate the resulting uncertainty. The script should detect
-  already-pooled AGB rows (e.g. via `AUC_ActiveRange_CI_Scope`) and use
-  `AUC_ActiveRange_CI_Estimate`/its variance directly per `Configuration`
-  instead of running inverse-variance pooling across those rows again.
+  `compute_auc_rollup_comparison` was updated to match: it now detects
+  already-pooled AGB rows via `AUC_ActiveRange_CI_Scope ==
+  "configuration"` and uses `AUC_ActiveRange_CI_Estimate`/its variance
+  directly per `Configuration`, instead of re-pooling the same
+  configuration-level variance once per segment row (which would have
+  double-counted the same evidence and understated the resulting
+  uncertainty). Verified against a synthetic AGB configuration built from
+  the sample dataset.
+
+  **Still open:** the conclusions in this doc were validated on
+  customer data collected before PR #948 landed, so AGB configurations
+  are not yet represented in the empirical Bland-Altman/agreement
+  results above. A fresh full-corpus run is needed to confirm the
+  weighting-scheme conclusions hold for AGB too.

@@ -555,7 +555,13 @@ def compute_auc_rollup_comparison(datamart: ADMDatamart) -> pl.DataFrame:
         active_range = (
             datamart.active_ranges(variance_model_ids)
             .filter(pl.col("AUC_ActiveRange_CI_Available"))
-            .select("ModelID", "AUC_ActiveRange", "AUC_ActiveRange_CI_Variance")
+            .select(
+                "ModelID",
+                "AUC_ActiveRange",
+                "AUC_ActiveRange_CI_Variance",
+                "AUC_ActiveRange_CI_Estimate",
+                "AUC_ActiveRange_CI_Scope",
+            )
             .collect()
         )
         per_model = per_model.join(active_range, on="ModelID", how="left")
@@ -563,6 +569,8 @@ def compute_auc_rollup_comparison(datamart: ADMDatamart) -> pl.DataFrame:
         per_model = per_model.with_columns(
             pl.lit(None, dtype=pl.Float64).alias("AUC_ActiveRange"),
             pl.lit(None, dtype=pl.Float64).alias("AUC_ActiveRange_CI_Variance"),
+            pl.lit(None, dtype=pl.Float64).alias("AUC_ActiveRange_CI_Estimate"),
+            pl.lit(None, dtype=pl.String).alias("AUC_ActiveRange_CI_Scope"),
         )
 
     rows = []
@@ -593,15 +601,27 @@ def compute_auc_rollup_comparison(datamart: ADMDatamart) -> pl.DataFrame:
         variance_group = group.filter(
             pl.col("AUC_ActiveRange_CI_Variance").is_not_null() & (pl.col("AUC_ActiveRange_CI_Variance") > 0)
         )
-        inverse_variance_result = (
-            cdh_utils.weighted_auc_ci_from_estimates(
-                auc=variance_group["AUC_ActiveRange"],
-                variance=variance_group["AUC_ActiveRange_CI_Variance"],
-                weights=1.0 / variance_group["AUC_ActiveRange_CI_Variance"],
+        if variance_group.height > 0:
+            # AGB segments sharing one fitted ensemble already carry the same
+            # pooled configuration-level CI (AUC_ActiveRange_CI_Scope ==
+            # "configuration"); take it once instead of re-pooling it once per
+            # segment row, which would double-count the same evidence and
+            # understate the resulting uncertainty. NB rows (scope == "model")
+            # are independent per-model estimates and are pooled as before.
+            configuration_scoped = variance_group.filter(pl.col("AUC_ActiveRange_CI_Scope") == "configuration")
+            model_scoped = variance_group.filter(pl.col("AUC_ActiveRange_CI_Scope") != "configuration")
+            estimate_auc = model_scoped["AUC_ActiveRange"].to_list()
+            estimate_variance = model_scoped["AUC_ActiveRange_CI_Variance"].to_list()
+            if configuration_scoped.height > 0:
+                estimate_auc.append(configuration_scoped["AUC_ActiveRange_CI_Estimate"][0])
+                estimate_variance.append(configuration_scoped["AUC_ActiveRange_CI_Variance"][0])
+            inverse_variance_result = cdh_utils.weighted_auc_ci_from_estimates(
+                auc=estimate_auc,
+                variance=estimate_variance,
+                weights=[1.0 / v for v in estimate_variance],
             )
-            if variance_group.height > 0
-            else {"auc": None, "ci_lower": None, "ci_upper": None}
-        )
+        else:
+            inverse_variance_result = {"auc": None, "ci_lower": None, "ci_upper": None}
 
         rows.append(
             {
