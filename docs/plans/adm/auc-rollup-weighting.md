@@ -355,14 +355,14 @@ Caveats to state alongside this, so it isn't oversold:
   provably optimal choice" (see the calibrated-threshold follow-up
   above).
 
-### Assessing a prior empirical rule of thumb: `CI ≈ 3.79 / sqrt(Positives)`
+### Updating a prior empirical rule of thumb: `CI ≈ 3.79 / sqrt(Positives)`
 
 A previous internal analysis (also based on DeLong estimators) arrived at
 a rule of thumb `AUC CI ≈ 3.79 * 1/sqrt(Positives)`. The *functional
 form* — inverse-square-root of `Positives` — is exactly what this plan
 derives independently from `Var(AUC) -> (Q2 - AUC^2) / n_pos` under heavy
 imbalance: that's a strong cross-check that the earlier analysis picked
-up the same imbalance-driven effect. The constant `3.79` can't be
+up the same imbalance-driven effect. The constant `3.79` couldn't be
 verified from the number alone, though, since it depends on choices not
 recorded alongside it: full- vs. half-width, 0-1 fraction vs. 50-100
 points scale, confidence level, and the AUC value assumed for `Q2 -
@@ -370,21 +370,44 @@ AUC^2` (the true constant is `z * sqrt(Q2 - AUC^2)`, which is fairly
 flat but not literally constant across the 0.55-0.85 AUC range — same
 caveat as the `200` threshold above).
 
-To make this testable rather than guessed at, `_generate_ci_width_plot`
-(shared by the per-dataset and pooled cross-dataset CI plots in
-`batch_healthcheck.py`) now also fits a version of the power law
-constrained to the theoretical slope of `-0.5`, and prints the
-resulting constant on both the 0-1 and Pega points scales. On the next
-full customer-corpus run, check:
+`_generate_ci_width_plot` (shared by the per-dataset and pooled
+cross-dataset CI plots in `batch_healthcheck.py`) fits a version of the
+power law constrained to the theoretical slope of `-0.5`, so this is now
+directly testable rather than guessed at. Validated against synthetic
+data generated with a known slope/constant, this fit recovers the ground
+truth exactly (slope -0.500, constant recovered to 3 decimal places,
+R²=1.00), so any mismatch on real data reflects the real customer data,
+not a fitting artifact.
 
-1. The free-fit `slope` printed alongside the cross-dataset CI plot —
-   close to `-0.5` confirms the imbalance-driven story empirically.
-2. The constrained `1/sqrt(Positives)` constant — compare it to `3.79`
-   on whichever scale the original rule used. Validated against
-   synthetic data generated with a known slope/constant, this fit
-   recovers the ground truth exactly (slope -0.500, constant recovered
-   to 3 decimal places, R²=1.00), so any mismatch on real data reflects
-   the real customer data, not a fitting artifact.
+**Result from `ci_maturity_model_level.csv` (98,160 model rows; 48,105
+NaiveBayes rows with a usable CI — GradientBoost rows currently
+contribute none, see the AGB caveat above):**
+
+- **Free-fit slope: `-0.393` (R²=0.78).** Notably shallower than the
+  theoretical `-0.5` — real CI width shrinks somewhat more slowly than
+  the idealized `1/sqrt(Positives)` law as `Positives` grows, likely
+  because the theory assumes one clean model/AUC value while the real
+  portfolio mixes heterogeneous models, classifier-bin coarseness, and
+  temporal drift. The imbalance-driven direction of the relationship is
+  confirmed; the exact exponent is not a perfect match.
+- **Constrained (`slope = -0.5`) fit constant: `2.520`** on the 0-1 AUC
+  scale, i.e. `CI_Width ≈ 2.520 / sqrt(Positives)` (full width), which is
+  `≈ 252 / sqrt(Positives)` on Pega's 50-100 points scale. At
+  `Positives = 200` that's a ≈17.8-point full CI width — roughly 2x the
+  ≈8-point width the idealized single-model formula predicts (see the
+  retrofit-justification table above), consistent with real portfolios
+  being noisier than the idealized theory.
+
+**Recommendation: replace `3.79` with `2.52`** (0-1 scale) as the current
+best empirical estimate of the constant in `CI ≈ C / sqrt(Positives)` —
+same order of magnitude as the old number (both plausible under the
+scale/definition ambiguity above), but grounded in this corpus and this
+codebase's DeLong CI computation. Given the free-fit slope of `-0.393`,
+though, treat any single-constant `1/sqrt(Positives)` rule as an
+approximation: it will understate uncertainty for very mature
+(high-`Positives`) models and slightly overstate it for less mature ones,
+since the real relationship decays a bit more slowly than the pure
+square-root law.
 
 ## Follow-ups (not implemented in this plan)
 
