@@ -218,6 +218,7 @@ def test_main_defaults_to_per_dataset_output(tmp_path, monkeypatch):
         positives_maturity_threshold=200,
         ci_maturity_dataset_rows=[],
         ci_maturity_model_rows=[],
+        auc_rollup_rows=[],
     )
     assert (tmp_path / "summary.csv").exists()
 

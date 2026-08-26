@@ -46,9 +46,11 @@ import traceback
 import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import cast
 
 import polars as pl
 from pdstools import ADMDatamart, Prediction
+from pdstools.utils import cdh_utils
 from pdstools.utils.report_utils import check_report_for_errors, is_esbuild_available
 
 # Default file name patterns
@@ -444,7 +446,10 @@ def _compute_ci_maturity_analysis(
         corr_df = ci_non_null.select("Positives", "CI_Width")
         spearman = None
         if corr_df.height >= 2:
-            corr = np.corrcoef(corr_df["Positives"].rank().to_numpy(), corr_df["CI_Width"].rank().to_numpy())[0, 1]
+            # A constant column (zero stddev) makes corrcoef divide by zero and
+            # return NaN, which is already handled below via np.isfinite.
+            with np.errstate(invalid="ignore", divide="ignore"):
+                corr = np.corrcoef(corr_df["Positives"].rank().to_numpy(), corr_df["CI_Width"].rank().to_numpy())[0, 1]
             if np.isfinite(corr):
                 spearman = float(corr)
         metrics.update(
@@ -493,6 +498,321 @@ def _compute_ci_maturity_analysis(
     )
 
     return metrics, model_level
+
+
+def compute_auc_rollup_comparison(datamart: ADMDatamart) -> pl.DataFrame:
+    """Compare AUC roll-up weighting schemes per model configuration.
+
+    Reports, for each ``Configuration``, the per-model AUC aggregated with
+    seven weighting schemes: an unweighted (naive) average, the current
+    ResponseCount-weighted average, a Positives*Negatives-weighted average,
+    a Positives-only-weighted average (a closer DeLong approximation than
+    Positives*Negatives when Negatives >> Positives, since AUC variance is
+    then governed almost entirely by Positives; see
+    docs/plans/adm/auc-rollup-weighting.md), the same weighted averages
+    restricted to models with at least one positive (a cheap way to check
+    whether zero-positive models are what drives the response-count-weighted
+    average away from the others), and a DeLong inverse-variance-weighted
+    average (the statistically optimal way to pool independent AUC
+    estimates).
+
+    Parameters
+    ----------
+    datamart : ADMDatamart
+        The loaded datamart
+
+    Returns
+    -------
+    pl.DataFrame
+        One row per Configuration with the aggregated AUC values.
+    """
+    if datamart.model_data is None:
+        return pl.DataFrame()
+
+    per_model = (
+        datamart.aggregates.last()
+        .filter(pl.col("ResponseCount") > 0)
+        .select(
+            "ModelID",
+            "Configuration",
+            "Performance",
+            "Positives",
+            "ResponseCount",
+        )
+        .with_columns(Negatives=pl.col("ResponseCount") - pl.col("Positives"))
+        .collect()
+    )
+    if per_model.height == 0:
+        return pl.DataFrame()
+
+    if datamart.predictor_data is not None:
+        classifier_model_ids = _active_classifier_model_ids(datamart)
+        variance_model_ids = list(set(per_model["ModelID"]) & classifier_model_ids)
+    else:
+        variance_model_ids = []
+
+    if variance_model_ids:
+        active_range = (
+            datamart.active_ranges(variance_model_ids)
+            .filter(pl.col("AUC_ActiveRange_CI_Available"))
+            .select("ModelID", "AUC_ActiveRange", "AUC_ActiveRange_CI_Variance")
+            .collect()
+        )
+        per_model = per_model.join(active_range, on="ModelID", how="left")
+    else:
+        per_model = per_model.with_columns(
+            pl.lit(None, dtype=pl.Float64).alias("AUC_ActiveRange"),
+            pl.lit(None, dtype=pl.Float64).alias("AUC_ActiveRange_CI_Variance"),
+        )
+
+    rows = []
+    for (configuration,), group in per_model.group_by("Configuration", maintain_order=True):
+        naive_mean = cast(float, group.select(pl.col("Performance").cast(pl.Float64).mean()).item())
+        weighted_response_count = float(group.select(cdh_utils.weighted_performance_polars()).item())
+        weighted_pos_neg = float(
+            group.select(
+                cdh_utils.weighted_average_polars("Performance", pl.col("Positives") * pl.col("Negatives"))
+            ).item()
+        )
+        weighted_positives = float(group.select(cdh_utils.weighted_average_polars("Performance", "Positives")).item())
+
+        positives_group = group.filter(pl.col("Positives") > 0)
+        if positives_group.height > 0:
+            weighted_response_count_pos_only = float(
+                positives_group.select(cdh_utils.weighted_performance_polars()).item()
+            )
+            weighted_pos_neg_pos_only = float(
+                positives_group.select(
+                    cdh_utils.weighted_average_polars("Performance", pl.col("Positives") * pl.col("Negatives"))
+                ).item()
+            )
+        else:
+            weighted_response_count_pos_only = None
+            weighted_pos_neg_pos_only = None
+
+        variance_group = group.filter(
+            pl.col("AUC_ActiveRange_CI_Variance").is_not_null() & (pl.col("AUC_ActiveRange_CI_Variance") > 0)
+        )
+        inverse_variance_result = (
+            cdh_utils.weighted_auc_ci_from_estimates(
+                auc=variance_group["AUC_ActiveRange"],
+                variance=variance_group["AUC_ActiveRange_CI_Variance"],
+                weights=1.0 / variance_group["AUC_ActiveRange_CI_Variance"],
+            )
+            if variance_group.height > 0
+            else {"auc": None, "ci_lower": None, "ci_upper": None}
+        )
+
+        rows.append(
+            {
+                "Configuration": configuration,
+                "N_Models": group.height,
+                "AUC_Naive_Mean": naive_mean,
+                "AUC_Weighted_ResponseCount": weighted_response_count,
+                "AUC_Weighted_PosNeg": weighted_pos_neg,
+                "AUC_Weighted_Positives": weighted_positives,
+                "N_Models_With_Positives": positives_group.height,
+                "AUC_Weighted_ResponseCount_PositivesOnly": weighted_response_count_pos_only,
+                "AUC_Weighted_PosNeg_PositivesOnly": weighted_pos_neg_pos_only,
+                "N_Models_With_DeLong_CI": variance_group.height,
+                "AUC_Weighted_InverseVariance_DeLong": inverse_variance_result["auc"],
+                "AUC_InverseVariance_DeLong_CI_Lower": inverse_variance_result["ci_lower"],
+                "AUC_InverseVariance_DeLong_CI_Upper": inverse_variance_result["ci_upper"],
+            }
+        )
+
+    return pl.DataFrame(rows)
+
+
+def _print_auc_rollup_table(df: pl.DataFrame) -> None:
+    """Print a compact per-configuration AUC roll-up comparison table."""
+    if df.height == 0:
+        return
+    print("  AUC roll-up comparison (Pega 50-100 scale):")
+    display_df = df.sort("Configuration").select(
+        pl.col("Configuration"),
+        pl.col("N_Models").alias("N"),
+        pl.col("N_Models_With_Positives").alias("N_pos"),
+        (pl.col("AUC_Naive_Mean") * 100).round(1).alias("Naive"),
+        (pl.col("AUC_Weighted_ResponseCount") * 100).round(1).alias("RespCnt"),
+        (pl.col("AUC_Weighted_PosNeg") * 100).round(1).alias("PosNeg"),
+        (pl.col("AUC_Weighted_Positives") * 100).round(1).alias("Positives"),
+        (pl.col("AUC_Weighted_ResponseCount_PositivesOnly") * 100).round(1).alias("RespCnt+"),
+        (pl.col("AUC_Weighted_PosNeg_PositivesOnly") * 100).round(1).alias("PosNeg+"),
+        (pl.col("AUC_Weighted_InverseVariance_DeLong") * 100).round(1).alias("DeLong"),
+        pl.col("N_Models_With_DeLong_CI").alias("N_DeLong"),
+    )
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=-1, fmt_str_lengths=40):
+        print(display_df)
+
+
+# Reference method: the statistically correct pooling of independent AUC
+# estimates (see docs/plans/adm/auc-rollup-weighting.md). All other
+# aggregation methods are compared against it below.
+AUC_ROLLUP_REFERENCE_COLUMN = "AUC_Weighted_InverseVariance_DeLong"
+AUC_ROLLUP_CANDIDATE_COLUMNS = [
+    "AUC_Weighted_ResponseCount",
+    "AUC_Weighted_PosNeg",
+    "AUC_Weighted_Positives",
+    "AUC_Weighted_ResponseCount_PositivesOnly",
+    "AUC_Weighted_PosNeg_PositivesOnly",
+    "AUC_Naive_Mean",
+]
+
+
+def _lin_ccc(x, y) -> float:
+    """Lin's concordance correlation coefficient between x and y.
+
+    Unlike Pearson r, this drops when two series are highly correlated but
+    systematically offset or differently scaled, which is what "how good an
+    approximation" actually requires here.
+    """
+    mean_x, mean_y = x.mean(), y.mean()
+    var_x, var_y = x.var(), y.var()
+    covariance = ((x - mean_x) * (y - mean_y)).mean()
+    return float((2 * covariance) / (var_x + var_y + (mean_x - mean_y) ** 2))
+
+
+def _compare_auc_rollup_to_reference(df: pl.DataFrame, candidate_column: str) -> dict[str, float | int | str]:
+    """Compute agreement statistics between a candidate column and the DeLong reference."""
+    import numpy as np
+
+    pair = df.select(candidate_column, AUC_ROLLUP_REFERENCE_COLUMN).drop_nulls()
+    empty_stats = {"Bias": None, "MAE": None, "RMSE": None, "Pearson_r": None, "Lin_CCC": None}
+    if pair.height < 2:
+        return {"Metric": candidate_column, "N": pair.height, **empty_stats}
+
+    candidate = pair[candidate_column].to_numpy()
+    reference = pair[AUC_ROLLUP_REFERENCE_COLUMN].to_numpy()
+    diff = candidate - reference
+
+    return {
+        "Metric": candidate_column,
+        "N": pair.height,
+        "Bias": float(diff.mean()),
+        "MAE": float(np.abs(diff).mean()),
+        "RMSE": float(np.sqrt((diff**2).mean())),
+        "Pearson_r": float(np.corrcoef(candidate, reference)[0, 1]),
+        "Lin_CCC": _lin_ccc(candidate, reference),
+    }
+
+
+def print_auc_rollup_agreement_table(df: pl.DataFrame, *, min_delong_models: int) -> pl.DataFrame:
+    """Print how closely each AUC roll-up method agrees with the DeLong reference.
+
+    Only configurations whose DeLong estimate pools at least
+    ``min_delong_models`` models are included, since the DeLong reference
+    itself is unstable with very few models. See
+    docs/plans/adm/auc-rollup-weighting.md for the statistical rationale.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        Rows from ``compute_auc_rollup_comparison`` across all datasets.
+    min_delong_models : int
+        Minimum ``N_Models_With_DeLong_CI`` for a configuration to be
+        included in the comparison.
+
+    Returns
+    -------
+    pl.DataFrame
+        The eligible subset of rows used for the comparison (for reuse by
+        the Bland-Altman plot).
+    """
+    eligible = df.filter(pl.col("N_Models_With_DeLong_CI") >= min_delong_models)
+    print(
+        f"\n{eligible.height} of {df.height} configurations have a DeLong estimate "
+        f"pooling >= {min_delong_models} models."
+    )
+    if eligible.height == 0:
+        return eligible
+
+    results = [_compare_auc_rollup_to_reference(eligible, column) for column in AUC_ROLLUP_CANDIDATE_COLUMNS]
+    results_df = pl.DataFrame(results).select(
+        "Metric",
+        "N",
+        pl.col("Bias").cast(pl.Float64).round(4),
+        pl.col("MAE").cast(pl.Float64).round(4),
+        pl.col("RMSE").cast(pl.Float64).round(4),
+        pl.col("Pearson_r").cast(pl.Float64).round(4),
+        pl.col("Lin_CCC").cast(pl.Float64).round(4),
+    )
+    print(f"Agreement with {AUC_ROLLUP_REFERENCE_COLUMN} (Bias/MAE/RMSE on the 0-1 AUC scale):")
+    print(results_df)
+    return eligible
+
+
+def generate_auc_rollup_bland_altman_plot(
+    eligible_df: pl.DataFrame,
+    *,
+    output_dir: Path,
+) -> Path | None:
+    """Render a Bland-Altman plot comparing RespCnt/PosNeg weighting against DeLong.
+
+    For each candidate method, plots (mean of candidate & reference) on the
+    x-axis against (candidate - reference) on the y-axis, with the mean
+    bias and +/-1.96 SD limits of agreement annotated. This makes any
+    systematic offset or scale-dependent disagreement visible directly,
+    which plain scatter/correlation plots do not.
+
+    Parameters
+    ----------
+    eligible_df : pl.DataFrame
+        Rows already filtered to configurations with a reliable DeLong
+        estimate (see ``print_auc_rollup_agreement_table``).
+    output_dir : Path
+        Directory to write the plot to.
+
+    Returns
+    -------
+    Path | None
+        The written plot path, or None if there wasn't enough data.
+    """
+    if eligible_df.height < 2:
+        return None
+
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("  ℹ matplotlib not installed — skipping AUC roll-up Bland-Altman plot")
+        return None
+
+    candidates = [
+        ("AUC_Weighted_ResponseCount", "#e11d48", "RespCnt (current)"),
+        ("AUC_Weighted_PosNeg", "#2563eb", "PosNeg (proposed)"),
+        ("AUC_Weighted_Positives", "#16a34a", "Positives-only"),
+    ]
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / "auc_rollup_bland_altman.png"
+    fig, axes = plt.subplots(1, len(candidates), figsize=(6 * len(candidates), 5), dpi=160, sharey=True)
+    for ax, (column, color, label) in zip(axes, candidates, strict=True):
+        pair = eligible_df.select(column, AUC_ROLLUP_REFERENCE_COLUMN).drop_nulls()
+        if pair.height < 2:
+            continue
+        candidate = pair[column].to_numpy()
+        reference = pair[AUC_ROLLUP_REFERENCE_COLUMN].to_numpy()
+        mean_of_pair = (candidate + reference) / 2
+        diff = candidate - reference
+        bias = diff.mean()
+        limit = 1.96 * diff.std()
+
+        ax.scatter(mean_of_pair, diff, s=16, alpha=0.5, color=color)
+        ax.axhline(bias, color="black", linewidth=1.5, label=f"Bias={bias:.3f}")
+        ax.axhline(bias + limit, color="black", linestyle="--", linewidth=1, label=f"+-1.96 SD={limit:.3f}")
+        ax.axhline(bias - limit, color="black", linestyle="--", linewidth=1)
+        ax.axhline(0, color="grey", linewidth=0.8)
+        ax.set_xlabel(f"Mean of ({label}, DeLong)")
+        ax.set_title(label)
+        ax.legend(frameon=False, fontsize=8)
+        ax.grid(alpha=0.2)
+    axes[0].set_ylabel("Difference (candidate - DeLong)")
+    fig.suptitle("AUC roll-up agreement with DeLong inverse-variance reference")
+    fig.tight_layout()
+    fig.savefig(output_path)
+    plt.close(fig)
+    print(f"✓ AUC roll-up Bland-Altman plot: {output_path}")
+    return output_path
 
 
 def _generate_ci_maturity_plots(
@@ -567,6 +887,11 @@ def _generate_ci_width_plot(
     fitted = slope * log_positives + intercept
     r_squared = 1 - np.sum((log_ci_width - fitted) ** 2) / np.sum((log_ci_width - log_ci_width.mean()) ** 2)
 
+    # Constrained fit assuming the theoretical Var(AUC) ~ 1/Positives law
+    # (slope = -0.5, see docs/plans/adm/auc-rollup-weighting.md), to compare
+    # directly against a historical "CI ~= C / sqrt(Positives)" rule of thumb.
+    constrained_constant = 10 ** (log_ci_width + 0.5 * log_positives).mean()
+
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / output_filename
     fig, ax = plt.subplots(figsize=(10, 6), dpi=160)
@@ -624,6 +949,12 @@ def _generate_ci_width_plot(
     fig.savefig(output_path)
     plt.close(fig)
     print(f"  ✓ Cross-dataset CI plot: {output_path} (n={plot_df.height}, slope={slope:.3f}, R²={r_squared:.2f})")
+    print(
+        f"  ℹ 1/sqrt(Positives)-constrained fit: CI_Width ≈ {constrained_constant:.3f}/sqrt(Positives) "
+        f"(0-1 scale) ≈ {constrained_constant * 100:.2f}/sqrt(Positives) (Pega points scale); "
+        "compare to any historical CI ≈ C/sqrt(Positives) rule of thumb (free-fit slope above "
+        "should be close to -0.5 for that comparison to be meaningful)."
+    )
     return output_path
 
 
@@ -711,6 +1042,7 @@ def process_dataset(
     positives_maturity_threshold: int = 200,
     ci_maturity_dataset_rows: list[dict] | None = None,
     ci_maturity_model_rows: list[dict] | None = None,
+    auc_rollup_rows: list[dict] | None = None,
 ) -> dict:
     """Process a single dataset and generate all reports.
 
@@ -734,6 +1066,9 @@ def process_dataset(
         Optional collector receiving one dataset-level maturity metrics row.
     ci_maturity_model_rows : list[dict] | None, optional
         Optional collector receiving per-model maturity analysis rows.
+    auc_rollup_rows : list[dict] | None, optional
+        Optional collector receiving per-configuration AUC roll-up
+        weighting comparison rows (see docs/plans/adm/auc-rollup-weighting.md).
 
     Returns
     -------
@@ -898,6 +1233,12 @@ def process_dataset(
         for plot_path in dataset_plot_paths:
             print(f"  ✓ CI maturity plot: {plot_path}")
 
+        print("  → Computing AUC roll-up weighting comparison...")
+        auc_rollup_df = compute_auc_rollup_comparison(datamart)
+        _print_auc_rollup_table(auc_rollup_df)
+        if auc_rollup_rows is not None and auc_rollup_df.height > 0:
+            auc_rollup_rows.extend(auc_rollup_df.with_columns(Dataset=pl.lit(name)).to_dicts())
+
         # ── Excel export ────────────────────────────────────────────
         print("  → Generating Excel export...")
         try:
@@ -983,6 +1324,15 @@ For more information, see:
         default=200,
         help="Positives threshold for maturity segmentation (default: 200)",
     )
+    parser.add_argument(
+        "--min-delong-models",
+        type=int,
+        default=5,
+        help=(
+            "Minimum models pooled into a configuration's DeLong estimate for it to be "
+            "included in the AUC roll-up agreement analysis (default: 5)"
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -1054,6 +1404,7 @@ For more information, see:
     results = []
     ci_maturity_dataset_rows: list[dict] | None = []
     ci_maturity_model_rows: list[dict] | None = []
+    auc_rollup_rows: list[dict] | None = []
     summary_dir = args.output if args.output is not None else args.data_path
     summary_dir.mkdir(parents=True, exist_ok=True)
     summary_file = summary_dir / "summary.csv"
@@ -1067,6 +1418,7 @@ For more information, see:
             positives_maturity_threshold=args.positives_maturity_threshold,
             ci_maturity_dataset_rows=ci_maturity_dataset_rows,
             ci_maturity_model_rows=ci_maturity_model_rows,
+            auc_rollup_rows=auc_rollup_rows,
         )
         results.append(result)
 
@@ -1131,6 +1483,15 @@ For more information, see:
             ci_model_df,
             output_dir=summary_dir,
         )
+
+    auc_rollup_file = summary_dir / "auc_rollup_comparison.csv"
+    if auc_rollup_rows:
+        auc_rollup_df = pl.DataFrame(auc_rollup_rows)
+        auc_rollup_df.write_csv(auc_rollup_file)
+        print(f"✓ AUC roll-up weighting comparison: {auc_rollup_file}")
+
+        eligible_df = print_auc_rollup_agreement_table(auc_rollup_df, min_delong_models=args.min_delong_models)
+        generate_auc_rollup_bland_altman_plot(eligible_df, output_dir=summary_dir)
 
     # Print statistics
     print(f"\n{'=' * 60}")
