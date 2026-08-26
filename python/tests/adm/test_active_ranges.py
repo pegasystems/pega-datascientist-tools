@@ -230,3 +230,47 @@ def test_active_ranges_missing_score_range_returns_unavailable_ci(sample, monkey
     assert result["AUC_ActiveRange"].item() is None
     assert result["AUC_ActiveRange_CI_Available"].item() is False
     assert result["AUC_ActiveRange_CI_Reason"].item() == "missing_score_range"
+
+
+@pytest.mark.parametrize(
+    ("model_technique", "expected_bin_multiplier"),
+    [
+        ("GradientBoost", 1),
+        ("NaiveBayes", 2),
+    ],
+)
+def test_active_ranges_deduplicates_rows_only_for_agb(
+    sample,
+    model_technique,
+    expected_bin_multiplier,
+):
+    """Ignore AGB rows that are identical except for their bin index."""
+    model_id = sample._require_predictor_data().select("ModelID").unique().collect()["ModelID"][0]
+    model_data = sample._require_model_data().with_columns(
+        ModelTechnique=pl.when(pl.col("ModelID") == model_id)
+        .then(pl.lit(model_technique))
+        .otherwise(pl.col("ModelTechnique")),
+    )
+    predictor_data = sample._require_predictor_data()
+    selected_model_rows = predictor_data.filter(pl.col("ModelID") == model_id)
+    duplicated_rows = selected_model_rows.with_columns(
+        BinIndex=pl.col("BinIndex") + 100,
+    )
+    predictor_data_with_duplicates = pl.concat(
+        [
+            predictor_data,
+            duplicated_rows,
+        ],
+    )
+    datamart = ADMDatamart(
+        model_df=model_data,
+        predictor_df=predictor_data_with_duplicates,
+        extract_pyname_keys=False,
+    )
+
+    baseline = sample.active_ranges(model_id).collect()
+    result = datamart.active_ranges(model_id).collect()
+
+    assert result["Bins"].item() == baseline["Bins"].item() * expected_bin_multiplier
+    if model_technique == "GradientBoost":
+        assert_frame_equal(result, baseline)
