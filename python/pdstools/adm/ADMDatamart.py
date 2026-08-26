@@ -1232,6 +1232,34 @@ class ADMDatamart:
                 )
             )
         agb_model_ids = model_metadata.filter(pl.col("ModelTechnique") == "GradientBoost").select("ModelID")
+
+        if self.model_data is not None:
+            bin_columns = most_recent_binning_data.collect_schema().names()
+            deduplication_columns = [column for column in bin_columns if column != "BinIndex"]
+            agb_binning_data = (
+                most_recent_binning_data.join(
+                    agb_model_ids,
+                    on="ModelID",
+                    how="semi",
+                )
+                .sort("BinIndex")
+                .unique(
+                    subset=deduplication_columns,
+                    keep="first",
+                    maintain_order=True,
+                )
+            )
+            most_recent_binning_data = pl.concat(
+                [
+                    most_recent_binning_data.join(
+                        agb_model_ids,
+                        on="ModelID",
+                        how="anti",
+                    ),
+                    agb_binning_data,
+                ],
+            )
+
         scores = self._minMaxScoresPerModel(
             most_recent_binning_data.join(
                 agb_model_ids,
@@ -1240,7 +1268,7 @@ class ADMDatamart:
             ),
         )
 
-        classifier_rows = (
+        classifier_bins = (
             most_recent_binning_data.filter(EntryType="Classifier")
             .select(
                 "ModelID",
@@ -1255,27 +1283,6 @@ class ADMDatamart:
             .join(scores, on="ModelID", how="left", maintain_order="left")
             .with_columns(
                 _IsAGB=(pl.col("ModelTechnique") == "GradientBoost").fill_null(False),
-            )
-        )
-        agb_classifier_rows = classifier_rows.filter(pl.col("_IsAGB")).unique(
-            subset=[
-                "ModelID",
-                "AUC_Datamart",
-                "_ClassifierBound",
-                "_ClassifierPositive",
-                "_ClassifierNegative",
-                "Configuration",
-                "ModelTechnique",
-            ],
-            keep="first",
-            maintain_order=True,
-        )
-        classifier_bins = (
-            pl.concat(
-                [
-                    classifier_rows.filter(~pl.col("_IsAGB")),
-                    agb_classifier_rows,
-                ],
             )
             .sort("ModelID", "BinIndex")
             .with_columns(

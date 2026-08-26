@@ -368,3 +368,34 @@ def test_active_ranges_uses_pooled_agb_volume_for_ci_availability(sample):
 
     assert result["AUC_ActiveRange_CI_Available"].to_list() == [True, True]
     assert result["AUC_ActiveRange_CI_Reason"].to_list() == [None, None]
+
+
+def test_active_ranges_preserves_duplicate_naive_bayes_rows(sample):
+    """Do not apply the AGB data-quality workaround to Naive Bayes rows."""
+    model_id = sample._require_predictor_data().select("ModelID").unique().collect()["ModelID"][0]
+    model_data = sample._require_model_data().with_columns(
+        ModelTechnique=pl.when(pl.col("ModelID") == model_id)
+        .then(pl.lit("NaiveBayes"))
+        .otherwise(pl.col("ModelTechnique")),
+    )
+    predictor_data = sample._require_predictor_data()
+    selected_model_rows = predictor_data.filter(pl.col("ModelID") == model_id)
+    duplicated_rows = selected_model_rows.with_columns(
+        BinIndex=pl.col("BinIndex") + 100,
+    )
+    predictor_data_with_duplicates = pl.concat(
+        [
+            predictor_data,
+            duplicated_rows,
+        ],
+    )
+    datamart = ADMDatamart(
+        model_df=model_data,
+        predictor_df=predictor_data_with_duplicates,
+        extract_pyname_keys=False,
+    )
+
+    baseline = sample.active_ranges(model_id).collect()
+    result = datamart.active_ranges(model_id).collect()
+
+    assert result["Bins"].item() == baseline["Bins"].item() * 2
