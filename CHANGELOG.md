@@ -21,6 +21,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `ADMDatamart.active_ranges()` now derives AGB ranges from occupied
+  classifier bins instead of Naive Bayes log odds, and reports one
+  configuration-pooled conditional DeLong interval for segments sharing the
+  same fitted ensemble. The result explicitly identifies its confidence
+  interval scope and exclusion of model-fit uncertainty.
 - Full-embed HealthCheck and Model Report HTML output no longer duplicates the
   embedded Plotly.js bundle once per chart. Because the Quarto renderer wasn't
   told which resource mode to use before figures were drawn, ``full_embed=True``
