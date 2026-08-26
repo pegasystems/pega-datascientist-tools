@@ -3,7 +3,8 @@
 Priority: P2
 
 Files touched: `scripts/batch_healthcheck.py`,
-possibly `python/pdstools/utils/cdh_utils/_metrics.py` (no new library API
+`python/tests/healthcheck/test_batch_healthcheck.py`, possibly
+`python/pdstools/utils/cdh_utils/_metrics.py` (no new library API
 expected — existing functions are sufficient, see below).
 
 ## Problem
@@ -13,12 +14,11 @@ expected — existing functions are sufficient, see below).
 "ResponseCount")` — a response-count-weighted average
 (`Aggregates.model_summary`, `HealthCheck.qmd`, etc.).
 
-A data scientist reviewing this pushed back: weighting by
-`ResponseCount = Positives + Negatives` implicitly treats AUC like a
-proportion (e.g. a success rate), where precision scales with total trials.
-AUC is not a proportion — its sampling variance depends on *both* class
-counts multiplicatively, not their sum. His proposed fix: weight by
-`Positives * Negatives` instead.
+Weighting by `ResponseCount = Positives + Negatives` implicitly treats AUC
+like a proportion (e.g. a success rate), where precision scales with
+total trials. AUC is not a proportion — its sampling variance depends on
+*both* class counts multiplicatively, not their sum. A proposed
+alternative is to weight by `Positives * Negatives` instead.
 
 ## Statistical grounding
 
@@ -69,13 +69,13 @@ on real customer data, in increasing order of statistical rigor:
 | a | Naive average | 1 (equal weight per model) | `Performance`, `Configuration` |
 | b | Current (response-count-weighted) | `Positives + Negatives` | same |
 | c | Proposed (pos*neg-weighted) | `Positives * Negatives` | same |
-| e | Positives-only-weighted | `Positives` | same |
-| d | Inverse-variance (DeLong) | `1 / Var_DeLong(AUC)` | predictor/classifier bin data |
+| d | Positives-only-weighted | `Positives` | same |
+| e | Inverse-variance (DeLong) | `1 / Var_DeLong(AUC)` | predictor/classifier bin data |
 
-(d) is the statistically correct pooling method; (c) and (e) are evaluated
-as cheap proxies that don't require classifier bin data — (e) because
+(e) is the statistically correct pooling method; (c) and (d) are evaluated
+as cheap proxies that don't require classifier bin data — (d) because
 `Var(AUC) ~= (Q2 - AUC^2) / n_pos` once `Negatives >> Positives` (see
-below), making plain `Positives` weighting a candidate that may track (d)
+below), making plain `Positives` weighting a candidate that may track (e)
 even more closely than (c) under heavy class imbalance; (a) and (b) are
 the naive/current baselines being challenged.
 
@@ -83,14 +83,14 @@ Two supplementary diagnostic variants of (b) and (c) are also reported,
 restricted to models with `Positives > 0`: `AUC_Weighted_ResponseCount_PositivesOnly`
 and `AUC_Weighted_PosNeg_PositivesOnly`. Zero-positive models have an
 essentially undefined/uninformative AUC but can carry a large `ResponseCount`,
-so they can pull (b) away from (c)/(d) even though (c)/(d) already give them
+so they can pull (b) away from (c)/(e) even though (c)/(e) already give them
 zero weight. Comparing (b) against its positives-only variant isolates how
-much of the gap to (c)/(d) is explained purely by that exclusion, versus by
+much of the gap to (c)/(e) is explained purely by that exclusion, versus by
 the `Positives * Negatives` vs. `Positives + Negatives` weighting itself.
 
 ## Proposed approach
 
-### Phase 1 — implement the 4-way comparison in `batch_healthcheck.py`
+### Phase 1 — implement the five-way comparison in `batch_healthcheck.py`
 
 Add a new analysis step to `process_dataset()`, alongside the existing CI
 maturity analysis:
@@ -118,6 +118,8 @@ maturity analysis:
      variance=AUC_ActiveRange_CI_Variance, weights=1/variance)`, restricted
      to models with `AUC_ActiveRange_CI_Available`. Also report the
      resulting CI bounds and `N_Models_With_DeLong_CI`.
+   Also compute the two `_PositivesOnly` diagnostic variants of (b) and
+   (c) described above, restricted to models with `Positives > 0`.
 4. Collect one row per `(Dataset, Configuration)` into a list (same
    collector pattern as `ci_maturity_dataset_rows`), write to
    `auc_rollup_comparison.csv` next to the other batch summary outputs at
@@ -133,13 +135,13 @@ maturity analysis:
 Run `scripts/batch_healthcheck.py` over the full private customer corpus,
 inspect `auc_rollup_comparison.csv`:
 
-- How much do (b), (c), (d) disagree from each other and from (a),
+- How much do (b), (c), (e) disagree from each other and from (a),
   in absolute AUC points, across configurations?
-- Does (c) (cheap proxy) track (d) (rigorous) closely? If yes, (c) is a
+- Does (c) (cheap proxy) track (e) (rigorous) closely? If yes, (c) is a
   good practical default even without classifier bin data.
-- Are there configurations where (b) meaningfully diverges from (c)/(d) —
+- Are there configurations where (b) meaningfully diverges from (c)/(e) —
   e.g. because a low-volume-but-balanced-classes model would be
-  under-weighted by (c)/(d) relative to (b), or vice versa for
+  under-weighted by (c)/(e) relative to (b), or vice versa for
   high-volume-but-skewed-classes models?
 
 ### Phase 3 — decide and (if warranted) change the library default
