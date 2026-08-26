@@ -312,6 +312,39 @@ def test_trigger_datamart(prediction_studio_client, mocker):
     assert result.repository_name == "AWSFalcons"
 
 
+def test_datamart_export_status_uses_v5(prediction_studio_client, mocker):
+    """The export status poll must stay on v5, not fall back to the v1 endpoint."""
+    mocker.patch.object(
+        prediction_studio_client._client,
+        "post",
+        return_value={
+            "referenceId": "W-4002",
+            "location": "/AWSFalcons/datamart/",
+            "repositoryName": "AWSFalcons",
+        },
+    )
+    mock_get = mocker.patch.object(
+        prediction_studio_client._client,
+        "get",
+        return_value={
+            "status": "Completed",
+            "lastMessage": "Export finished",
+            "updateTimeStamp": "July 19, 2024 09:05 EDT",
+        },
+    )
+
+    result = prediction_studio_client.trigger_datamart_export().get_export_status()
+
+    mock_get.assert_called_once_with(
+        "/prweb/api/PredictionStudio/v5/datamart/export/W-4002",
+    )
+    assert result == {
+        "status": "Completed",
+        "last_message": "Export finished",
+        "last_update_time": "July 19, 2024 09:05 EDT",
+    }
+
+
 def test_model_categories(prediction_studio_client, mocker):
     mock_response = {
         "settings": {
