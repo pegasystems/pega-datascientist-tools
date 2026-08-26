@@ -985,10 +985,10 @@ columns like “Channel/Direction”.</p>
 <dt class="sig sig-object py" id="pdstools.adm.ADMDatamart.ADMDatamart.active_ranges">
 <span class="sig-name descname"><span class="pre">active_ranges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">confidence_level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.95</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.adm.ADMDatamart.ADMDatamart.active_ranges" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the active, reachable bins in classifiers.</p>
-<p>The classifiers exported by Pega contain (in certain product versions) more than
-the bins that can be reached given the current state of the predictors. This method
-first calculates the min and max score range from the predictor log odds, then maps
-that to the interval boundaries of the classifier(s) to find the min and max index.</p>
+<p>For Naive Bayes models, this method calculates the minimum and maximum
+score from predictor-bin log odds and maps that interval to the classifier
+bins. For AGB models, predictor-bin log odds do not represent the tree
+ensemble, so the active range spans the occupied classifier bins instead.</p>
 <p>It returns a LazyFrame with the score min/max, the min/max index, as well as the
 AUC as reported in the datamart data, when calculated from the full range, and when
 calculated from the reachable bins only.</p>
@@ -1005,6 +1005,12 @@ scale, multiply them by 100. The raw <code class="docutils literal notranslate">
 endpoints before that safe-range transform.
 The confidence-interval variance is expressed on the corresponding squared
 0-to-1 scale.</p>
+<p>Naive Bayes intervals are computed per model. AGB configurations share one
+fitted tree ensemble across issue, group, and action segments, so their
+occupied classifier-bin counts are pooled by configuration and a single
+conditional interval is attached to each segment. This interval quantifies
+validation-sample uncertainty conditional on the exported fitted ensemble;
+a single export cannot identify model-fit uncertainty.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1022,13 +1028,16 @@ confidence interval.</p></li>
 - AUC_Datamart - The AUC value as reported in the datamart
 - AUC_FullRange - The AUC calculated from the full range of bins in the classifier
 - AUC_ActiveRange - The AUC calculated from only the active/reachable bins
+- AUC_ActiveRange_CI_Estimate - The AUC estimate at the CI scope
 - AUC_ActiveRange_CI_Variance - The variance of the active-range AUC estimate; null when unavailable
 - AUC_ActiveRange_CI_Lower - Lower CI bound for active-range AUC
 - AUC_ActiveRange_CI_Upper - Upper CI bound for active-range AUC
 - AUC_ActiveRange_CI_Safe_Lower - Lower CI bound after applying Pega’s safe AUC convention
 - AUC_ActiveRange_CI_Safe_Upper - Upper CI bound after applying Pega’s safe AUC convention
 - AUC_ActiveRange_CI_Available - Whether CI could be estimated
-- AUC_ActiveRange_CI_Reason - Unavailable reason when CI is missing</p>
+- AUC_ActiveRange_CI_Reason - Unavailable reason when CI is missing
+- AUC_ActiveRange_CI_Scope - <code class="docutils literal notranslate"><span class="pre">model</span></code> for Naive Bayes or <code class="docutils literal notranslate"><span class="pre">configuration</span></code> for AGB
+- AUC_ActiveRange_CI_IncludesModelFitUncertainty - Always false for exported classifier-bin intervals</p>
 <p>Classifier Information:
 - Bins - The total number of bins in the classifier
 - nActivePredictors - The number of active predictors in the model</p>
