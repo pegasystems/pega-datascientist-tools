@@ -15,6 +15,51 @@ We love feedback and contributions. Thank you for helping improve Pega Data Scie
 6. Open a Pull Request (PR).
 
 
+## Local development setup
+Run setup commands from the repository root, not from the `python` folder. We use [`uv`](https://docs.astral.sh/uv/) for local development because it mirrors the environment used by CI.
+
+```bash
+uv sync --extra tests
+```
+
+Install additional dependency groups only when you need them:
+
+```bash
+# Documentation build and example notebooks
+uv sync --extra docs --extra all
+
+# ADM Health Check reports and their tests
+uv sync --extra healthcheck --extra tests
+
+# Formatting, linting, and pre-commit hooks
+uv sync --extra dev
+uv run pre-commit install
+```
+
+For Python commands, prefer `uv run ...` so the command uses the repository virtual environment:
+
+```bash
+uv run pytest python/tests
+uv run ruff check ./python
+```
+
+### Running example notebooks locally
+Example notebooks live under `examples/`. Open them from this repository checkout and select the `.venv` Python interpreter as the notebook kernel in VS Code or Jupyter.
+
+Most notebooks use bundled sample data by default. To run one on your own data, look near the first data-loading cell for a small replacement comment such as `Replace with your own data`, `path-to-your-model.json`, or a call to `datasets.*()`. Change that cell to point at your local export, then run the notebook from the top.
+
+When exporting a notebook to HTML with executed plots, use the repository virtual environment rather than a system `jupyter` install:
+
+```bash
+.venv/bin/python -m nbconvert --to html --execute \
+    examples/articles/AGBExplained.ipynb \
+    --output AGBExplained.html --output-dir . \
+    --ExecutePreprocessor.timeout=300
+```
+
+If the notebook kernel cannot import `pdstools`, re-run `uv sync --extra docs --extra all` from the repository root and re-select the `.venv` kernel.
+
+
 ## Testing
 Pull requests trigger continuous integration via [GitHub Actions](https://docs.github.com/en/actions). These workflows automatically run tests and check on your changes. You can also enable Actions in your fork to test before submitting. To manually and locally run the tests with pytest, use either your IDE or the command line:
 

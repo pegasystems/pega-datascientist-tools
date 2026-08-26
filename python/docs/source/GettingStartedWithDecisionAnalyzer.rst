@@ -13,7 +13,7 @@ The Decision Analysis Tool provides:
 - **Overview**: Key metrics and insights about your offer strategy at a glance
 - **Action Funnel**: Visualize how offers flow through the full decision pipeline and identify where they drop off
 - **Action Distribution**: Understand the distribution of actions at the arbitration stage using interactive treemaps
-- **Optionality Analysis**: Analyze the number of actions available per customer and personalization opportunities
+- **Optionality Analysis**: Analyze the number of actions available per customer, personalization opportunities, and action exclusion before arbitration
 - **Global Sensitivity Analysis**: Understand how arbitration factors (propensity, value, levers, context weights) affect decision-making
 - **Win/Loss Analysis**: Examine which actions win or lose in arbitration and the factors behind these outcomes
 - **Arbitration Component Distribution**: Analyze the distribution of prioritization components to identify potential issues

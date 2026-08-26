@@ -484,6 +484,49 @@ class TestOptionalityPerStage:
         assert collected.columns == ["nOffers", "Stage Group", "Interactions", "AverageBestPropensity"]
 
 
+class TestExclusionRateDistribution:
+    """Test exclusion_rate_distribution method."""
+
+    def test_plot_builds_with_bands(self, plot_v2):
+        """Figure has 5-percent bars and a hidden-by-default propensity trace."""
+        fig = plot_v2.exclusion_rate_distribution(from_stage="Engagement Policies", to_stage="Arbitration")
+        assert isinstance(fig, Figure)
+        assert len(fig.data) == 2
+        assert len(fig.data[0].x) == 20
+        assert fig.data[0].x[0] == "0-5%"
+        assert fig.data[0].x[-1] == "95-100%"
+        assert fig.data[0].type == "bar"
+        assert fig.data[0].marker.color[0] != fig.data[0].marker.color[-1]
+        assert fig.data[1].type == "scatter"
+        assert fig.data[1].mode == "markers+lines"
+        assert fig.data[1].name == "Propensity"
+        assert fig.data[1].visible == "legendonly"
+        assert fig.data[1].yaxis == "y2"
+        assert fig.layout.xaxis.tickangle == 45
+        assert fig.layout.xaxis.showline is True
+        assert fig.layout.xaxis.zeroline is False
+        assert fig.layout.yaxis.zeroline is False
+        assert fig.layout.yaxis2.zeroline is False
+        assert fig.layout.yaxis2.range[0] == 0
+        assert fig.layout.yaxis2.range[1] <= 1
+
+    def test_default_to_stage_is_arbitration(self, plot_v2):
+        """Omitting to_stage defaults to Arbitration and still builds a figure."""
+        fig = plot_v2.exclusion_rate_distribution(from_stage="Engagement Policies")
+        assert isinstance(fig, Figure)
+
+    def test_return_df(self, plot_v2):
+        """return_df yields the per-interaction frame that drives the chart."""
+        df = plot_v2.exclusion_rate_distribution(
+            from_stage="Engagement Policies", to_stage="Arbitration", return_df=True
+        )
+        collected = df.collect()
+        assert collected.columns == ["Interaction ID", "Actions From", "Actions To", "Excluded", "Exclusion Rate"]
+        assert (collected["Exclusion Rate"] >= 0.0).all()
+        assert (collected["Exclusion Rate"] <= 1.0).all()
+        assert (collected["Actions From"] >= 1).all()
+
+
 class TestOptionalityTrend:
     """Test optionality_trend method."""
 

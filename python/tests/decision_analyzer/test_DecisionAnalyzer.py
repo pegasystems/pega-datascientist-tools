@@ -2560,6 +2560,64 @@ class TestMinimalOptionalityExact:
         assert elig["Interactions"].sum() == 3
 
 
+class TestMinimalExclusionRateExact:
+    """Verify exact per-interaction exclusion rates (attrition counterpart of optionality).
+
+    Remaining actions per interaction (see TestMinimalOptionalityExact):
+      Eligibility (all enter): INT-001=5, INT-002=4, INT-003=3
+      Output:                  INT-001=2, INT-002=0, INT-003=1
+
+    Exclusion rate = (from - to) / from, from=Eligibility, to=Output:
+      INT-001 = 3/5 = 0.60
+      INT-002 = 4/4 = 1.00
+      INT-003 = 2/3 = 0.6667
+    """
+
+    def test_columns(self, da_minimal):
+        df = da_minimal.aggregates.get_exclusion_rate_data(from_stage="Eligibility", to_stage="Output").collect()
+        assert df.columns == ["Interaction ID", "Actions From", "Actions To", "Excluded", "Exclusion Rate"]
+
+    def test_exact_rates(self, da_minimal):
+        df = (
+            da_minimal.aggregates.get_exclusion_rate_data(from_stage="Eligibility", to_stage="Output")
+            .collect()
+            .sort("Interaction ID")
+        )
+        rates = dict(zip(df["Interaction ID"].to_list(), df["Exclusion Rate"].to_list(), strict=True))
+        assert rates["INT-001"] == pytest.approx(0.60)
+        assert rates["INT-002"] == pytest.approx(1.00)
+        assert rates["INT-003"] == pytest.approx(2 / 3)
+
+    def test_exact_counts(self, da_minimal):
+        df = (
+            da_minimal.aggregates.get_exclusion_rate_data(from_stage="Eligibility", to_stage="Output")
+            .collect()
+            .sort("Interaction ID")
+        )
+        assert df["Actions From"].to_list() == [5, 4, 3]
+        assert df["Actions To"].to_list() == [2, 0, 1]
+        assert df["Excluded"].to_list() == [3, 4, 2]
+
+    def test_same_stage_is_zero_exclusion(self, da_minimal):
+        """from == to → nothing can be lost → every rate is 0."""
+        df = da_minimal.aggregates.get_exclusion_rate_data(from_stage="Output", to_stage="Output").collect()
+        assert (df["Exclusion Rate"] == 0.0).all()
+        assert (df["Excluded"] == 0).all()
+
+    def test_zero_baseline_interactions_omitted(self, da_minimal):
+        """INT-002 has 0 actions at Output, so it has no defined rate there and is dropped."""
+        df = da_minimal.aggregates.get_exclusion_rate_data(from_stage="Output", to_stage="Output").collect()
+        assert set(df["Interaction ID"].to_list()) == {"INT-001", "INT-003"}
+
+    def test_inverted_range_raises(self, da_minimal):
+        with pytest.raises(ValueError, match="later in the pipeline"):
+            da_minimal.aggregates.get_exclusion_rate_data(from_stage="Output", to_stage="Eligibility")
+
+    def test_unknown_stage_raises(self, da_minimal):
+        with pytest.raises(ValueError, match="Unknown stage"):
+            da_minimal.aggregates.get_exclusion_rate_data(from_stage="Not A Stage", to_stage="Output")
+
+
 class TestMinimalFilterComponents:
     """Verify exact filter component counts.
 
