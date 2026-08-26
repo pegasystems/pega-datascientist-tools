@@ -24,6 +24,26 @@ class _PredictionStudiov27_1Mixin:
 
     version: str = "27.1"
 
+    _SETTINGS_ENDPOINT = "/prweb/api/PredictionStudio/v5/settings"
+
+    async def _a_general_settings(self) -> dict:
+        """Fetches the ``generalSettings`` block of the Prediction Studio settings.
+
+        As of v5 the dedicated ``predictions/repository`` and
+        ``predictions/modelCategories`` endpoints no longer exist; both pieces
+        of information are served by the settings endpoint instead.
+
+        Returns
+        -------
+        dict
+            The ``settings.generalSettings`` payload, or an empty dict when the
+            response does not contain one.
+
+        """
+        response = await self._a_get(self._SETTINGS_ENDPOINT)
+        settings = response.get("settings") or {}
+        return settings.get("generalSettings") or {}
+
     @api_method
     async def upload_model(self, model: LocalModel, file_name: str) -> UploadedModel:
         """Uploads a model to the repository.
@@ -79,6 +99,9 @@ class _PredictionStudiov27_1Mixin:
         one type of model.  Which can be useful for adding a conditional
         model to a prediction.
 
+        The categories are read from the Prediction Studio settings, which as
+        of v5 replaces the removed ``predictions/modelCategories`` endpoint.
+
         Returns
         -------
         list of dict
@@ -86,9 +109,8 @@ class _PredictionStudiov27_1Mixin:
             like its name and other useful information.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v5/predictions/modelCategories"
-        response = await self._a_get(endpoint)
-        return [item for item in response["categories"]]
+        general_settings = await self._a_general_settings()
+        return list(general_settings.get("modelCategories") or [])
 
     @api_method
     async def get_reports(self) -> list[dict]:
@@ -114,5 +136,5 @@ class _PredictionStudiov27_1Mixin:
             A dictionary containing the current Prediction Studio settings.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v5/settings"
+        endpoint = self._SETTINGS_ENDPOINT
         return await self._a_get(endpoint)

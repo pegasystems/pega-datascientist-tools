@@ -24,21 +24,26 @@ class AsyncPredictionStudio(_PredictionStudiov27_1Mixin, AsyncPredictionStudioPr
     async def repository(self) -> AsyncRepository:
         """Gets information about the repository from Prediction Studio.
 
+        The repository name is read from the Prediction Studio settings, which
+        as of v5 replaces the removed ``predictions/repository`` endpoint. The
+        settings payload does not carry the repository type, bucket name, root
+        path or datamart export location, so those are reported as ``None``.
+
         Returns
         -------
         AsyncRepository
             A simple object with the repository's details.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v5/predictions/repository"
-        response = await self._a_get(endpoint)
+        general_settings = await self._a_general_settings()
+        storage = general_settings.get("storage") or {}
         return AsyncRepository(
             client=self._client,
-            repository_name=response["repositoryName"],
-            type=response["repositoryType"],
-            bucket_name=response["bucketName"],
-            root_path=response["rootPath"],
-            datamart_export_location=response["datamartExportLocation"],
+            repository_name=storage.get("value"),
+            type=None,
+            bucket_name=None,
+            root_path=None,
+            datamart_export_location=None,
         )
 
     @property

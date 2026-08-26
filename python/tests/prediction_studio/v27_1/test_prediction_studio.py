@@ -19,11 +19,11 @@ def prediction_studio_client(mocker):
 
 
 mock_response_repository = {
-    "repositoryName": "TestRepo",
-    "repositoryType": "S3",
-    "bucketName": "test-bucket",
-    "rootPath": "/test-path",
-    "datamartExportLocation": "/datamart-export",
+    "settings": {
+        "generalSettings": {
+            "storage": {"key": "Analytics repository", "value": "TestRepo"},
+        },
+    },
 }
 
 mock_response_model = {
@@ -117,14 +117,27 @@ def test_repository(prediction_studio_client, mocker):
     result = prediction_studio_client.repository()
 
     mock_get.assert_called_once_with(
-        "/prweb/api/PredictionStudio/v5/predictions/repository",
+        "/prweb/api/PredictionStudio/v5/settings",
     )
 
     assert result.name == "TestRepo"
-    assert result.type == "S3"
-    assert result.bucket_name == "test-bucket"
-    assert result.root_path == "/test-path"
-    assert result.datamart_export_location == "/datamart-export"
+    # v5 settings does not expose these; they are reported as None.
+    assert result.type is None
+    assert result.bucket_name is None
+    assert result.root_path is None
+    assert result.datamart_export_location is None
+
+
+def test_repository_without_storage(prediction_studio_client, mocker):
+    """A settings payload without a storage block must not raise."""
+    mocker.patch.object(
+        prediction_studio_client._client,
+        "get",
+        return_value={"settings": {"generalSettings": {}}},
+    )
+    result = prediction_studio_client.repository()
+
+    assert result.name is None
 
 
 @pytest.mark.parametrize(
@@ -301,10 +314,14 @@ def test_trigger_datamart(prediction_studio_client, mocker):
 
 def test_model_categories(prediction_studio_client, mocker):
     mock_response = {
-        "categories": [
-            {"categoryLabel": "Retention", "categoryName": "Retention"},
-            {"categoryLabel": "Acquisition", "categoryName": "Acquisition"},
-        ],
+        "settings": {
+            "generalSettings": {
+                "modelCategories": [
+                    {"category": "Retention", "label": "Retention"},
+                    {"category": "Acquisition", "label": "Acquisition"},
+                ],
+            },
+        },
     }
 
     mock_get = mocker.patch.object(
@@ -315,11 +332,22 @@ def test_model_categories(prediction_studio_client, mocker):
     result = prediction_studio_client.get_model_categories()
 
     mock_get.assert_called_once_with(
-        "/prweb/api/PredictionStudio/v5/predictions/modelCategories",
+        "/prweb/api/PredictionStudio/v5/settings",
     )
 
-    assert result[0] == {"categoryLabel": "Retention", "categoryName": "Retention"}
-    assert result[1] == {"categoryLabel": "Acquisition", "categoryName": "Acquisition"}
+    assert result[0] == {"category": "Retention", "label": "Retention"}
+    assert result[1] == {"category": "Acquisition", "label": "Acquisition"}
+
+
+def test_model_categories_without_categories(prediction_studio_client, mocker):
+    """A settings payload without model categories yields an empty list."""
+    mocker.patch.object(
+        prediction_studio_client._client,
+        "get",
+        return_value={"settings": {"generalSettings": {}}},
+    )
+
+    assert prediction_studio_client.get_model_categories() == []
 
 
 @pytest.mark.parametrize(
