@@ -10,6 +10,8 @@ class _DatamartExportv27_1Mixin:
     Add new or overridden methods here.
     """
 
+    _EXPORT_STATUS_ENDPOINT = "/prweb/api/PredictionStudio/v5/datamart/export/{reference_id}"
+
 
 class DatamartExport(_DatamartExportv27_1Mixin, DatamartExportPrevious):
     pass
