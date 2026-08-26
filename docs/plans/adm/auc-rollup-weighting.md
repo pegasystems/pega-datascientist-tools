@@ -387,9 +387,14 @@ full customer-corpus run, check:
   `ResponseCount`- to `PosNeg`-weighted AUC roll-up — as a deliberate,
   separately-reviewed change, not a silent side effect of this
   investigation.
-- Build an AGB-aware active-range/CI computation (or an alternative
-  variance model that accounts for shared model-fit uncertainty across
-  an AGB model's issue/group/action segments), so the DeLong reference
+- Build an AGB-aware active-range/CI computation, so the DeLong reference
   and its agreement validation can be extended to AGB configurations,
-  not just NB. Needs its own design/plan doc — `active_ranges()`'s
-  current log-odds-sum approach is fundamentally NB-specific.
+  not just NB. [PR #947](https://github.com/pegasystems/pega-datascientist-tools/pull/947)
+  fixed duplicate-row inflation in the existing calculation, but
+  `active_ranges()` still derives reachable scores by summing
+  predictor-bin log odds, which is specific to Naive Bayes and does not
+  represent an AGB tree ensemble. The grouped DeLong helper itself can
+  operate on valid classifier-bin counts, but it does not account for
+  shared model-fit uncertainty across an AGB model's issue/group/action
+  segments. Enabling validated AGB confidence intervals requires a
+  separate design and implementation.
