@@ -413,19 +413,30 @@ def test_compute_ci_maturity_analysis_retains_rows_when_ci_fails_for_some_models
         }
     )
 
-    def active_ranges_side_effect(model_id):
-        if model_id == "m1":
-            return pl.LazyFrame(
-                {
-                    "ModelID": ["m1"],
-                    "AUC_ActiveRange": [0.72],
-                    "AUC_ActiveRange_CI_Lower": [0.69],
-                    "AUC_ActiveRange_CI_Upper": [0.75],
-                    "AUC_ActiveRange_CI_Available": [True],
-                    "AUC_ActiveRange_CI_Reason": [None],
-                }
-            )
-        raise ValueError("pos and neg must be non-empty")
+    def active_ranges_side_effect(model_ids):
+        rows = {
+            "m1": {
+                "AUC_ActiveRange": 0.72,
+                "AUC_ActiveRange_CI_Lower": 0.69,
+                "AUC_ActiveRange_CI_Upper": 0.75,
+                "AUC_ActiveRange_CI_Available": True,
+                "AUC_ActiveRange_CI_Reason": None,
+            },
+            "m2": {
+                "AUC_ActiveRange": None,
+                "AUC_ActiveRange_CI_Lower": None,
+                "AUC_ActiveRange_CI_Upper": None,
+                "AUC_ActiveRange_CI_Available": False,
+                "AUC_ActiveRange_CI_Reason": "analysis_error",
+            },
+        }
+        selected = [rows[model_id] for model_id in model_ids]
+        return pl.LazyFrame(
+            {
+                "ModelID": list(model_ids),
+                **{key: [row[key] for row in selected] for key in rows["m1"]},
+            }
+        )
 
     datamart.active_ranges.side_effect = active_ranges_side_effect
 
@@ -463,15 +474,15 @@ def test_compute_ci_maturity_analysis_splits_agb_and_defaults_missing_technique(
         }
     )
 
-    def active_ranges(model_id):
+    def active_ranges(model_ids):
         return pl.LazyFrame(
             {
-                "ModelID": [model_id],
-                "AUC_ActiveRange": [0.7],
-                "AUC_ActiveRange_CI_Lower": [0.65],
-                "AUC_ActiveRange_CI_Upper": [0.75],
-                "AUC_ActiveRange_CI_Available": [True],
-                "AUC_ActiveRange_CI_Reason": [None],
+                "ModelID": list(model_ids),
+                "AUC_ActiveRange": [0.7] * len(model_ids),
+                "AUC_ActiveRange_CI_Lower": [0.65] * len(model_ids),
+                "AUC_ActiveRange_CI_Upper": [0.75] * len(model_ids),
+                "AUC_ActiveRange_CI_Available": [True] * len(model_ids),
+                "AUC_ActiveRange_CI_Reason": [None] * len(model_ids),
             }
         )
 

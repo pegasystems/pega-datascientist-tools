@@ -373,57 +373,52 @@ def _compute_ci_maturity_analysis(
             key: value for technique in techniques for key, value in _empty_ci_metrics(technique).items()
         }, pl.DataFrame()
 
-    analysis_rows: list[dict] = []
-    for row in active_agg.iter_rows(named=True):
-        model_id = row["ModelID"]
-        ci_data = {
-            "AUC_ActiveRange": None,
-            "AUC_ActiveRange_CI_Lower": None,
-            "AUC_ActiveRange_CI_Upper": None,
-            "AUC_ActiveRange_CI_Available": False,
-            "AUC_ActiveRange_CI_Reason": "analysis_error",
-        }
-        try:
-            ar = (
-                datamart.active_ranges(model_id)
-                .collect()
-                .select(
-                    "AUC_ActiveRange",
-                    "AUC_ActiveRange_CI_Lower",
-                    "AUC_ActiveRange_CI_Upper",
-                    "AUC_ActiveRange_CI_Available",
-                    "AUC_ActiveRange_CI_Reason",
-                )
+    model_ids_needing_ci = active_agg["ModelID"].to_list()
+    empty_ci_columns = {
+        "AUC_ActiveRange": pl.Series([], dtype=pl.Float64),
+        "AUC_ActiveRange_CI_Lower": pl.Series([], dtype=pl.Float64),
+        "AUC_ActiveRange_CI_Upper": pl.Series([], dtype=pl.Float64),
+        "AUC_ActiveRange_CI_Available": pl.Series([], dtype=pl.Boolean),
+        "AUC_ActiveRange_CI_Reason": pl.Series([], dtype=pl.Utf8),
+    }
+    try:
+        # Compute active ranges for every model in one batched call instead of
+        # once per model: active_ranges() re-scans the (potentially huge)
+        # predictor data on every invocation, so calling it per model in a
+        # Python loop makes this step scale with model count times predictor
+        # size rather than just predictor size, and can take hours on large
+        # customer exports.
+        active_ranges_df = (
+            datamart.active_ranges(model_ids_needing_ci)
+            .select(
+                "ModelID",
+                "AUC_ActiveRange",
+                "AUC_ActiveRange_CI_Lower",
+                "AUC_ActiveRange_CI_Upper",
+                "AUC_ActiveRange_CI_Available",
+                "AUC_ActiveRange_CI_Reason",
             )
-            if ar.height > 0:
-                ci_data = {
-                    "AUC_ActiveRange": ar["AUC_ActiveRange"][0],
-                    "AUC_ActiveRange_CI_Lower": ar["AUC_ActiveRange_CI_Lower"][0],
-                    "AUC_ActiveRange_CI_Upper": ar["AUC_ActiveRange_CI_Upper"][0],
-                    "AUC_ActiveRange_CI_Available": ar["AUC_ActiveRange_CI_Available"][0],
-                    "AUC_ActiveRange_CI_Reason": ar["AUC_ActiveRange_CI_Reason"][0],
-                }
-        except Exception:
-            # Keep model-level maturity rows even when CI cannot be computed.
-            pass
-
-        analysis_rows.append(
-            {
-                "ModelID": model_id,
-                "ModelTechnique": row["ModelTechnique"],
-                "Positives": row["Positives"],
-                "ResponseCount": row["ResponseCount"],
-                "IsActiveLast30Days": True,
-                **ci_data,
-            }
+            .collect()
+        )
+    except Exception:
+        active_ranges_df = pl.DataFrame(
+            {"ModelID": pl.Series([], dtype=active_agg["ModelID"].dtype), **empty_ci_columns}
         )
 
-    model_level = pl.DataFrame(analysis_rows).with_columns(
-        CI_Width=(pl.col("AUC_ActiveRange_CI_Upper") - pl.col("AUC_ActiveRange_CI_Lower")),
-        PositivesSegment=pl.when(pl.col("Positives") > positives_maturity_threshold)
-        .then(pl.lit(f">{positives_maturity_threshold}"))
-        .otherwise(pl.lit(f"<={positives_maturity_threshold}")),
-        MaturitySegmentAboveThreshold=pl.col("Positives") > positives_maturity_threshold,
+    model_level = (
+        active_agg.join(active_ranges_df, on="ModelID", how="left")
+        .with_columns(
+            IsActiveLast30Days=pl.lit(True),
+            AUC_ActiveRange_CI_Available=pl.col("AUC_ActiveRange_CI_Available").fill_null(False),
+            AUC_ActiveRange_CI_Reason=pl.col("AUC_ActiveRange_CI_Reason").fill_null("analysis_error"),
+        )
+        .with_columns(
+            CI_Width=(pl.col("AUC_ActiveRange_CI_Upper") - pl.col("AUC_ActiveRange_CI_Lower")),
+            PositivesSegment=pl.when(pl.col("Positives") > positives_maturity_threshold)
+            .then(pl.lit(f">{positives_maturity_threshold}"))
+            .otherwise(pl.lit(f"<={positives_maturity_threshold}")),
+            MaturitySegmentAboveThreshold=pl.col("Positives") > positives_maturity_threshold,
+        )
     )
 
     metrics = {}
