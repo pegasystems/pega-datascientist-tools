@@ -273,7 +273,7 @@ zero-positive models are not the main driver of the gap; the weighting
 scheme itself (multiplicative vs. additive combination of class counts)
 is.
 
-### The two aggregates answer different questions — keep both
+### The two aggregates answer different questions
 
 `AUC_Weighted_ResponseCount` has a clean operational interpretation:
 weighting by `ResponseCount` (= number of decisions) means the result is
@@ -289,11 +289,13 @@ served). A model with 10,000 decisions but only 3 positives contributes
 almost nothing to this number, because its AUC estimate is unreliable —
 not because it's operationally unimportant.
 
-Recommendation: report both, explicitly labeled by purpose.
-`ResponseCount`-weighted for business/operational reporting ("what AUC are
-our decisions running at"); `PosNeg`/DeLong-weighted for health-check-style
-diagnostics, trend monitoring, and cross-configuration comparison, where a
-handful of immature models shouldn't swing the number.
+Observation: the two numbers serve different purposes and neither
+supersedes the other. `ResponseCount`-weighted maps to business/operational
+reporting ("what AUC are our decisions running at"); `PosNeg`/DeLong-weighted
+maps to health-check-style diagnostics, trend monitoring, and
+cross-configuration comparison, where a handful of immature models
+shouldn't swing the number. Whether/how to surface both in practice is
+left for a future, separately-scoped decision.
 
 ### Class imbalance changes which weight is theoretically optimal
 
