@@ -221,7 +221,38 @@ over the current `ResponseCount` weighting; the choice between the two
 comes down to preference for a simpler formula (`Positives` alone) versus
 one that degrades gracefully if the imbalance ratio varies (`PosNeg`).
 
-### Caveat: the DeLong reference is currently NB-only, and pooling assumptions differ by technique
+**Update from the fresh full-corpus run following [PR #948](https://github.com/pegasystems/pega-datascientist-tools/pull/948)
+(AGB-aware active ranges):** this run is the first where AGB
+configurations contribute a DeLong estimate at all — `active_ranges()`
+now reports a usable CI for 4,588 of 4,611 AGB/GradientBoost model rows
+in the corpus (~99.5%), versus 0 previously. Of the 250
+configurations with a DeLong estimate pooling >= 5 models (up from 234),
+17 are AGB by name heuristic (`*AGB*`/`*Boosting*` in the configuration
+name). Agreement with the DeLong reference, split out:
+
+| Method | Scope | Bias | MAE | RMSE | Pearson r | Lin's CCC |
+|---|---|---|---|---|---|---|
+| Naive mean | All (n=250) | -0.082 | 0.094 | 0.125 | 0.62 | 0.40 |
+| ResponseCount-weighted (current) | All (n=250) | -0.032 | 0.055 | 0.091 | 0.71 | 0.64 |
+| PosNeg-weighted (proposed) | All (n=250) | -0.009 | 0.036 | 0.060 | 0.87 | 0.86 |
+| Positives-only-weighted | All (n=250) | -0.019 | 0.037 | 0.065 | 0.86 | 0.83 |
+| ResponseCount-weighted (current) | NB-only (n=233) | -0.029 | 0.054 | 0.091 | 0.69 | 0.62 |
+| PosNeg-weighted (proposed) | NB-only (n=233) | -0.006 | 0.035 | 0.059 | 0.87 | 0.86 |
+| ResponseCount-weighted (current) | AGB-only (n=17) | -0.071 | 0.071 | 0.087 | 0.84 | 0.64 |
+| PosNeg-weighted (proposed) | AGB-only (n=17) | -0.051 | 0.051 | 0.073 | 0.85 | 0.74 |
+
+The NB-only figures are essentially unchanged from the earlier run
+(same corpus, same 48,105-row NB CI-maturity dataset underneath). The
+new information is the AGB-only row: `PosNeg` still beats
+`ResponseCount` by a wide margin on AGB configurations too (CCC 0.74 vs.
+0.64, smaller bias/MAE/RMSE throughout), consistent with the NB finding,
+but the AGB sample is small (17 configurations) and its agreement with
+the DeLong reference is looser than NB's across every method (e.g. CCC
+0.74 vs. 0.86 for `PosNeg`) — plausibly reflecting the model-fit
+uncertainty caveat below, which the per-row DeLong variance still does
+not capture even now that a CI is computable.
+
+### Caveat: pooling assumptions differ by technique, and the AGB CI still doesn't capture shared model-fit uncertainty
 
 NB and AGB models are architecturally different in a way that matters
 for this whole analysis: **for NB, each action/treatment is a completely
@@ -237,35 +268,34 @@ the shared model-fit uncertainty common across all of that model's
 segments — so even where available, it likely understates true
 uncertainty for AGB.
 
-In practice it usually isn't even available: **every AGB/GradientBoost
-configuration observed in the private customer-data run had
-`N_Models_With_DeLong_CI = 0`** (`*_AGB` configs, `BoostingModel_*`,
-etc.). Root cause: `ADMDatamart._minMaxScoresPerModel` (which
-`active_ranges()` and therefore the DeLong CI machinery depends on)
-computes a model's reachable score range as the sum of each active
-predictor's log-odds min/max — the Naive Bayes score formula. AGB's
-score isn't a sum of independent per-predictor log-odds contributions
-(tree splits interact nonlinearly), so this computation structurally
-cannot produce a meaningful active range for AGB models; `AUC_ActiveRange`
-and its CI end up null.
+In the earlier run analyzed above, this was compounded by a separate
+issue: **every AGB/GradientBoost configuration then observed had
+`N_Models_With_DeLong_CI = 0`**, because `ADMDatamart._minMaxScoresPerModel`
+(which `active_ranges()` depended on) computed a model's reachable score
+range as the sum of each active predictor's log-odds min/max — the
+Naive Bayes score formula, which doesn't apply to AGB's tree ensemble.
+[PR #948](https://github.com/pegasystems/pega-datascientist-tools/pull/948)
+fixed this by deriving AGB active ranges from occupied classifier bins
+instead, and pooling classifier-bin counts by `Configuration` so that
+segments sharing one fitted ensemble get a single grouped DeLong interval.
+The fresh full-corpus run above confirms the fix works at scale (~99.5%
+of AGB rows now get a usable CI), which is what makes the AGB-only
+agreement row above possible for the first time.
 
-**Consequence: the agreement table and Bland-Altman plot above are
-implicitly NB-only.** AGB configurations contribute nothing to the
-"eligible" (DeLong-available) comparison set — not because AGB agrees or
-disagrees with the DeLong reference, but because DeLong currently can't
-be computed for AGB at all with `active_ranges()`. Whether `PosNeg`
-weighting is a good DeLong proxy for AGB models remains unvalidated.
+What PR #948 does **not** resolve is the shared model-fit uncertainty
+issue: the pooled AGB interval (`AUC_ActiveRange_CI_Estimate`) quantifies
+validation-sample uncertainty conditional on the exported fitted
+ensemble, not model-fit uncertainty, which can't be identified from a
+single datamart export (`AUC_ActiveRange_CI_IncludesModelFitUncertainty`
+is explicitly `False`). So even with a computable CI, the AGB DeLong
+reference likely still understates true uncertainty relative to NB's,
+which may partly explain why every method's agreement with the DeLong
+reference is looser on AGB than on NB in the table above.
 
 This does **not** affect the `Positives > 200` maturity discussion below:
 that reasoning is about the precision of a single AUC estimate from its
 own bin counts, which applies the same way whether the row is a
 standalone NB model or a correlated segment of a shared AGB model.
-
-A genuine fix (an AGB-aware active-range/CI computation, or a different
-variance model that accounts for shared model-fit uncertainty across
-segments) is out of scope for this plan — see the
-[PR #948](https://github.com/pegasystems/pega-datascientist-tools/pull/948)
-follow-up below, which addresses this at the `active_ranges()` level.
 
 Restricting either weighting to models with `Positives > 0`
 (`*_PositivesOnly` columns) made no measurable difference in this data —
@@ -428,8 +458,11 @@ NaiveBayes model rows with a usable CI):
   uncertainty). Verified against a synthetic AGB configuration built from
   the sample dataset.
 
-  **Still open:** the conclusions in this doc were validated on
-  customer data collected before PR #948 landed, so AGB configurations
-  are not yet represented in the empirical Bland-Altman/agreement
-  results above. A fresh full-corpus run is needed to confirm the
-  weighting-scheme conclusions hold for AGB too.
+  **Resolved:** a fresh full-corpus run was performed after PR #948
+  landed. AGB configurations are now represented in the empirical
+  Bland-Altman/agreement results (see the AGB-only row in the updated
+  agreement table above) — the pos*neg/positives weighting advantage
+  over `ResponseCount` observed for NB also holds for AGB in this run,
+  though the AGB sample is small (17 configurations) and its overall
+  agreement with the DeLong reference is looser than NB's, consistent
+  with the still-unresolved shared model-fit-uncertainty caveat.
