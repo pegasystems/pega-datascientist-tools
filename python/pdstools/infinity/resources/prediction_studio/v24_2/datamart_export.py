@@ -8,6 +8,10 @@ from ..base import DataMartExport as PreviousDatamartExport
 class _DatamartExportV24_2Mixin:
     """v24.2 DatamartExport business logic — defined once."""
 
+    #: Endpoint template for :meth:`get_export_status`. Later versions override
+    #: this to point at their own API version.
+    _EXPORT_STATUS_ENDPOINT = "/prweb/api/PredictionStudio/v1/datamart/export/{reference_id}"
+
     def __init__(self, client, referenceId: str, location: str, repositoryName: str):
         """Initialize the DataMartExport class.
 
@@ -40,7 +44,7 @@ class _DatamartExportV24_2Mixin:
             The response from the server containing the export status of the datamart.
 
         """
-        endpoint = f"/prweb/api/PredictionStudio/v1/datamart/export/{self.reference_id}"
+        endpoint = self._EXPORT_STATUS_ENDPOINT.format(reference_id=self.reference_id)
         response = await self._a_get(endpoint)
         if response.get("status") == "New":
             return {

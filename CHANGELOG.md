@@ -152,6 +152,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   horizontal category charts more readably.
 - AGB weighted AUC and coverage are documented more explicitly, including the
   caveats on interpreting them.
+- **Prediction Studio 27.1 API support.** New
+  `infinity.resources.prediction_studio.v27_1` implementation, registered
+  as the latest known version in the version-dispatch map. It mirrors the
+  26.1 surface but targets the new **PredictionStudio `v5` REST endpoints**
+  (all previously `v1`–`v4` PredictionStudio paths are served under `v5`
+  in Pega 27.1). Passing `pega_version="27.1"` (or `"27"`) now resolves to
+  this implementation.
+
+  Note: automatic version inference (`_infer_version`) probes only the `v3`
+  endpoints and cannot return `"27.1"`. Because a Pega 27 system is expected
+  to ship with `v1`–`v4` removed entirely, clients targeting 27 **must** pass
+  `pega_version="27.1"` explicitly; omitting it raises an `AttributeError`.
 
 ## [5.0.0] — 2026-06-25
 
