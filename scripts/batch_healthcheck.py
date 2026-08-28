@@ -500,16 +500,21 @@ def compute_auc_rollup_comparison(datamart: ADMDatamart) -> pl.DataFrame:
 
     Reports, for each ``Configuration``, the per-model AUC aggregated with
     seven weighting schemes: an unweighted (naive) average, the current
-    ResponseCount-weighted average, a Positives*Negatives-weighted average,
-    a Positives-only-weighted average (a closer DeLong approximation than
-    Positives*Negatives when Negatives >> Positives, since AUC variance is
-    then governed almost entirely by Positives; see
+    ResponseCount-weighted average, a pair-count Positives*Negatives-weighted
+    average (the ratio of total concordant positive-negative pairs to total
+    eligible pairs under conventional empirical AUC), a Positives-only-weighted
+    average (a potentially closer approximation to the conditional
+    inverse-variance benchmark than Positives*Negatives when Negatives >>
+    Positives, since AUC variance is then governed almost entirely by
+    Positives; see
     docs/plans/adm/auc-rollup-weighting.md), the same weighted averages
     restricted to models with at least one positive (a cheap way to check
     whether zero-positive models are what drives the response-count-weighted
     average away from the others), and a DeLong inverse-variance-weighted
-    average (the statistically optimal way to pool independent AUC
-    estimates).
+    average based on grouped-bin variance estimates. The latter is a
+    conditional fixed-effect benchmark for independent estimates of one
+    common AUC, not a universally correct target for heterogeneous or
+    correlated model rows.
 
     Parameters
     ----------
@@ -602,7 +607,8 @@ def compute_auc_rollup_comparison(datamart: ADMDatamart) -> pl.DataFrame:
             # "configuration"); take it once instead of re-pooling it once per
             # segment row, which would double-count the same evidence and
             # understate the resulting uncertainty. NB rows (scope == "model")
-            # are independent per-model estimates and are pooled as before.
+            # are treated as independent per-model estimates by this
+            # conditional benchmark and are pooled as before.
             configuration_scoped = variance_group.filter(pl.col("AUC_ActiveRange_CI_Scope") == "configuration")
             model_scoped = variance_group.filter(pl.col("AUC_ActiveRange_CI_Scope") != "configuration")
             estimate_auc = model_scoped["AUC_ActiveRange"].to_list()
@@ -615,8 +621,10 @@ def compute_auc_rollup_comparison(datamart: ADMDatamart) -> pl.DataFrame:
                 variance=estimate_variance,
                 weights=[1.0 / v for v in estimate_variance],
             )
+            n_delong_estimates = model_scoped.height + int(configuration_scoped.height > 0)
         else:
             inverse_variance_result = {"auc": None, "ci_lower": None, "ci_upper": None}
+            n_delong_estimates = 0
 
         rows.append(
             {
@@ -629,7 +637,7 @@ def compute_auc_rollup_comparison(datamart: ADMDatamart) -> pl.DataFrame:
                 "N_Models_With_Positives": positives_group.height,
                 "AUC_Weighted_ResponseCount_PositivesOnly": weighted_response_count_pos_only,
                 "AUC_Weighted_PosNeg_PositivesOnly": weighted_pos_neg_pos_only,
-                "N_Models_With_DeLong_CI": variance_group.height,
+                "N_DeLong_Estimates": n_delong_estimates,
                 "AUC_Weighted_InverseVariance_DeLong": inverse_variance_result["auc"],
                 "AUC_InverseVariance_DeLong_CI_Lower": inverse_variance_result["ci_lower"],
                 "AUC_InverseVariance_DeLong_CI_Upper": inverse_variance_result["ci_upper"],
@@ -655,15 +663,16 @@ def _print_auc_rollup_table(df: pl.DataFrame) -> None:
         (pl.col("AUC_Weighted_ResponseCount_PositivesOnly") * 100).round(1).alias("RespCnt+"),
         (pl.col("AUC_Weighted_PosNeg_PositivesOnly") * 100).round(1).alias("PosNeg+"),
         (pl.col("AUC_Weighted_InverseVariance_DeLong") * 100).round(1).alias("DeLong"),
-        pl.col("N_Models_With_DeLong_CI").alias("N_DeLong"),
+        pl.col("N_DeLong_Estimates").alias("N_DeLong"),
     )
     with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=-1, fmt_str_lengths=40):
         print(display_df)
 
 
-# Reference method: the statistically correct pooling of independent AUC
-# estimates (see docs/plans/adm/auc-rollup-weighting.md). All other
-# aggregation methods are compared against it below.
+# Conditional comparison benchmark: inverse-variance pooling of eligible
+# model- or configuration-scoped AUC estimates (see
+# docs/plans/adm/auc-rollup-weighting.md). All other aggregation methods are
+# compared against it below.
 AUC_ROLLUP_REFERENCE_COLUMN = "AUC_Weighted_InverseVariance_DeLong"
 AUC_ROLLUP_CANDIDATE_COLUMNS = [
     "AUC_Weighted_ResponseCount",
@@ -689,7 +698,7 @@ def _lin_ccc(x, y) -> float:
 
 
 def _compare_auc_rollup_to_reference(df: pl.DataFrame, candidate_column: str) -> dict[str, float | int | str]:
-    """Compute agreement statistics between a candidate column and the DeLong reference."""
+    """Compute agreement statistics against the inverse-variance benchmark."""
     import numpy as np
 
     pair = df.select(candidate_column, AUC_ROLLUP_REFERENCE_COLUMN).drop_nulls()
@@ -712,21 +721,21 @@ def _compare_auc_rollup_to_reference(df: pl.DataFrame, candidate_column: str) ->
     }
 
 
-def print_auc_rollup_agreement_table(df: pl.DataFrame, *, min_delong_models: int) -> pl.DataFrame:
-    """Print how closely each AUC roll-up method agrees with the DeLong reference.
+def print_auc_rollup_agreement_table(df: pl.DataFrame, *, min_delong_estimates: int) -> pl.DataFrame:
+    """Print how closely each AUC roll-up method agrees with the benchmark.
 
-    Only configurations whose DeLong estimate pools at least
-    ``min_delong_models`` models are included, since the DeLong reference
-    itself is unstable with very few models. See
+    Only configurations whose benchmark combines at least
+    ``min_delong_estimates`` estimates are included, since the comparison
+    is unstable with very few estimates. See
     docs/plans/adm/auc-rollup-weighting.md for the statistical rationale.
 
     Parameters
     ----------
     df : pl.DataFrame
         Rows from ``compute_auc_rollup_comparison`` across all datasets.
-    min_delong_models : int
-        Minimum ``N_Models_With_DeLong_CI`` for a configuration to be
-        included in the comparison.
+    min_delong_estimates : int
+        Minimum ``N_DeLong_Estimates`` for a configuration to be included in
+        the comparison.
 
     Returns
     -------
@@ -734,10 +743,10 @@ def print_auc_rollup_agreement_table(df: pl.DataFrame, *, min_delong_models: int
         The eligible subset of rows used for the comparison (for reuse by
         the Bland-Altman plot).
     """
-    eligible = df.filter(pl.col("N_Models_With_DeLong_CI") >= min_delong_models)
+    eligible = df.filter(pl.col("N_DeLong_Estimates") >= min_delong_estimates)
     print(
-        f"\n{eligible.height} of {df.height} configurations have a DeLong estimate "
-        f"pooling >= {min_delong_models} models."
+        f"\n{eligible.height} of {df.height} configurations have an inverse-variance "
+        f"estimate combining >= {min_delong_estimates} estimates."
     )
     if eligible.height == 0:
         return eligible
@@ -752,7 +761,10 @@ def print_auc_rollup_agreement_table(df: pl.DataFrame, *, min_delong_models: int
         pl.col("Pearson_r").cast(pl.Float64).round(4),
         pl.col("Lin_CCC").cast(pl.Float64).round(4),
     )
-    print(f"Agreement with {AUC_ROLLUP_REFERENCE_COLUMN} (Bias/MAE/RMSE on the 0-1 AUC scale):")
+    print(
+        f"Agreement with {AUC_ROLLUP_REFERENCE_COLUMN} "
+        "(conditional DeLong-style inverse-variance benchmark; Bias/MAE/RMSE on the 0-1 AUC scale):"
+    )
     print(results_df)
     return eligible
 
@@ -762,7 +774,7 @@ def generate_auc_rollup_bland_altman_plot(
     *,
     output_dir: Path,
 ) -> Path | None:
-    """Render a Bland-Altman plot comparing RespCnt/PosNeg weighting against DeLong.
+    """Render a Bland-Altman plot against the conditional inverse-variance benchmark.
 
     For each candidate method, plots (mean of candidate & reference) on the
     x-axis against (candidate - reference) on the y-axis, with the mean
@@ -773,7 +785,7 @@ def generate_auc_rollup_bland_altman_plot(
     Parameters
     ----------
     eligible_df : pl.DataFrame
-        Rows already filtered to configurations with a reliable DeLong
+        Rows already filtered to configurations with an eligible benchmark
         estimate (see ``print_auc_rollup_agreement_table``).
     output_dir : Path
         Directory to write the plot to.
@@ -794,7 +806,7 @@ def generate_auc_rollup_bland_altman_plot(
 
     candidates = [
         ("AUC_Weighted_ResponseCount", "#e11d48", "RespCnt (current)"),
-        ("AUC_Weighted_PosNeg", "#2563eb", "PosNeg (proposed)"),
+        ("AUC_Weighted_PosNeg", "#2563eb", "PosNeg (pair-pooled)"),
         ("AUC_Weighted_Positives", "#16a34a", "Positives-only"),
     ]
 
@@ -817,12 +829,12 @@ def generate_auc_rollup_bland_altman_plot(
         ax.axhline(bias + limit, color="black", linestyle="--", linewidth=1, label=f"+-1.96 SD={limit:.3f}")
         ax.axhline(bias - limit, color="black", linestyle="--", linewidth=1)
         ax.axhline(0, color="grey", linewidth=0.8)
-        ax.set_xlabel(f"Mean of ({label}, DeLong)")
+        ax.set_xlabel(f"Mean of ({label}, DeLong-style IVW)")
         ax.set_title(label)
         ax.legend(frameon=False, fontsize=8)
         ax.grid(alpha=0.2)
-    axes[0].set_ylabel("Difference (candidate - DeLong)")
-    fig.suptitle("AUC roll-up agreement with DeLong inverse-variance reference")
+    axes[0].set_ylabel("Difference (candidate - DeLong-style IVW)")
+    fig.suptitle("AUC roll-up agreement with conditional DeLong-style IVW benchmark")
     fig.tight_layout()
     fig.savefig(output_path)
     plt.close(fig)
@@ -1340,11 +1352,13 @@ For more information, see:
         help="Positives threshold for maturity segmentation (default: 200)",
     )
     parser.add_argument(
+        "--min-delong-estimates",
         "--min-delong-models",
+        dest="min_delong_estimates",
         type=int,
         default=5,
         help=(
-            "Minimum models pooled into a configuration's DeLong estimate for it to be "
+            "Minimum inverse-variance estimates combined for a configuration to be "
             "included in the AUC roll-up agreement analysis (default: 5)"
         ),
     )
@@ -1505,7 +1519,10 @@ For more information, see:
         auc_rollup_df.write_csv(auc_rollup_file)
         print(f"✓ AUC roll-up weighting comparison: {auc_rollup_file}")
 
-        eligible_df = print_auc_rollup_agreement_table(auc_rollup_df, min_delong_models=args.min_delong_models)
+        eligible_df = print_auc_rollup_agreement_table(
+            auc_rollup_df,
+            min_delong_estimates=args.min_delong_estimates,
+        )
         generate_auc_rollup_bland_altman_plot(eligible_df, output_dir=summary_dir)
 
     # Print statistics

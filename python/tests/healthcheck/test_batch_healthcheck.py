@@ -86,6 +86,48 @@ def test_select_interesting_models_excludes_empty_active_ranges():
     assert batch.select_interesting_models(datamart) == ["valid"]
 
 
+def test_compute_auc_rollup_comparison_counts_one_estimate_for_pooled_agb_ci():
+    datamart = MagicMock()
+    datamart.model_data = pl.LazyFrame({"ModelID": ["m1", "m2", "m3"]})
+    datamart.predictor_data = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m2", "m3"],
+            "EntryType": ["Classifier", "Classifier", "Classifier"],
+        }
+    )
+    datamart.aggregates.last.return_value = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m2", "m3"],
+            "Configuration": ["config"] * 3,
+            "Performance": [0.61, 0.72, 0.83],
+            "Positives": [100, 200, 300],
+            "ResponseCount": [1000, 2000, 3000],
+        }
+    )
+    datamart.active_ranges.return_value = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m2", "m3"],
+            "AUC_ActiveRange": [0.61, 0.72, 0.83],
+            "AUC_ActiveRange_CI_Variance": [0.01, 0.02, 0.03],
+            "AUC_ActiveRange_CI_Estimate": [0.74, 0.74, 0.74],
+            "AUC_ActiveRange_CI_Scope": ["configuration"] * 3,
+            "AUC_ActiveRange_CI_Available": [True, True, True],
+        }
+    )
+
+    result = batch.compute_auc_rollup_comparison(datamart)
+
+    assert result.select("Configuration", "N_DeLong_Estimates").to_dicts() == [
+        {"Configuration": "config", "N_DeLong_Estimates": 1}
+    ]
+    pair_counts = [100 * 900, 200 * 1800, 300 * 2700]
+    expected_pair_pooled_auc = sum(
+        auc * pair_count for auc, pair_count in zip([0.61, 0.72, 0.83], pair_counts, strict=True)
+    ) / sum(pair_counts)
+    assert result["AUC_Weighted_PosNeg"][0] == pytest.approx(expected_pair_pooled_auc)
+    assert result["AUC_Weighted_InverseVariance_DeLong"][0] == pytest.approx(0.74)
+
+
 def test_print_dataset_paths_omits_missing_optional_files(capsys):
     batch._print_dataset_paths(
         {

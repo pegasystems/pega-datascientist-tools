@@ -1,6 +1,8 @@
 # AUC roll-up weighting: statistical comparison of aggregation methods
 
-Review various weighting techniques for roll up of AUC for both NB and AGB. No functional changes in scope, just reporting in the batch run over client data.
+Review various weighting techniques for roll up of AUC for both NB and AGB.
+No production-library default changes are in scope; the batch run provides
+diagnostic comparisons and the assumptions behind them.
 
 ## Problem
 
@@ -9,20 +11,33 @@ Review various weighting techniques for roll up of AUC for both NB and AGB. No f
 "ResponseCount")` — a response-count-weighted average
 (`Aggregates.model_summary`, `HealthCheck.qmd`, etc.).
 
-Weighting by `ResponseCount = Positives + Negatives` implicitly treats AUC
-like a proportion (e.g. a success rate), where precision scales with
-total trials. AUC is not a proportion — its sampling variance depends on
-*both* class counts multiplicatively, not their sum. A proposed
-alternative is to weight by `Positives * Negatives` instead.
+Weighting by `ResponseCount = Positives + Negatives` treats AUC like a
+proportion (e.g. a success rate), where precision is expected to scale with
+total trials. There is a more direct reason to consider the product. For
+model `i`, let `C_i` be its concordance score (counting tied pairs as
+one-half), and let `n_pos_i` and `n_neg_i` be its class counts. Conventional
+empirical AUC is `AUC_i = C_i / (n_pos_i * n_neg_i)`. Therefore:
+
+`sum(C_i) / sum(n_pos_i * n_neg_i)`
+`= sum((n_pos_i * n_neg_i) * AUC_i) / sum(n_pos_i * n_neg_i)`.
+
+Thus `Positives * Negatives` weighting is exactly the ratio of total
+concordant positive-negative pairs to total eligible positive-negative pairs:
+the AUC of the pooled set of within-model pairs. This is a particularly
+transparent estimand, not merely a heuristic sample-size weight. It is still
+not universally variance-optimal; that depends on the target, independence,
+and the class-count-dependent AUC variance.
 
 ## Statistical grounding
 
-1. **Combining independent estimates.** The classical result for pooling
-   independent unbiased estimates (fixed-effect meta-analysis, Cochran
+1. **Combining independent estimates.** For independent unbiased estimates
+   of one common quantity (the fixed-effect meta-analysis setting, Cochran
    1954, "The Combination of Estimates from Different Experiments",
-   *Biometrics* 10(1)) is that the variance-minimizing weights are
-   proportional to `1 / Var(estimate)` — inverse-variance weighting. Any
-   other weighting scheme is a heuristic approximation to this.
+   *Biometrics* 10(1)), the variance-minimizing weights are proportional to
+   `1 / Var(estimate)` — inverse-variance weighting. If the estimates have
+   different underlying AUCs, the same calculation defines a
+   precision-weighted blend, not an estimate of one shared AUC. Correlation
+   between estimates also changes the optimal weighting and uncertainty.
 
 2. **AUC variance formula.** Hanley & McNeil (1982, "The Meaning and Use
    of the Area under a ROC Curve", *Radiology* 143(1)) give the
@@ -31,48 +46,64 @@ alternative is to weight by `Positives * Negatives` instead.
    `Var(AUC) ≈ [AUC(1-AUC) + (n_pos - 1)(Q1 - AUC²) + (n_neg - 1)(Q2 - AUC²)] / (n_pos * n_neg)`
 
    where `Q1 = AUC / (2 - AUC)` and `Q2 = 2*AUC² / (1 + AUC)`. The
-   denominator is `n_pos * n_neg`, not `n_pos + n_neg`. This is also the
-   basis of the exact nonparametric variance estimator used by DeLong,
+   denominator is `n_pos * n_neg`, but the numerator also grows with the
+   class counts. After expansion, the leading terms are
+   `(Q2 - AUC^2) / n_pos` and `(Q1 - AUC^2) / n_neg`; the residual
+   `1 / (n_pos * n_neg)` term is not generally dominant. `pdstools`
+   implements a grouped-bin DeLong-style variance estimate based on
    DeLong & Clarke-Pearson (1988, "Comparing the Areas under Two or More
    Correlated Receiver Operating Characteristic Curves: A Nonparametric
-   Approach", *Biometrics* 44(3), <https://doi.org/10.2307/2531595>),
-   which `pdstools` already implements in
-   `cdh_utils.auc_variance_delong_grouped` / `auc_ci_from_bincounts`.
+   Approach", *Biometrics* 44(3), <https://doi.org/10.2307/2531595>).
+   Because the inputs are classifier-bin counts, it is an uncertainty
+   estimate for the binned active-range AUC, not a perfect substitute for
+   row-level scores.
 
-3. **Implication.** Since `Var(AUC) ∝ 1 / (n_pos * n_neg)` to first order,
-   weighting by `Positives * Negatives` is a much closer proxy to the
-   variance-optimal inverse-variance weight than weighting by
-   `Positives + Negatives`. The `ResponseCount`-weighted average is the
-   right choice for pooling *proportions* (e.g. `SuccessRate`), but is a
-   statistically weaker choice for pooling AUC.
+3. **Pair-count interpretation.** For conventional empirical AUC in a common
+   score direction, the identity above makes `Positives * Negatives` weighting
+   the exact pair-pooled AUC estimand. It gives each eligible positive-negative
+   pair equal influence, rather than giving each model equal influence or
+   weighting each decision equally. `ResponseCount` remains a valid
+   operational estimand when the desired question is the decision-volume-
+   weighted average of model AUCs; it is not simply an incorrect AUC aggregate.
 
-4. **The rigorous option already exists in-repo.** `pdstools` already
-   computes a DeLong-style AUC variance per model
-   (`ADMDatamart.active_ranges` returns `AUC_ActiveRange` and
-   `AUC_ActiveRange_CI_Variance` from classifier bin counts) and already
-   has a function to combine independent AUC + variance estimates with
-   inverse-variance weights: `cdh_utils.weighted_auc_ci_from_estimates`.
-   So the "gold standard" comparison point — true inverse-variance
-   weighting using DeLong variances — is a small amount of glue code away,
-   not new statistical machinery.
+4. **Variance implication.** `Positives * Negatives` can be a closer proxy to
+   inverse-variance weighting than `Positives + Negatives`, especially when
+   both class counts vary materially. Under strong class imbalance, however,
+   the `1 / n_pos` term dominates and plain `Positives` weighting may be
+   closer. The pair-pooled estimand and the fixed-effect inverse-variance
+   estimand are therefore interpretable but different targets.
+
+5. **A conditional reference already exists in-repo.** `pdstools` computes
+   a grouped-bin DeLong-style variance from classifier counts
+   (`ADMDatamart.active_ranges`) and combines AUC plus variance estimates
+   with inverse-variance weights through
+   `cdh_utils.weighted_auc_ci_from_estimates`. This gives a useful
+   conditional fixed-effect benchmark, not a ground-truth AUC for every
+   configuration. The reference uses the active-range CI estimate, whereas
+   the other methods aggregate the datamart's full-range `Performance`
+   value; that scope difference is part of the observed disagreement.
 
 Conclusion: there are five aggregation methods worth comparing head-to-head
-on real customer data, in increasing order of statistical rigor:
+on the available data, representing different weighting assumptions and data
+requirements:
 
 | # | Method | Weight | Requires |
 |---|--------|--------|----------|
 | a | Naive average | 1 (equal weight per model) | `Performance`, `Configuration` |
 | b | Current (response-count-weighted) | `Positives + Negatives` | same |
-| c | Proposed (pos*neg-weighted) | `Positives * Negatives` | same |
+| c | Pair-pooled (pos*neg-weighted) | `Positives * Negatives` | same |
 | d | Positives-only-weighted | `Positives` | same |
-| e | Inverse-variance (DeLong) | `1 / Var_DeLong(AUC)` | predictor/classifier bin data |
+| e | Conditional inverse-variance (DeLong-style) | `1 / Var_DeLong(AUC)` | predictor/classifier bin data |
 
-(e) is the statistically correct pooling method; (c) and (d) are evaluated
-as cheap proxies that don't require classifier bin data — (d) because
-`Var(AUC) ~= (Q2 - AUC^2) / n_pos` once `Negatives >> Positives` (see
-below), making plain `Positives` weighting a candidate that may track (e)
-even more closely than (c) under heavy class imbalance; (a) and (b) are
-the naive/current baselines being challenged.
+(e) is the minimum-variance fixed-effect combination when the estimates are
+independent and share one target AUC. It is used here as a conditional
+benchmark, not as a universally correct pooling method. Method (c) is the
+exact pair-pooled estimand under the stated conventional-AUC assumptions;
+method (d) is a positive-count-weighted alternative that does not require
+classifier-bin data. Method (d) may track (e) more closely than (c) when
+`Negatives >> Positives` because `Var(AUC) ~= (Q2 - AUC^2) / n_pos` (see
+below). Numerical agreement with (e) does not make the estimands
+interchangeable.
 
 Two supplementary diagnostic variants of (b) and (c) are also reported,
 restricted to models with `Positives > 0`: `AUC_Weighted_ResponseCount_PositivesOnly`
@@ -96,67 +127,69 @@ maturity analysis:
    - Positives`). Filter to `ResponseCount > 0`.
 2. Join in `datamart.active_ranges()` output (`AUC_ActiveRange`,
    `AUC_ActiveRange_CI_Variance`, `AUC_ActiveRange_CI_Available`) for
-   models that have classifier bin data. This reuses the same call
-   already made for CI maturity — no duplicate computation of active
-   ranges.
+   models that have classifier bin data. The call is batched across model
+   IDs, avoiding the much more expensive per-model loop used by the original
+   implementation.
 3. Group by `Configuration` (falling back to all-models-in-one-group if
    `Configuration` isn't present) and compute, per group:
    - `AUC_Naive_Mean` — `pl.col("Performance").mean()`
    - `AUC_Weighted_ResponseCount` — `cdh_utils.weighted_performance_polars()`
      (existing / current behavior)
    - `AUC_Weighted_PosNeg` — `weighted_average_polars("Performance",
-     Positives * Negatives)`
+     Positives * Negatives)`, the pair-pooled AUC estimand when
+     `Performance` is conventional empirical AUC.
    - `AUC_Weighted_Positives` — `weighted_average_polars("Performance",
      Positives)`
    - `AUC_Weighted_InverseVariance_DeLong` — via
      `cdh_utils.weighted_auc_ci_from_estimates(auc=AUC_ActiveRange,
      variance=AUC_ActiveRange_CI_Variance, weights=1/variance)`, restricted
-     to models with `AUC_ActiveRange_CI_Available`. Also report the
-     resulting CI bounds and `N_Models_With_DeLong_CI`.
+     to rows with `AUC_ActiveRange_CI_Available`, taking a configuration-
+     scoped AGB interval only once. Also report the resulting CI bounds and
+     `N_DeLong_Estimates`.
    Also compute the two `_PositivesOnly` diagnostic variants of (b) and
    (c) described above, restricted to models with `Positives > 0`.
 4. Collect one row per `(Dataset, Configuration)` into a list (same
    collector pattern as `ci_maturity_dataset_rows`), write to
    `auc_rollup_comparison.csv` next to the other batch summary outputs at
    the end of `main()`.
-5. No changes to `python/pdstools` library code are anticipated — this is
+5. No production-library behavior changes are anticipated — this is
    analysis/tooling in the batch script only. If the comparison proves the
    pos*neg or inverse-variance approach is superior, a follow-up PR
    changes the library default (`Aggregates.model_summary`,
    `HealthCheck.qmd`, etc.) — out of scope for this plan.
 
-### Phase 2 (done) — run across the private multi-customer dataset
+### Phase 2 (done) — run across the available multi-dataset corpus
 
-Run `scripts/batch_healthcheck.py` over the full private customer corpus,
+Run `scripts/batch_healthcheck.py` over the available corpus,
 inspect `auc_rollup_comparison.csv`:
 
 - How much do (b), (c), (e) disagree from each other and from (a),
   in absolute AUC points, across configurations?
-- Does (c) (cheap proxy) track (e) (rigorous) closely? If yes, (c) is a
-  good practical default even without classifier bin data.
+- Does (c) track (e) closely? If yes, (c) may be a practical alternative
+  even without classifier-bin data.
 - Are there configurations where (b) meaningfully diverges from (c)/(e) —
   e.g. because a low-volume-but-balanced-classes model would be
   under-weighted by (c)/(e) relative to (b), or vice versa for
   high-volume-but-skewed-classes models?
 
-See "Conclusions from the private customer-data run" below for the
+See "Conclusions from the available-corpus run" below for the
 results.
 
 ### Decision: keep the current `ResponseCount`-weighted default for now
 
-`PosNeg` (and plain `Positives`) weighting track the DeLong reference
-much more closely than the current `ResponseCount` weighting (see
-Conclusions below), and are feasible drop-in replacements. **We are not
-changing the library default at this time** — `Aggregates.model_summary`,
-`HealthCheck.qmd`, and `weighted_performance_polars` keep
-`ResponseCount` weighting. Reasons:
+`PosNeg` (and plain `Positives`) weighting track the conditional
+inverse-variance benchmark much more closely than the current
+`ResponseCount` weighting in the available comparison (see Conclusions
+below), and are feasible drop-in replacements. **We are not changing the
+library default at this time** — `Aggregates.model_summary`, `HealthCheck.qmd`,
+and `weighted_performance_polars` keep `ResponseCount` weighting. Reasons:
 
-- The DeLong reference is still NB-only in terms of empirical validation
-  on real customer data (see the AGB caveat below) — the AGB-aware CI
-  computation landed in [PR #948](https://github.com/pegasystems/pega-datascientist-tools/pull/948)
-  and `compute_auc_rollup_comparison` was updated to use it correctly,
-  but a fresh full-corpus run to confirm the conclusions hold for AGB
-  configurations hasn't happened yet.
+- The latest run now includes 17 AGB configurations, but that sample is
+  small and the AGB interval still excludes shared model-fit uncertainty
+  (see the AGB caveat below). The AGB-aware CI computation landed in
+  [PR #948](https://github.com/pegasystems/pega-datascientist-tools/pull/948)
+  and `compute_auc_rollup_comparison` uses its configuration-scoped estimate
+  once.
 - `ResponseCount`-weighted and `PosNeg`/`Positives`-weighted answer
   different questions (see "The two aggregates answer different
   questions" below) — changing the default isn't just a precision
@@ -176,36 +209,44 @@ not decided here.
   `aggregates.last()` elsewhere in the codebase), not a time-weighted
   roll-up across snapshots.
 - The DeLong/inverse-variance metric is computed on the *active-range*
-  AUC (`AUC_ActiveRange`), which is what `active_ranges()` already
+  AUC (`AUC_ActiveRange_CI_Estimate`), which is what `active_ranges()`
   provides variance for. This is what the existing CI maturity analysis
-  uses too, so it's consistent within the script — but note it's not
-  exactly the same point estimate as `Performance` (datamart-reported
-  AUC from the full classifier range) used for (a)/(b)/(c). Both figures
-  are reported so the disagreement is visible rather than hidden.
+  uses too, so it is consistent within the script — but it is not exactly
+  the same point estimate as `Performance` (datamart-reported AUC from the
+  full classifier range) used for (a)/(b)/(c). Both figures are reported so
+  the disagreement is visible rather than hidden.
+- The pair-count and positive-count identities below apply to conventional
+  raw AUC in a common score direction. Pega's safe-AUC convention reflects
+  values below 0.5, so these are interpretations of the current aggregates
+  rather than algebraic identities for every possible input.
 
-## Conclusions from the private customer-data run
+## Conclusions from the available-corpus run
 
-Ran `scripts/batch_healthcheck.py` across the full private customer
-corpus and analyzed `auc_rollup_comparison.csv` (320 configurations, 234
-with a DeLong estimate pooling >= 5 models) with
+Ran `scripts/batch_healthcheck.py` across the available corpus and analyzed
+`auc_rollup_comparison.csv` (320 configurations, 234
+with a conditional inverse-variance estimate combining >= 5 estimates) with
 `print_auc_rollup_agreement_table` / `generate_auc_rollup_bland_altman_plot`.
-Agreement with the DeLong reference, on the 0-1 AUC scale:
+Agreement with the conditional inverse-variance benchmark, on the 0-1 AUC scale:
 
 | Method | Bias | MAE | RMSE | Pearson r | Lin's CCC |
 |---|---|---|---|---|---|
 | Naive mean | -0.078 | 0.091 | 0.122 | 0.61 | 0.40 |
 | **Current**: ResponseCount-weighted | -0.027 | 0.052 | 0.088 | 0.71 | 0.65 |
-| **Proposed**: PosNeg-weighted | -0.006 | 0.036 | 0.059 | 0.87 | 0.86 |
+| **Pair-pooled**: PosNeg-weighted | -0.006 | 0.036 | 0.059 | 0.87 | 0.86 |
 | Positives-only-weighted | -0.014 | 0.033 | 0.057 | 0.89 | 0.86 |
 
 Plain Pearson r is misleading for this comparison (two methods can
 correlate highly while being systematically offset), so Bias/MAE/RMSE and
 Lin's CCC (which penalizes offset/scale mismatch as well as weak
 correlation) are the metrics that matter. **Conclusion: `Positives *
-Negatives` weighting roughly halves the error against the DeLong
-reference compared to the current `ResponseCount` weighting** (MAE 0.036
-vs. 0.052; CCC 0.86 vs. 0.65), and is a feasible drop-in replacement that
-needs no classifier/predictor bin data.
+Negatives` weighting roughly halves the error against the conditional
+benchmark compared to the current `ResponseCount` weighting** (MAE 0.036
+vs. 0.052; CCC 0.86 vs. 0.65). In addition to this empirical agreement, it
+has a clear interpretation: under conventional common-direction AUC, it is
+the ratio of total concordant pairs to total positive-negative pairs. It is
+therefore a feasible, interpretable pair-pooled alternative that needs no
+classifier/predictor bin data. This is not evidence that `PosNeg` is the
+universally correct aggregate for every operational or statistical target.
 
 **Update from a later full-corpus run (with `AUC_Weighted_Positives`
 added):** plain `Positives` weighting matches `PosNeg` weighting almost
@@ -217,9 +258,10 @@ means the variance-optimal weight is governed almost entirely by
 `Positives`, and multiplying by `Negatives` on top (as `PosNeg` does)
 adds little further discriminative value between models. Either `PosNeg`
 or plain `Positives` weighting is a solid, feasible-to-implement upgrade
-over the current `ResponseCount` weighting; the choice between the two
-comes down to preference for a simpler formula (`Positives` alone) versus
-one that degrades gracefully if the imbalance ratio varies (`PosNeg`).
+over the current `ResponseCount` weighting. `PosNeg` has the more direct
+pair-pooled interpretation; `Positives` is simpler and may approximate the
+conditional inverse-variance weights more closely under stable extreme
+imbalance.
 
 **Update from the fresh full-corpus run following [PR #948](https://github.com/pegasystems/pega-datascientist-tools/pull/948)
 (AGB-aware active ranges):** this run is the first where AGB
@@ -228,18 +270,19 @@ now reports a usable CI for 4,588 of 4,611 AGB/GradientBoost model rows
 in the corpus (~99.5%), versus 0 previously. Of the 250
 configurations with a DeLong estimate pooling >= 5 models (up from 234),
 17 are AGB by name heuristic (`*AGB*`/`*Boosting*` in the configuration
-name). Agreement with the DeLong reference, split out:
+name). Agreement with the conditional DeLong-style inverse-variance
+benchmark, split out:
 
 | Method | Scope | Bias | MAE | RMSE | Pearson r | Lin's CCC |
 |---|---|---|---|---|---|---|
 | Naive mean | All (n=250) | -0.082 | 0.094 | 0.125 | 0.62 | 0.40 |
 | ResponseCount-weighted (current) | All (n=250) | -0.032 | 0.055 | 0.091 | 0.71 | 0.64 |
-| PosNeg-weighted (proposed) | All (n=250) | -0.009 | 0.036 | 0.060 | 0.87 | 0.86 |
+| **Pair-pooled**: PosNeg-weighted | All (n=250) | -0.009 | 0.036 | 0.060 | 0.87 | 0.86 |
 | Positives-only-weighted | All (n=250) | -0.019 | 0.037 | 0.065 | 0.86 | 0.83 |
 | ResponseCount-weighted (current) | NB-only (n=233) | -0.029 | 0.054 | 0.091 | 0.69 | 0.62 |
-| PosNeg-weighted (proposed) | NB-only (n=233) | -0.006 | 0.035 | 0.059 | 0.87 | 0.86 |
+| **Pair-pooled**: PosNeg-weighted | NB-only (n=233) | -0.006 | 0.035 | 0.059 | 0.87 | 0.86 |
 | ResponseCount-weighted (current) | AGB-only (n=17) | -0.071 | 0.071 | 0.087 | 0.84 | 0.64 |
-| PosNeg-weighted (proposed) | AGB-only (n=17) | -0.051 | 0.051 | 0.073 | 0.85 | 0.74 |
+| **Pair-pooled**: PosNeg-weighted | AGB-only (n=17) | -0.051 | 0.051 | 0.073 | 0.85 | 0.74 |
 
 The NB-only figures are essentially unchanged from the earlier run
 (same corpus, same 48,105-row NB CI-maturity dataset underneath). The
@@ -247,7 +290,7 @@ new information is the AGB-only row: `PosNeg` still beats
 `ResponseCount` by a wide margin on AGB configurations too (CCC 0.74 vs.
 0.64, smaller bias/MAE/RMSE throughout), consistent with the NB finding,
 but the AGB sample is small (17 configurations) and its agreement with
-the DeLong reference is looser than NB's across every method (e.g. CCC
+the conditional benchmark is looser than NB's across every method (e.g. CCC
 0.74 vs. 0.86 for `PosNeg`) — plausibly reflecting the model-fit
 uncertainty caveat below, which the per-row DeLong variance still does
 not capture even now that a CI is computable.
@@ -255,18 +298,12 @@ not capture even now that a CI is computable.
 ### Caveat: pooling assumptions differ by technique, and the AGB CI still doesn't capture shared model-fit uncertainty
 
 NB and AGB models are architecturally different in a way that matters
-for this whole analysis: **for NB, each action/treatment is a completely
-separate model**, fit independently — the "pool k independent AUC
-estimates" assumption behind Cochran/DeLong inverse-variance weighting
-holds naturally. **For AGB, there is typically one shared model per
-`Configuration` (usually per channel), with issue/group/action splits
-scored from that same shared model** — so the per-`ModelID` rows being
-pooled are correlated segment-level scores of one model, not independent
-models. Per-row DeLong variance (computed from each row's own classifier
-bin counts) captures sampling noise in that segment's outcomes, but not
-the shared model-fit uncertainty common across all of that model's
-segments — so even where available, it likely understates true
-uncertainty for AGB.
+for this analysis. **For NB, each action/treatment is typically a separate
+model**, so the independent-estimate assumption is more plausible, although
+overlapping evaluation data can still induce correlation. **For AGB, there
+is typically one shared model per `Configuration`**, with issue/group/action
+splits scored from that same model. The per-`ModelID` rows are therefore
+correlated segment-level scores, not independent model fits.
 
 In the earlier run analyzed above, this was compounded by a separate
 issue: **every AGB/GradientBoost configuration then observed had
@@ -307,17 +344,21 @@ is.
 
 `AUC_Weighted_ResponseCount` has a clean operational interpretation:
 weighting by `ResponseCount` (= number of decisions) means the result is
-*the average AUC experienced by a randomly picked decision/interaction*.
-That's the right number for "what discriminative power did our deployed
-decisioning actually run at."
+the decision-volume-weighted average of the model AUCs. That's the right
+number for "what discriminative power did our deployed decisioning actually
+run at"; it should not be confused with a row-level AUC recomputed after
+pooling all observations.
 
-`AUC_Weighted_PosNeg` (and `AUC_Weighted_InverseVariance_DeLong`) answer a
-different question: *what's the lowest-noise estimate of typical model
-quality*, by upweighting statistically reliable models and downweighting
-models whose AUC estimate is noisy (regardless of how many decisions they
-served). A model with 10,000 decisions but only 3 positives contributes
-almost nothing to this number, because its AUC estimate is unreliable —
-not because it's operationally unimportant.
+`AUC_Weighted_PosNeg` answers a different question: what is the AUC when all
+eligible within-model positive-negative pairs are pooled, so each pair has
+equal influence? A model contributes in proportion to the number of pairs it
+provides. This is a natural statistical estimand, but it can differ from the
+decision-volume-weighted operational quantity. The conditional
+inverse-variance benchmark answers yet another question: how should
+independent estimates of one common AUC be combined when their uncertainty is
+known? A model with 10,000 decisions but only 3 positives contributes few
+positive-negative pairs and little inverse-variance information — not because
+it is operationally unimportant.
 
 Observation: the two numbers serve different purposes and neither
 supersedes the other. `ResponseCount`-weighted maps to business/operational
@@ -327,9 +368,9 @@ cross-configuration comparison, where a handful of immature models
 shouldn't swing the number. Whether/how to surface both in practice is
 left for a future, separately-scoped decision.
 
-### Class imbalance changes which weight is theoretically optimal
+### Class imbalance changes which proxy is useful
 
-The customer data has a strong, consistent class imbalance: `Negatives`
+The observed data has a strong, consistent class imbalance: `Negatives`
 is typically ~100x `Positives`. Splitting the Hanley-McNeil variance
 formula's three terms by `n_pos * n_neg` and taking `n_neg -> infinity`
 with `n_pos` fixed:
@@ -340,13 +381,15 @@ i.e. **once negatives are abundant relative to positives, the variance is
 governed almost entirely by `Positives` alone; extra negatives barely
 reduce it further.** This means:
 
-- If the pos:neg ratio is roughly similar across a customer's models,
+- If the pos:neg ratio is roughly similar across a deployment's models,
   `Positives * Negatives ~ constant * Positives^2`, which weights more
-  aggressively (quadratically) than the theoretically optimal weight
-  (`1/Var ~ Positives`, i.e. linear). `PosNeg` still beats `ResponseCount`
-  by a wide margin empirically (see table above), but a plain
+  aggressively (quadratically) than the fixed-effect approximation to the
+  inverse-variance weight (`1/Var ~ Positives`, i.e. linear, when AUC is
+  roughly comparable across models). `PosNeg` still beats `ResponseCount`
+  by a wide margin empirically (see table above), while retaining the
+  especially clear pair-pooled interpretation. A plain
   **`Positives`-weighted** aggregate is a candidate to test as an even
-  closer, and simpler, DeLong approximation under heavy imbalance.
+  closer, and simpler, DeLong-style approximation under heavy imbalance.
 - For model **maturity**: this partially vindicates positives-count as
   the primary signal (matching the existing crude `Positives > 200`
   heuristic in `Analysis.health_check_maturity_criteria` /
@@ -413,6 +456,24 @@ NaiveBayes model rows with a usable CI):
 `CI_Width ≈ 2.52 / sqrt(Positives)` (0-1 AUC scale), i.e.
 `CI_Width ≈ 252 / sqrt(Positives)` on Pega's 50-100 points scale.
 
+## Suggested follow-up experiments
+
+- **Common-target simulation:** generate independent model estimates with one
+  known AUC and vary positive/negative counts. Compare mean squared error and
+  confidence-interval coverage for inverse-variance, `PosNeg`, `Positives`,
+  and `ResponseCount` weights.
+- **Heterogeneous-target simulation:** vary the true AUC by model and score
+  each method against its intended estimand: equal-model mean,
+  response-weighted mean, pair-pooled AUC, and precision-weighted mean. This
+  separates numerical agreement from correctness for a stated target.
+- **Correlated-segment simulation:** add a shared model-fit component to AGB
+  segment estimates, then compare naive inverse-variance intervals with
+  configuration-level pooling and cluster/bootstrap intervals. Measure
+  coverage and effective sample size.
+- **Scope-sensitivity analysis:** quantify the gap between full-range
+  `Performance`, segment-level active-range AUC, and configuration-scoped
+  active-range estimates before attributing differences to weighting.
+
 ## Follow-ups (not implemented in this plan)
 
 - Design a CI-width- or `Positives`-derived maturity metric to replace/
@@ -425,7 +486,7 @@ NaiveBayes model rows with a usable CI):
   current `ResponseCount`-weighted default for now" above. Not changing
   it as part of this investigation.
 - **Resolved:** an AGB-aware active-range/CI computation was needed so
-  the DeLong reference and its agreement validation could extend to AGB
+  the conditional inverse-variance benchmark and its agreement validation could extend to AGB
   configurations, not just NB. [PR #947](https://github.com/pegasystems/pega-datascientist-tools/pull/947)
   fixed duplicate-row inflation in the existing calculation, but
   `active_ranges()` still derived reachable scores by summing
@@ -455,8 +516,10 @@ NaiveBayes model rows with a usable CI):
   directly per `Configuration`, instead of re-pooling the same
   configuration-level variance once per segment row (which would have
   double-counted the same evidence and understated the resulting
-  uncertainty). Verified against a synthetic AGB configuration built from
-  the sample dataset.
+  uncertainty). The CSV now reports the number of distinct
+  `N_DeLong_Estimates`, rather than counting repeated AGB segment rows.
+  Verified against a synthetic AGB configuration built from the sample
+  dataset.
 
   **Resolved:** a fresh full-corpus run was performed after PR #948
   landed. AGB configurations are now represented in the empirical
@@ -464,5 +527,5 @@ NaiveBayes model rows with a usable CI):
   agreement table above) — the pos*neg/positives weighting advantage
   over `ResponseCount` observed for NB also holds for AGB in this run,
   though the AGB sample is small (17 configurations) and its overall
-  agreement with the DeLong reference is looser than NB's, consistent
+  agreement with the conditional benchmark is looser than NB's, consistent
   with the still-unresolved shared model-fit-uncertainty caveat.
