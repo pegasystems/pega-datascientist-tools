@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from itertools import pairwise
 from typing import TYPE_CHECKING, Any
 
 import polars as pl
@@ -542,13 +543,14 @@ class _PerformancePlotsMixin(_PlotsBase):
         # Polars 2 replaces cut() with bin_intervals().
         performance = pl.col("Performance") * 100
         breaks = list(range(50, 100, bin_width))
-        if hasattr(pl.Expr, "bin_intervals"):
+        bin_intervals = getattr(performance, "bin_intervals", None)
+        if bin_intervals is not None:
             labels = [
                 f"(-inf, {breaks[0]})",
-                *(f"[{left}, {right})" for left, right in zip(breaks, breaks[1:], strict=False)),
+                *(f"[{left}, {right})" for left, right in pairwise(breaks)),
                 f"[{breaks[-1]}, inf)",
             ]
-            performance_binned = performance.bin_intervals(breaks, labels=labels)
+            performance_binned = bin_intervals(breaks, labels=labels)
         else:
             performance_binned = performance.cut(breaks=breaks, left_closed=True)
 
