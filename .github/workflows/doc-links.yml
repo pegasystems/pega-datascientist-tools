@@ -10,6 +10,10 @@ on:
       - python/pdstools/reports/**
       - scripts/check_doc_links.py
       - .github/workflows/doc-links.yml
+  # External pages can go stale without any change in this repo.
+  schedule:
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
