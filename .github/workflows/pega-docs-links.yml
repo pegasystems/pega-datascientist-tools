@@ -20,8 +20,6 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
@@ -29,7 +27,5 @@ jobs:
       - name: Set up Python
         run: uv python install 3.13
 
-      - name: Check added Pega documentation links
-        env:
-          BASE_REF: ${{ github.event.pull_request.base.sha }}
-        run: uv run --no-project --python 3.13 python scripts/check_pega_docs_links.py --base-ref "$BASE_REF"
+      - name: Check Pega documentation links
+        run: uv run --no-project --python 3.13 python scripts/check_pega_docs_links.py

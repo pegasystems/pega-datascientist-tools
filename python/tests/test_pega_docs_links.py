@@ -29,29 +29,49 @@ def test_content_api_url_rejects_non_article_paths() -> None:
     assert str(error.value) == "expected a /bundle/{bundle}/page/{article-path} URL"
 
 
-def test_extract_added_links_ignores_removed_links_and_tracks_locations() -> None:
-    diff_text = """\
-diff --git a/examples/articles/example.ipynb b/examples/articles/example.ipynb
-index 1111111..2222222 100644
---- a/examples/articles/example.ipynb
-+++ b/examples/articles/example.ipynb
-@@ -10 +10,2 @@
-- "https://docs.pega.com/bundle/alerts/page/platform/decision-management/old.html"
-+ "[Guide](https://docs.pega.com/bundle/platform/page/platform/decision-management/one.html)."
-+ "https://docs.pega.com/bundle/platform/page/platform/decision-management/two.html"
-"""
+def test_scan_article_links_finds_links_with_locations(tmp_path, monkeypatch) -> None:
+    articles = tmp_path / "examples" / "articles" / "nested"
+    articles.mkdir(parents=True)
+    (articles / "example.ipynb").write_text(
+        '"intro"\n'
+        '"[Guide](https://docs.pega.com/bundle/platform/page/platform/decision-management/one.html)."\n'
+        '"See https://docs.pega.com/bundle/platform/page/platform/decision-management/two.html"\n',
+        encoding="utf-8",
+    )
+    (articles / "image.png").write_bytes(b"https://docs.pega.com/bundle/platform/page/ignored.html")
+    monkeypatch.setattr(check_pega_docs_links, "REPO_ROOT", tmp_path)
 
-    assert check_pega_docs_links._extract_added_links(diff_text) == [
+    assert check_pega_docs_links._scan_article_links() == [
         check_pega_docs_links.LocatedLink(
             url="https://docs.pega.com/bundle/platform/page/platform/decision-management/one.html",
-            path="examples/articles/example.ipynb",
-            line=10,
+            path="examples/articles/nested/example.ipynb",
+            line=2,
         ),
         check_pega_docs_links.LocatedLink(
             url="https://docs.pega.com/bundle/platform/page/platform/decision-management/two.html",
-            path="examples/articles/example.ipynb",
-            line=11,
+            path="examples/articles/nested/example.ipynb",
+            line=3,
         ),
+    ]
+
+
+def test_check_links_reports_each_stale_page_once(monkeypatch) -> None:
+    stale = "https://docs.pega.com/bundle/alerts/page/platform/decision-management/old.html"
+    live = "https://docs.pega.com/bundle/platform/page/platform/decision-management/live.html"
+    statuses = {
+        check_pega_docs_links._content_api_url(stale): 404,
+        check_pega_docs_links._content_api_url(live): 200,
+    }
+    monkeypatch.setattr(check_pega_docs_links, "_fetch_status", statuses.__getitem__)
+
+    links = [
+        check_pega_docs_links.LocatedLink(url=stale, path="a.ipynb", line=1),
+        check_pega_docs_links.LocatedLink(url=live, path="a.ipynb", line=2),
+        check_pega_docs_links.LocatedLink(url=stale, path="b.ipynb", line=7),
+    ]
+
+    assert check_pega_docs_links._check_links(links) == [
+        f"a.ipynb:1, b.ipynb:7: {stale} (content API returned HTTP 404; expected 200)",
     ]
 
 

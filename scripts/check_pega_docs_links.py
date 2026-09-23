@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import argparse
 import re
-import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,7 +30,6 @@ DOCS_URL_PATTERN = re.compile(
     r"""https?://docs\.pega\.com[^\s"'<>\\)\]]+""",
     re.IGNORECASE,
 )
-HUNK_HEADER_PATTERN = re.compile(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 CONTENT_API_BASE_URL = "https://docs-be.pega.com"
 REQUEST_TIMEOUT_SECONDS = 15
 
@@ -73,74 +70,6 @@ def _content_api_url(url: str) -> str:
         raise ValueError("expected a /bundle/{bundle}/page/{article-path} URL")
 
     return f"{CONTENT_API_BASE_URL}/api/{path}"
-
-
-def _extract_added_links(diff_text: str) -> list[LocatedLink]:
-    """Extract Pega links from added lines in a unified Git diff."""
-    links: list[LocatedLink] = []
-    current_path: str | None = None
-    current_line: int | None = None
-    in_hunk = False
-
-    for diff_line in diff_text.splitlines():
-        if diff_line.startswith("diff --git "):
-            current_path = None
-            current_line = None
-            in_hunk = False
-            continue
-
-        if diff_line.startswith("+++ b/"):
-            current_path = diff_line[6:]
-            continue
-
-        if diff_line.startswith("@@"):
-            match = HUNK_HEADER_PATTERN.match(diff_line)
-            current_line = int(match.group(1)) if match else None
-            in_hunk = match is not None
-            continue
-
-        if (
-            not in_hunk
-            or current_path is None
-            or not current_path.startswith(f"{ARTICLES_DIRECTORY.as_posix()}/")
-            or current_line is None
-        ):
-            continue
-
-        if diff_line.startswith("+"):
-            links.extend(
-                LocatedLink(url=url, path=current_path, line=current_line) for url in _extract_urls(diff_line[1:])
-            )
-            current_line += 1
-        elif diff_line.startswith("-"):
-            continue
-        elif diff_line.startswith(" "):
-            current_line += 1
-
-    return links
-
-
-def _links_added_since(base_ref: str) -> list[LocatedLink]:
-    """Read links added or changed since a Git base reference."""
-    diff_range = f"{base_ref}...HEAD"
-    result = subprocess.run(
-        [
-            "git",
-            "diff",
-            "--no-ext-diff",
-            "--unified=0",
-            diff_range,
-            "--",
-            ARTICLES_DIRECTORY.as_posix(),
-        ],
-        cwd=REPO_ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode:
-        raise RuntimeError(result.stderr.strip() or f"git diff {diff_range} failed")
-    return _extract_added_links(result.stdout)
 
 
 def _scan_article_links() -> list[LocatedLink]:
@@ -209,18 +138,11 @@ def _check_links(links: list[LocatedLink]) -> list[str]:
     return errors
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Check all article links or only links added since a Git ref."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--base-ref",
-        help="check only links added or changed since this Git ref",
-    )
-    args = parser.parse_args(argv)
-
+def main() -> int:
+    """Check every Pega documentation link under examples/articles."""
     try:
-        links = _links_added_since(args.base_ref) if args.base_ref else _scan_article_links()
-    except (FileNotFoundError, RuntimeError) as error:
+        links = _scan_article_links()
+    except FileNotFoundError as error:
         print(f"Pega documentation link check could not run: {error}", file=sys.stderr)
         return 2
 
