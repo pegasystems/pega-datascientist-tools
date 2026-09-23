@@ -67,18 +67,22 @@ Module Contents
 
    .. py:method:: model_summary(by: str = 'Name', query: pdstools.utils.types.QUERY | None = None) -> polars.LazyFrame
 
-      Generate a summary of statistic for each model (based on model ID)
+      Summarize the latest model snapshot along the context hierarchy.
 
-      If you want to generate statistics at a model name or treatment level,
-      specify this in the 'by' column.
+      This aggregation backs :meth:`pdstools.adm.Plots.Plots.tree_map` and can
+      also be used directly to compare model counts, response volumes, success
+      rates, and performance across context groups. Grouping includes each
+      context key up to and including ``by``.
 
-      :param by: The column to define the 'counts' for, by default "ModelID"
-                 Must be part of the context keys in the ADMDatamart class
+      :param by: Last context key to include in the grouping, by default "Name".
+                 Must be part of the context keys in the ADMDatamart class.
       :type by: str, optional
       :param query: A query to apply to the data before summarization, by default None
       :type query: Optional[QUERY], optional
 
-      :returns: A LazyFrame, with one row for each context key combination
+      :returns: A LazyFrame with one row per context-key combination. Includes model
+                counts, response and positive totals/means/maxima, weighted success
+                rate and performance, and percentage of models without responses.
       :rtype: pl.LazyFrame
 
 

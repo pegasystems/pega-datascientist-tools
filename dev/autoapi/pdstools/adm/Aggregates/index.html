@@ -524,19 +524,23 @@ The values represent the weighted performance for that predictor</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.Aggregates.Aggregates.model_summary">
 <span class="sig-name descname"><span class="pre">model_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Name'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.adm.Aggregates.Aggregates.model_summary" title="Link to this definition">¶</a></dt>
-<dd><p>Generate a summary of statistic for each model (based on model ID)</p>
-<p>If you want to generate statistics at a model name or treatment level,
-specify this in the ‘by’ column.</p>
+<dd><p>Summarize the latest model snapshot along the context hierarchy.</p>
+<p>This aggregation backs <code class="xref py py-meth docutils literal notranslate"><span class="pre">pdstools.adm.Plots.Plots.tree_map()</span></code> and can
+also be used directly to compare model counts, response volumes, success
+rates, and performance across context groups. Grouping includes each
+context key up to and including <code class="docutils literal notranslate"><span class="pre">by</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>by</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – The column to define the ‘counts’ for, by default “ModelID”
-Must be part of the context keys in the ADMDatamart class</p></li>
+<li><p><strong>by</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Last context key to include in the grouping, by default “Name”.
+Must be part of the context keys in the ADMDatamart class.</p></li>
 <li><p><strong>query</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><em>QUERY</em></a><em>]</em><em>, </em><em>optional</em>) – A query to apply to the data before summarization, by default None</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A LazyFrame, with one row for each context key combination</p>
+<dd class="field-even"><p>A LazyFrame with one row per context-key combination. Includes model
+counts, response and positive totals/means/maxima, weighted success
+rate and performance, and percentage of models without responses.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pl.LazyFrame</p>
