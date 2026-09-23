@@ -114,12 +114,44 @@ def test_check_external_links_deduplicates_and_classifies(monkeypatch) -> None:
         LocatedLink(url="https://docs.pega.com/bundle/x", path="c.md", line=3),
     ]
 
-    assert check_doc_links._check_external_links(links) == (
+    assert check_doc_links._check_external_links(links, []) == (
         [
             "c.md:3: https://docs.pega.com/bundle/x (expected a /bundle/{bundle}/page/{article-path} URL)",
             f"a.ipynb:1, b.ipynb:7: {stale} (HTTP 404)",
         ],
         ["b.ipynb:8: https://busy.example.org/ (rate limited, HTTP 429)"],
+    )
+
+
+def test_pdstools_docs_source_exists_maps_pages_to_sources() -> None:
+    files = [
+        Path("examples/articles/AGBExplained.ipynb"),
+        Path("python/docs/source/GettingStarted.rst"),
+        Path("python/docs/source/articles/Other.ipynb"),
+    ]
+    base = "https://pegasystems.github.io/pega-datascientist-tools/latest/"
+    exists = check_doc_links._pdstools_docs_source_exists
+
+    assert exists(f"{base}articles/AGBExplained.html", files)
+    assert exists(f"{base}GettingStarted.html", files)
+    assert not exists(f"{base}articles/Other.html", files)
+    assert not exists(f"{base}articles/Missing.html", files)
+    assert not exists(f"{base}autoapi/pdstools/index.html", files)
+    assert not exists("https://pegasystems.github.io/pega-datascientist-tools/Python/articles/AGBExplained.html", files)
+
+
+def test_check_external_links_accepts_undeployed_pdstools_page(monkeypatch) -> None:
+    new_page = "https://pegasystems.github.io/pega-datascientist-tools/latest/articles/New.html"
+    removed_page = "https://pegasystems.github.io/pega-datascientist-tools/latest/articles/Gone.html"
+    monkeypatch.setattr(check_doc_links, "_url_status", lambda url: 404)
+    links = [
+        LocatedLink(url=new_page, path="README.md", line=1),
+        LocatedLink(url=removed_page, path="README.md", line=2),
+    ]
+
+    assert check_doc_links._check_external_links(links, [Path("examples/new/New.ipynb")]) == (
+        [f"README.md:2: {removed_page} (HTTP 404)"],
+        [],
     )
 
 

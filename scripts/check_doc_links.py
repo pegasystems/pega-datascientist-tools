@@ -44,6 +44,7 @@ RST_INLINE_LITERAL_PATTERN = re.compile(r"``[^`]*``")
 RST_LITERAL_START_PATTERN = re.compile(r"^\s*\.\.\s+(?:code-block|code|sourcecode)::|^\s*(?!\.\.)\S.*::\s*$")
 
 CONTENT_API_BASE_URL = "https://docs-be.pega.com"
+PDSTOOLS_DOCS_PREFIX = "https://pegasystems.github.io/pega-datascientist-tools/latest/"
 REQUEST_TIMEOUT_SECONDS = 20
 MAX_WORKERS = 8
 RETRY_DELAY_SECONDS = 5
@@ -245,7 +246,27 @@ def _url_status(url: str) -> int:
     return status
 
 
-def _check_external_links(links: list[LocatedLink]) -> tuple[list[str], list[str]]:
+def _pdstools_docs_source_exists(url: str, files: list[Path]) -> bool:
+    """Return whether a pdstools docs page is built from a source in the checkout.
+
+    Pages added in the same change are not deployed yet, so a 404 on the live
+    site is accepted when the notebook or RST source that generates the page
+    exists. ``articles/<name>.html`` comes from an example notebook that the
+    Sphinx build copies in; other pages come from ``python/docs/source``.
+    """
+    if not url.startswith(PDSTOOLS_DOCS_PREFIX):
+        return False
+    page = urlsplit(url[len(PDSTOOLS_DOCS_PREFIX) :]).path
+    if not page.endswith(".html"):
+        return False
+    page = page.removesuffix(".html")
+    if page.startswith("articles/") and "/" not in page.removeprefix("articles/"):
+        stem = page.removeprefix("articles/")
+        return any(file.suffix == ".ipynb" and file.stem == stem and file.parts[0] == "examples" for file in files)
+    return Path("python/docs/source", f"{page}.rst") in files
+
+
+def _check_external_links(links: list[LocatedLink], files: list[Path]) -> tuple[list[str], list[str]]:
     """Return ``(errors, warnings)`` for external links.
 
     Rate-limited responses (HTTP 429) are warnings so that a busy remote host
@@ -278,6 +299,8 @@ def _check_external_links(links: list[LocatedLink]) -> tuple[list[str], list[str
             warnings.append(f"{locations}: {url} (rate limited, HTTP 429)")
         elif isinstance(status, str):
             errors.append(f"{locations}: {url} (request failed: {status})")
+        elif status == 404 and _pdstools_docs_source_exists(url, files):
+            continue
         elif status >= 400:
             errors.append(f"{locations}: {url} (HTTP {status})")
     return errors, warnings
@@ -289,7 +312,7 @@ def main() -> int:
     external, relative = _scan_links(files)
 
     errors = _check_relative_links(relative, files)
-    external_errors, warnings = _check_external_links(external)
+    external_errors, warnings = _check_external_links(external, files)
     errors.extend(external_errors)
 
     for warning in warnings:
