@@ -240,7 +240,7 @@ class Aggregates:
             A LazyFrame, with one row for each context key combination
 
         """
-        df = cdh_utils._apply_query(self.datamart.aggregates.last(), query)
+        df = cdh_utils._apply_query(self.datamart.aggregates.last(), query, allow_empty=True)
         aggregate_columns = ["ResponseCount", "Performance", "SuccessRate", "Positives"]
 
         if by != "ModelID" and by not in self.datamart.context_keys:

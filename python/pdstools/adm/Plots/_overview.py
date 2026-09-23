@@ -21,6 +21,21 @@ if TYPE_CHECKING:
     from ...utils.types import QUERY
 
 
+def _empty_plot(title: str) -> Any:
+    import plotly.graph_objects as go
+
+    fig = go.Figure()
+    fig.add_annotation(
+        text="No models match the selected filters",
+        x=0.5,
+        y=0.5,
+        xref="paper",
+        yref="paper",
+        showarrow=False,
+    )
+    return fig.update_layout(title=title, template="pega")
+
+
 class _OverviewPlotsMixin(_PlotsBase):
     @requires({"ModelID", "Performance", "SuccessRate", "ResponseCount", "Name"})
     def bubble_chart(
@@ -112,7 +127,7 @@ class _OverviewPlotsMixin(_PlotsBase):
 
         if facet_name is not None and isinstance(facet, pl.Expr):
             df = df.with_columns(facet.alias(facet_name))
-        df = cdh_utils._apply_query(df, query)
+        df = cdh_utils._apply_query(df, query, allow_empty=True)
 
         if return_df:
             return df
@@ -120,8 +135,17 @@ class _OverviewPlotsMixin(_PlotsBase):
         import plotly.express as px
 
         title = "over all models"
+        collected = df.collect()
+        if collected.is_empty():
+            fig = _empty_plot(f"Bubble Chart {title}")
+            fig.update_xaxes(title="Performance")
+            fig.update_yaxes(title="SuccessRate", tickformat=".3%")
+            if show_metric_limits:
+                fig = add_metric_limit_lines(fig)
+            return fig
+
         fig = px.scatter(
-            df.collect().with_columns(
+            collected.with_columns(
                 pl.col("LastUpdate").dt.strftime("%v"),
                 pl.col(self.datamart.context_keys).fill_null(""),
             ),
@@ -229,8 +253,12 @@ class _OverviewPlotsMixin(_PlotsBase):
             "Weighted average Performance": ":.2%",
         }
 
+        collected = df.collect()
+        if collected.is_empty():
+            return _empty_plot(f"{label_map.get(metric)} by {by}")
+
         return px.treemap(
-            df.collect(),
+            collected,
             path=context_keys,
             color=label_map.get(metric),
             values="Model Count",
