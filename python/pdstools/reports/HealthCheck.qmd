@@ -758,7 +758,7 @@ else:
     plot_data = action_trend_data.unpivot(
         on=["Actions", "New Actions", "Used Actions"],
         index="DateRange Min",
-        variable_name="Actions",
+        variable_name="Action Type",
         value_name="Weekly Count",
     )
 
@@ -772,7 +772,7 @@ else:
         plot_data,
         x="DateRange Min",
         y="Weekly Count",
-        color="Actions",
+        color="Action Type",
         markers=True,
         template="pega",
         title="Number of Actions Used and New (weekly)",

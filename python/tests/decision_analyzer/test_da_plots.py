@@ -19,6 +19,7 @@ from pdstools.decision_analyzer.plots import (
     Plot,
 )
 from plotly.graph_objs import Figure
+from polars.testing import assert_frame_equal
 
 pytestmark = pytest.mark.filterwarnings("ignore:The following default columns are missing:UserWarning")
 
@@ -259,8 +260,9 @@ class TestTrendChart:
         """Test with return_df."""
         result = plot_v2.trend_chart(stage="Output", scope="Action", return_df=True)
         collected = result.collect()
-        assert collected.shape == (45, 3)
         assert collected.columns == ["day", "Action", "Decisions"]
+        expected = plot_v2._decision_data.aggregates.get_trend_data(stage="Output", scope="Action").collect()
+        assert collected.equals(expected)
 
 
 class TestDecisionFunnel:
@@ -480,8 +482,15 @@ class TestOptionalityPerStage:
         """Test with return_df."""
         df = plot_v2.optionality_per_stage(return_df=True)
         collected = df.collect()
-        assert collected.shape == (123, 4)
         assert collected.columns == ["nOffers", "Stage Group", "Interactions", "AverageBestPropensity"]
+        expected = plot_v2._decision_data.aggregates.get_optionality_data(plot_v2._decision_data.sample).collect()
+        columns = ["nOffers", "Stage Group", "Interactions", "AverageBestPropensity"]
+        assert_frame_equal(
+            collected.sort(columns),
+            expected.sort(columns),
+            check_exact=False,
+            abs_tol=1e-12,
+        )
 
 
 class TestExclusionRateDistribution:

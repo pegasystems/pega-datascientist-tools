@@ -108,8 +108,7 @@ def test_active_ranges_single_model(sample):
     assert ar_single_list["ModelID"][0] == model_id
 
     # Compare results from both methods
-    for col in ar_single.columns:
-        assert ar_single[col][0] == ar_single_list[col][0]
+    assert_frame_equal(ar_single, ar_single_list, check_exact=False, abs_tol=1e-12)
 
 
 def test_active_ranges_multiple_models(sample):

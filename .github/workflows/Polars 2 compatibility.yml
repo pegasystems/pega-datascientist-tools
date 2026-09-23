@@ -1,0 +1,53 @@
+name: Polars 2 compatibility
+
+on:
+  push:
+    branches:
+      - master
+      - compat/polars-2
+  pull_request:
+    types: [ opened, synchronize, reopened, ready_for_review ]
+  workflow_dispatch:
+  schedule:
+    - cron: "37 8 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  polars-2:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Create virtual environment
+        run: uv venv --python 3.12
+
+      - name: Install the project with Polars 2
+        run: uv pip install --python .venv/bin/python --editable '.[tests]' --overrides .github/polars-v2-constraints.txt --prerelease allow --resolution highest
+
+      - name: Verify Polars major version
+        run: uv run python -c 'import polars; assert polars.__version__.startswith("2."), polars.__version__; print(f"Polars {polars.__version__}")'
+
+      - name: Run core tests
+        shell: bash
+        run: |
+          TORCH_IGNORES=$(sed 's|^|--ignore=|' python/tests/torch_test_files.txt | tr '\n' ' ')
+          uv run pytest --ignore=python/tests/healthcheck/test_healthcheck.py --ignore=python/tests/explanations/test_explanations_report.py --ignore=python/tests/healthcheck/test_batch_healthcheck.py --ignore=python/tests/explanations --ignore=python/tests/streamlit_apps $TORCH_IGNORES -n auto
+          uv run pytest --ignore=python/tests/explanations/test_explanations_report.py python/tests/explanations
+
+      - name: Run Streamlit AppTest suite
+        shell: bash
+        run: |
+          TORCH_IGNORES=$(sed 's|^|--ignore=|' python/tests/torch_test_files.txt | tr '\n' ' ')
+          uv run pytest $TORCH_IGNORES python/tests/streamlit_apps

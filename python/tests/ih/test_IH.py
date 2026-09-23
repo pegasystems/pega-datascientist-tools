@@ -205,9 +205,14 @@ def test_summary_success_rates_with_query(ih):
 
 def test_summary_success_rates_complex(ih):
     """Test summary_success_rates with multiple parameters"""
+    propensity_bins = (
+        pl.col("Propensity").bin_quantiles(10, labels=[f"Bin {index}" for index in range(10)])
+        if hasattr(pl.Expr, "bin_quantiles")
+        else pl.col("Propensity").qcut(10)
+    )
     result = ih.aggregates.summary_success_rates(
         by=[
-            pl.col("Propensity").qcut(10).alias("PropensityBin"),
+            propensity_bins.alias("PropensityBin"),
             "Channel",
             "Direction",
         ],

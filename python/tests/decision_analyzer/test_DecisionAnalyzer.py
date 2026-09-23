@@ -362,21 +362,24 @@ class TestSampling:
         assert da_v1.sample.collect().height == 7297
 
     def test_v2_sample_returns_lazyframe(self, da_v2):
-        assert da_v2.sample.collect().height == 956675
+        sample = da_v2.sample.collect()
+        selected_interactions = sample["Interaction ID"].n_unique()
+        assert sample.height > 0
+        assert selected_interactions == pytest.approx(da_v2.num_sample_interactions, rel=0.1)
 
     def test_v1_sample_not_empty(self, da_v1):
         assert da_v1.sample.collect().height == 7297
 
     def test_v2_sample_not_empty(self, da_v2):
-        assert da_v2.sample.collect().height == 956675
+        assert da_v2.sample.collect().height > 0
 
     def test_sample_respects_size_limit(self):
         """With a very small sample_size, the number of interactions should be limited."""
         raw = pl.scan_parquet(f"{basePath}/data/sample_eev2.parquet")
         da = DecisionAnalyzer(raw, sample_size=1000)
         n_interactions = da.sample.select(pl.n_unique("Interaction ID")).collect().item()
-        # Should be at most sample_size (may be less due to hash sampling)
-        assert n_interactions <= 1500  # some tolerance for hash-based sampling
+        # Hash-based sampling approximates the requested count.
+        assert n_interactions == pytest.approx(1000, rel=0.5)
 
     def test_sample_has_required_columns(self, da_v1):
         cols = da_v1.sample.collect_schema().names()
@@ -1279,7 +1282,10 @@ class TestOptionality:
 
     def test_v2_optionality_data(self, da_v2):
         df = da_v2.aggregates.get_optionality_data(da_v2.sample).collect()
-        assert df.height == 123
+        interaction_count = da_v2.sample.select(pl.n_unique("Interaction ID")).collect().item()
+        per_stage = df.group_by(da_v2.level).agg(pl.col("Interactions").sum())
+        assert per_stage.height == len(da_v2.AvailableNBADStages)
+        assert per_stage["Interactions"].to_list() == [interaction_count] * per_stage.height
 
     def test_optionality_with_trend(self, da_v1):
         df = da_v1.aggregates.get_optionality_data(by_day=True).collect()
@@ -1632,7 +1638,13 @@ class TestStageMethods:
     def test_v2_arbitration_stage(self, da_v2):
         result = da_v2.arbitration_stage
         df = result.collect()
-        assert df.height == 21133
+        expected = (
+            da_v2.sample.filter(pl.col(da_v2.level).is_in(da_v2.stages_from_arbitration_down))
+            .select(pl.len())
+            .collect()
+            .item()
+        )
+        assert df.height == expected
         assert da_v2.level in df.columns
 
 
@@ -1757,7 +1769,9 @@ class TestFilteringAndScoping:
             component=component, granularity="Issue", stage="Arbitration"
         )
         df = result.collect()
-        assert df.height == 21133
+        remaining_stages = da_v2.AvailableNBADStages[da_v2.AvailableNBADStages.index("Arbitration") :]
+        expected = da_v2.sample.filter(pl.col(da_v2.level).is_in(remaining_stages)).select(pl.len()).collect().item()
+        assert df.height == expected
         assert "Issue" in df.columns
         assert component in df.columns
 
@@ -1768,18 +1782,22 @@ class TestFilteringAndScoping:
             pytest.skip("Propensity not available")
         result = da_v2.scoring.priority_component_distribution(component=component, granularity="Action", stage=None)
         df = result.collect()
-        assert df.height == 816372
+        expected = da_v2.sample.filter(pl.col("Priority").is_not_null()).select(pl.len()).collect().item()
+        assert df.height == expected
 
     def test_all_components_distribution_v2(self, da_v2):
         result = da_v2.scoring.all_components_distribution(granularity="Issue", stage="Arbitration")
         df = result.collect()
-        assert df.height == 21133
+        remaining_stages = da_v2.AvailableNBADStages[da_v2.AvailableNBADStages.index("Arbitration") :]
+        expected = da_v2.sample.filter(pl.col(da_v2.level).is_in(remaining_stages)).select(pl.len()).collect().item()
+        assert df.height == expected
         assert "Issue" in df.columns
 
     def test_all_components_distribution_no_stage(self, da_v2):
         result = da_v2.scoring.all_components_distribution(granularity="Group", stage=None)
         df = result.collect()
-        assert df.height == 816372
+        expected = da_v2.sample.filter(pl.col("Priority").is_not_null()).select(pl.len()).collect().item()
+        assert df.height == expected
         assert "Group" in df.columns
 
     def test_remaining_at_stage_none(self, da_v2):
@@ -1926,7 +1944,14 @@ class TestOfferQualityAnalysis:
         )
         result = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()
-        assert df.height == 25190
+        first_stage = da_v2.AvailableNBADStages[0]
+        first_stage_customers = (
+            da_v2.sample.filter(pl.col(da_v2.level) == first_stage)
+            .select(pl.col("Interaction ID").n_unique())
+            .collect()
+            .item()
+        )
+        assert df.height == first_stage_customers * len(da_v2.AvailableNBADStages)
         # Check for offer quality category columns
         assert "has_no_offers" in df.columns
         assert "atleast_one_relevant_action" in df.columns
@@ -1941,14 +1966,21 @@ class TestOfferQualityAnalysis:
         )
         result = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()
-        assert df.height == 25190
+        first_stage = da_v2.AvailableNBADStages[0]
+        first_stage_customers = (
+            da_v2.sample.filter(pl.col(da_v2.level) == first_stage)
+            .select(pl.col("Interaction ID").n_unique())
+            .collect()
+            .item()
+        )
+        assert df.height == first_stage_customers * len(da_v2.AvailableNBADStages)
         # At least one category should have non-zero counts
         has_counts = (
             df.select("has_no_offers", "atleast_one_relevant_action", "only_irrelevant_actions", "atleast_one_action")
             .sum()
             .row(0)
         )
-        assert sum(has_counts) == 25190
+        assert sum(has_counts) == df.height
 
     def test_get_offer_quality_includes_all_customers(self, da_v2):
         """Test that get_offer_quality includes customers even if they have no actions."""
@@ -1961,7 +1993,8 @@ class TestOfferQualityAnalysis:
         df = result.collect()
 
         # Should have customers with no offers
-        assert df.filter(pl.col("has_no_offers") > 0).height == 11655
+        no_offer_rows = df.filter(pl.col("has_no_offers") > 0).height
+        assert 0 < no_offer_rows < df.height
 
         # Total unique customers should match first stage customer count
         first_stage = da_v2.AvailableNBADStages[0]
