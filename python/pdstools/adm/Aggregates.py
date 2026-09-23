@@ -858,7 +858,7 @@ class Aggregates:
         group_by_cols = ["Configuration"] + [c for c in ["Channel", "Direction"] if c in self.datamart.context_keys]
 
         configuration_summary = (
-            cdh_utils._apply_query(self.last(table="model_data"), query)
+            cdh_utils._apply_query(self.last(table="model_data"), query, allow_empty=True)
             .group_by(group_by_cols)
             .agg(
                 is_standard_NBAD_configuration().any(ignore_nulls=False).alias("usesNBAD"),
