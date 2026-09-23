@@ -1,11 +1,15 @@
-name: Pega docs links
+name: Documentation links
 
 on:
   pull_request:
     paths:
-      - examples/articles/**
-      - scripts/check_pega_docs_links.py
-      - .github/workflows/pega-docs-links.yml
+      - "*.md"
+      - docs/*.md
+      - examples/**
+      - python/docs/**
+      - python/pdstools/reports/**
+      - scripts/check_doc_links.py
+      - .github/workflows/doc-links.yml
 
 permissions:
   contents: read
@@ -27,5 +31,5 @@ jobs:
       - name: Set up Python
         run: uv python install 3.13
 
-      - name: Check Pega documentation links
-        run: uv run --no-project --python 3.13 python scripts/check_pega_docs_links.py
+      - name: Check documentation links
+        run: uv run --no-project --python 3.13 python scripts/check_doc_links.py

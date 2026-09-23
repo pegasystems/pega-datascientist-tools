@@ -1,0 +1,171 @@
+from __future__ import annotations
+
+import importlib.util
+import sys
+from io import BytesIO
+from pathlib import Path
+from urllib.error import HTTPError
+
+import pytest
+
+SCRIPT_PATH = Path(__file__).resolve().parents[2] / "scripts" / "check_doc_links.py"
+SPEC = importlib.util.spec_from_file_location("check_doc_links", SCRIPT_PATH)
+if SPEC is None or SPEC.loader is None:
+    raise ImportError(f"Could not load the checker at {SCRIPT_PATH}")
+check_doc_links = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = check_doc_links
+SPEC.loader.exec_module(check_doc_links)
+
+LocatedLink = check_doc_links.LocatedLink
+
+
+def test_content_api_url_maps_bundle_page_and_ignores_query() -> None:
+    assert check_doc_links._content_api_url(
+        "https://docs.pega.com/bundle/platform/page/platform/decision-management/example.html?language=en-US#details"
+    ) == ("https://docs-be.pega.com/api/bundle/platform/page/platform/decision-management/example.html")
+
+
+def test_content_api_url_rejects_non_article_paths() -> None:
+    with pytest.raises(ValueError) as error:
+        check_doc_links._content_api_url("https://docs.pega.com/bundle/platform/page")
+    assert str(error.value) == "expected a /bundle/{bundle}/page/{article-path} URL"
+
+
+def test_extract_relative_targets_skips_urls_anchors_and_built_pages() -> None:
+    line = (
+        "[a](guide.md#setup) [b](https://x.org) [c](#top) [d](mailto:a@b.c) "
+        '<img src="img/logo.png"> [e](autoapi/pkg/index.html) [f](/abs.md)'
+    )
+    assert check_doc_links._extract_relative_targets(line) == ["guide.md#setup", "img/logo.png"]
+
+
+def test_prose_lines_skips_code_but_keeps_code_comments() -> None:
+    notebook = "\n".join(
+        [
+            '  "cell_type": "markdown",',
+            '  "source": ["See https://a.org/doc.\\n"]',
+            '  "cell_type": "code",',
+            '    "path = \\"https://a.org/prefix\\"\\n",',
+            '    "# See: https://a.org/commented\\n",',
+        ]
+    )
+    urls = [
+        url
+        for _, line in check_doc_links._prose_lines(".ipynb", notebook)
+        for url in check_doc_links._extract_urls(line)
+    ]
+    assert urls == ["https://a.org/doc", "https://a.org/commented"]
+
+    markdown = "Read https://a.org/one and `https://host/x`.\n```bash\ncurl https://a.org/two\n```\n"
+    urls = [
+        url for _, line in check_doc_links._prose_lines(".md", markdown) for url in check_doc_links._extract_urls(line)
+    ]
+    assert urls == ["https://a.org/one"]
+
+    rst = "Example::\n\n    https://a.org/literal\n\nSee `docs <https://a.org/three>`_ and ``https://a.org/lit``.\n"
+    urls = [url for _, line in check_doc_links._prose_lines(".rst", rst) for url in check_doc_links._extract_urls(line)]
+    assert urls == ["https://a.org/three"]
+
+
+def test_scan_links_reports_locations_and_skips_local_hosts(tmp_path, monkeypatch) -> None:
+    (tmp_path / "README.md").write_text(
+        "intro\n[Guide](https://docs.pega.com/bundle/p/page/one.html).\nhttp://localhost:8080 [x](CONTRIBUTING.md)\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(check_doc_links, "REPO_ROOT", tmp_path)
+
+    assert check_doc_links._scan_links([Path("README.md")]) == (
+        [LocatedLink(url="https://docs.pega.com/bundle/p/page/one.html", path="README.md", line=2)],
+        [LocatedLink(url="CONTRIBUTING.md", path="README.md", line=3)],
+    )
+
+
+def test_check_relative_links(tmp_path, monkeypatch) -> None:
+    (tmp_path / "examples" / "a").mkdir(parents=True)
+    (tmp_path / "examples" / "b").mkdir()
+    (tmp_path / "examples" / "a" / "img.png").write_bytes(b"")
+    monkeypatch.setattr(check_doc_links, "REPO_ROOT", tmp_path)
+    files = [Path("examples/a/one.ipynb"), Path("examples/b/two.ipynb")]
+    links = [
+        LocatedLink(url="img.png#x", path="examples/a/one.ipynb", line=1),
+        LocatedLink(url="two.ipynb", path="examples/a/one.ipynb", line=2),
+        LocatedLink(url="missing.png", path="examples/a/one.ipynb", line=3),
+    ]
+
+    assert check_doc_links._check_relative_links(links, files) == [
+        "examples/a/one.ipynb:3: missing.png (file not found)",
+    ]
+
+
+def test_check_external_links_deduplicates_and_classifies(monkeypatch) -> None:
+    stale = "https://docs.pega.com/bundle/alerts/page/old.html"
+    statuses = {
+        stale: 404,
+        "https://github.com/org/repo": 200,
+        "https://busy.example.org/": 429,
+    }
+    monkeypatch.setattr(check_doc_links, "_url_status", statuses.__getitem__)
+
+    links = [
+        LocatedLink(url=stale, path="a.ipynb", line=1),
+        LocatedLink(url="https://github.com/org/repo#readme", path="a.ipynb", line=2),
+        LocatedLink(url=stale, path="b.ipynb", line=7),
+        LocatedLink(url="https://busy.example.org/", path="b.ipynb", line=8),
+        LocatedLink(url="https://docs.pega.com/bundle/x", path="c.md", line=3),
+    ]
+
+    assert check_doc_links._check_external_links(links) == (
+        [
+            "c.md:3: https://docs.pega.com/bundle/x (expected a /bundle/{bundle}/page/{article-path} URL)",
+            f"a.ipynb:1, b.ipynb:7: {stale} (HTTP 404)",
+        ],
+        ["b.ipynb:8: https://busy.example.org/ (rate limited, HTTP 429)"],
+    )
+
+
+def test_url_status_uses_content_api_and_falls_back_to_get(monkeypatch) -> None:
+    calls = []
+
+    def fake_fetch(url, method="GET"):
+        calls.append((method, url))
+        return 405 if method == "HEAD" else 200
+
+    monkeypatch.setattr(check_doc_links, "_fetch_status", fake_fetch)
+
+    assert check_doc_links._url_status("https://docs.pega.com/bundle/p/page/a.html") == 200
+    assert calls == [
+        ("HEAD", "https://docs-be.pega.com/api/bundle/p/page/a.html"),
+        ("GET", "https://docs-be.pega.com/api/bundle/p/page/a.html"),
+    ]
+
+
+def test_url_status_retries_server_errors_once(monkeypatch) -> None:
+    statuses = iter([503, 200])
+    monkeypatch.setattr(check_doc_links, "_fetch_status", lambda url, method="GET": next(statuses))
+    monkeypatch.setattr(check_doc_links, "RETRY_DELAY_SECONDS", 0)
+
+    assert check_doc_links._url_status("https://github.com/org/repo") == 200
+
+
+def test_fetch_status_returns_success(monkeypatch) -> None:
+    class Response:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+    monkeypatch.setattr(check_doc_links, "urlopen", lambda *args, **kwargs: Response())
+
+    assert check_doc_links._fetch_status("https://github.com/org/repo") == 200
+
+
+def test_fetch_status_returns_http_error_status(monkeypatch) -> None:
+    def raise_not_found(request, timeout):
+        raise HTTPError(request.full_url, 404, "Not Found", hdrs=None, fp=BytesIO(b'{"error_code":404}'))
+
+    monkeypatch.setattr(check_doc_links, "urlopen", raise_not_found)
+
+    assert check_doc_links._fetch_status("https://docs-be.pega.com/api/bundle/alerts/page/example.html", "HEAD") == 404
