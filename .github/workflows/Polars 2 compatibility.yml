@@ -37,17 +37,17 @@ jobs:
         run: uv pip install --python .venv/bin/python --editable '.[tests]' --overrides .github/polars-v2-constraints.txt --prerelease allow --resolution highest
 
       - name: Verify Polars major version
-        run: uv run python -c 'import polars; assert polars.__version__.startswith("2."), polars.__version__; print(f"Polars {polars.__version__}")'
+        run: uv run --no-sync python -c 'import polars; assert polars.__version__.startswith("2."), polars.__version__; print(f"Polars {polars.__version__}")'
 
       - name: Run core tests
         shell: bash
         run: |
           TORCH_IGNORES=$(sed 's|^|--ignore=|' python/tests/torch_test_files.txt | tr '\n' ' ')
-          uv run pytest --ignore=python/tests/healthcheck/test_healthcheck.py --ignore=python/tests/explanations/test_explanations_report.py --ignore=python/tests/healthcheck/test_batch_healthcheck.py --ignore=python/tests/explanations --ignore=python/tests/streamlit_apps $TORCH_IGNORES -n auto
-          uv run pytest --ignore=python/tests/explanations/test_explanations_report.py python/tests/explanations
+          uv run --no-sync pytest --ignore=python/tests/healthcheck/test_healthcheck.py --ignore=python/tests/explanations/test_explanations_report.py --ignore=python/tests/healthcheck/test_batch_healthcheck.py --ignore=python/tests/explanations --ignore=python/tests/streamlit_apps $TORCH_IGNORES -n auto
+          uv run --no-sync pytest --ignore=python/tests/explanations/test_explanations_report.py python/tests/explanations
 
       - name: Run Streamlit AppTest suite
         shell: bash
         run: |
           TORCH_IGNORES=$(sed 's|^|--ignore=|' python/tests/torch_test_files.txt | tr '\n' ' ')
-          uv run pytest $TORCH_IGNORES python/tests/streamlit_apps
+          uv run --no-sync pytest $TORCH_IGNORES python/tests/streamlit_apps
