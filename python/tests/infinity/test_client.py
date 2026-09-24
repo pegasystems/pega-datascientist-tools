@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock
+
+import httpx
 import pytest
 from pdstools.infinity import AsyncInfinity, Infinity
 
@@ -11,6 +14,15 @@ from pdstools.infinity import AsyncInfinity, Infinity
 
 
 class TestInfinity:
+    def test_v27_is_discovered_and_cached_without_explicit_version(self, mocker):
+        client = Infinity(base_url="https://example.com", auth=httpx.BasicAuth("user", "pass"))
+        request = mocker.patch.object(client, "_request", return_value=httpx.Response(200))
+
+        assert client.version == "27.1"
+        assert client.prediction_studio.version == "27.1"
+        assert client.version == "27.1"
+        request.assert_called_once_with(method="get", endpoint=client._V5_SETTINGS_ENDPOINT)
+
     def test_init_without_version(self):
         """Client without version raises AttributeError when prediction_studio is accessed."""
         client = Infinity.from_client_id_and_secret("TEST_URL", "NA", "NA")
@@ -112,6 +124,23 @@ class TestInfinity:
 
 
 class TestAsyncInfinity:
+    def test_v27_is_discovered_and_cached_without_explicit_version(self, mocker):
+        client = AsyncInfinity(base_url="https://example.com", auth=httpx.BasicAuth("user", "pass"))
+        request = mocker.patch.object(client, "_request", new_callable=AsyncMock, return_value=httpx.Response(200))
+
+        assert client.version == "27.1"
+        assert client.prediction_studio.version == "27.1"
+        assert client.version == "27.1"
+        request.assert_awaited_once_with(method="get", endpoint=client._V5_SETTINGS_ENDPOINT)
+
+    @pytest.mark.asyncio
+    async def test_v27_discovery_inside_event_loop(self, mocker):
+        client = AsyncInfinity(base_url="https://example.com", auth=httpx.BasicAuth("user", "pass"))
+        request = mocker.patch.object(client, "_request", new_callable=AsyncMock, return_value=httpx.Response(200))
+
+        assert client.prediction_studio.version == "27.1"
+        request.assert_awaited_once_with(method="get", endpoint=client._V5_SETTINGS_ENDPOINT)
+
     def test_init_no_args_raises_type_error(self):
         """Direct ``AsyncInfinity()`` with no args is rejected — explicit signature."""
         with pytest.raises(TypeError, match="missing .* required keyword-only argument"):

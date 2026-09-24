@@ -160,10 +160,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   in Pega 27.1). Passing `pega_version="27.1"` (or `"27"`) now resolves to
   this implementation.
 
-  Note: automatic version inference (`_infer_version`) probes only the `v3`
-  endpoints and cannot return `"27.1"`. Because a Pega 27 system is expected
-  to ship with `v1`–`v4` removed entirely, clients targeting 27 **must** pass
-  `pega_version="27.1"` explicitly; omitting it raises an `AttributeError`.
+  Automatic version inference now probes `/v5/settings` first, returning
+  `"27.1"` when it exists; older systems fall back to the existing v3 and
+  repository probes. Passing `pega_version=` skips probing altogether. An
+  unavailable feature raises `PegaFeatureUnavailableError` (importable from
+  `pdstools.infinity`) with the feature and, where applicable, minimum and
+  connected versions. It remains a `NotImplementedError` subtype for
+  compatibility with existing callers.
 
 ## [5.0.0] — 2026-06-25
 

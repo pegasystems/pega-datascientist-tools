@@ -177,7 +177,12 @@ def test_sync_client(httpx_mock: HTTPXMock, mock_auth):
     client = _base_client.SyncAPIClient(base_url="https://pega.com", auth=mock_auth)
     assert client.auth.token == "ABC"
 
-    # 25 probe returns 404 (24.x system), fall back to repository.
+    # v5 and v3 probes return 404 (24.x system), fall back to repository.
+    httpx_mock.add_response(
+        url=re.compile(".*/v5/settings"),
+        status_code=404,
+        json={},
+    )
     httpx_mock.add_response(
         url=re.compile(".*/modelCategories"),
         status_code=404,
@@ -189,7 +194,12 @@ def test_sync_client(httpx_mock: HTTPXMock, mock_auth):
     )
     assert client._infer_version() == "24.1"
 
-    # 25 probe returns 404 again, repository raises connection error.
+    # Both probes return 404 again, then the repository raises a connection error.
+    httpx_mock.add_response(
+        url=re.compile(".*/v5/settings"),
+        status_code=404,
+        json={},
+    )
     httpx_mock.add_response(
         url=re.compile(".*/modelCategories"),
         status_code=404,
@@ -264,6 +274,11 @@ def test_infinity_client(httpx_mock: HTTPXMock, mock_auth, monkeypatch):
     with pytest.raises(TypeError):
         Infinity()  # type: ignore[call-arg]
 
+    httpx_mock.add_response(
+        url=re.compile(".*/v5/settings"),
+        status_code=404,
+        json={},
+    )
     httpx_mock.add_response(
         url=re.compile(".*/modelCategories"),
         status_code=404,
