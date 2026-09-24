@@ -290,10 +290,14 @@ def _pdstools_docs_source_exists(url: str, article_notebooks: set[Path]) -> bool
     if not page.endswith(".html"):
         return False
     page = page.removesuffix(".html")
+    if any(segment in {"", ".", ".."} for segment in page.split("/")):
+        return False
     if page.startswith("articles/") and "/" not in page.removeprefix("articles/"):
         stem = page.removeprefix("articles/")
         return any(notebook.stem == stem for notebook in article_notebooks)
-    return (REPO_ROOT / "python/docs/source" / f"{page}.rst").is_file()
+    source_root = (REPO_ROOT / "python/docs/source").resolve()
+    source = (source_root / f"{page}.rst").resolve()
+    return source.is_relative_to(source_root) and source.is_file()
 
 
 def _check_external_links(links: list[LocatedLink], article_notebooks: set[Path]) -> tuple[list[str], list[str]]:

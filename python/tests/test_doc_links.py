@@ -160,6 +160,9 @@ def test_pdstools_docs_source_exists_maps_pages_to_sources(tmp_path, monkeypatch
     assert not exists(f"{base}articles/ONNX_PyTorch_Example.html", article_notebooks)
     assert not exists(f"{base}Missing.html", article_notebooks)
     assert not exists(f"{base}autoapi/pdstools/index.html", article_notebooks)
+    assert not exists(f"{base}../../../python/docs/source/GettingStarted.html", article_notebooks)
+    assert not exists(f"{base}./GettingStarted.html", article_notebooks)
+    assert not exists(f"{base}/GettingStarted.html", article_notebooks)
     assert not exists(
         "https://pegasystems.github.io/pega-datascientist-tools/Python/articles/AGBExplained.html", article_notebooks
     )
