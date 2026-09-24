@@ -1,0 +1,39 @@
+name: Documentation links
+
+on:
+  pull_request:
+    paths:
+      - "*.md"
+      - docs/*.md
+      - examples/**
+      - python/docs/**
+      - python/pdstools/reports/**
+      - scripts/check_doc_links.py
+      - .github/workflows/doc-links.yml
+  # External pages can go stale without any change in this repo.
+  schedule:
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Check documentation links
+        run: uv run --no-project --python 3.13 python scripts/check_doc_links.py
