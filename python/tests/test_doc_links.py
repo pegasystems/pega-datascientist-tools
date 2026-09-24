@@ -67,6 +67,74 @@ def test_prose_lines_skips_code_but_keeps_code_comments() -> None:
     assert urls == ["https://a.org/three"]
 
 
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        (
+            "[Python](https://en.wikipedia.org/wiki/Python_(programming_language))",
+            ["https://en.wikipedia.org/wiki/Python_(programming_language)"],
+        ),
+        (
+            "See https://en.wikipedia.org/wiki/Python_(programming_language).",
+            ["https://en.wikipedia.org/wiki/Python_(programming_language)"],
+        ),
+        ("(see https://a.org/x).", ["https://a.org/x"]),
+        ("(see https://a.org/x_(y)), then", ["https://a.org/x_(y)"]),
+        ("[a](https://a.org/one), [b](https://a.org/two).", ["https://a.org/one", "https://a.org/two"]),
+        ("`docs <https://a.org/rst>`_", ["https://a.org/rst"]),
+        ('"[a](https://a.org/nb)\\n",', ["https://a.org/nb"]),
+    ],
+)
+def test_extract_urls_handles_parentheses_and_punctuation(text, expected) -> None:
+    assert check_doc_links._extract_urls(text) == expected
+
+
+def test_extract_relative_targets_keeps_balanced_parentheses() -> None:
+    assert check_doc_links._extract_relative_targets("[a](img/chart_(v2).png) and [b](guide.md).") == [
+        "img/chart_(v2).png",
+        "guide.md",
+    ]
+
+
+def _prose_urls(suffix: str, text: str) -> list[str]:
+    return [
+        url for _, line in check_doc_links._prose_lines(suffix, text) for url in check_doc_links._extract_urls(line)
+    ]
+
+
+@pytest.mark.parametrize(
+    ("markdown", "expected"),
+    [
+        (
+            "````md\n```python\nhttps://a.org/inner\n```\nhttps://a.org/still-code\n````\nhttps://a.org/after\n",
+            ["https://a.org/after"],
+        ),
+        ("```\n~~~\nhttps://a.org/code\n~~~\n```\nhttps://a.org/after\n", ["https://a.org/after"]),
+        ("~~~\nhttps://a.org/code\n~~~\nhttps://a.org/after\n", ["https://a.org/after"]),
+        ("```\n```python\nhttps://a.org/code\n```\nhttps://a.org/after\n", ["https://a.org/after"]),
+        ("```\nhttps://a.org/unclosed\n", []),
+    ],
+)
+def test_prose_lines_handles_fence_lengths_and_characters(markdown, expected) -> None:
+    assert _prose_urls(".md", markdown) == expected
+
+
+def test_prose_lines_closes_notebook_fences_and_resets_per_cell() -> None:
+    notebook = "\n".join(
+        [
+            '  "cell_type": "markdown",',
+            '    "```\\n",',
+            '    "https://a.org/code\\n",',
+            '    "```\\n",',
+            '    "https://a.org/after\\n",',
+            '    "```unclosed"',
+            '  "cell_type": "markdown",',
+            '    "https://a.org/next-cell"',
+        ]
+    )
+    assert _prose_urls(".ipynb", notebook) == ["https://a.org/after", "https://a.org/next-cell"]
+
+
 def test_scan_links_reports_locations_and_skips_local_hosts(tmp_path, monkeypatch) -> None:
     (tmp_path / "README.md").write_text(
         "intro\n[Guide](https://docs.pega.com/bundle/p/page/one.html).\nhttp://localhost:8080 [x](CONTRIBUTING.md)\n",

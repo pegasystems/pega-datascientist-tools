@@ -33,8 +33,9 @@ DOC_PATHSPECS = (
 EXCLUDED_FILES = {"AGENTS.md", "CLAUDE.md"}
 SKIPPED_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "example.com", "agilestudio.pega.com"}
 
-URL_PATTERN = re.compile(r"""https?://[^\s"'<>\\)\]`|]+""", re.IGNORECASE)
-MARKDOWN_TARGET_PATTERN = re.compile(r"""\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)""")
+URL_PATTERN = re.compile(r"""https?://[^\s"'<>\\\]`|]+""", re.IGNORECASE)
+FENCE_PATTERN = re.compile(r"^(`{3,}|~{3,})(.*)$")
+MARKDOWN_TARGET_PATTERN = re.compile(r"""\]\(\s*<?((?:[^()\s>]|\([^()\s]*\))+)>?(?:\s+"[^"]*")?\s*\)""")
 HTML_TARGET_PATTERN = re.compile(r"""\b(?:href|src)\s*=\s*\\?["']([^"'\\]+)\\?["']""", re.IGNORECASE)
 RST_TARGET_PATTERN = re.compile(r"""^\s*\.\.\s+(?:image|figure|include|literalinclude)::\s*(\S+)""")
 SCHEME_PATTERN = re.compile(r"^[a-z][a-z0-9+.-]*:", re.IGNORECASE)
@@ -61,7 +62,18 @@ class LocatedLink:
 
 
 def _clean_url(url: str) -> str:
-    return url.rstrip(".,;:}*'")
+    """Strip trailing punctuation, keeping parentheses that are part of the URL.
+
+    ``https://en.wikipedia.org/wiki/Python_(programming_language)`` keeps its
+    final ``)``, while the ``)`` closing a Markdown link or prose aside is dropped.
+    """
+    while True:
+        trimmed = url.rstrip(".,;:}*'")
+        if trimmed.endswith(")") and trimmed.count(")") > trimmed.count("("):
+            trimmed = trimmed[:-1]
+        if trimmed == url:
+            return url
+        url = trimmed
 
 
 def _extract_urls(text: str) -> list[str]:
@@ -142,7 +154,7 @@ def _prose_lines(suffix: str, text: str) -> list[tuple[int, str]]:
     """
     lines: list[tuple[int, str]] = []
     cell_type = None
-    in_fence = False
+    fence: str | None = None
     literal_indent: int | None = None
     for line_number, line in enumerate(text.splitlines(), start=1):
         stripped = line.strip()
@@ -150,16 +162,26 @@ def _prose_lines(suffix: str, text: str) -> list[tuple[int, str]]:
             match = NOTEBOOK_CELL_TYPE_PATTERN.match(line)
             if match:
                 cell_type = match.group(1)
+                fence = None
             if cell_type != "markdown":
                 comment = _code_comment(line)
                 if comment:
                     lines.append((line_number, comment))
                 continue
-            stripped = stripped.strip('"').replace("\\n", "").strip()
-        if stripped.startswith(("```", "~~~")):
-            in_fence = not in_fence
+            stripped = stripped.rstrip(",").strip('"').replace("\\n", "").strip()
+        fence_match = FENCE_PATTERN.match(stripped)
+        if fence is None and fence_match:
+            fence = fence_match.group(1)
             continue
-        if in_fence:
+        if fence is not None:
+            if (
+                fence_match
+                and fence_match.group(1)[0] == fence[0]
+                and len(fence_match.group(1)) >= len(fence)
+                and not fence_match.group(2).strip()
+            ):
+                fence = None
+                continue
             comment = _code_comment(line)
             if comment:
                 lines.append((line_number, comment))
