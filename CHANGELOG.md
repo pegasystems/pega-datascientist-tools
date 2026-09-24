@@ -163,7 +163,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Automatic version inference now probes `/v5/settings` first, returning
   `"27.1"` when it exists; older systems fall back to the existing v3 and
   repository probes. Passing `pega_version=` skips probing altogether. Known
-  client-side unsupported features such as static predictors on the 26.1/27.1
+  older version strings not explicitly mapped (such as `25.2`) retain the
+  previous 26.1 API fallback rather than selecting v5. Known client-side
+  unsupported features such as static predictors on the 26.1/27.1
   champion/challenger resource raise
   `PegaFeatureUnavailableError` (importable from `pdstools.infinity`), a
   `NotImplementedError` subtype. The existing 24.1 `upload_model()` stub and
