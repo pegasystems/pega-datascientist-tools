@@ -169,10 +169,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   compatibility with existing callers.
   Prediction and Prediction Studio operations now reuse the 26.1 sync/async
   implementations with version-specific endpoint configuration and resource
-  classes. Champion/challenger replacement-option listing also shares its
-  implementation. Only 27.1's settings-based repository and model-category
-  parsing differs; adding another compatible API version no longer requires
-  copying those implementations.
+  classes. The 27.1 champion/challenger resource inherits 26.1's implementation,
+  including replacement-option listing, with v5 endpoints and its own uploaded
+  model type; 24.2 retains its distinct polling and approval behavior. Only
+  27.1's settings-based repository and model-category parsing differs; adding
+  another compatible API version no longer requires copying those implementations.
 
 ## [5.0.0] — 2026-06-25
 
