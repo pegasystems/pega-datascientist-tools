@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, overload
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, overload
 
 from ....internal._pagination import AsyncPaginatedList, PaginatedList
 from ....internal._resource import api_method
@@ -23,8 +24,25 @@ if TYPE_CHECKING:
     from ..types import NotificationCategory
 
 
+@dataclass(frozen=True)
+class _ModelEndpoints:
+    models_version: str
+    instances_version: str
+
+    def describe(self, model_id: str) -> str:
+        return f"/prweb/api/PredictionStudio/{self.models_version}/models/{model_id}"
+
+    def notifications(self, model_id: str) -> str:
+        return f"{self.describe(model_id)}/notifications"
+
+    def instances(self, model_id: str) -> str:
+        return f"/prweb/api/PredictionStudio/{self.instances_version}/models/{model_id}/instances"
+
+
 class _Modelv26_1Mixin:
-    """v26 Model business logic — defined once."""
+    """Model behavior shared with versions using the same response schema."""
+
+    _endpoints: ClassVar[_ModelEndpoints] = _ModelEndpoints("v2", "v1")
 
     # Declared for mypy — provided by concrete base classes at runtime
     if TYPE_CHECKING:
@@ -46,7 +64,7 @@ class _Modelv26_1Mixin:
             An object containing information about the model.
 
         """
-        endpoint = f"/prweb/api/PredictionStudio/v2/models/{self.model_id}"
+        endpoint = self._endpoints.describe(self.model_id)
         return await self._a_get(endpoint)
 
 
@@ -87,7 +105,7 @@ class Model(_Modelv26_1Mixin, PreviousModel):
             A list of notifications or a DataFrame.
 
         """
-        endpoint = f"/prweb/api/PredictionStudio/v2/models/{self.model_id}/notifications"
+        endpoint = self._endpoints.notifications(self.model_id)
         if category is None:
             category = "All"
 
@@ -132,7 +150,7 @@ class Model(_Modelv26_1Mixin, PreviousModel):
             A list of model instances or a DataFrame.
 
         """
-        endpoint = f"/prweb/api/PredictionStudio/v1/models/{self.model_id}/instances"
+        endpoint = self._endpoints.instances(self.model_id)
         instances: PaginatedList[ModelInstance] = PaginatedList(
             ModelInstance,
             self._client,
@@ -168,7 +186,7 @@ class AsyncModel(_Modelv26_1Mixin, AsyncPreviousModel):
             A list of notifications or a DataFrame.
 
         """
-        endpoint = f"/prweb/api/PredictionStudio/v2/models/{self.model_id}/notifications"
+        endpoint = self._endpoints.notifications(self.model_id)
         if category is None:
             category = "All"
 
@@ -213,7 +231,7 @@ class AsyncModel(_Modelv26_1Mixin, AsyncPreviousModel):
             A list of model instances or a DataFrame.
 
         """
-        endpoint = f"/prweb/api/PredictionStudio/v1/models/{self.model_id}/instances"
+        endpoint = self._endpoints.instances(self.model_id)
         instances: AsyncPaginatedList[AsyncModelInstance] = AsyncPaginatedList(
             AsyncModelInstance,
             self._client,
