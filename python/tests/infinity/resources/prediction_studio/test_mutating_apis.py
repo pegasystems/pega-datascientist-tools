@@ -112,25 +112,25 @@ def _make_cc(CCClass, ModelClass, client, *, challenger_model=None, context="NoC
     )
 
 
-def test_upload_model_reports_unavailable_on_24_1():
-    studio = PredictionStudioV24_1(client=_make_client())
+def test_upload_model_retains_original_24_1_behavior():
+    client = _make_client()
+    studio = PredictionStudioV24_1(client=client)
 
-    with pytest.raises(PegaFeatureUnavailableError, match="requires Infinity 24.2") as error:
+    with pytest.raises(NotImplementedError) as error:
         studio.upload_model(None, "model.pmml")
-    assert error.value.feature == "upload_model"
-    assert error.value.minimum_supported_version == "24.2"
-    assert error.value.backend_version == "24.1"
-    assert isinstance(error.value, NotImplementedError)
+    assert type(error.value) is NotImplementedError
+    client.post.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_async_upload_model_reports_unavailable_on_24_1():
-    studio = AsyncPredictionStudioV24_1(client=_make_client())
+async def test_async_upload_model_retains_original_24_1_behavior():
+    client = _make_client()
+    studio = AsyncPredictionStudioV24_1(client=client)
 
-    with pytest.raises(PegaFeatureUnavailableError, match="connected to 24.1") as error:
+    with pytest.raises(NotImplementedError) as error:
         await studio.upload_model(None, "model.pmml")
-    assert error.value.feature == "upload_model"
-    assert error.value.minimum_supported_version == "24.2"
+    assert type(error.value) is NotImplementedError
+    client.post.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

@@ -162,11 +162,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
   Automatic version inference now probes `/v5/settings` first, returning
   `"27.1"` when it exists; older systems fall back to the existing v3 and
-  repository probes. Passing `pega_version=` skips probing altogether. An
-  unavailable feature raises `PegaFeatureUnavailableError` (importable from
-  `pdstools.infinity`) with the feature and, where applicable, minimum and
-  connected versions. It remains a `NotImplementedError` subtype for
-  compatibility with existing callers.
+  repository probes. Passing `pega_version=` skips probing altogether. Known
+  client-side unsupported features such as static predictors raise
+  `PegaFeatureUnavailableError` (importable from `pdstools.infinity`), a
+  `NotImplementedError` subtype. The existing 24.1 `upload_model()` stub
+  remains unchanged; backend support for upload on 24.1 has not been verified.
   Prediction and Prediction Studio operations now reuse the 26.1 sync/async
   implementations with version-specific endpoint configuration and resource
   classes. The 27.1 champion/challenger resource inherits 26.1's implementation,
