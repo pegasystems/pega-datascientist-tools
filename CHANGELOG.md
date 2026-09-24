@@ -10,8 +10,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - ADM Model Reports now show AUC confidence intervals (DeLong-style,
   grouped by bin) for the model and for each predictor's univariate AUC,
-  including "safe" bounds reflected onto Pega's 0.5–1.0 AUC scale. `model_reports()` takes a
-  `confidence_level` (default `0.95`). The underlying helpers are public in
+  including "safe" bounds reflected onto Pega's 0.5–1.0 AUC scale.
+  `model_reports()` takes a `confidence_level` (default `0.95`). The
+  underlying helpers are public in
   `cdh_utils`: `auc_ci_from_bincounts`, `auc_variance_delong_grouped`,
   `weighted_auc_ci_from_estimates`, `safe_range_interval` and
   `validate_confidence_level`. Model Reports also show the pdstools version
