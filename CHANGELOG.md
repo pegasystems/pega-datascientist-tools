@@ -8,152 +8,83 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Added a programmatic Health Check import API for model, predictor, and
-  prediction sources, including configurable delimited-text, Excel, timestamp,
-  and missing-field repair options.
-- `pega_io.read_data` now supports TSV/TXT inputs, reader option forwarding,
-  and in-memory Excel uploads.
-- `explanations.Schema` narrows and casts the aggregated parquet files on
-  read, so downstream aggregations see stable dtypes.
-- `ADMTreesModel.sanity_check()` flags underdeveloped or suspicious AGB
-  exports, so a model that never grew past stumps is caught before its
-  statistics are read as meaningful.
+- ADM Model Reports now show AUC confidence intervals (DeLong-style,
+  grouped by bin) for the model and for each predictor's univariate AUC,
+  including "safe" bounds reflected onto Pega's 0.5–1.0 AUC scale. `model_reports()` takes a
+  `confidence_level` (default `0.95`). The underlying helpers are public in
+  `cdh_utils`: `auc_ci_from_bincounts`, `auc_variance_delong_grouped`,
+  `weighted_auc_ci_from_estimates`, `safe_range_interval` and
+  `validate_confidence_level`. Model Reports also show the pdstools version
+  and link to the documentation that matches it
+  ([#921](https://github.com/pegasystems/pega-datascientist-tools/pull/921),
+  [#937](https://github.com/pegasystems/pega-datascientist-tools/pull/937)).
+- `ADMDatamart.active_ranges()` returns active-range AUC confidence interval
+  columns (`AUC_ActiveRange_CI_Lower` / `_Upper`, the safe bounds, variance
+  and estimate) alongside the full-range and active-range AUC
+  ([#921](https://github.com/pegasystems/pega-datascientist-tools/pull/921)).
+- `ADMTreesModel.predictor_diagnostics()` summarises each AGB predictor's
+  split count, gain and encoder-bin usage, and flags high-cardinality or
+  numeric-looking symbolic predictors
+  ([#940](https://github.com/pegasystems/pega-datascientist-tools/pull/940)).
+- Decision Analysis Tool: exclusion-rate analysis — the fraction of an
+  interaction's remaining actions lost between two pipeline stages — via
+  `aggregates.get_exclusion_rate_data()` and
+  `plot.exclusion_rate_distribution()`, shown on the Optionality Analysis
+  page with an optional propensity axis
+  ([#943](https://github.com/pegasystems/pega-datascientist-tools/pull/943)).
+- The metric limits add `ActiveTreatmentCount`
+  ([#944](https://github.com/pegasystems/pega-datascientist-tools/pull/944)).
 
-### Fixed
+### Changed
 
 - `ADMDatamart.active_ranges()` now derives AGB ranges from occupied
   classifier bins instead of Naive Bayes log odds, and reports one
   configuration-pooled conditional DeLong interval for segments sharing the
   same fitted ensemble. The result explicitly identifies its confidence
-  interval scope and exclusion of model-fit uncertainty.
-- Full-embed HealthCheck and Model Report HTML output no longer duplicates the
-  embedded Plotly.js bundle once per chart. Because the Quarto renderer wasn't
-  told which resource mode to use before figures were drawn, ``full_embed=True``
-  reports could balloon to 100+ MB per report (multiple GB across a batch
-  run) as each chart inlined its own ~5 MB copy of the Plotly library; embed
-  output now contains a single shared copy, as intended. See
-  [#909](https://github.com/pegasystems/pega-datascientist-tools/issues/909)
-  for the postmortem write-up and manual validation steps.
-- AGB: tree statistics and plot data paths no longer fail on stump models
-  (a single leaf, no split) or otherwise empty exports.
-- CDN-mode HTML reports (``full_embed=False``) are now genuinely
-  self-contained single files. Quarto's local JavaScript assets are inlined
-  alongside the CSS that #679 already handled, and fonts/images referenced
-  from within that CSS are embedded as data URIs. The now-unreferenced
-  ``<basename>_files/`` folder is dropped, so ``bundle_quarto_resources``
-  no longer has a resources folder to zip and the Health Check returns
-  ``HealthCheck.html`` rather than ``HealthCheck.zip``. This gives an
-  esbuild-free path to a standalone report, which matters for hardened
-  images that strip the esbuild binary for CVE reasons. Remote CDN
-  references (Plotly, MathJax) are deliberately left untouched.
-- Explanations: `missing=False` had no effect on
-  `predictor_contributions` (the exclusion filter compared two literals) and
-  was never applied at all on the value-level path.
-- Explanations: the `MISSING` bin filter compared against the wrong column,
-  and `_label_remaining` compared a column against an enum member rather
-  than its value.
-- Explanations: `predictor_contributions` /
-  `predictor_value_contributions` and the plot methods produced
-  non-deterministic row and figure order, because `unique()` does not
-  preserve order and the following sort keys had ties.
-- Explanations: `top_n=0` was silently accepted and `top_n=1` was rejected;
-  both are now validated as "positive integer", and `True` is rejected.
-- Explanations: `create_unique_contexts_file` reused an existing
-  `unique_contexts.json` as a cache, so a stale mapping from an earlier run
-  (or a changed `PDSTOOLS_FILE_BATCH_LIMIT`) silently drove which contexts
-  were written to the batch parquet files. It now always rewrites.
-- Explanations: context keys appearing only beyond the 100th unique context
-  were silently dropped from the context table, because `pl.from_dicts`
-  infers its schema from the first 100 rows. Decoding is now vectorised via
-  `str.json_decode(infer_schema_length=None)`.
-- `pega_io.scan_parquet_path` now raises `FileNotFoundError` for a missing
-  non-glob path instead of deferring the failure to a later `collect()`.
-- Explanations: the default `report.generate(output_dir=".tmp/reports")` wrote
-  a relative `data_folder` into `params.yml`. The Quarto pre-render script runs
-  with the report folder as its cwd and resolves a relative `data_folder`
-  against that folder's parent, so the report looked for its data in
-  `<cwd>/.tmp/.tmp/reports/data` and found nothing. `output_dir` is now
-  resolved to an absolute path.
-- Explanations: `from_aggregates` mishandled a URL `base_path` combined with an
-  absolute local filename, producing `https://host/agg//abs/f.parquet`. A full
-  path in either filename now wins in all cases, as documented.
-- Explanations: re-running `report.generate()` into a directory used by an
-  earlier run left orphaned `batches/BATCH_<n>.parquet` files and by-context
-  `.qmd` pages behind, contradicting the documented "rewritten on every call"
-  behaviour. Both are now cleared before being regenerated.
-- Explanations: an empty contextual dataset raised `StructFieldNotFoundError`
-  instead of simply yielding no contexts.
-- Explanations: the article notebook loaded its aggregates from a relative
-  repository path. `data/` is not shipped in PyPI releases, so the notebook
-  could not run from an installed package; it now uses
-  `pdstools.sample_explanations()`.
+  interval scope and exclusion of model-fit uncertainty
+  ([#947](https://github.com/pegasystems/pega-datascientist-tools/pull/947),
+  [#948](https://github.com/pegasystems/pega-datascientist-tools/pull/948)).
+- `active_ranges()` computes its AUC and confidence intervals with native
+  Polars expressions instead of grouped Python UDFs, which was 2× faster or
+  more in benchmarks
+  ([#934](https://github.com/pegasystems/pega-datascientist-tools/pull/934)).
+- Metric limits renamed to follow naming conventions:
+  `AverageGroupsPerIssue` is now `GroupsPerIssueAverage` and
+  `AverageTreatmentsPerChannelPerAction` is now
+  `TreatmentsPerChannelPerActionAverage`. Treatment-count limits now match
+  the documented Pega Cloud service limits
+  ([#860](https://github.com/pegasystems/pega-datascientist-tools/pull/860),
+  [#944](https://github.com/pegasystems/pega-datascientist-tools/pull/944)).
+- Requires `plotly>=6.7`; the `healthcheck` extra now also installs
+  `packaging`
+  ([#921](https://github.com/pegasystems/pega-datascientist-tools/pull/921),
+  [#933](https://github.com/pegasystems/pega-datascientist-tools/pull/933)).
 
-### Changed
+### Fixed
 
-- **Breaking (explanations):** the module now follows the same conventions
-  as `ADMDatamart` — `Explanations.aggregate` is now `aggregates`, the
-  `Aggregate` class is `Aggregates`, `get_` prefixes are dropped from
-  accessors, and `plot.plot_contributions_*` becomes
-  `plot.contributions_overall` / `plot.contributions_by_context`. See
-  [`docs/migration-v4-to-v5.md`](docs/migration-v4-to-v5.md).
-- **Breaking (explanations):** `Explanations.__init__` is now pure
-  configuration and accepts the two already-scanned `LazyFrame`s; all file
-  reading moved into `from_aggregates`, which raises `FileNotFoundError`
-  immediately for a missing or empty folder. The frames are plain attributes
-  on the parent (`Explanations.overall` / `.contextual`), matching
-  `ADMDatamart.model_data` / `.predictor_data`, and are no longer reachable
-  via the `aggregates` namespace.
-- **Breaking (explanations):** `from_aggregates` now mirrors
-  `ADMDatamart.from_ds_export` — `from_aggregates(overall_filename,
-  contextual_filename, base_path)` replaces `data_folder` / `root_dir` /
-  the mutable `Aggregates.data_pattern` hook. A full path in either filename
-  ignores `base_path`. The implicit `.tmp/aggregated_data` default is gone;
-  `base_path` defaults to `"."`.
-- **Breaking (explanations):** `root_dir` is removed from `Explanations`; the
-  report output folder is now `report.generate(output_dir=...)`, defaulting to
-  `".tmp/reports"`. `Reports` no longer stores `report_folderpath`,
-  `report_output_dir`, `aggregate_folder` or `params_file`.
-- **Breaking (explanations):** `Explanations` no longer has a
-  `data_folderpath`. It holds only LazyFrames, so the aggregates may live
-  anywhere polars can read from — including an `http(s)://` URL via
-  `from_aggregates(base_path=...)`. The report pipeline now materialises the
-  frames into its own working directory (`<output_dir>/data/`) with the new
-  `Explanations.save_data()`, mirroring `ADMDatamart.save_data`, instead of
-  writing `unique_contexts.json` and `batches/` back into the source folder.
-  `ContextOperations.create_unique_contexts_file()` and
-  `create_batch_parquet_files()` are merged into a single
-  `write_batches(target_dir)` that produces both artifacts from one batch
-  assignment, streaming to disk via `sink_parquet(pl.PartitionBy(...))` so the
-  contextual frame is never collected. The `unique_contexts_file` property is
-  removed.
-- Added `pdstools.sample_explanations()`, a sample set of pre-aggregated AGB
-  global explanations, alongside the existing `cdh_sample()` /
-  `sample_value_finder()` datasets.
-- `pega_io.scan_parquet_path` accepts `http(s)://` URLs; the new
-  `pega_io.is_url` helper exempts them from the local-existence check.
-- Explanations: `_set_date_range` (four sequential `if`s that assigned to
-  `self`, plus an unused `days` knob) is now a pure
-  `_resolve_date_range` returning `tuple[datetime, datetime]`. The dates are
-  never `None`, so the unreachable `if from_date and to_date` guard in the
-  report pipeline is gone.
-- ADM and Global Explanations Quarto reports now explicitly set Plotly's
-  renderer for CDN-backed vs fully embedded HTML output. Global Explanations
-  report generation also accepts ``full_embed`` while preserving CDN output as
-  the programmatic default.
-- ADM Health Check app data import now shows upload controls immediately,
-  keeps file paths as an optional fallback, and uses the new import API for
-  advanced parsing and processed parquet cache output.
-- ADM Health Check prediction imports now infer the full schema for Prediction
-  Table exports so late-arriving prediction fields are recognized, and report,
-  Excel, and individual model-report generation default to the import ``HC``
-  folder when processed parquet output was kept.
-- AGB plots now use the ADM `PredictorCategory` terminology and default
-  colours, matching the rest of the ADM tooling, and lay out long labels and
-  horizontal category charts more readably.
-- AGB weighted AUC and coverage are documented more explicitly, including the
-  caveats on interpreting them.
+- AGB active ranges no longer double-count malformed classifier-bin rows
+  that differ only by `BinIndex`, which skewed AGB AUC and its confidence
+  interval
+  ([#947](https://github.com/pegasystems/pega-datascientist-tools/pull/947)).
+- Health Check configuration and model summaries accept filters that match
+  no models; the bubble chart and treemap show an explanatory empty figure
+  instead of failing
+  ([#959](https://github.com/pegasystems/pega-datascientist-tools/pull/959)).
+- Health Check: the action trend chart no longer fails on a duplicate
+  `Actions` column with multiple snapshots, and downloadable error logs are
+  written as UTF-8 on Windows
+  ([#956](https://github.com/pegasystems/pega-datascientist-tools/pull/956)).
+- Health Check: the predictor-count-per-category totals no longer fail when
+  a configuration has no predictor categories
+  ([#921](https://github.com/pegasystems/pega-datascientist-tools/pull/921)).
+- Global Explanations reports YAML-escape context values before writing them
+  into Quarto front matter and restrict generated file names to safe
+  characters
+  ([#945](https://github.com/pegasystems/pega-datascientist-tools/pull/945)).
+- Fixed the stale link to the Pega documentation on exporting ADM data
+  ([#954](https://github.com/pegasystems/pega-datascientist-tools/pull/954)).
 
-## [5.0.0] — 2026-06-25
+## [5.0.0] — 2026-08-04
 
 Major release. **Breaking changes** — see
 [`docs/migration-v4-to-v5.md`](docs/migration-v4-to-v5.md) for the upgrade
@@ -311,6 +242,16 @@ See sections below for the full per-area detail.
   Check report generation and dataframe filter widgets (#823).
 - Unit tests for `cdh_utils.get_latest_pdstools_version` covering the
   happy path, network failure and malformed-response paths.
+- Added a programmatic Health Check import API for model, predictor, and
+  prediction sources, including configurable delimited-text, Excel, timestamp,
+  and missing-field repair options.
+- `pega_io.read_data` now supports TSV/TXT inputs, reader option forwarding,
+  and in-memory Excel uploads.
+- `explanations.Schema` narrows and casts the aggregated parquet files on
+  read, so downstream aggregations see stable dtypes.
+- `ADMTreesModel.sanity_check()` flags underdeveloped or suspicious AGB
+  exports, so a model that never grew past stumps is caught before its
+  statistics are read as meaningful.
 
 ### Changed
 
@@ -489,6 +430,68 @@ See sections below for the full per-area detail.
   updated; `--ignore=` flag values have changed (e.g.
   `python/tests/test_healthcheck.py` →
   `python/tests/healthcheck/test_healthcheck.py`).
+- **Breaking (explanations):** the module now follows the same conventions
+  as `ADMDatamart` — `Explanations.aggregate` is now `aggregates`, the
+  `Aggregate` class is `Aggregates`, `get_` prefixes are dropped from
+  accessors, and `plot.plot_contributions_*` becomes
+  `plot.contributions_overall` / `plot.contributions_by_context`. See
+  [`docs/migration-v4-to-v5.md`](docs/migration-v4-to-v5.md).
+- **Breaking (explanations):** `Explanations.__init__` is now pure
+  configuration and accepts the two already-scanned `LazyFrame`s; all file
+  reading moved into `from_aggregates`, which raises `FileNotFoundError`
+  immediately for a missing or empty folder. The frames are plain attributes
+  on the parent (`Explanations.overall` / `.contextual`), matching
+  `ADMDatamart.model_data` / `.predictor_data`, and are no longer reachable
+  via the `aggregates` namespace.
+- **Breaking (explanations):** `from_aggregates` now mirrors
+  `ADMDatamart.from_ds_export` — `from_aggregates(overall_filename,
+  contextual_filename, base_path)` replaces `data_folder` / `root_dir` /
+  the mutable `Aggregates.data_pattern` hook. A full path in either filename
+  ignores `base_path`. The implicit `.tmp/aggregated_data` default is gone;
+  `base_path` defaults to `"."`.
+- **Breaking (explanations):** `root_dir` is removed from `Explanations`; the
+  report output folder is now `report.generate(output_dir=...)`, defaulting to
+  `".tmp/reports"`. `Reports` no longer stores `report_folderpath`,
+  `report_output_dir`, `aggregate_folder` or `params_file`.
+- **Breaking (explanations):** `Explanations` no longer has a
+  `data_folderpath`. It holds only LazyFrames, so the aggregates may live
+  anywhere polars can read from — including an `http(s)://` URL via
+  `from_aggregates(base_path=...)`. The report pipeline now materialises the
+  frames into its own working directory (`<output_dir>/data/`) with the new
+  `Explanations.save_data()`, mirroring `ADMDatamart.save_data`, instead of
+  writing `unique_contexts.json` and `batches/` back into the source folder.
+  `ContextOperations.create_unique_contexts_file()` and
+  `create_batch_parquet_files()` are merged into a single
+  `write_batches(target_dir)` that produces both artifacts from one batch
+  assignment, streaming to disk via `sink_parquet(pl.PartitionBy(...))` so the
+  contextual frame is never collected. The `unique_contexts_file` property is
+  removed.
+- Added `pdstools.sample_explanations()`, a sample set of pre-aggregated AGB
+  global explanations, alongside the existing `cdh_sample()` /
+  `sample_value_finder()` datasets.
+- `pega_io.scan_parquet_path` accepts `http(s)://` URLs; the new
+  `pega_io.is_url` helper exempts them from the local-existence check.
+- Explanations: `_set_date_range` (four sequential `if`s that assigned to
+  `self`, plus an unused `days` knob) is now a pure
+  `_resolve_date_range` returning `tuple[datetime, datetime]`. The dates are
+  never `None`, so the unreachable `if from_date and to_date` guard in the
+  report pipeline is gone.
+- ADM and Global Explanations Quarto reports now explicitly set Plotly's
+  renderer for CDN-backed vs fully embedded HTML output. Global Explanations
+  report generation also accepts ``full_embed`` while preserving CDN output as
+  the programmatic default.
+- ADM Health Check app data import now shows upload controls immediately,
+  keeps file paths as an optional fallback, and uses the new import API for
+  advanced parsing and processed parquet cache output.
+- ADM Health Check prediction imports now infer the full schema for Prediction
+  Table exports so late-arriving prediction fields are recognized, and report,
+  Excel, and individual model-report generation default to the import ``HC``
+  folder when processed parquet output was kept.
+- AGB plots now use the ADM `PredictorCategory` terminology and default
+  colours, matching the rest of the ADM tooling, and lay out long labels and
+  horizontal category charts more readably.
+- AGB weighted AUC and coverage are documented more explicitly, including the
+  caveats on interpreting them.
 
 ### Removed
 
@@ -555,6 +558,67 @@ See sections below for the full per-area detail.
 - Decision Analyzer column schema now distinguishes Model Propensity
   vs Final Propensity display names so plots that reference one don't
   silently pick up the other (#699).
+- Full-embed HealthCheck and Model Report HTML output no longer duplicates the
+  embedded Plotly.js bundle once per chart. Because the Quarto renderer wasn't
+  told which resource mode to use before figures were drawn, ``full_embed=True``
+  reports could balloon to 100+ MB per report (multiple GB across a batch
+  run) as each chart inlined its own ~5 MB copy of the Plotly library; embed
+  output now contains a single shared copy, as intended. See
+  [#909](https://github.com/pegasystems/pega-datascientist-tools/issues/909)
+  for the postmortem write-up and manual validation steps.
+- AGB: tree statistics and plot data paths no longer fail on stump models
+  (a single leaf, no split) or otherwise empty exports.
+- CDN-mode HTML reports (``full_embed=False``) are now genuinely
+  self-contained single files. Quarto's local JavaScript assets are inlined
+  alongside the CSS that #679 already handled, and fonts/images referenced
+  from within that CSS are embedded as data URIs. The now-unreferenced
+  ``<basename>_files/`` folder is dropped, so ``bundle_quarto_resources``
+  no longer has a resources folder to zip and the Health Check returns
+  ``HealthCheck.html`` rather than ``HealthCheck.zip``. This gives an
+  esbuild-free path to a standalone report, which matters for hardened
+  images that strip the esbuild binary for CVE reasons. Remote CDN
+  references (Plotly, MathJax) are deliberately left untouched.
+- Explanations: `missing=False` had no effect on
+  `predictor_contributions` (the exclusion filter compared two literals) and
+  was never applied at all on the value-level path.
+- Explanations: the `MISSING` bin filter compared against the wrong column,
+  and `_label_remaining` compared a column against an enum member rather
+  than its value.
+- Explanations: `predictor_contributions` /
+  `predictor_value_contributions` and the plot methods produced
+  non-deterministic row and figure order, because `unique()` does not
+  preserve order and the following sort keys had ties.
+- Explanations: `top_n=0` was silently accepted and `top_n=1` was rejected;
+  both are now validated as "positive integer", and `True` is rejected.
+- Explanations: `create_unique_contexts_file` reused an existing
+  `unique_contexts.json` as a cache, so a stale mapping from an earlier run
+  (or a changed `PDSTOOLS_FILE_BATCH_LIMIT`) silently drove which contexts
+  were written to the batch parquet files. It now always rewrites.
+- Explanations: context keys appearing only beyond the 100th unique context
+  were silently dropped from the context table, because `pl.from_dicts`
+  infers its schema from the first 100 rows. Decoding is now vectorised via
+  `str.json_decode(infer_schema_length=None)`.
+- `pega_io.scan_parquet_path` now raises `FileNotFoundError` for a missing
+  non-glob path instead of deferring the failure to a later `collect()`.
+- Explanations: the default `report.generate(output_dir=".tmp/reports")` wrote
+  a relative `data_folder` into `params.yml`. The Quarto pre-render script runs
+  with the report folder as its cwd and resolves a relative `data_folder`
+  against that folder's parent, so the report looked for its data in
+  `<cwd>/.tmp/.tmp/reports/data` and found nothing. `output_dir` is now
+  resolved to an absolute path.
+- Explanations: `from_aggregates` mishandled a URL `base_path` combined with an
+  absolute local filename, producing `https://host/agg//abs/f.parquet`. A full
+  path in either filename now wins in all cases, as documented.
+- Explanations: re-running `report.generate()` into a directory used by an
+  earlier run left orphaned `batches/BATCH_<n>.parquet` files and by-context
+  `.qmd` pages behind, contradicting the documented "rewritten on every call"
+  behaviour. Both are now cleared before being regenerated.
+- Explanations: an empty contextual dataset raised `StructFieldNotFoundError`
+  instead of simply yielding no contexts.
+- Explanations: the article notebook loaded its aggregates from a relative
+  repository path. `data/` is not shipped in PyPI releases, so the notebook
+  could not run from an installed package; it now uses
+  `pdstools.sample_explanations()`.
 
 ### Performance
 
