@@ -434,7 +434,8 @@ class TestAddPredictor:
         client = _make_client()
         cc = _make_cc(CCClass, ModelClass, client)
 
-        with pytest.raises(PegaFeatureUnavailableError, match="Static predictors") as error:
+        expected_error = NotImplementedError if CCClass is CCv24_2 else PegaFeatureUnavailableError
+        with pytest.raises(expected_error) as error:
             cc.add_predictor(
                 name="Income",
                 predictor_type="numeric",
@@ -443,8 +444,11 @@ class TestAddPredictor:
                 is_active_model=True,
                 parameterized=False,
             )
-        assert isinstance(error.value, NotImplementedError)
-        assert error.value.feature == "Static predictors"
+        if CCClass is CCv24_2:
+            assert type(error.value) is NotImplementedError
+            assert str(error.value) == "Static predictors are not supported."
+        else:
+            assert error.value.feature == "Static predictors"
         client.patch.assert_not_called()
 
     @ALL_VERSIONS
@@ -505,10 +509,14 @@ class TestRemovePredictor:
         client = _make_client()
         cc = _make_cc(CCClass, ModelClass, client)
 
-        with pytest.raises(PegaFeatureUnavailableError, match="Static predictors") as error:
+        expected_error = NotImplementedError if CCClass is CCv24_2 else PegaFeatureUnavailableError
+        with pytest.raises(expected_error) as error:
             cc.remove_predictor(name="Income", parameterized=False, is_active_model=True)
-        assert isinstance(error.value, NotImplementedError)
-        assert error.value.feature == "Static predictors"
+        if CCClass is CCv24_2:
+            assert type(error.value) is NotImplementedError
+            assert str(error.value) == ""
+        else:
+            assert error.value.feature == "Static predictors"
         client.patch.assert_not_called()
 
     @ALL_VERSIONS
