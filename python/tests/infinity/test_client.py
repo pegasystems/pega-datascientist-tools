@@ -64,6 +64,17 @@ class TestInfinity:
         assert client.version == "24.2"
         assert hasattr(client, "prediction_studio")
 
+    @pytest.mark.parametrize("version", ["25.2", "26.2", "27.0"])
+    def test_explicit_legacy_version_retains_v26_routing(self, mocker, version):
+        from pdstools.infinity.resources.prediction_studio.v26_1 import PredictionStudio
+
+        client = Infinity(base_url="https://example.com", auth=httpx.BasicAuth("user", "pass"), pega_version=version)
+        request = mocker.patch.object(client, "_request", side_effect=AssertionError("must not probe"))
+
+        assert client.version == version
+        assert type(client.prediction_studio) is PredictionStudio
+        request.assert_not_called()
+
     def test_init_inferred_version_24_1(self, mocker):
         mocker.patch.object(Infinity, "_infer_version", return_value="24.1")
         client = Infinity.from_client_id_and_secret(
@@ -173,6 +184,19 @@ class TestAsyncInfinity:
         assert client.version == "24.2"
         assert hasattr(client, "prediction_studio")
 
+    @pytest.mark.parametrize("version", ["25.2", "26.2", "27.0"])
+    def test_explicit_legacy_version_retains_v26_routing(self, mocker, version):
+        from pdstools.infinity.resources.prediction_studio.v26_1 import AsyncPredictionStudio
+
+        client = AsyncInfinity(
+            base_url="https://example.com", auth=httpx.BasicAuth("user", "pass"), pega_version=version
+        )
+        request = mocker.patch.object(client, "_request", side_effect=AssertionError("must not probe"))
+
+        assert client.version == version
+        assert type(client.prediction_studio) is AsyncPredictionStudio
+        request.assert_not_called()
+
     def test_init_without_version(self, mocker):
         mocker.patch.object(AsyncInfinity, "_infer_version", return_value=None)
         client = AsyncInfinity.from_client_id_and_secret(
@@ -221,6 +245,14 @@ class TestAsyncInfinity:
 
 
 class TestVersionDispatch:
+    @pytest.mark.parametrize("version", ["23.1", "24.3", "25.2", "26.2", "27.0", "unknown"])
+    def test_unmapped_pre_27_versions_keep_legacy_fallback(self, version):
+        from pdstools.infinity.resources.prediction_studio import get, get_async
+        from pdstools.infinity.resources.prediction_studio.v26_1 import AsyncPredictionStudio, PredictionStudio
+
+        assert get(version) is PredictionStudio
+        assert get_async(version) is AsyncPredictionStudio
+
     def test_get_24_1(self):
         from pdstools.infinity.resources.prediction_studio import get
         from pdstools.infinity.resources.prediction_studio.v24_1 import PredictionStudio
@@ -232,6 +264,13 @@ class TestVersionDispatch:
         from pdstools.infinity.resources.prediction_studio.v24_2 import PredictionStudio
 
         assert get("24.2") is PredictionStudio
+
+    def test_get_25_1(self):
+        from pdstools.infinity.resources.prediction_studio import get, get_async
+        from pdstools.infinity.resources.prediction_studio.v25_1 import AsyncPredictionStudio, PredictionStudio
+
+        assert get("25.1") is PredictionStudio
+        assert get_async("25.1") is AsyncPredictionStudio
 
     def test_get_26_1(self):
         from pdstools.infinity.resources.prediction_studio import get
@@ -245,11 +284,12 @@ class TestVersionDispatch:
 
         assert get("27.1") is PredictionStudio
 
-    def test_get_unknown_falls_back(self):
+    @pytest.mark.parametrize("version", ["27.2", "28"])
+    def test_get_unknown_falls_back(self, version):
         from pdstools.infinity.resources.prediction_studio import get
         from pdstools.infinity.resources.prediction_studio.v27_1 import PredictionStudio
 
-        result = get("28")
+        result = get(version)
         assert result is PredictionStudio
 
     def test_get_async_24_1(self):
@@ -276,11 +316,12 @@ class TestVersionDispatch:
 
         assert get_async("27.1") is AsyncPredictionStudio
 
-    def test_get_async_unknown_falls_back(self):
+    @pytest.mark.parametrize("version", ["27.2", "28"])
+    def test_get_async_unknown_falls_back(self, version):
         from pdstools.infinity.resources.prediction_studio import get_async
         from pdstools.infinity.resources.prediction_studio.v27_1 import (
             AsyncPredictionStudio,
         )
 
-        result = get_async("28")
+        result = get_async(version)
         assert result is AsyncPredictionStudio

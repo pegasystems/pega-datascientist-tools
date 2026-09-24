@@ -10,8 +10,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_LATEST = v27_1
-
 _SYNC_VERSION_MAP: dict[str, type[PredictionStudioBase]] = {
     "24.1": v24_1.PredictionStudio,
     "24.2": v24_2.PredictionStudio,
@@ -39,23 +37,40 @@ def _normalize_version(version: str) -> str:
     return version if "." in version else f"{version}.1"
 
 
+def _fallback_version(version: str) -> str:
+    """Keep the pre-v27 fallback for unrecognized older version strings."""
+    parts = version.split(".")
+    if len(parts) >= 2:
+        try:
+            major, minor = int(parts[0]), int(parts[1])
+        except ValueError:
+            return "26.1"
+        if (major, minor) >= (27, 1):
+            return "27.1"
+    return "26.1"
+
+
 def get(version: str) -> type[PredictionStudioBase]:
     version = _normalize_version(version)
     if version in _SYNC_VERSION_MAP:
         return _SYNC_VERSION_MAP[version]
+    fallback = _fallback_version(version)
     logger.info(
-        "Pega version '%s' is not explicitly supported; falling back to the latest known API (27.1).",
+        "Pega version '%s' is not explicitly supported; falling back to API %s.",
         version,
+        fallback,
     )
-    return _LATEST.PredictionStudio
+    return _SYNC_VERSION_MAP[fallback]
 
 
 def get_async(version: str) -> type[AsyncPredictionStudioBase]:
     version = _normalize_version(version)
     if version in _ASYNC_VERSION_MAP:
         return _ASYNC_VERSION_MAP[version]
+    fallback = _fallback_version(version)
     logger.info(
-        "Pega version '%s' is not explicitly supported; falling back to the latest known API (27.1).",
+        "Pega version '%s' is not explicitly supported; falling back to API %s.",
         version,
+        fallback,
     )
-    return _LATEST.AsyncPredictionStudio
+    return _ASYNC_VERSION_MAP[fallback]
