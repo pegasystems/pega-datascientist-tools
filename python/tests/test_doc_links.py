@@ -80,20 +80,44 @@ def test_scan_links_reports_locations_and_skips_local_hosts(tmp_path, monkeypatc
     )
 
 
+def test_docs_article_notebooks_follows_makefile_copy(tmp_path, monkeypatch) -> None:
+    for notebook in ["articles/a.ipynb", "articles/nested/b.ipynb", "vf/c.ipynb", "other/d.ipynb"]:
+        (tmp_path / "examples" / notebook).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / "examples" / notebook).write_text("{}", encoding="utf-8")
+    (tmp_path / "examples" / "vf" / "image.png").write_bytes(b"")
+    (tmp_path / "python" / "docs").mkdir(parents=True)
+    (tmp_path / "python" / "docs" / "Makefile").write_text(
+        "%: Makefile\n\tmkdir -p source/articles\n"
+        "\tcp ../../examples/articles/*.ipynb ../../examples/vf/* ../../examples/articles/nested/b.ipynb source/articles\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(check_doc_links, "REPO_ROOT", tmp_path)
+
+    assert check_doc_links._docs_article_notebooks() == {
+        Path("examples/articles/a.ipynb"),
+        Path("examples/articles/nested/b.ipynb"),
+        Path("examples/vf/c.ipynb"),
+    }
+
+
 def test_check_relative_links(tmp_path, monkeypatch) -> None:
-    (tmp_path / "examples" / "a").mkdir(parents=True)
-    (tmp_path / "examples" / "b").mkdir()
+    for directory in ["a", "b", "c"]:
+        (tmp_path / "examples" / directory).mkdir(parents=True)
     (tmp_path / "examples" / "a" / "img.png").write_bytes(b"")
     monkeypatch.setattr(check_doc_links, "REPO_ROOT", tmp_path)
-    files = [Path("examples/a/one.ipynb"), Path("examples/b/two.ipynb")]
+    article_notebooks = {Path("examples/a/one.ipynb"), Path("examples/b/two.ipynb")}
     links = [
         LocatedLink(url="img.png#x", path="examples/a/one.ipynb", line=1),
         LocatedLink(url="two.ipynb", path="examples/a/one.ipynb", line=2),
         LocatedLink(url="missing.png", path="examples/a/one.ipynb", line=3),
+        LocatedLink(url="two.ipynb", path="examples/c/uncopied.ipynb", line=4),
+        LocatedLink(url="three.ipynb", path="examples/a/one.ipynb", line=5),
     ]
 
-    assert check_doc_links._check_relative_links(links, files) == [
+    assert check_doc_links._check_relative_links(links, article_notebooks) == [
         "examples/a/one.ipynb:3: missing.png (file not found)",
+        "examples/c/uncopied.ipynb:4: two.ipynb (file not found)",
+        "examples/a/one.ipynb:5: three.ipynb (file not found)",
     ]
 
 
@@ -114,7 +138,7 @@ def test_check_external_links_deduplicates_and_classifies(monkeypatch) -> None:
         LocatedLink(url="https://docs.pega.com/bundle/x", path="c.md", line=3),
     ]
 
-    assert check_doc_links._check_external_links(links, []) == (
+    assert check_doc_links._check_external_links(links, set()) == (
         [
             "c.md:3: https://docs.pega.com/bundle/x (expected a /bundle/{bundle}/page/{article-path} URL)",
             f"a.ipynb:1, b.ipynb:7: {stale} (HTTP 404)",
@@ -123,21 +147,22 @@ def test_check_external_links_deduplicates_and_classifies(monkeypatch) -> None:
     )
 
 
-def test_pdstools_docs_source_exists_maps_pages_to_sources() -> None:
-    files = [
-        Path("examples/articles/AGBExplained.ipynb"),
-        Path("python/docs/source/GettingStarted.rst"),
-        Path("python/docs/source/articles/Other.ipynb"),
-    ]
+def test_pdstools_docs_source_exists_maps_pages_to_sources(tmp_path, monkeypatch) -> None:
+    (tmp_path / "python" / "docs" / "source").mkdir(parents=True)
+    (tmp_path / "python" / "docs" / "source" / "GettingStarted.rst").write_text("", encoding="utf-8")
+    monkeypatch.setattr(check_doc_links, "REPO_ROOT", tmp_path)
+    article_notebooks = {Path("examples/articles/AGBExplained.ipynb")}
     base = "https://pegasystems.github.io/pega-datascientist-tools/latest/"
     exists = check_doc_links._pdstools_docs_source_exists
 
-    assert exists(f"{base}articles/AGBExplained.html", files)
-    assert exists(f"{base}GettingStarted.html", files)
-    assert not exists(f"{base}articles/Other.html", files)
-    assert not exists(f"{base}articles/Missing.html", files)
-    assert not exists(f"{base}autoapi/pdstools/index.html", files)
-    assert not exists("https://pegasystems.github.io/pega-datascientist-tools/Python/articles/AGBExplained.html", files)
+    assert exists(f"{base}articles/AGBExplained.html", article_notebooks)
+    assert exists(f"{base}GettingStarted.html", article_notebooks)
+    assert not exists(f"{base}articles/ONNX_PyTorch_Example.html", article_notebooks)
+    assert not exists(f"{base}Missing.html", article_notebooks)
+    assert not exists(f"{base}autoapi/pdstools/index.html", article_notebooks)
+    assert not exists(
+        "https://pegasystems.github.io/pega-datascientist-tools/Python/articles/AGBExplained.html", article_notebooks
+    )
 
 
 def test_check_external_links_accepts_undeployed_pdstools_page(monkeypatch) -> None:
@@ -149,7 +174,7 @@ def test_check_external_links_accepts_undeployed_pdstools_page(monkeypatch) -> N
         LocatedLink(url=removed_page, path="README.md", line=2),
     ]
 
-    assert check_doc_links._check_external_links(links, [Path("examples/new/New.ipynb")]) == (
+    assert check_doc_links._check_external_links(links, {Path("examples/new/New.ipynb")}) == (
         [f"README.md:2: {removed_page} (HTTP 404)"],
         [],
     )

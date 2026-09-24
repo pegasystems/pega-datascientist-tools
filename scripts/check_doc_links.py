@@ -8,6 +8,7 @@ against the repository checkout.
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import time
@@ -45,6 +46,7 @@ RST_LITERAL_START_PATTERN = re.compile(r"^\s*\.\.\s+(?:code-block|code|sourcecod
 
 CONTENT_API_BASE_URL = "https://docs-be.pega.com"
 PDSTOOLS_DOCS_PREFIX = "https://pegasystems.github.io/pega-datascientist-tools/latest/"
+DOCS_MAKEFILE = Path("python/docs/Makefile")
 REQUEST_TIMEOUT_SECONDS = 20
 MAX_WORKERS = 8
 RETRY_DELAY_SECONDS = 5
@@ -193,19 +195,47 @@ def _scan_links(files: list[Path]) -> tuple[list[LocatedLink], list[LocatedLink]
     return external, relative
 
 
-def _check_relative_links(links: list[LocatedLink], files: list[Path]) -> list[str]:
+def _docs_article_notebooks() -> set[Path]:
+    """Return the notebooks that ``python/docs/Makefile`` copies into ``articles``.
+
+    The Sphinx build flattens a curated set of example notebooks into
+    ``python/docs/source/articles``; only those become ``articles/<name>.html``.
+    Returns an empty set if the copy command cannot be found, which makes the
+    notebook fallbacks strict rather than lenient.
+    """
+    makefile = REPO_ROOT / DOCS_MAKEFILE
+    if not makefile.is_file():
+        return set()
+    notebooks: set[Path] = set()
+    for line in makefile.read_text(encoding="utf-8").splitlines():
+        tokens = line.split()
+        if not tokens or tokens[0] != "cp" or tokens[-1] != "source/articles":
+            continue
+        for pattern in tokens[1:-1]:
+            repo_pattern = Path(os.path.normpath(DOCS_MAKEFILE.parent / pattern))
+            if repo_pattern.is_absolute() or repo_pattern.parts[:1] == ("..",):
+                continue
+            notebooks.update(
+                source.relative_to(REPO_ROOT)
+                for source in REPO_ROOT.glob(repo_pattern.as_posix())
+                if source.suffix == ".ipynb" and source.is_file()
+            )
+    return notebooks
+
+
+def _check_relative_links(links: list[LocatedLink], article_notebooks: set[Path]) -> list[str]:
     """Return errors for relative links that do not exist in the checkout.
 
-    The Sphinx build copies example notebooks into one ``articles`` folder,
-    so a notebook may link to a sibling notebook by bare file name.
+    The Sphinx build copies ``article_notebooks`` into one ``articles``
+    folder, so one of them may link to another by bare file name.
     """
-    notebook_names = {file.name for file in files if file.suffix == ".ipynb"}
+    article_names = {notebook.name for notebook in article_notebooks}
     errors = []
     for link in links:
         target = unquote(link.url.split("#", 1)[0].split("?", 1)[0])
         if (REPO_ROOT / link.path).parent.joinpath(target).exists():
             continue
-        if link.path.endswith(".ipynb") and "/" not in target and target in notebook_names:
+        if "/" not in target and Path(link.path) in article_notebooks and target in article_names:
             continue
         errors.append(f"{link.path}:{link.line}: {link.url} (file not found)")
     return errors
@@ -246,13 +276,13 @@ def _url_status(url: str) -> int:
     return status
 
 
-def _pdstools_docs_source_exists(url: str, files: list[Path]) -> bool:
+def _pdstools_docs_source_exists(url: str, article_notebooks: set[Path]) -> bool:
     """Return whether a pdstools docs page is built from a source in the checkout.
 
     Pages added in the same change are not deployed yet, so a 404 on the live
-    site is accepted when the notebook or RST source that generates the page
-    exists. ``articles/<name>.html`` comes from an example notebook that the
-    Sphinx build copies in; other pages come from ``python/docs/source``.
+    site is accepted when the source that generates the page exists.
+    ``articles/<name>.html`` comes from one of ``article_notebooks``; other
+    pages come from ``python/docs/source/<page>.rst``.
     """
     if not url.startswith(PDSTOOLS_DOCS_PREFIX):
         return False
@@ -262,11 +292,11 @@ def _pdstools_docs_source_exists(url: str, files: list[Path]) -> bool:
     page = page.removesuffix(".html")
     if page.startswith("articles/") and "/" not in page.removeprefix("articles/"):
         stem = page.removeprefix("articles/")
-        return any(file.suffix == ".ipynb" and file.stem == stem and file.parts[0] == "examples" for file in files)
-    return Path("python/docs/source", f"{page}.rst") in files
+        return any(notebook.stem == stem for notebook in article_notebooks)
+    return (REPO_ROOT / "python/docs/source" / f"{page}.rst").is_file()
 
 
-def _check_external_links(links: list[LocatedLink], files: list[Path]) -> tuple[list[str], list[str]]:
+def _check_external_links(links: list[LocatedLink], article_notebooks: set[Path]) -> tuple[list[str], list[str]]:
     """Return ``(errors, warnings)`` for external links.
 
     Rate-limited responses (HTTP 429) are warnings so that a busy remote host
@@ -299,7 +329,7 @@ def _check_external_links(links: list[LocatedLink], files: list[Path]) -> tuple[
             warnings.append(f"{locations}: {url} (rate limited, HTTP 429)")
         elif isinstance(status, str):
             errors.append(f"{locations}: {url} (request failed: {status})")
-        elif status == 404 and _pdstools_docs_source_exists(url, files):
+        elif status == 404 and _pdstools_docs_source_exists(url, article_notebooks):
             continue
         elif status >= 400:
             errors.append(f"{locations}: {url} (HTTP {status})")
@@ -310,9 +340,10 @@ def main() -> int:
     """Check every external and relative link in the documentation sources."""
     files = _doc_files()
     external, relative = _scan_links(files)
+    article_notebooks = _docs_article_notebooks()
 
-    errors = _check_relative_links(relative, files)
-    external_errors, warnings = _check_external_links(external, files)
+    errors = _check_relative_links(relative, article_notebooks)
+    external_errors, warnings = _check_external_links(external, article_notebooks)
     errors.extend(external_errors)
 
     for warning in warnings:
