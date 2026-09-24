@@ -3,6 +3,10 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from pdstools.infinity.resources.prediction_studio.v25_1 import (
+    AsyncChampionChallenger as AsyncChampionChallengerv25,
+)
+from pdstools.infinity.resources.prediction_studio.v25_1 import ChampionChallenger as ChampionChallengerv25
 from pdstools.infinity.resources.prediction_studio.v26_1.champion_challenger import (
     AsyncChampionChallenger as AsyncChampionChallengerv26,
 )
@@ -26,6 +30,11 @@ VERSIONS = [
     (ChampionChallengerv26, AsyncChampionChallengerv26, UploadedModelv26, UploadedModelv27, "v4", "v1"),
     (ChampionChallengerv27, AsyncChampionChallengerv27, UploadedModelv27, UploadedModelv26, "v5", "v5"),
 ]
+
+
+def test_v25_reuses_v26_champion_challenger_resources():
+    assert ChampionChallengerv25 is ChampionChallengerv26
+    assert AsyncChampionChallengerv25 is AsyncChampionChallengerv26
 
 
 def make_resource(resource_type, client=None):
