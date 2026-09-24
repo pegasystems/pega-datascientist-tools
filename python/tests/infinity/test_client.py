@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock
+
+import httpx
 import pytest
 from pdstools.infinity import AsyncInfinity, Infinity
 
@@ -11,6 +14,15 @@ from pdstools.infinity import AsyncInfinity, Infinity
 
 
 class TestInfinity:
+    def test_v27_is_discovered_and_cached_without_explicit_version(self, mocker):
+        client = Infinity(base_url="https://example.com", auth=httpx.BasicAuth("user", "pass"))
+        request = mocker.patch.object(client, "_request", return_value=httpx.Response(200))
+
+        assert client.version == "27.1"
+        assert client.prediction_studio.version == "27.1"
+        assert client.version == "27.1"
+        request.assert_called_once_with(method="get", endpoint=client._V5_SETTINGS_ENDPOINT)
+
     def test_init_without_version(self):
         """Client without version raises AttributeError when prediction_studio is accessed."""
         client = Infinity.from_client_id_and_secret("TEST_URL", "NA", "NA")
@@ -94,15 +106,15 @@ class TestInfinity:
             _ = client.nonexistent_thing
 
     def test_version_dispatch_fallback_for_unknown_version(self, mocker):
-        """An unknown version (e.g. '27') should fall back to latest (26)."""
-        mocker.patch.object(Infinity, "_infer_version", return_value="27")
+        """An unknown version (e.g. '28') should fall back to latest (27)."""
+        mocker.patch.object(Infinity, "_infer_version", return_value="28")
         client = Infinity.from_client_id_and_secret(
             "https://example.com",
             "id",
             "secret",
         )
-        assert client.version == "27"
-        # Should still get prediction_studio (falls back to 26 dispatch)
+        assert client.version == "28"
+        # Should still get prediction_studio (falls back to 27 dispatch)
         assert hasattr(client, "prediction_studio")
 
 
@@ -112,6 +124,23 @@ class TestInfinity:
 
 
 class TestAsyncInfinity:
+    def test_v27_is_discovered_and_cached_without_explicit_version(self, mocker):
+        client = AsyncInfinity(base_url="https://example.com", auth=httpx.BasicAuth("user", "pass"))
+        request = mocker.patch.object(client, "_request", new_callable=AsyncMock, return_value=httpx.Response(200))
+
+        assert client.version == "27.1"
+        assert client.prediction_studio.version == "27.1"
+        assert client.version == "27.1"
+        request.assert_awaited_once_with(method="get", endpoint=client._V5_SETTINGS_ENDPOINT)
+
+    @pytest.mark.asyncio
+    async def test_v27_discovery_inside_event_loop(self, mocker):
+        client = AsyncInfinity(base_url="https://example.com", auth=httpx.BasicAuth("user", "pass"))
+        request = mocker.patch.object(client, "_request", new_callable=AsyncMock, return_value=httpx.Response(200))
+
+        assert client.prediction_studio.version == "27.1"
+        request.assert_awaited_once_with(method="get", endpoint=client._V5_SETTINGS_ENDPOINT)
+
     def test_init_no_args_raises_type_error(self):
         """Direct ``AsyncInfinity()`` with no args is rejected — explicit signature."""
         with pytest.raises(TypeError, match="missing .* required keyword-only argument"):
@@ -204,11 +233,23 @@ class TestVersionDispatch:
 
         assert get("24.2") is PredictionStudio
 
-    def test_get_unknown_falls_back(self):
+    def test_get_26_1(self):
         from pdstools.infinity.resources.prediction_studio import get
         from pdstools.infinity.resources.prediction_studio.v26_1 import PredictionStudio
 
-        result = get("27")
+        assert get("26.1") is PredictionStudio
+
+    def test_get_27_1(self):
+        from pdstools.infinity.resources.prediction_studio import get
+        from pdstools.infinity.resources.prediction_studio.v27_1 import PredictionStudio
+
+        assert get("27.1") is PredictionStudio
+
+    def test_get_unknown_falls_back(self):
+        from pdstools.infinity.resources.prediction_studio import get
+        from pdstools.infinity.resources.prediction_studio.v27_1 import PredictionStudio
+
+        result = get("28")
         assert result is PredictionStudio
 
     def test_get_async_24_1(self):
@@ -227,11 +268,19 @@ class TestVersionDispatch:
 
         assert get_async("24.2") is AsyncPredictionStudio
 
-    def test_get_async_unknown_falls_back(self):
+    def test_get_async_27_1(self):
         from pdstools.infinity.resources.prediction_studio import get_async
-        from pdstools.infinity.resources.prediction_studio.v26_1 import (
+        from pdstools.infinity.resources.prediction_studio.v27_1 import (
             AsyncPredictionStudio,
         )
 
-        result = get_async("27")
+        assert get_async("27.1") is AsyncPredictionStudio
+
+    def test_get_async_unknown_falls_back(self):
+        from pdstools.infinity.resources.prediction_studio import get_async
+        from pdstools.infinity.resources.prediction_studio.v27_1 import (
+            AsyncPredictionStudio,
+        )
+
+        result = get_async("28")
         assert result is AsyncPredictionStudio

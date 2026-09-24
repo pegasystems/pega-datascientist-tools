@@ -79,6 +79,29 @@ class BaseClient(Generic[_HttpxClientT]):
 
     _MODEL_CATEGORIES_ENDPOINT = "/prweb/api/PredictionStudio/v3/predictions/modelCategories"
     _REPOSITORY_ENDPOINT = "/prweb/api/PredictionStudio/v3/predictions/repository"
+    _V5_SETTINGS_ENDPOINT = "/prweb/api/PredictionStudio/v5/settings"
+
+    def _v5_available(self, response: httpx.Response) -> bool:
+        """Accept a v5 settings response or distinguish absence from failure."""
+        if response.status_code == 200:
+            return True
+        if response.status_code == 404:
+            return False
+        if response.status_code in (401, 403):
+            message = (
+                f"Authentication failed during version probe (HTTP {response.status_code}). Check your credentials."
+            )
+        elif response.status_code >= 500:
+            message = f"Server error during version probe (HTTP {response.status_code}). The Infinity system may be unavailable."
+        else:
+            message = f"Unexpected response during version probe (HTTP {response.status_code})."
+        raise PegaException(
+            str(self._base_url),
+            self._V5_SETTINGS_ENDPOINT,
+            {},
+            response,
+            override_message=message,
+        )
 
     def _enforce_trailing_slash(self, url: httpx.URL) -> httpx.URL:
         if url.raw_path.endswith(b"/"):
@@ -228,11 +251,12 @@ class SyncAPIClient(BaseClient[httpx.Client]):
         )
 
     def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
-        # Probe 25-specific endpoint first; it does not exist on older systems.
-        # When the probe succeeds we return the latest known version ("26.1"):
-        # the v25.1 and v26.1 APIs are compatible, and v26.1 is the default for
-        # any 25+ system when an explicit pega_version is not supplied.
         try:
+            v5_probe = self._request(method="get", endpoint=self._V5_SETTINGS_ENDPOINT)
+            if self._v5_available(v5_probe):
+                return "27.1"
+            # The v3 endpoint is shared by v25/v26 and absent on v27.
+            # v25 and v26 both default to the latest compatible API, v26.1.
             probe = self._request(method="get", endpoint=self._MODEL_CATEGORIES_ENDPOINT)
             if probe.status_code == 200:
                 return "26.1"
@@ -522,8 +546,15 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient]):  # pragma: no cover
         return awaited[0]
 
     def _infer_version(self, on_error: Literal["error", "warn", "ignore"] = "error"):
-        # Probe 25-specific endpoint first; it does not exist on older systems.
         try:
+            v5_probe = self._collect_awaitable_blocking(
+                self._request(method="get", endpoint=self._V5_SETTINGS_ENDPOINT),
+            )
+            if isinstance(v5_probe, Exception):
+                raise v5_probe
+            if self._v5_available(v5_probe):
+                return "27.1"
+
             probe = self._collect_awaitable_blocking(
                 self._request(method="get", endpoint=self._MODEL_CATEGORIES_ENDPOINT),
             )

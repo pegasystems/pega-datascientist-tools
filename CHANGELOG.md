@@ -152,6 +152,30 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   horizontal category charts more readably.
 - AGB weighted AUC and coverage are documented more explicitly, including the
   caveats on interpreting them.
+- **Prediction Studio 27.1 API support.** New
+  `infinity.resources.prediction_studio.v27_1` implementation, registered
+  as the latest known version in the version-dispatch map. It mirrors the
+  26.1 surface but targets the new **PredictionStudio `v5` REST endpoints**
+  (all previously `v1`–`v4` PredictionStudio paths are served under `v5`
+  in Pega 27.1). Passing `pega_version="27.1"` (or `"27"`) now resolves to
+  this implementation.
+
+  Automatic version inference now probes `/v5/settings` first, returning
+  `"27.1"` when it exists; older systems fall back to the existing v3 and
+  repository probes. Passing `pega_version=` skips probing altogether. Known
+  client-side unsupported features such as static predictors on the 26.1/27.1
+  champion/challenger resource raise
+  `PegaFeatureUnavailableError` (importable from `pdstools.infinity`), a
+  `NotImplementedError` subtype. The existing 24.1 `upload_model()` stub and
+  24.2 static-predictor errors remain unchanged; backend support for upload on
+  24.1 has not been verified.
+  Prediction and Prediction Studio operations now reuse the 26.1 sync/async
+  implementations with version-specific endpoint configuration and resource
+  classes. The 27.1 champion/challenger resource inherits 26.1's implementation,
+  including replacement-option listing, with v5 endpoints and its own uploaded
+  model type; 24.2 retains its distinct polling and approval behavior. Only
+  27.1's settings-based repository and model-category parsing differs; adding
+  another compatible API version no longer requires copying those implementations.
 
 ## [5.0.0] — 2026-06-25
 

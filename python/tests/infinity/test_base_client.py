@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
@@ -106,15 +106,16 @@ class TestBaseClient:
         assert result is None
 
     def test_infer_version_returns_26_when_model_categories_200(self, mocker):
-        # Any 25+ system returns "26" (latest); explicit pega_version="25" is
-        # still supported but auto-detection always resolves to the latest API.
+        # A v5 404 followed by v3 200 identifies the 25/26 generation.
         client = SyncAPIClient(
             base_url="https://example.com",
             auth=httpx.BasicAuth("user", "pass"),
         )
         probe_response = MagicMock(spec=httpx.Response)
         probe_response.status_code = 200
-        mocker.patch.object(client, "_request", return_value=probe_response)
+        v5_missing = MagicMock(spec=httpx.Response)
+        v5_missing.status_code = 404
+        mocker.patch.object(client, "_request", side_effect=[v5_missing, probe_response])
         assert client._infer_version() == "26.1"
 
     def test_infer_version_falls_back_to_24_2_when_model_categories_404(self, mocker):
@@ -154,7 +155,9 @@ class TestBaseClient:
         )
         probe_response = MagicMock(spec=httpx.Response)
         probe_response.status_code = 400
-        mocker.patch.object(client, "_request", return_value=probe_response)
+        v5_missing = MagicMock(spec=httpx.Response)
+        v5_missing.status_code = 404
+        mocker.patch.object(client, "_request", side_effect=[v5_missing, probe_response])
         assert client._infer_version() == "26.1"
 
     def test_infer_version_warns_on_connection_error(self, mocker):
@@ -333,6 +336,32 @@ class TestSyncInferVersion:
             base_url="https://example.com",
             auth=httpx.BasicAuth("user", "pass"),
         )
+
+    def test_v5_settings_detects_27_without_legacy_probes(self, mocker):
+        client = self._make_client()
+        request = mocker.patch.object(client, "_request", return_value=httpx.Response(200))
+
+        assert client._infer_version() == "27.1"
+        request.assert_called_once_with(method="get", endpoint=client._V5_SETTINGS_ENDPOINT)
+
+    @pytest.mark.parametrize("status", [400, 401, 403, 500, 302])
+    def test_v5_probe_error_does_not_fall_back_to_legacy(self, mocker, status):
+        client = self._make_client()
+        request = mocker.patch.object(client, "_request", return_value=httpx.Response(status))
+
+        with pytest.raises(PegaException, match="version probe"):
+            client._infer_version()
+        request.assert_called_once_with(method="get", endpoint=client._V5_SETTINGS_ENDPOINT)
+
+    def test_v5_404_falls_back_to_v3(self, mocker):
+        client = self._make_client()
+        request = mocker.patch.object(client, "_request", side_effect=[httpx.Response(404), httpx.Response(200)])
+
+        assert client._infer_version() == "26.1"
+        assert [call.kwargs["endpoint"] for call in request.call_args_list] == [
+            client._V5_SETTINGS_ENDPOINT,
+            client._MODEL_CATEGORIES_ENDPOINT,
+        ]
 
     def test_infer_version_24_1(self, mocker):
         client = self._make_client()
@@ -533,11 +562,42 @@ class TestAsyncInferVersion:
         r.status_code = status_code
         return r
 
+    def test_v5_settings_detects_27_without_legacy_probes(self, mocker):
+        client = self._make_client()
+        request = mocker.patch.object(client, "_request", new_callable=AsyncMock, return_value=httpx.Response(200))
+
+        assert client._infer_version() == "27.1"
+        request.assert_awaited_once_with(method="get", endpoint=client._V5_SETTINGS_ENDPOINT)
+
+    @pytest.mark.parametrize("status", [400, 401, 403, 500, 302])
+    def test_v5_probe_error_does_not_fall_back_to_legacy(self, mocker, status):
+        client = self._make_client()
+        request = mocker.patch.object(client, "_request", new_callable=AsyncMock, return_value=httpx.Response(status))
+
+        with pytest.raises(PegaException, match="version probe"):
+            client._infer_version()
+        request.assert_awaited_once_with(method="get", endpoint=client._V5_SETTINGS_ENDPOINT)
+
+    def test_v5_404_falls_back_to_v3(self, mocker):
+        client = self._make_client()
+        request = mocker.patch.object(
+            client,
+            "_request",
+            new_callable=AsyncMock,
+            side_effect=[httpx.Response(404), httpx.Response(200)],
+        )
+
+        assert client._infer_version() == "26.1"
+        assert [call.kwargs["endpoint"] for call in request.call_args_list] == [
+            client._V5_SETTINGS_ENDPOINT,
+            client._MODEL_CATEGORIES_ENDPOINT,
+        ]
+
     def test_returns_26_on_model_categories_200(self, mocker):
         client = self._make_client()
         probe = self._mock_probe(200)
         mocker.patch.object(client, "_request", new=MagicMock())
-        mocker.patch.object(client, "_collect_awaitable_blocking", return_value=probe)
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=[self._mock_probe(404), probe])
         assert client._infer_version() == "26.1"
 
     def test_falls_back_to_24_2(self, mocker):
@@ -546,7 +606,7 @@ class TestAsyncInferVersion:
         repo = {"repository_type": "S3", "repository_name": "Repo"}
         mocker.patch.object(client, "_request", new=MagicMock())
         mocker.patch.object(client, "get", new=MagicMock())
-        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=[probe, repo])
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=[self._mock_probe(404), probe, repo])
         assert client._infer_version() == "24.2"
 
     def test_falls_back_to_24_1(self, mocker):
@@ -555,7 +615,7 @@ class TestAsyncInferVersion:
         repo = {"repository_name": "Repo"}
         mocker.patch.object(client, "_request", new=MagicMock())
         mocker.patch.object(client, "get", new=MagicMock())
-        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=[probe, repo])
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=[self._mock_probe(404), probe, repo])
         assert client._infer_version() == "24.1"
 
     def test_returns_26_on_model_categories_400(self, mocker):
@@ -563,7 +623,7 @@ class TestAsyncInferVersion:
         client = self._make_client()
         probe = self._mock_probe(400)
         mocker.patch.object(client, "_request", new=MagicMock())
-        mocker.patch.object(client, "_collect_awaitable_blocking", return_value=probe)
+        mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=[self._mock_probe(404), probe])
         assert client._infer_version() == "26.1"
 
     def test_raises_pega_exception_on_401(self, mocker):
@@ -630,7 +690,7 @@ class TestAsyncInferVersion:
         mocker.patch.object(
             client,
             "_collect_awaitable_blocking",
-            side_effect=[probe, Exception("repo down")],
+            side_effect=[self._mock_probe(404), probe, Exception("repo down")],
         )
         with pytest.raises(Exception, match="repo down"):
             client._infer_version(on_error="error")
@@ -643,7 +703,7 @@ class TestAsyncInferVersion:
         mocker.patch.object(
             client,
             "_collect_awaitable_blocking",
-            side_effect=[probe, Exception("repo down")],
+            side_effect=[self._mock_probe(404), probe, Exception("repo down")],
         )
         with caplog.at_level("WARNING", logger="pdstools.infinity.internal._base_client"):
             result = client._infer_version(on_error="warn")
@@ -655,7 +715,7 @@ class TestAsyncInferVersion:
         client = self._make_client()
         probe = self._mock_probe(404)
         repo_exc = ValueError("repo error")
-        responses = iter([probe, repo_exc])
+        responses = iter([self._mock_probe(404), probe, repo_exc])
         mocker.patch.object(client, "_request", new=MagicMock())
         mocker.patch.object(client, "get", new=MagicMock())
         mocker.patch.object(client, "_collect_awaitable_blocking", side_effect=lambda c: next(responses))
