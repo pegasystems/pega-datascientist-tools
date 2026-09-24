@@ -252,10 +252,15 @@ def _check_relative_links(links: list[LocatedLink], article_notebooks: set[Path]
     folder, so one of them may link to another by bare file name.
     """
     article_names = {notebook.name for notebook in article_notebooks}
+    repo_root = REPO_ROOT.resolve()
     errors = []
     for link in links:
         target = unquote(link.url.split("#", 1)[0].split("?", 1)[0])
-        if (REPO_ROOT / link.path).parent.joinpath(target).exists():
+        target_path = ((repo_root / link.path).parent / target).resolve()
+        if not target_path.is_relative_to(repo_root):
+            errors.append(f"{link.path}:{link.line}: {link.url} (target is outside repository)")
+            continue
+        if target_path.exists():
             continue
         if "/" not in target and Path(link.path) in article_notebooks and target in article_names:
             continue
@@ -357,7 +362,7 @@ def _check_external_links(links: list[LocatedLink], article_notebooks: set[Path]
             errors.append(f"{locations}: {url} (request failed: {status})")
         elif status == 404 and _pdstools_docs_source_exists(url, article_notebooks):
             continue
-        elif status >= 400:
+        elif not 200 <= status < 300:
             errors.append(f"{locations}: {url} (HTTP {status})")
     return errors, warnings
 

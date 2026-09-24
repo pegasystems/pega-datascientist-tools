@@ -163,10 +163,12 @@ def test_docs_article_notebooks_follows_makefile_copy(tmp_path, monkeypatch) -> 
 
 
 def test_check_relative_links(tmp_path, monkeypatch) -> None:
+    repo_root = tmp_path / "repo"
     for directory in ["a", "b", "c"]:
-        (tmp_path / "examples" / directory).mkdir(parents=True)
-    (tmp_path / "examples" / "a" / "img.png").write_bytes(b"")
-    monkeypatch.setattr(check_doc_links, "REPO_ROOT", tmp_path)
+        (repo_root / "examples" / directory).mkdir(parents=True)
+    (repo_root / "examples" / "a" / "img.png").write_bytes(b"")
+    (tmp_path / "outside.txt").write_text("outside repository", encoding="utf-8")
+    monkeypatch.setattr(check_doc_links, "REPO_ROOT", repo_root)
     article_notebooks = {Path("examples/a/one.ipynb"), Path("examples/b/two.ipynb")}
     links = [
         LocatedLink(url="img.png#x", path="examples/a/one.ipynb", line=1),
@@ -174,12 +176,14 @@ def test_check_relative_links(tmp_path, monkeypatch) -> None:
         LocatedLink(url="missing.png", path="examples/a/one.ipynb", line=3),
         LocatedLink(url="two.ipynb", path="examples/c/uncopied.ipynb", line=4),
         LocatedLink(url="three.ipynb", path="examples/a/one.ipynb", line=5),
+        LocatedLink(url="../../../outside.txt", path="examples/a/one.ipynb", line=6),
     ]
 
     assert check_doc_links._check_relative_links(links, article_notebooks) == [
         "examples/a/one.ipynb:3: missing.png (file not found)",
         "examples/c/uncopied.ipynb:4: two.ipynb (file not found)",
         "examples/a/one.ipynb:5: three.ipynb (file not found)",
+        "examples/a/one.ipynb:6: ../../../outside.txt (target is outside repository)",
     ]
 
 
@@ -189,6 +193,7 @@ def test_check_external_links_deduplicates_and_classifies(monkeypatch) -> None:
         stale: 404,
         "https://github.com/org/repo": 200,
         "https://busy.example.org/": 429,
+        "https://redirect.example.org/": 302,
     }
     monkeypatch.setattr(check_doc_links, "_url_status", statuses.__getitem__)
 
@@ -198,12 +203,14 @@ def test_check_external_links_deduplicates_and_classifies(monkeypatch) -> None:
         LocatedLink(url=stale, path="b.ipynb", line=7),
         LocatedLink(url="https://busy.example.org/", path="b.ipynb", line=8),
         LocatedLink(url="https://docs.pega.com/bundle/x", path="c.md", line=3),
+        LocatedLink(url="https://redirect.example.org/", path="d.md", line=9),
     ]
 
     assert check_doc_links._check_external_links(links, set()) == (
         [
             "c.md:3: https://docs.pega.com/bundle/x (expected a /bundle/{bundle}/page/{article-path} URL)",
             f"a.ipynb:1, b.ipynb:7: {stale} (HTTP 404)",
+            "d.md:9: https://redirect.example.org/ (HTTP 302)",
         ],
         ["b.ipynb:8: https://busy.example.org/ (rate limited, HTTP 429)"],
     )
