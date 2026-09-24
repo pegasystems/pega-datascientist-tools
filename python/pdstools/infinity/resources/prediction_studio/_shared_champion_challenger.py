@@ -1,19 +1,7 @@
-"""Shared ``ChampionChallenger`` business logic for versions whose behavior is
-otherwise identical and differs only in which API-version endpoint each
-operation calls.
+"""Shared ``ChampionChallenger`` behavior for versions with the same operations.
 
-SPIKE (T-47249): this module exists to prove out the "endpoint table" pattern
-described in the T-47249 refactor proposal. It currently covers ``v26_1`` and
-``v27_1`` only — a diff of the two mixins showed their business logic is
-byte-for-byte identical except for ~10 endpoint literals. ``v24_2`` is
-deliberately NOT folded in here: it has genuine behavioral differences (no
-retry-on-status-failure, no ``auto_approve``, a different ``while`` condition,
-one bugfix and one typo fix are absent) that were introduced when ``v26_1``
-was built, so sharing this module with it would require either changing
-``v24_2``'s already-shipped behavior (an AC6 regression risk) or threading
-extra per-version flags through every method for a one-off case. Per the
-proposal's §4.3, genuine behavioral differences stay separate; only the
-mechanical, URL-only differences get collapsed.
+``v24_2`` retains its own mixin because its polling and approval behavior
+differs from ``v26_1`` and ``v27_1``.
 """
 
 from __future__ import annotations
@@ -22,27 +10,24 @@ import logging
 import random
 import string
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, ClassVar, Protocol
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from pydantic import validate_call
 
 from ...internal._exceptions import PegaException, PegaMLopsError
 from ...internal._resource import _maybe_await, api_method
 from .types import AdmModelType
-from .v24_2.model_upload import UploadedModel
-
-# v26_1.UploadedModel and v27_1.UploadedModel are both pure pass-through
-# subclasses of v24_2.UploadedModel (no added behavior), so isinstance checks
-# against the common v24_2 ancestor are correct for every version this shared
-# mixin serves.
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from .v24_2.model_upload import UploadedModel
+
 logger = logging.getLogger(__name__)
 
 
-class ChampionChallengerEndpoints(Protocol):
+@dataclass(frozen=True)
+class ChampionChallengerEndpoints:
     """The set of endpoint templates that vary between API versions.
 
     Every callable takes the path parameters for that endpoint and returns
@@ -50,24 +35,8 @@ class ChampionChallengerEndpoints(Protocol):
     it always goes through one of these, so a new API version only needs a
     new instance of this table, not a copy of the ~600 lines below.
 
-    Declared as methods (not ``Callable``-typed attributes) so that a
-    read-only implementation (e.g. a frozen dataclass) satisfies the
-    protocol without mypy treating the members as settable.
     """
 
-    def operations(self, cc_id: str) -> str: ...
-    def delete_challenger(self, prediction_id: str, model_id: str) -> str: ...
-    def promote_challenger(self, prediction_id: str, model_id: str) -> str: ...
-    def update_pattern(self, prediction_id: str, model_id: str) -> str: ...
-    def distribution(self, prediction_id: str, model_id: str) -> str: ...
-    def predictor_add(self, prediction_id: str, model_id: str) -> str: ...
-    def predictor_remove(self, prediction_id: str, model_id: str) -> str: ...
-    def component(self, prediction_id: str, name: str) -> str: ...
-    def component_clone(self, prediction_id: str, name: str) -> str: ...
-
-
-@dataclass(frozen=True)
-class _ChampionChallengerEndpointsImpl:
     operations: Callable[[str], str]
     delete_challenger: Callable[[str, str], str]
     promote_challenger: Callable[[str, str], str]
@@ -101,7 +70,7 @@ def build_champion_challenger_endpoints(
     """
     base = "/prweb/api/PredictionStudio"
     pv = predictor_api_version or api_version
-    return _ChampionChallengerEndpointsImpl(
+    return ChampionChallengerEndpoints(
         operations=lambda cc_id: f"{base}/{api_version}/predictions/operations/{cc_id}",
         delete_challenger=lambda pid, mid: f"{base}/{api_version}/predictions/{pid}/models/{mid}/Remove",
         promote_challenger=lambda pid, mid: f"{base}/{api_version}/predictions/{pid}/models/{mid}/Promote",
@@ -123,6 +92,7 @@ class _SharedChampionChallengerMixin:
     """
 
     _endpoints: ClassVar[ChampionChallengerEndpoints]
+    _uploaded_model_type: ClassVar[type[UploadedModel]]
 
     # Declared for mypy — provided by concrete base classes at runtime
     if TYPE_CHECKING:
@@ -145,7 +115,7 @@ class _SharedChampionChallengerMixin:
         champion_percentage: float | None = None,
         model_objective: str | None = None,
     ):
-        super().__init__(client=client)  # type: ignore[call-arg]
+        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative mixin init resolves at runtime
         self.prediction_id = prediction_id
         self.cc_id = cc_id
         self.context = context
@@ -283,7 +253,7 @@ class _SharedChampionChallengerMixin:
             from tqdm import tqdm
         except ImportError:
 
-            class tqdm:  # type: ignore[no-redef]
+            class tqdm:  # type: ignore[no-redef]  # fallback when the optional tqdm package is unavailable
                 def __init__(self, total=None):
                     self.n = 0
 
@@ -609,9 +579,9 @@ class _SharedChampionChallengerMixin:
             raise ValueError("Percentage must be between 0 and 1.")
         endpoint = self._endpoints.component(self.prediction_id, self.active_model.component_name)
         data: dict[str, Any] = {}
-        if hasattr(new_model, "model_id") and not isinstance(new_model, UploadedModel):
+        if hasattr(new_model, "model_id") and not isinstance(new_model, self._uploaded_model_type):
             new_model = new_model.model_id.split("!")[1]
-        elif isinstance(new_model, UploadedModel):
+        elif isinstance(new_model, self._uploaded_model_type):
             data["sourceType"] = "Uploaded Model"
             if model_label is None:
                 model_label = new_model.file_path.split("/")[-1].split(".")[0]

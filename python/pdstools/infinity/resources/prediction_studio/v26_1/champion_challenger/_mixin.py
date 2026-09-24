@@ -4,6 +4,7 @@ from ..._shared_champion_challenger import (
     _SharedChampionChallengerMixin,
     build_champion_challenger_endpoints,
 )
+from ..model_upload import UploadedModel
 
 # v26 kept the predictor add/remove endpoints on v1 while every other
 # endpoint moved to v4 — the one observed case of a version not moving all
@@ -19,3 +20,4 @@ class _ChampionChallengerv26_1Mixin(_SharedChampionChallengerMixin):
     """
 
     _endpoints = _ENDPOINTS
+    _uploaded_model_type = UploadedModel
