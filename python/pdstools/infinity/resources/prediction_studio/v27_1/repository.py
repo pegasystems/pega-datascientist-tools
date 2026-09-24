@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from ..v24_2.repository import AsyncRepository as AsyncRepositoryPrevious
-from ..v24_2.repository import Repository as RepositoryPrevious
+from ..v26_1.repository import AsyncRepository as AsyncRepositoryPrevious
+from ..v26_1.repository import Repository as RepositoryPrevious
 
 
 class _Repositoryv27_1Mixin:

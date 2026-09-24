@@ -167,6 +167,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `pdstools.infinity`) with the feature and, where applicable, minimum and
   connected versions. It remains a `NotImplementedError` subtype for
   compatibility with existing callers.
+  Prediction and Prediction Studio operations now reuse the 26.1 sync/async
+  implementations with version-specific endpoint configuration and resource
+  classes. Champion/challenger replacement-option listing also shares its
+  implementation. Only 27.1's settings-based repository and model-category
+  parsing differs; adding another compatible API version no longer requires
+  copying those implementations.
 
 ## [5.0.0] — 2026-06-25
 

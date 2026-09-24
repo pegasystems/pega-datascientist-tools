@@ -1,49 +1,12 @@
 from __future__ import annotations
 
-
-from .....internal._pagination import AsyncPaginatedList
-from ...base import AsyncChampionChallenger as AsyncChampionChallengerBase
+from ...v26_1.champion_challenger import AsyncChampionChallenger as AsyncChampionChallengerV26_1
+from ..model import AsyncModel
 from ._mixin import _ChampionChallengerv27_1Mixin
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    import polars as pl
 
 
-class AsyncChampionChallenger(
-    _ChampionChallengerv27_1Mixin,
-    AsyncChampionChallengerBase,
-):
-    """v27 async ChampionChallenger — inherits all v24.2 functionality."""
+class AsyncChampionChallenger(_ChampionChallengerv27_1Mixin, AsyncChampionChallengerV26_1):
+    """v27 async ChampionChallenger with v5 replacement options."""
 
-    async def list_available_models_to_add(
-        self,
-        return_df: bool = False,
-    ) -> AsyncPaginatedList | pl.DataFrame:
-        """Fetches a list of models eligible to be challengers.
-
-        Parameters
-        ----------
-        return_df : bool, optional
-            Determines the format of the returned data: a DataFrame if True,
-            otherwise an async list of model instances. Defaults to False.
-
-        Returns
-        -------
-        AsyncPaginatedList[AsyncModel] or pl.DataFrame
-            An async list of model instances or a DataFrame of models.
-
-        """
-        from ..model import AsyncModel
-
-        endpoint = f"/prweb/api/PredictionStudio/v5/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
-        pages: AsyncPaginatedList[AsyncModel] = AsyncPaginatedList(
-            AsyncModel,
-            self._client,
-            "get",
-            endpoint,
-            _root="models",
-        )
-        if not return_df:
-            return pages
-        return await pages.as_df()
+    _replacement_options_version = "v5"
+    _model_cls = AsyncModel

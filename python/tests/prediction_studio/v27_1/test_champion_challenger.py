@@ -701,3 +701,10 @@ def test_list_available_models(
     )
 
     assert isinstance(result, expected_type)
+    if not return_df:
+        assert result._content_class is Model
+        assert result._url == (
+            "/prweb/api/PredictionStudio/v5/predictions/"
+            "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS/"
+            "component/testModel_falcons/replacement-options"
+        )

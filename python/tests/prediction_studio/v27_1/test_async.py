@@ -7,8 +7,10 @@ independently rather than trusting the sync tests to cover them.
 
 from unittest.mock import AsyncMock
 
-import polars as pl
 import pytest
+from pdstools.infinity.resources.prediction_studio.v27_1.champion_challenger import AsyncChampionChallenger
+from pdstools.infinity.resources.prediction_studio.v27_1.datamart_export import AsyncDatamartExport
+from pdstools.infinity.resources.prediction_studio.v27_1.model import AsyncModel
 from pdstools.infinity.resources.prediction_studio.v27_1.prediction import (
     AsyncPrediction,
 )
@@ -115,13 +117,12 @@ async def test_get_reports_uses_v5(prediction_studio, client):
 
 async def test_models_property_targets_v5(prediction_studio):
     assert prediction_studio.models._url == "/prweb/api/PredictionStudio/v5/models"
+    assert prediction_studio.models._content_class is AsyncModel
 
 
 async def test_predictions_property_targets_v5(prediction_studio):
-    assert (
-        prediction_studio.predictions._url
-        == "/prweb/api/PredictionStudio/v5/predictions"
-    )
+    assert prediction_studio.predictions._url == "/prweb/api/PredictionStudio/v5/predictions"
+    assert prediction_studio.predictions._content_class is AsyncPrediction
 
 
 async def test_trigger_datamart_export_uses_v5(prediction_studio, client):
@@ -132,6 +133,7 @@ async def test_trigger_datamart_export_uses_v5(prediction_studio, client):
     }
 
     export = await prediction_studio.trigger_datamart_export()
+    assert type(export) is AsyncDatamartExport
 
     client.post.assert_awaited_once_with("/prweb/api/PredictionStudio/v5/datamart/export")
     assert export.reference_id == "REF-1"
@@ -168,6 +170,13 @@ async def test_prediction_get_champion_challengers_uses_v5(prediction, client):
     )
     assert len(ccs) == 3
     assert ccs[0].prediction_id == PREDICTION_ID
+    assert all(type(cc) is AsyncChampionChallenger for cc in ccs)
+    assert all(type(cc.active_model) is AsyncModel for cc in ccs)
+    replacement_options = await ccs[0].list_available_models_to_add()
+    assert replacement_options._content_class is AsyncModel
+    assert replacement_options._url == (
+        f"/prweb/api/PredictionStudio/v5/predictions/{PREDICTION_ID}/component/Accept/replacement-options"
+    )
 
 
 async def test_prediction_get_metric_uses_v5(prediction, client):
@@ -216,7 +225,7 @@ async def test_prediction_get_notifications_as_df(prediction, client):
 
     result = await prediction.get_notifications(return_df=True)
 
-    assert isinstance(result, pl.DataFrame)
+    assert result["notification_id"].to_list() == ["N-3", "N-3"]
 
 
 async def test_prediction_add_conditional_model_uses_v5(prediction, client):
@@ -258,7 +267,7 @@ async def test_studio_list_models_uses_v5(prediction_studio, client):
     result = await prediction_studio.list_models(return_df=True)
 
     client.request.assert_awaited_once_with("get", "/prweb/api/PredictionStudio/v5/models", pageSize=100)
-    assert isinstance(result, pl.DataFrame)
+    assert result["label"].to_list() == ["testModel_falcons", "Accept"]
 
 
 async def test_studio_list_predictions_uses_v5(prediction_studio, client):
@@ -267,7 +276,7 @@ async def test_studio_list_predictions_uses_v5(prediction_studio, client):
     result = await prediction_studio.list_predictions(return_df=True)
 
     client.request.assert_awaited_once_with("get", "/prweb/api/PredictionStudio/v5/predictions", pageSize=100)
-    assert isinstance(result, pl.DataFrame)
+    assert result["label"].to_list() == ["Predict Cards Acceptance", "Predict Action Propensity"]
 
 
 async def test_studio_get_notifications_uses_v5(prediction_studio, client):
@@ -275,4 +284,4 @@ async def test_studio_get_notifications_uses_v5(prediction_studio, client):
 
     result = await prediction_studio.get_notifications(return_df=True)
 
-    assert isinstance(result, pl.DataFrame)
+    assert result["notification_id"].to_list() == ["N-3", "N-3"]

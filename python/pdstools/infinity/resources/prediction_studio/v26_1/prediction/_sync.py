@@ -7,6 +7,8 @@ from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._pagination import PaginatedList
 from ...base import Notification
 from ...v24_1.prediction import Prediction as PredictionPrevious
+from ..champion_challenger import ChampionChallenger
+from ..model import Model
 from ._mixin import _Predictionv26_1Mixin
 
 if TYPE_CHECKING:
@@ -17,6 +19,9 @@ if TYPE_CHECKING:
 
 class Prediction(_Predictionv26_1Mixin, PredictionPrevious):
     """v26 Prediction — inherits all v24.2 functionality."""
+
+    _champion_challenger_cls = ChampionChallenger
+    _model_cls = Model
 
     @overload
     def get_notifications(
@@ -52,7 +57,7 @@ class Prediction(_Predictionv26_1Mixin, PredictionPrevious):
             A list of notifications or a DataFrame.
 
         """
-        endpoint = f"/prweb/api/PredictionStudio/v2/predictions/{self.prediction_id}/notifications"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.notifications}/predictions/{self.prediction_id}/notifications"
         if category is None:
             category = "All"
         endpoint = f"{endpoint}?category={category}"
@@ -79,8 +84,6 @@ class Prediction(_Predictionv26_1Mixin, PredictionPrevious):
 
         """
         from ...base import ChampionChallengerList
-        from ..champion_challenger import ChampionChallenger
-        from ..model import Model
 
         ccs = []
         from .....internal._resource import _run_sync
@@ -102,17 +105,17 @@ class Prediction(_Predictionv26_1Mixin, PredictionPrevious):
                 "modelingTechnique": model["modelingTechnique"],
             }
             ccs.append(
-                ChampionChallenger(
+                self._champion_challenger_cls(
                     client=self._client,
                     prediction_id=self.prediction_id,
                     champion_percentage=100 - model["challengerPercentage"],
-                    challenger_model=Model(client=self._client, **active_model_temp),
+                    challenger_model=self._model_cls(client=self._client, **active_model_temp),
                     context=model["contextName"],
                     category=model["categoryName"] if model.get("categoryName") is not None else None,
                     model_objective=model["model_type"],
                     active_model=next(
                         (
-                            Model(
+                            self._model_cls(
                                 client=self._client,
                                 modelId=mod["id"],
                                 label=mod["label"],
@@ -143,14 +146,14 @@ class Prediction(_Predictionv26_1Mixin, PredictionPrevious):
                 "modelingTechnique": model["modelingTechnique"] if model.get("modelingTechnique") is not None else None,
             }
             ccs.append(
-                ChampionChallenger(
+                self._champion_challenger_cls(
                     client=self._client,
                     prediction_id=self.prediction_id,
                     context=model["contextName"],
                     model_objective=model["model_type"],
                     category=model["categoryName"] if model.get("categoryName") is not None else None,
                     challenger_model=None,
-                    active_model=Model(client=self._client, **active_model_temp),
+                    active_model=self._model_cls(client=self._client, **active_model_temp),
                 ),
             )
 
@@ -179,13 +182,11 @@ class Prediction(_Predictionv26_1Mixin, PredictionPrevious):
             An object detailing the updated configuration.
 
         """
-        from ..model import Model
-
         if isinstance(new_model, Model):
             new_model = new_model.model_id
         if context is None:
             context = "NoContext"
-        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{_quote(category, safe='')}/models/{_quote(new_model, safe='')}"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.conditional_model}/predictions/{self.prediction_id}/category/{_quote(category, safe='')}/models/{_quote(new_model, safe='')}"
         data = {}
         if context:
             data["contextName"] = context

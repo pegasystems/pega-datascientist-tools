@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from .....internal._pagination import PaginatedList
 from ...base import ChampionChallenger as ChampionChallengerBase
+from ..model import Model
 from ._mixin import _ChampionChallengerv26_1Mixin
 
 if TYPE_CHECKING:
@@ -12,6 +13,9 @@ if TYPE_CHECKING:
 
 class ChampionChallenger(_ChampionChallengerv26_1Mixin, ChampionChallengerBase):
     """v26 ChampionChallenger — inherits all v24.2 functionality."""
+
+    _replacement_options_version = "v1"
+    _model_cls = Model
 
     def list_available_models_to_add(
         self,
@@ -36,10 +40,8 @@ class ChampionChallenger(_ChampionChallengerv26_1Mixin, ChampionChallengerBase):
             ``return_df`` parameter choice.
 
         """
-        from ..model import Model
-
-        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
-        pages: PaginatedList[Model] = PaginatedList(Model, self._client, "get", endpoint, _root="models")
+        endpoint = f"/prweb/api/PredictionStudio/{self._replacement_options_version}/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
+        pages: PaginatedList[Model] = PaginatedList(self._model_cls, self._client, "get", endpoint, _root="models")
         if not return_df:
             return pages
         return pages.as_df()

@@ -7,6 +7,8 @@ from .....internal._exceptions import PegaException, PegaMLopsError
 from .....internal._pagination import AsyncPaginatedList
 from ...base import AsyncNotification
 from ...v24_1.prediction import AsyncPrediction as AsyncPredictionPrevious
+from ..champion_challenger import AsyncChampionChallenger
+from ..model import AsyncModel
 from ._mixin import _Predictionv26_1Mixin
 
 if TYPE_CHECKING:
@@ -17,6 +19,9 @@ if TYPE_CHECKING:
 
 class AsyncPrediction(_Predictionv26_1Mixin, AsyncPredictionPrevious):
     """v26 async Prediction — inherits all v24.2 functionality."""
+
+    _champion_challenger_cls = AsyncChampionChallenger
+    _model_cls = AsyncModel
 
     async def get_notifications(
         self,
@@ -38,7 +43,7 @@ class AsyncPrediction(_Predictionv26_1Mixin, AsyncPredictionPrevious):
             A list of notifications or a DataFrame.
 
         """
-        endpoint = f"/prweb/api/PredictionStudio/v2/predictions/{self.prediction_id}/notifications"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.notifications}/predictions/{self.prediction_id}/notifications"
         if category is None:
             category = "All"
         endpoint = f"{endpoint}?category={category}"
@@ -64,8 +69,6 @@ class AsyncPrediction(_Predictionv26_1Mixin, AsyncPredictionPrevious):
 
         """
         from ...base import ChampionChallengerList
-        from ..champion_challenger import AsyncChampionChallenger
-        from ..model import AsyncModel
 
         ccs = []
         models = await self._get_models()
@@ -85,11 +88,11 @@ class AsyncPrediction(_Predictionv26_1Mixin, AsyncPredictionPrevious):
                 "modelingTechnique": model["modelingTechnique"],
             }
             ccs.append(
-                AsyncChampionChallenger(
+                self._champion_challenger_cls(
                     client=self._client,
                     prediction_id=self.prediction_id,
                     champion_percentage=100 - model["challengerPercentage"],
-                    challenger_model=AsyncModel(
+                    challenger_model=self._model_cls(
                         client=self._client,
                         **active_model_temp,
                     ),
@@ -98,7 +101,7 @@ class AsyncPrediction(_Predictionv26_1Mixin, AsyncPredictionPrevious):
                     model_objective=model["model_type"],
                     active_model=next(
                         (
-                            AsyncModel(
+                            self._model_cls(
                                 client=self._client,
                                 modelId=mod["id"],
                                 label=mod["label"],
@@ -129,14 +132,14 @@ class AsyncPrediction(_Predictionv26_1Mixin, AsyncPredictionPrevious):
                 "modelingTechnique": model["modelingTechnique"] if model.get("modelingTechnique") is not None else None,
             }
             ccs.append(
-                AsyncChampionChallenger(
+                self._champion_challenger_cls(
                     client=self._client,
                     prediction_id=self.prediction_id,
                     context=model["contextName"],
                     model_objective=model["model_type"],
                     category=model["categoryName"] if model.get("categoryName") is not None else None,
                     challenger_model=None,
-                    active_model=AsyncModel(client=self._client, **active_model_temp),
+                    active_model=self._model_cls(client=self._client, **active_model_temp),
                 ),
             )
 
@@ -165,13 +168,11 @@ class AsyncPrediction(_Predictionv26_1Mixin, AsyncPredictionPrevious):
             An object detailing the updated configuration.
 
         """
-        from ..model import AsyncModel
-
         if isinstance(new_model, AsyncModel):
             new_model = new_model.model_id
         if context is None:
             context = "NoContext"
-        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/category/{_quote(category, safe='')}/models/{_quote(new_model, safe='')}"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.conditional_model}/predictions/{self.prediction_id}/category/{_quote(category, safe='')}/models/{_quote(new_model, safe='')}"
         data = {}
         if context:
             data["contextName"] = context

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import base64
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import anyio
 
@@ -15,6 +16,17 @@ if TYPE_CHECKING:
     from ...base import LocalModel
 
 
+@dataclass(frozen=True)
+class _StudioEndpoints:
+    model_upload: str
+    models: str
+    predictions: str
+    reports: str
+    settings: str
+    datamart_export: str
+    notifications: str
+
+
 class _PredictionStudiov26_1Mixin:
     """v26 PredictionStudio business logic — shared parts."""
 
@@ -24,6 +36,8 @@ class _PredictionStudiov26_1Mixin:
         _a_get: Callable[..., Any]
 
     version: str = "26.1"
+    _endpoints: ClassVar[_StudioEndpoints] = _StudioEndpoints("v1", "v2", "v3", "v1", "v1", "v1", "v2")
+    _uploaded_model_cls = UploadedModel
 
     @api_method
     async def upload_model(self, model: LocalModel, file_name: str) -> UploadedModel:
@@ -55,7 +69,7 @@ class _PredictionStudiov26_1Mixin:
             If the model validation fails.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v1/model"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.model_upload}/model"
         model.validate()
         if isinstance(model, ONNXModel):
             file_encode = base64.encodebytes(model._model.SerializeToString()).decode(
@@ -67,7 +81,7 @@ class _PredictionStudiov26_1Mixin:
 
         data = {"fileSource": file_encode, "fileName": file_name}
         response = await self._a_post(endpoint, data=data)
-        return UploadedModel(
+        return self._uploaded_model_cls(
             repository_name=response["repositoryName"],
             file_path=response["filePath"],
         )
@@ -101,7 +115,7 @@ class _PredictionStudiov26_1Mixin:
             Each dictionary contains details about a report.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v1/reports"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.reports}/reports"
         response = await self._a_get(endpoint)
         return response["reports"]
 
@@ -115,5 +129,5 @@ class _PredictionStudiov26_1Mixin:
             A dictionary containing the current Prediction Studio settings.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v1/settings"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.settings}/settings"
         return await self._a_get(endpoint)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from ..v24_2.datamart_export import AsyncDatamartExport as AsyncDatamartExportPrevious
-from ..v24_2.datamart_export import DatamartExport as DatamartExportPrevious
+from ..v26_1.datamart_export import AsyncDatamartExport as AsyncDatamartExportPrevious
+from ..v26_1.datamart_export import DatamartExport as DatamartExportPrevious
 
 
 class _DatamartExportv27_1Mixin:
