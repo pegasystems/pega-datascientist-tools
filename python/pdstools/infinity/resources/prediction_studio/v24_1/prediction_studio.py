@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, overload
 
+from ....internal._exceptions import PegaFeatureUnavailableError
 from ....internal._pagination import AsyncPaginatedList, PaginatedList
 from ....internal._resource import api_method
 from ..base import AsyncPredictionStudioBase, PredictionStudioBase
@@ -19,7 +20,11 @@ class _PredictionStudioV24_1Mixin:
 
     @api_method
     async def upload_model(self, model, file_name):
-        raise NotImplementedError
+        raise PegaFeatureUnavailableError(
+            "upload_model",
+            minimum_supported_version="24.2",
+            backend_version=self.version,
+        )
 
 
 class PredictionStudio(_PredictionStudioV24_1Mixin, PredictionStudioBase):

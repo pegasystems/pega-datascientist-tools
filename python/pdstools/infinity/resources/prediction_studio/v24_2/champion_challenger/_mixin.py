@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import validate_call
 
-from .....internal._exceptions import PegaException, PegaMLopsError
+from .....internal._exceptions import PegaException, PegaFeatureUnavailableError, PegaMLopsError
 from .....internal._resource import _maybe_await, api_method
 from ...types import AdmModelType
 from ..model_upload import UploadedModel
@@ -440,7 +440,7 @@ class _ChampionChallengerV24_2Mixin:
         if parameterized:
             predictor_category = "parameterized"
         else:
-            raise NotImplementedError("Static predictors are not supported.")
+            raise PegaFeatureUnavailableError("Static predictors")
         data = {
             "predictorName": name,
             "predictorCategory": predictor_category,
@@ -511,7 +511,7 @@ class _ChampionChallengerV24_2Mixin:
         if parameterized:
             predictorCategory = "parameterized"
         else:
-            raise NotImplementedError
+            raise PegaFeatureUnavailableError("Static predictors")
         data = {
             "predictorName": name,
             "predictorCategory": predictorCategory,

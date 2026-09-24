@@ -1,7 +1,7 @@
 """Tests for mutating ChampionChallenger and Prediction APIs.
 
 Covers add_conditional_model, delete_challenger_model, and promote_challenger_model
-across all three API versions (v24_2, v25/v26).
+across supported API versions.
 """
 
 from __future__ import annotations
@@ -9,7 +9,14 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pdstools.infinity import PegaFeatureUnavailableError
 from pdstools.infinity.internal._exceptions import PegaException, PegaMLopsError
+from pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio import (
+    AsyncPredictionStudio as AsyncPredictionStudioV24_1,
+)
+from pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio import (
+    PredictionStudio as PredictionStudioV24_1,
+)
 from pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger._sync import (
     ChampionChallenger as CCv24_2,
 )
@@ -24,6 +31,11 @@ from pdstools.infinity.resources.prediction_studio.v26_1.model import Model as M
 from pdstools.infinity.resources.prediction_studio.v26_1.prediction._sync import (
     Prediction as Predv26_1,
 )
+from pdstools.infinity.resources.prediction_studio.v27_1.champion_challenger import (
+    ChampionChallenger as CCv27_1,
+)
+from pdstools.infinity.resources.prediction_studio.v27_1.model import Model as Modelv27_1
+from pdstools.infinity.resources.prediction_studio.v27_1.prediction import Prediction as Predv27_1
 
 # v25 and v26 share one implementation — alias for parametrized test readability
 CCv25_1 = CCv26_1
@@ -40,6 +52,7 @@ ALL_VERSIONS = pytest.mark.parametrize(
         pytest.param(Predv24_2, CCv24_2, Modelv24_2, id="v24_2"),
         pytest.param(Predv25_1, CCv25_1, Modelv25_1, id="v25.1"),
         pytest.param(Predv26_1, CCv26_1, Modelv26_1, id="v26.1"),
+        pytest.param(Predv27_1, CCv27_1, Modelv27_1, id="v27.1"),
     ],
 )
 
@@ -97,6 +110,27 @@ def _make_cc(CCClass, ModelClass, client, *, challenger_model=None, context="NoC
         context=context,
         category=category,
     )
+
+
+def test_upload_model_reports_unavailable_on_24_1():
+    studio = PredictionStudioV24_1(client=_make_client())
+
+    with pytest.raises(PegaFeatureUnavailableError, match="requires Infinity 24.2") as error:
+        studio.upload_model(None, "model.pmml")
+    assert error.value.feature == "upload_model"
+    assert error.value.minimum_supported_version == "24.2"
+    assert error.value.backend_version == "24.1"
+    assert isinstance(error.value, NotImplementedError)
+
+
+@pytest.mark.asyncio
+async def test_async_upload_model_reports_unavailable_on_24_1():
+    studio = AsyncPredictionStudioV24_1(client=_make_client())
+
+    with pytest.raises(PegaFeatureUnavailableError, match="connected to 24.1") as error:
+        await studio.upload_model(None, "model.pmml")
+    assert error.value.feature == "upload_model"
+    assert error.value.minimum_supported_version == "24.2"
 
 
 # ---------------------------------------------------------------------------
@@ -400,7 +434,7 @@ class TestAddPredictor:
         client = _make_client()
         cc = _make_cc(CCClass, ModelClass, client)
 
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(PegaFeatureUnavailableError, match="Static predictors") as error:
             cc.add_predictor(
                 name="Income",
                 predictor_type="numeric",
@@ -409,6 +443,9 @@ class TestAddPredictor:
                 is_active_model=True,
                 parameterized=False,
             )
+        assert isinstance(error.value, NotImplementedError)
+        assert error.value.feature == "Static predictors"
+        client.patch.assert_not_called()
 
     @ALL_VERSIONS
     def test_api_error_wrapped_as_mlops_error(self, PredClass, CCClass, ModelClass):
@@ -468,8 +505,11 @@ class TestRemovePredictor:
         client = _make_client()
         cc = _make_cc(CCClass, ModelClass, client)
 
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(PegaFeatureUnavailableError, match="Static predictors") as error:
             cc.remove_predictor(name="Income", parameterized=False, is_active_model=True)
+        assert isinstance(error.value, NotImplementedError)
+        assert error.value.feature == "Static predictors"
+        client.patch.assert_not_called()
 
     @ALL_VERSIONS
     def test_api_error_wrapped_as_mlops_error(self, PredClass, CCClass, ModelClass):

@@ -9,6 +9,7 @@ from ..utils.namespaces import MissingDependenciesException
 
 if TYPE_CHECKING:
     from .client import AsyncInfinity, Infinity
+    from .internal._exceptions import PegaFeatureUnavailableError
     from .resources.prediction_studio.schemas import (
         ModelData,
         ModelInstanceData,
@@ -54,6 +55,11 @@ _DATA_MODELS = (
 
 def __getattr__(name: str):
     """Lazy import to avoid loading httpx / pydantic until needed."""
+    if name == "PegaFeatureUnavailableError":
+        from .internal._exceptions import PegaFeatureUnavailableError
+
+        return PegaFeatureUnavailableError
+
     if name in ("Infinity", "AsyncInfinity"):
         missing_dependencies = _check_dependencies()
 
@@ -93,5 +99,6 @@ __all__ = [
     "ModelData",
     "ModelInstanceData",
     "NotificationData",
+    "PegaFeatureUnavailableError",
     "PredictionData",
 ]
