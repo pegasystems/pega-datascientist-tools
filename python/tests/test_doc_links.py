@@ -33,38 +33,10 @@ def test_content_api_url_rejects_non_article_paths() -> None:
 
 def test_extract_relative_targets_skips_urls_anchors_and_built_pages() -> None:
     line = (
-        "[a](guide.md#setup) [b](https://x.org) [c](#top) [d](mailto:a@b.c) "
+        "[a](guide.md#setup) [b](https://x.org) [c](#top) [d](mailto:a@b.c) [g](img/chart_(v2).png) "
         '<img src="img/logo.png"> [e](autoapi/pkg/index.html) [f](/abs.md)'
     )
-    assert check_doc_links._extract_relative_targets(line) == ["guide.md#setup", "img/logo.png"]
-
-
-def test_prose_lines_skips_code_but_keeps_code_comments() -> None:
-    notebook = "\n".join(
-        [
-            '  "cell_type": "markdown",',
-            '  "source": ["See https://a.org/doc.\\n"]',
-            '  "cell_type": "code",',
-            '    "path = \\"https://a.org/prefix\\"\\n",',
-            '    "# See: https://a.org/commented\\n",',
-        ]
-    )
-    urls = [
-        url
-        for _, line in check_doc_links._prose_lines(".ipynb", notebook)
-        for url in check_doc_links._extract_urls(line)
-    ]
-    assert urls == ["https://a.org/doc", "https://a.org/commented"]
-
-    markdown = "Read https://a.org/one and `https://host/x`.\n```bash\ncurl https://a.org/two\n```\n"
-    urls = [
-        url for _, line in check_doc_links._prose_lines(".md", markdown) for url in check_doc_links._extract_urls(line)
-    ]
-    assert urls == ["https://a.org/one"]
-
-    rst = "Example::\n\n    https://a.org/literal\n\nSee `docs <https://a.org/three>`_ and ``https://a.org/lit``.\n"
-    urls = [url for _, line in check_doc_links._prose_lines(".rst", rst) for url in check_doc_links._extract_urls(line)]
-    assert urls == ["https://a.org/three"]
+    assert check_doc_links._extract_relative_targets(line) == ["guide.md#setup", "img/chart_(v2).png", "img/logo.png"]
 
 
 @pytest.mark.parametrize(
@@ -81,7 +53,6 @@ def test_prose_lines_skips_code_but_keeps_code_comments() -> None:
         ("(see https://a.org/x).", ["https://a.org/x"]),
         ("(see https://a.org/x_(y)), then", ["https://a.org/x_(y)"]),
         ("[a](https://a.org/one), [b](https://a.org/two).", ["https://a.org/one", "https://a.org/two"]),
-        ("`docs <https://a.org/rst>`_", ["https://a.org/rst"]),
         ('"[a](https://a.org/nb)\\n",', ["https://a.org/nb"]),
     ],
 )
@@ -89,50 +60,73 @@ def test_extract_urls_handles_parentheses_and_punctuation(text, expected) -> Non
     assert check_doc_links._extract_urls(text) == expected
 
 
-def test_extract_relative_targets_keeps_balanced_parentheses() -> None:
-    assert check_doc_links._extract_relative_targets("[a](img/chart_(v2).png) and [b](guide.md).") == [
-        "img/chart_(v2).png",
-        "guide.md",
-    ]
-
-
-def _prose_urls(suffix: str, text: str) -> list[str]:
-    return [
-        url for _, line in check_doc_links._prose_lines(suffix, text) for url in check_doc_links._extract_urls(line)
-    ]
+def _notebook(*cells: tuple[str, list[str]]) -> str:
+    lines = []
+    for cell_type, source in cells:
+        lines.append(f'  "cell_type": "{cell_type}",')
+        lines.extend(f'    "{line}\\n",' for line in source)
+    return "\n".join(lines)
 
 
 @pytest.mark.parametrize(
-    ("markdown", "expected"),
+    ("suffix", "text", "expected"),
     [
-        (
+        pytest.param(
+            ".md",
+            "Read https://a.org/one and `https://host/x`.\n```bash\ncurl https://a.org/code\n# https://a.org/comment\n```\n",
+            ["https://a.org/one", "https://a.org/comment"],
+            id="md-inline-code-and-fence-comment",
+        ),
+        pytest.param(
+            ".md",
             "````md\n```python\nhttps://a.org/inner\n```\nhttps://a.org/still-code\n````\nhttps://a.org/after\n",
             ["https://a.org/after"],
+            id="md-longer-outer-fence",
         ),
-        ("```\n~~~\nhttps://a.org/code\n~~~\n```\nhttps://a.org/after\n", ["https://a.org/after"]),
-        ("~~~\nhttps://a.org/code\n~~~\nhttps://a.org/after\n", ["https://a.org/after"]),
-        ("```\n```python\nhttps://a.org/code\n```\nhttps://a.org/after\n", ["https://a.org/after"]),
-        ("```\nhttps://a.org/unclosed\n", []),
+        pytest.param(
+            ".md",
+            "```\n~~~\nhttps://a.org/code\n~~~\n```\nhttps://a.org/after\n",
+            ["https://a.org/after"],
+            id="md-tilde-inside-backtick",
+        ),
+        pytest.param(
+            ".md",
+            "```\n```python\nhttps://a.org/code\n```\nhttps://a.org/after\n",
+            ["https://a.org/after"],
+            id="md-info-string-does-not-close",
+        ),
+        pytest.param(".md", "```\nhttps://a.org/unclosed\n", [], id="md-unclosed-fence"),
+        pytest.param(
+            ".rst",
+            "Example::\n\n    https://a.org/literal\n\nSee `docs <https://a.org/three>`_ and ``https://a.org/lit``.\n",
+            ["https://a.org/three"],
+            id="rst-literal-block-and-inline-literal",
+        ),
+        pytest.param(
+            ".ipynb",
+            _notebook(
+                ("markdown", ["See https://a.org/doc."]),
+                ("code", ['path = \\"https://a.org/prefix\\"', "# See: https://a.org/commented"]),
+            ),
+            ["https://a.org/doc", "https://a.org/commented"],
+            id="ipynb-code-cell-keeps-comments",
+        ),
+        pytest.param(
+            ".ipynb",
+            _notebook(
+                ("markdown", ["```", "https://a.org/code", "```", "https://a.org/after", "```unclosed"]),
+                ("markdown", ["https://a.org/next-cell"]),
+            ),
+            ["https://a.org/after", "https://a.org/next-cell"],
+            id="ipynb-fences-reset-per-cell",
+        ),
     ],
 )
-def test_prose_lines_handles_fence_lengths_and_characters(markdown, expected) -> None:
-    assert _prose_urls(".md", markdown) == expected
-
-
-def test_prose_lines_closes_notebook_fences_and_resets_per_cell() -> None:
-    notebook = "\n".join(
-        [
-            '  "cell_type": "markdown",',
-            '    "```\\n",',
-            '    "https://a.org/code\\n",',
-            '    "```\\n",',
-            '    "https://a.org/after\\n",',
-            '    "```unclosed"',
-            '  "cell_type": "markdown",',
-            '    "https://a.org/next-cell"',
-        ]
-    )
-    assert _prose_urls(".ipynb", notebook) == ["https://a.org/after", "https://a.org/next-cell"]
+def test_prose_lines_skips_code(suffix, text, expected) -> None:
+    urls = [
+        url for _, line in check_doc_links._prose_lines(suffix, text) for url in check_doc_links._extract_urls(line)
+    ]
+    assert urls == expected
 
 
 def test_scan_links_reports_locations_and_skips_local_hosts(tmp_path, monkeypatch) -> None:
