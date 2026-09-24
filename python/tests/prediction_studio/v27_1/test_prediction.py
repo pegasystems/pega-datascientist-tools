@@ -3,6 +3,8 @@ from datetime import date
 import polars as pl
 import pytest
 from pdstools.infinity.internal._pagination import PaginatedList
+from pdstools.infinity.resources.prediction_studio.v27_1.champion_challenger import ChampionChallenger
+from pdstools.infinity.resources.prediction_studio.v27_1.model import Model
 from pdstools.infinity.resources.prediction_studio.v27_1.prediction import Prediction
 
 mock_prediction = {
@@ -277,6 +279,8 @@ def test_prediction_get_cc(prediction_client, mocker):
 
     assert result[0].prediction_id == "CDHSAMPLE-DATA-CUSTOMER!PREDICTCUSTOMERACCEPTSCARDS"
     assert len(result) == 3
+    assert all(type(cc) is ChampionChallenger for cc in result)
+    assert all(type(cc.active_model) is Model for cc in result)
 
 
 def test_add_conditional_model(prediction_client, mocker):

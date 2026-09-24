@@ -3,10 +3,11 @@ import datetime
 import polars as pl
 import pytest
 from pdstools.infinity.internal._pagination import PaginatedList
-from pdstools.infinity.resources.prediction_studio.v27_1.model import Model
 from pdstools.infinity.resources.prediction_studio.v24_2.model import Model as ModelV24_2
-from pdstools.infinity.resources.prediction_studio.v27_1.prediction import Prediction
 from pdstools.infinity.resources.prediction_studio.v24_2.prediction import Prediction as PredictionV24_2
+from pdstools.infinity.resources.prediction_studio.v27_1.datamart_export import DatamartExport
+from pdstools.infinity.resources.prediction_studio.v27_1.model import Model
+from pdstools.infinity.resources.prediction_studio.v27_1.prediction import Prediction
 from pdstools.infinity.resources.prediction_studio.v27_1.prediction_studio import (
     PredictionStudio,
 )
@@ -304,6 +305,7 @@ def test_trigger_datamart(prediction_studio_client, mocker):
         return_value=mock_response,
     )
     result = prediction_studio_client.trigger_datamart_export()
+    assert type(result) is DatamartExport
 
     mock_post.assert_called_once_with("/prweb/api/PredictionStudio/v5/datamart/export")
 
@@ -514,6 +516,7 @@ def test_models_property_lookup_by_label(prediction_studio_client, mocker):
     models = prediction_studio_client.models
 
     assert isinstance(models, PaginatedList)
+    assert models._content_class is Model
     assert models["testModel_falcons"].label == "testModel_falcons"
     assert models["Accept"].label == "Accept"
     assert "Accept" in models
@@ -540,6 +543,7 @@ def test_predictions_property_lookup_by_label(prediction_studio_client, mocker):
         return_value=mock_response_predictions,
     )
     predictions = prediction_studio_client.predictions
+    assert predictions._content_class is Prediction
 
     assert isinstance(predictions, PaginatedList)
     assert predictions["Predict Cards Acceptance"].label == "Predict Cards Acceptance"

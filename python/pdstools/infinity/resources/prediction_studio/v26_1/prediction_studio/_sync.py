@@ -20,6 +20,9 @@ if TYPE_CHECKING:
 
 class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
     version: str = "26.1"
+    _model_cls = Model
+    _prediction_cls = Prediction
+    _datamart_export_cls = DatamartExport
 
     def repository(self) -> Repository:
         """Gets information about the repository from Prediction Studio.
@@ -52,8 +55,8 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
             ``ps.models['My Model']`` (by label or id),
             ``'My Model' in ps.models``, ``ps.models.keys()`` and iteration.
         """
-        endpoint = "/prweb/api/PredictionStudio/v2/models"
-        return PaginatedList(Model, self._client, "get", endpoint, _root="models", pageSize=100)
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.models}/models"
+        return PaginatedList(self._model_cls, self._client, "get", endpoint, _root="models", pageSize=100)
 
     @property
     def predictions(self) -> PaginatedList[Prediction]:
@@ -67,9 +70,9 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
             ``'My Prediction' in ps.predictions``, ``ps.predictions.keys()``
             and iteration.
         """
-        endpoint = "/prweb/api/PredictionStudio/v3/predictions"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.predictions}/predictions"
         return PaginatedList(
-            Prediction,
+            self._prediction_cls,
             self._client,
             "get",
             endpoint,
@@ -226,14 +229,14 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
             An object with information about the data export process.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v1/datamart/export"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.datamart_export}/datamart/export"
         try:
             response = self._client.post(endpoint)
         except NoMonitoringExportError as e:
             raise e
         except PegaException as e:
             raise ValueError("Error while triggering data mart export" + str(e)) from e
-        return DatamartExport(client=self._client, **response)
+        return self._datamart_export_cls(client=self._client, **response)
 
     @overload
     def get_notifications(
@@ -269,7 +272,7 @@ class PredictionStudio(_PredictionStudiov26_1Mixin, PredictionStudioPrevious):
             A list of notifications or a DataFrame.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v2/notifications"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.notifications}/notifications"
         if category is None:
             category = "All"
 

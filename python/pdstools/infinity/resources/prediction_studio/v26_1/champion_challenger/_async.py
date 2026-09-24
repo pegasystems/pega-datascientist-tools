@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from .....internal._pagination import AsyncPaginatedList
 from ...base import AsyncChampionChallenger as AsyncChampionChallengerBase
+from ..model import AsyncModel
 from ._mixin import _ChampionChallengerv26_1Mixin
 
 if TYPE_CHECKING:
@@ -15,6 +16,9 @@ class AsyncChampionChallenger(
     AsyncChampionChallengerBase,
 ):
     """v26 async ChampionChallenger — inherits all v24.2 functionality."""
+
+    _replacement_options_version = "v1"
+    _model_cls = AsyncModel
 
     async def list_available_models_to_add(
         self,
@@ -34,11 +38,9 @@ class AsyncChampionChallenger(
             An async list of model instances or a DataFrame of models.
 
         """
-        from ..model import AsyncModel
-
-        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
+        endpoint = f"/prweb/api/PredictionStudio/{self._replacement_options_version}/predictions/{self.prediction_id}/component/{self.active_model.component_name}/replacement-options"
         pages: AsyncPaginatedList[AsyncModel] = AsyncPaginatedList(
-            AsyncModel,
+            self._model_cls,
             self._client,
             "get",
             endpoint,
