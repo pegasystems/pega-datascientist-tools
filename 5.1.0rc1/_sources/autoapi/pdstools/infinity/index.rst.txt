@@ -1,0 +1,22 @@
+pdstools.infinity
+=================
+
+.. py:module:: pdstools.infinity
+
+.. autoapi-nested-parse::
+
+   Infinity API client for Pega Decision Management.
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/infinity/client/index
+   /autoapi/pdstools/infinity/internal/index
+   /autoapi/pdstools/infinity/resources/index
+
+

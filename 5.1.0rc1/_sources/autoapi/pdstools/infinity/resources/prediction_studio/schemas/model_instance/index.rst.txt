@@ -1,0 +1,79 @@
+pdstools.infinity.resources.prediction_studio.schemas.model_instance
+====================================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.schemas.model_instance
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.schemas.model_instance.ModelInstanceData
+
+
+Module Contents
+---------------
+
+.. py:class:: ModelInstanceData(/, **data: Any)
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.schemas._base.ResourceData`
+
+
+   Typed payload for a Prediction Studio model instance.
+
+   Fields use Pythonic snake_case names with Pega camelCase aliases. Unknown
+   fields from newer Pega releases are retained (``extra="allow"``) and surface
+   on ``model_dump()`` / attribute access.
+
+   :param instance_id: Unique model instance identifier (alias ``instanceID``).
+   :type instance_id: str
+   :param name: Human-readable instance name.
+   :type name: str or None, default None
+   :param type: The instance type.
+   :type type: str or None, default None
+   :param status: Lifecycle status.
+   :type status: str or None, default None
+   :param active: Whether the instance is active.
+   :type active: bool or None, default None
+   :param last_update_time: Last modification time (alias ``lastUpdateTime``), parsed from the
+                            Pega timestamp format.
+   :type last_update_time: datetime or None, default None
+
+
+   .. py:attribute:: instance_id
+      :type:  str
+      :value: None
+
+
+
+   .. py:attribute:: name
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: type
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: status
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: active
+      :type:  bool | None
+      :value: None
+
+
+
+   .. py:attribute:: last_update_time
+      :type:  datetime.datetime | None
+      :value: None
+
+
+

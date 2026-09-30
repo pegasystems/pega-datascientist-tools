@@ -1,0 +1,25 @@
+pdstools.infinity.resources.prediction_studio.v26_1.model_upload
+================================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v26_1.model_upload
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v26_1.model_upload.UploadedModel
+
+
+Module Contents
+---------------
+
+.. py:class:: UploadedModel(repository_name: str, file_path: str)
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.v24_2.model_upload.UploadedModel`
+
+
+   v26 UploadedModel — inherits all v24.2 functionality.
+
+
