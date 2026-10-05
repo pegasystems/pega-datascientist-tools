@@ -1,0 +1,97 @@
+pdstools.infinity.internal._auth
+================================
+
+.. py:module:: pdstools.infinity.internal._auth
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.internal._auth.logger
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.internal._auth.PegaOAuth
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.infinity.internal._auth._read_client_credential_file
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:class:: PegaOAuth(base_url: str, client_id: str, client_secret: str, verify: bool = False)
+
+   Bases: :py:obj:`httpx.Auth`
+
+
+   Base class for all authentication schemes.
+
+   To implement a custom authentication scheme, subclass `Auth` and override
+   the `.auth_flow()` method.
+
+   If the authentication scheme does I/O such as disk access or network calls, or uses
+   synchronization primitives such as locks, you should override `.sync_auth_flow()`
+   and/or `.async_auth_flow()` instead of `.auth_flow()` to provide specialized
+   implementations that will be used by `Client` and `AsyncClient` respectively.
+
+
+   .. py:attribute:: base_url
+
+
+   .. py:attribute:: client_id
+
+
+   .. py:attribute:: client_secret
+
+
+   .. py:attribute:: verify
+      :value: False
+
+
+
+   .. py:property:: token
+
+
+   .. py:property:: _auth_header
+
+
+   .. py:method:: auth_flow(request: httpx.Request) -> collections.abc.Generator[httpx.Request, httpx.Response, None]
+
+      Execute the authentication flow.
+
+      To dispatch a request, `yield` it:
+
+      ```
+      yield request
+      ```
+
+      The client will `.send()` the response back into the flow generator. You can
+      access it like so:
+
+      ```
+      response = yield request
+      ```
+
+      A `return` (or reaching the end of the generator) will result in the
+      client returning the last response obtained from the server.
+
+      You can dispatch as many requests as is necessary.
+
+
+
+.. py:function:: _read_client_credential_file(credential_file)
+

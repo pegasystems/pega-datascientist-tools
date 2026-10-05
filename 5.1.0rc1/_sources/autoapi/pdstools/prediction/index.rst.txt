@@ -1,0 +1,17 @@
+pdstools.prediction
+===================
+
+.. py:module:: pdstools.prediction
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/prediction/Plots/index
+   /autoapi/pdstools/prediction/Prediction/index
+   /autoapi/pdstools/prediction/Schema/index
+
+

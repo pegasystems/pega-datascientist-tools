@@ -1,0 +1,6 @@
+pdstools.data_quality
+=====================
+
+.. py:module:: pdstools.data_quality
+
+

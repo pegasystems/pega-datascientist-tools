@@ -1,0 +1,38 @@
+pdstools.infinity.resources.prediction_studio.v26_1.repository
+==============================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v26_1.repository
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v26_1.repository.Repository
+   pdstools.infinity.resources.prediction_studio.v26_1.repository.AsyncRepository
+
+
+Module Contents
+---------------
+
+.. py:class:: Repository(client, type, repository_name, bucket_name, root_path, datamart_export_location)
+
+   Bases: :py:obj:`_Repositoryv26_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v24_2.repository.Repository`
+
+
+   v26 Repository data — defined once.
+
+   Add new or overridden methods here.
+
+
+.. py:class:: AsyncRepository(client, type, repository_name, bucket_name, root_path, datamart_export_location)
+
+   Bases: :py:obj:`_Repositoryv26_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v24_2.repository.AsyncRepository`
+
+
+   v26 Repository data — defined once.
+
+   Add new or overridden methods here.
+
+

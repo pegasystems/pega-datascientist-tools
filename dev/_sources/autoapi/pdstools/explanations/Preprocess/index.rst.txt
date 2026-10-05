@@ -1,0 +1,145 @@
+pdstools.explanations.Preprocess
+================================
+
+.. py:module:: pdstools.explanations.Preprocess
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.Preprocess.Preprocess
+
+
+Module Contents
+---------------
+
+.. py:class:: Preprocess(explanations: pdstools.explanations.Explanations.Explanations)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Preprocess.
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['duckdb', 'polars']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'explanations'
+
+
+
+   .. py:attribute:: SEP
+      :value: ', '
+
+
+
+   .. py:attribute:: LEFT_PREFIX
+      :value: 'l'
+
+
+
+   .. py:attribute:: RIGHT_PREFIX
+      :value: 'r'
+
+
+
+   .. py:attribute:: explanations
+
+
+   .. py:attribute:: explanations_folder
+
+
+   .. py:attribute:: data_file
+
+
+   .. py:attribute:: data_foldername
+      :value: 'aggregated_data'
+
+
+
+   .. py:attribute:: data_folderpath
+
+
+   .. py:attribute:: from_date
+
+
+   .. py:attribute:: to_date
+
+
+   .. py:attribute:: model_name
+
+
+   .. py:attribute:: model_context_limit
+
+
+   .. py:attribute:: query_batch_limit
+
+
+   .. py:attribute:: file_batch_limit
+
+
+   .. py:attribute:: memory_limit
+
+
+   .. py:attribute:: thread_count
+
+
+   .. py:attribute:: progress_bar
+
+
+   .. py:attribute:: selected_files
+      :type:  list[str]
+      :value: []
+
+
+
+   .. py:attribute:: contexts
+      :type:  dict[str, dict[str, list[str]]] | None
+      :value: None
+
+
+
+   .. py:attribute:: unique_contexts_filename
+      :value: 'Instance of pathlib.Path/unique_contexts.json'
+
+
+
+   .. py:method:: generate()
+
+      Process explanation parquet files and save calculated aggregates.
+
+      This method reads the explanation data from the provided location and creates
+      aggregates for multiple contexts which are used to create global explanation plots.
+
+      The different context aggregates are as follows:
+
+      1. Overall Numeric Predictor Contributions
+
+         The average contribution towards predicted model propensity
+         for each numeric predictor value decile.
+
+      2. Overall Symbolic Predictor Contributions
+
+         The average contribution towards predicted model propensity
+         for each symbolic predictor value.
+
+      3. Context Specific Numeric Predictor Contributions
+
+         The average contribution towards predicted model propensity
+         for each numeric predictor value decile, grouped by context key partition.
+
+      4. Overall Symbolic Predictor Contributions
+
+         The average contribution towards predicted model propensity
+         for each symbolic predictor value, grouped by context key partition.
+
+      Each aggregate is written to parquet files in a temporary output directory.
+
+
+

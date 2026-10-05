@@ -1,0 +1,25 @@
+pdstools.utils.errors
+=====================
+
+.. py:module:: pdstools.utils.errors
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.errors.NotApplicableError
+
+
+Module Contents
+---------------
+
+.. py:exception:: NotApplicableError
+
+   Bases: :py:obj:`ValueError`
+
+
+   Inappropriate argument value (of correct type).
+
+

@@ -1,0 +1,28 @@
+.version-switcher {
+  padding: 0.5rem 1rem 0.5rem 1.5rem;
+  font-size: var(--font-size--small);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.version-switcher label {
+  color: var(--color-foreground-muted);
+  font-weight: 600;
+}
+
+.version-switcher select {
+  flex: 1;
+  background: var(--color-background-secondary);
+  color: var(--color-foreground-primary);
+  border: 1px solid var(--color-background-border);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.version-switcher select:focus {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 1px;
+}

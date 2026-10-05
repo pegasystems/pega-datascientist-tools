@@ -1,0 +1,392 @@
+pdstools.infinity.internal._base_client
+=======================================
+
+.. py:module:: pdstools.infinity.internal._base_client
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.internal._base_client._HttpxClientT
+   pdstools.infinity.internal._base_client.logger
+   pdstools.infinity.internal._base_client.ResponseT
+   pdstools.infinity.internal._base_client.DefaultAsyncHttpxClient
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.internal._base_client.BaseClient
+   pdstools.infinity.internal._base_client.SyncAPIClient
+   pdstools.infinity.internal._base_client._DefaultAsyncHttpxClient
+   pdstools.infinity.internal._base_client.AsyncHttpxClientWrapper
+   pdstools.infinity.internal._base_client.AsyncAPIClient
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.infinity.internal._base_client.execute_and_collect
+   pdstools.infinity.internal._base_client.get_results
+
+
+Module Contents
+---------------
+
+.. py:data:: _HttpxClientT
+
+.. py:data:: logger
+
+.. py:data:: ResponseT
+
+.. py:function:: execute_and_collect(task_coro: collections.abc.Coroutine, results: list, i: int)
+   :async:
+
+
+.. py:function:: get_results(tasks: list[collections.abc.Coroutine]) -> list[Any]
+   :async:
+
+
+.. py:class:: BaseClient(*, base_url: str | httpx.URL, auth: httpx.Auth | pdstools.infinity.internal._auth.PegaOAuth, application_name: str | None = None, verify: bool = False, pega_version: str | None = None, timeout: float = 90)
+
+   Bases: :py:obj:`Generic`\ [\ :py:obj:`_HttpxClientT`\ ]
+
+
+   Abstract base class for generic types.
+
+   A generic type is typically declared by inheriting from
+   this class parameterized with one or more type variables.
+   For example, a generic mapping type might be defined as::
+
+     class Mapping(Generic[KT, VT]):
+         def __getitem__(self, key: KT) -> VT:
+             ...
+         # Etc.
+
+   This class can then be used as follows::
+
+     def lookup_name(mapping: Mapping[KT, VT], key: KT, default: VT) -> VT:
+         try:
+             return mapping[key]
+         except KeyError:
+             return default
+
+
+   .. py:attribute:: _client
+      :type:  _HttpxClientT
+
+
+   .. py:attribute:: _base_url
+
+
+   .. py:attribute:: auth
+
+
+   .. py:attribute:: application_name
+      :value: None
+
+
+
+   .. py:attribute:: verify
+      :value: False
+
+
+
+   .. py:attribute:: pega_version
+      :value: None
+
+
+
+   .. py:attribute:: timeout
+      :value: 90
+
+
+
+   .. py:method:: _enforce_trailing_slash(url: httpx.URL) -> httpx.URL
+
+
+   .. py:method:: _build_request(method, endpoint: str, headers: httpx._types.HeaderTypes | None = None, data: httpx._types.RequestData | None = None, **params) -> httpx.Request
+
+
+   .. py:method:: _get_version(repo)
+
+
+   .. py:method:: from_client_id_and_secret(base_url: str, client_id: str, client_secret: str, application_name: str | None = None, verify: bool = False, pega_version: str | None = None, timeout: float = 90)
+      :classmethod:
+
+
+
+   .. py:method:: from_client_credentials(file_path: str, verify: bool = False, application_name: str | None = None, pega_version: str | None = None, timeout: float = 90)
+      :classmethod:
+
+
+
+   .. py:method:: from_basic_auth(base_url: str | None = None, user_name: str | None = None, password: str | None = None, *, verify: bool = True, application_name: str | None = None, pega_version: str | None = None, timeout: int = 90)
+      :classmethod:
+
+
+
+.. py:class:: SyncAPIClient(base_url: str | httpx.URL, auth: httpx.Auth | pdstools.infinity.internal._auth.PegaOAuth, application_name: str | None = None, verify: bool = False, pega_version: str | None = None, timeout: float = 90)
+
+   Bases: :py:obj:`BaseClient`\ [\ :py:obj:`httpx.Client`\ ]
+
+
+   Abstract base class for generic types.
+
+   A generic type is typically declared by inheriting from
+   this class parameterized with one or more type variables.
+   For example, a generic mapping type might be defined as::
+
+     class Mapping(Generic[KT, VT]):
+         def __getitem__(self, key: KT) -> VT:
+             ...
+         # Etc.
+
+   This class can then be used as follows::
+
+     def lookup_name(mapping: Mapping[KT, VT], key: KT, default: VT) -> VT:
+         try:
+             return mapping[key]
+         except KeyError:
+             return default
+
+
+   .. py:attribute:: _client
+      :type:  httpx.Client
+
+
+   .. py:attribute:: application_name
+      :value: None
+
+
+
+   .. py:method:: _infer_version(on_error: Literal['error', 'warn', 'ignore'] = 'error')
+
+
+   .. py:method:: _request(*, method, endpoint, data: httpx._types.RequestData | None = None, headers: httpx._types.HeaderTypes | None = None, **params) -> httpx.Response
+
+
+   .. py:method:: handle_pega_exception(endpoint, params, response)
+
+
+   .. py:method:: request(method, endpoint, **params)
+
+
+   .. py:method:: get(endpoint: str, headers: httpx._types.HeaderTypes | None = None, **params)
+
+
+   .. py:method:: post(endpoint: str, data: httpx._types.RequestData | None = None, headers: httpx._types.HeaderTypes | None = None, **params)
+
+
+   .. py:method:: patch(endpoint, data: httpx._types.RequestData | None = None, headers: httpx._types.HeaderTypes | None = None, **params)
+
+
+   .. py:method:: put(endpoint, data: httpx._types.RequestData | None = None, headers: httpx._types.HeaderTypes | None = None, **params)
+
+
+   .. py:method:: delete(endpoint, headers: httpx._types.HeaderTypes | None = None, **params)
+
+
+   .. py:method:: get_api_list()
+      :abstractmethod:
+
+
+
+.. py:class:: _DefaultAsyncHttpxClient(**kwargs: Any)
+
+   Bases: :py:obj:`httpx.AsyncClient`
+
+
+   An asynchronous HTTP client, with connection pooling, HTTP/2, redirects,
+   cookie persistence, etc.
+
+   It can be shared between tasks.
+
+   Usage:
+
+   ```python
+   >>> async with httpx.AsyncClient() as client:
+   >>>     response = await client.get('https://example.org')
+   ```
+
+   **Parameters:**
+
+   * **auth** - *(optional)* An authentication class to use when sending
+   requests.
+   * **params** - *(optional)* Query parameters to include in request URLs, as
+   a string, dictionary, or sequence of two-tuples.
+   * **headers** - *(optional)* Dictionary of HTTP headers to include when
+   sending requests.
+   * **cookies** - *(optional)* Dictionary of Cookie items to include when
+   sending requests.
+   * **verify** - *(optional)* Either `True` to use an SSL context with the
+   default CA bundle, `False` to disable verification, or an instance of
+   `ssl.SSLContext` to use a custom context.
+   * **http2** - *(optional)* A boolean indicating if HTTP/2 support should be
+   enabled. Defaults to `False`.
+   * **proxy** - *(optional)* A proxy URL where all the traffic should be routed.
+   * **timeout** - *(optional)* The timeout configuration to use when sending
+   requests.
+   * **limits** - *(optional)* The limits configuration to use.
+   * **max_redirects** - *(optional)* The maximum number of redirect responses
+   that should be followed.
+   * **base_url** - *(optional)* A URL to use as the base when building
+   request URLs.
+   * **transport** - *(optional)* A transport class to use for sending requests
+   over the network.
+   * **trust_env** - *(optional)* Enables or disables usage of environment
+   variables for configuration.
+   * **default_encoding** - *(optional)* The default encoding to use for decoding
+   response text, if no charset information is included in a response Content-Type
+   header. Set to a callable for automatic character set detection. Default: "utf-8".
+
+
+.. py:data:: DefaultAsyncHttpxClient
+
+   An alias to `httpx.AsyncClient` that provides the same defaults that this SDK
+   uses internally.
+
+   This is useful because overriding the `http_client` with your own instance of
+   `httpx.AsyncClient` will result in httpx's defaults being used, not ours.
+
+.. py:class:: AsyncHttpxClientWrapper(*, auth: httpx._types.AuthTypes | None = None, params: httpx._types.QueryParamTypes | None = None, headers: httpx._types.HeaderTypes | None = None, cookies: httpx._types.CookieTypes | None = None, verify: ssl.SSLContext | str | bool = True, cert: httpx._types.CertTypes | None = None, http1: bool = True, http2: bool = False, proxy: httpx._types.ProxyTypes | None = None, mounts: None | Mapping[str, httpx._transports.base.AsyncBaseTransport | None] = None, timeout: httpx._types.TimeoutTypes = DEFAULT_TIMEOUT_CONFIG, follow_redirects: bool = False, limits: httpx._config.Limits = DEFAULT_LIMITS, max_redirects: int = DEFAULT_MAX_REDIRECTS, event_hooks: None | Mapping[str, list[EventHook]] = None, base_url: httpx._urls.URL | str = '', transport: httpx._transports.base.AsyncBaseTransport | None = None, trust_env: bool = True, default_encoding: str | Callable[[bytes], str] = 'utf-8')
+
+   Bases: :py:obj:`DefaultAsyncHttpxClient`
+
+
+   An asynchronous HTTP client, with connection pooling, HTTP/2, redirects,
+   cookie persistence, etc.
+
+   It can be shared between tasks.
+
+   Usage:
+
+   ```python
+   >>> async with httpx.AsyncClient() as client:
+   >>>     response = await client.get('https://example.org')
+   ```
+
+   **Parameters:**
+
+   * **auth** - *(optional)* An authentication class to use when sending
+   requests.
+   * **params** - *(optional)* Query parameters to include in request URLs, as
+   a string, dictionary, or sequence of two-tuples.
+   * **headers** - *(optional)* Dictionary of HTTP headers to include when
+   sending requests.
+   * **cookies** - *(optional)* Dictionary of Cookie items to include when
+   sending requests.
+   * **verify** - *(optional)* Either `True` to use an SSL context with the
+   default CA bundle, `False` to disable verification, or an instance of
+   `ssl.SSLContext` to use a custom context.
+   * **http2** - *(optional)* A boolean indicating if HTTP/2 support should be
+   enabled. Defaults to `False`.
+   * **proxy** - *(optional)* A proxy URL where all the traffic should be routed.
+   * **timeout** - *(optional)* The timeout configuration to use when sending
+   requests.
+   * **limits** - *(optional)* The limits configuration to use.
+   * **max_redirects** - *(optional)* The maximum number of redirect responses
+   that should be followed.
+   * **base_url** - *(optional)* A URL to use as the base when building
+   request URLs.
+   * **transport** - *(optional)* A transport class to use for sending requests
+   over the network.
+   * **trust_env** - *(optional)* Enables or disables usage of environment
+   variables for configuration.
+   * **default_encoding** - *(optional)* The default encoding to use for decoding
+   response text, if no charset information is included in a response Content-Type
+   header. Set to a callable for automatic character set detection. Default: "utf-8".
+
+
+   .. py:method:: __del__() -> None
+
+
+.. py:class:: AsyncAPIClient(base_url: str | httpx.URL, auth: httpx.Auth | pdstools.infinity.internal._auth.PegaOAuth, application_name: str | None = None, verify: bool = False, pega_version: str | None = None, timeout: float = 90)
+
+   Bases: :py:obj:`BaseClient`\ [\ :py:obj:`httpx.AsyncClient`\ ]
+
+
+   Abstract base class for generic types.
+
+   A generic type is typically declared by inheriting from
+   this class parameterized with one or more type variables.
+   For example, a generic mapping type might be defined as::
+
+     class Mapping(Generic[KT, VT]):
+         def __getitem__(self, key: KT) -> VT:
+             ...
+         # Etc.
+
+   This class can then be used as follows::
+
+     def lookup_name(mapping: Mapping[KT, VT], key: KT, default: VT) -> VT:
+         try:
+             return mapping[key]
+         except KeyError:
+             return default
+
+
+   .. py:attribute:: _client
+      :type:  httpx.AsyncClient
+
+
+   .. py:attribute:: application_name
+      :value: None
+
+
+
+   .. py:method:: _collect_awaitable_blocking(coros: list[collections.abc.Coroutine] | collections.abc.Coroutine) -> Any
+
+
+   .. py:method:: _infer_version(on_error: Literal['error', 'warn', 'ignore'] = 'error')
+
+
+   .. py:method:: _request(*, method, endpoint, data: httpx._types.RequestData | None = None, headers: httpx._types.HeaderTypes | None = None, **params) -> httpx.Response
+      :async:
+
+
+
+   .. py:method:: handle_pega_exception(endpoint, params, response)
+
+
+   .. py:method:: request(method, endpoint, **params)
+      :async:
+
+
+
+   .. py:method:: get(endpoint: str, headers: httpx._types.HeaderTypes | None = None, **params)
+      :async:
+
+
+
+   .. py:method:: post(endpoint: str, data: httpx._types.RequestData | None = None, headers: httpx._types.HeaderTypes | None = None, **params)
+      :async:
+
+
+
+   .. py:method:: patch(endpoint, data: httpx._types.RequestData | None = None, headers: httpx._types.HeaderTypes | None = None, **params)
+      :async:
+
+
+
+   .. py:method:: put(endpoint, data: httpx._types.RequestData | None = None, headers: httpx._types.HeaderTypes | None = None, **params)
+      :async:
+
+
+
+   .. py:method:: delete(endpoint, headers: httpx._types.HeaderTypes | None = None, **params)
+      :async:
+
+
+
+   .. py:method:: get_api_list()
+      :abstractmethod:
+
+
+

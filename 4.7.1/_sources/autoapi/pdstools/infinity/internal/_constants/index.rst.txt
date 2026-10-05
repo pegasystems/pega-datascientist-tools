@@ -1,0 +1,28 @@
+pdstools.infinity.internal._constants
+=====================================
+
+.. py:module:: pdstools.infinity.internal._constants
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.internal._constants.PEGA_VERSIONS
+   pdstools.infinity.internal._constants.supported_pega_versions
+   pdstools.infinity.internal._constants.METRIC
+
+
+Module Contents
+---------------
+
+.. py:data:: PEGA_VERSIONS
+   :type:  Literal['8.8', '23.1', '24.1', '24.2']
+
+.. py:data:: supported_pega_versions
+   :value: ['8.8', '23.1', '24.1', '24.2']
+
+
+.. py:data:: METRIC
+

@@ -1,0 +1,208 @@
+pdstools.infinity.internal._resource
+====================================
+
+.. py:module:: pdstools.infinity.internal._resource
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.internal._resource.SyncAPIResource
+   pdstools.infinity.internal._resource.AsyncAPIResource
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.infinity.internal._resource._run_sync
+   pdstools.infinity.internal._resource.api_method
+   pdstools.infinity.internal._resource._maybe_await
+
+
+Module Contents
+---------------
+
+.. py:function:: _run_sync(async_fn, *args, **kwargs)
+
+   Run an async function synchronously.
+
+   Uses ``anyio.run`` when no event loop is running, and falls back to
+   ``start_blocking_portal`` when called from within an existing loop
+   (e.g. Jupyter).
+
+
+.. py:function:: api_method(func)
+
+   Mark an ``async def`` resource method for automatic sync wrapping.
+
+   Methods decorated with ``@api_method`` should be defined as
+   ``async def`` and may ``await`` any of the ``_a_get``/``_a_post``/…
+   helpers on the resource.
+
+   * On :class:`AsyncAPIResource` subclasses the method is left as-is
+     (native coroutine).
+   * On :class:`SyncAPIResource` subclasses the method is automatically
+     replaced by a synchronous wrapper (via ``__init_subclass__``) that
+     executes the coroutine with :func:`_run_sync`.
+
+
+.. py:function:: _maybe_await(result)
+   :async:
+
+
+   Await the result if it's awaitable, otherwise return it as-is.
+
+   Useful in mixin methods that call something which is sync on
+   ``SyncAPIResource`` (returns a plain value) but async on
+   ``AsyncAPIResource`` (returns a coroutine).
+
+
+.. py:class:: SyncAPIResource(client: pdstools.infinity.internal._base_client.SyncAPIClient)
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:attribute:: _client
+      :type:  pdstools.infinity.internal._base_client.SyncAPIClient
+
+
+   .. py:method:: __init_subclass__(**kwargs)
+      :classmethod:
+
+
+
+   .. py:attribute:: _get
+
+
+   .. py:attribute:: _post
+
+
+   .. py:attribute:: _patch
+
+
+   .. py:attribute:: _put
+
+
+   .. py:attribute:: _delete
+
+
+   .. py:attribute:: _get_api_list
+
+
+   .. py:method:: _a_get(endpoint: str, **kwargs)
+      :async:
+
+
+
+   .. py:method:: _a_post(endpoint: str, **kwargs)
+      :async:
+
+
+
+   .. py:method:: _a_patch(endpoint: str, **kwargs)
+      :async:
+
+
+
+   .. py:method:: _a_put(endpoint: str, **kwargs)
+      :async:
+
+
+
+   .. py:method:: _a_delete(endpoint: str, **kwargs)
+      :async:
+
+
+
+   .. py:method:: _sleep(seconds: float) -> None
+      :async:
+
+
+
+   .. py:property:: _public_fields
+
+
+   .. py:property:: _public_dict
+
+
+   .. py:method:: __repr__(fields: list[str] | None = None)
+
+
+.. py:class:: AsyncAPIResource(client: pdstools.infinity.internal._base_client.AsyncAPIClient)
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:attribute:: _client
+      :type:  pdstools.infinity.internal._base_client.AsyncAPIClient
+
+
+   .. py:attribute:: _get_api_list
+
+
+   .. py:method:: _a_get(endpoint: str, **kwargs)
+      :async:
+
+
+
+   .. py:method:: _a_post(endpoint: str, **kwargs)
+      :async:
+
+
+
+   .. py:method:: _a_patch(endpoint: str, **kwargs)
+      :async:
+
+
+
+   .. py:method:: _a_put(endpoint: str, **kwargs)
+      :async:
+
+
+
+   .. py:method:: _a_delete(endpoint: str, **kwargs)
+      :async:
+
+
+
+   .. py:attribute:: _get
+
+
+   .. py:attribute:: _post
+
+
+   .. py:attribute:: _patch
+
+
+   .. py:attribute:: _put
+
+
+   .. py:attribute:: _delete
+
+
+   .. py:method:: _sleep(seconds: float) -> None
+      :async:
+
+
+
+   .. py:property:: _public_fields
+
+
+   .. py:property:: _public_dict
+
+
+   .. py:method:: __repr__(fields: list[str] | None = None)
+
+

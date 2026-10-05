@@ -1,0 +1,18 @@
+pdstools.infinity.resources.prediction_studio.schemas
+=====================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.schemas
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/infinity/resources/prediction_studio/schemas/model/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/schemas/model_instance/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/schemas/notification/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/schemas/prediction/index
+
+

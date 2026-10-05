@@ -1,0 +1,32 @@
+pdstools
+========
+
+.. py:module:: pdstools
+
+.. autoapi-nested-parse::
+
+   Pega Data Scientist Tools Python library
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/adm/index
+   /autoapi/pdstools/cli/index
+   /autoapi/pdstools/decision_analyzer/index
+   /autoapi/pdstools/explanations/index
+   /autoapi/pdstools/ih/index
+   /autoapi/pdstools/impactanalyzer/index
+   /autoapi/pdstools/infinity/index
+   /autoapi/pdstools/pega_io/index
+   /autoapi/pdstools/prediction/index
+   /autoapi/pdstools/reports/index
+   /autoapi/pdstools/resources/index
+   /autoapi/pdstools/utils/index
+   /autoapi/pdstools/valuefinder/index
+
+

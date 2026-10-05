@@ -1,0 +1,73 @@
+pdstools.utils.color_mapping
+============================
+
+.. py:module:: pdstools.utils.color_mapping
+
+.. autoapi-nested-parse::
+
+   Generic color mapping utilities for categorical data in Streamlit apps.
+
+   This module provides utilities for creating consistent color mappings for
+   categorical dimensions across Streamlit applications. Color consistency is
+   critical for user experience when filtering/interacting with visualizations.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.utils.color_mapping.create_categorical_color_mappings
+
+
+Module Contents
+---------------
+
+.. py:function:: create_categorical_color_mappings(data: polars.LazyFrame, columns: list[str], colorway: list[str], column_mapping: dict[str, str] | None = None) -> dict[str, dict[str, str]]
+
+   Create consistent color mappings for categorical columns.
+
+   Computes color assignments for categorical dimensions based on all unique
+   values in the dataset, sorted alphabetically. This ensures colors remain
+   consistent throughout a session regardless of filtering.
+
+   :param data: Source data containing the categorical columns.
+   :type data: pl.LazyFrame
+   :param columns: List of column names to create color mappings for. Can be display names
+                   if column_mapping is provided.
+   :type columns: list[str]
+   :param colorway: List of color hex codes to assign (e.g., ["#001F5F", "#10A5AC", ...]).
+                    Colors are assigned using modulo indexing if there are more unique
+                    values than colors.
+   :type colorway: list[str]
+   :param column_mapping: Optional mapping from display names to internal column names.
+                          Example: {"Issue": "pyIssue", "Group": "pyGroup"}
+   :type column_mapping: dict[str, str], optional
+
+   :returns: Nested dictionary mapping column names to color dictionaries.
+             Example: {
+                 "Issue": {"Retention": "#001F5F", "Sales": "#10A5AC"},
+                 "Group": {"Cards": "#001F5F", "Loans": "#10A5AC"},
+             }
+   :rtype: dict[str, dict[str, str]]
+
+   .. rubric:: Examples
+
+   >>> data = pl.LazyFrame({"Category": ["A", "B", "C"]})
+   >>> colors = ["#FF0000", "#00FF00"]
+   >>> mappings = create_categorical_color_mappings(data, ["Category"], colors)
+   >>> mappings["Category"]["A"]
+   '#FF0000'
+   >>> mappings["Category"]["C"]  # Wraps around
+   '#FF0000'
+
+   .. rubric:: Notes
+
+   - Missing columns are skipped silently
+   - Null values are dropped from unique value computation
+   - Empty columns return empty color dictionaries
+   - Values are sorted alphabetically for deterministic color assignment
+   - Colors wrap using modulo indexing when categories exceed colorway length
+
+

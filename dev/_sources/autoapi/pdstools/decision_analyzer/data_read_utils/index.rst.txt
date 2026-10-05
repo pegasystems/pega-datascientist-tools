@@ -1,0 +1,45 @@
+pdstools.decision_analyzer.data_read_utils
+==========================================
+
+.. py:module:: pdstools.decision_analyzer.data_read_utils
+
+.. autoapi-nested-parse::
+
+   Decision Analyzer data-reading utilities.
+
+   The Action Analysis readers (``read_nested_zip_files``, ``read_gzipped_data``,
+   ``read_gzipped_ndjson_directory``) have moved to :mod:`pdstools.pega_io` so all
+   user-facing file reads funnel through one inspectable surface. They are
+   re-exported here for back-compat with any external caller importing from the
+   old location; new code should import from ``pdstools.pega_io``.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.decision_analyzer.data_read_utils.validate_columns
+
+
+Module Contents
+---------------
+
+.. py:function:: validate_columns(df: polars.LazyFrame, extract_type: dict[str, pdstools.decision_analyzer.column_schema.TableConfig]) -> tuple[bool, str | None]
+
+   Validate that default columns from table definition exist in the dataframe.
+
+   This function checks if required columns exist in the data, accounting for
+   the fact that columns may be present under either their source name or
+   their target label name.
+
+   :param df: The dataframe to validate
+   :type df: pl.LazyFrame
+   :param extract_type: Table configuration mapping column names to their properties
+   :type extract_type: dict[str, TableConfig]
+
+   :returns: tuple containing validation success (bool) and error message (str or None)
+   :rtype: tuple[bool, str | None]
+
+

@@ -1,0 +1,159 @@
+pdstools.adm.Reports
+====================
+
+.. py:module:: pdstools.adm.Reports
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.adm.Reports.Reports
+
+
+Module Contents
+---------------
+
+.. py:class:: Reports(datamart: pdstools.adm.ADMDatamart.ADMDatamart)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   .. py:attribute:: dependencies
+      :value: ['yaml']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'healthcheck'
+
+
+
+   .. py:attribute:: datamart
+
+
+   .. py:method:: model_reports(model_ids: str | list[str], *, name: str | None = None, title: str = 'ADM Model Report', disclaimer: str = '', subtitle: str = '', output_dir: os.PathLike | None = None, only_active_predictors: bool = True, output_type: str = 'html', keep_temp_files: bool = False, verbose: bool = False, progress_callback: collections.abc.Callable[[int, int], None] | None = None, model_file_path: os.PathLike | None = None, predictor_file_path: os.PathLike | None = None, qmd_file: os.PathLike | None = None, full_embed: bool = False) -> pathlib.Path
+
+      Generates model reports for Naive Bayes ADM models.
+
+      :param model_ids: The model ID (or list of model IDs) to generate reports for.
+      :type model_ids: Union[str,list[str]]
+      :param name: The (base) file name of the report.
+      :type name: str, optional
+      :param title: Title to put in the report, uses a default string if not given.
+      :type title: str, optional
+      :param subtitle: Subtitle to put in the report, empty if not given.
+      :type subtitle: str, optional
+      :param disclaimer: Disclaimer blub to put in the report, empty if not given.
+      :type disclaimer: str, optional
+      :param output_dir: The directory for the output. If None, uses current working directory.
+      :type output_dir: Union[str, Path, None], optional
+      :param only_active_predictors: Whether to only include active predictor details.
+      :type only_active_predictors: bool, default=True
+      :param output_type: The type of the output file (e.g., "html", "pdf").
+      :type output_type: str, default='html'
+      :param keep_temp_files: If True, the temporary directory with temp files will not be deleted after report generation.
+      :type keep_temp_files: bool, optional
+      :param verbose: If True, prints detailed logs during execution.
+      :type verbose: bool, optional
+      :param progress_callback: A callback function to report progress. Used only in the Streamlit app.
+                                The function should accept two integers: the current progress and the total.
+      :type progress_callback: Callable[[int, int], None], optional
+      :param model_file_path: Optional name of the actual model data file, so it does not get copied
+      :type model_file_path: Union[str, Path, None], optional
+      :param predictor_file_path: Optional name of the actual predictor data file, so it does not get copied
+      :type predictor_file_path: Union[str, Path, None], optional
+      :param qmd_file: Optional path to the Quarto file to use for the model report.
+                       If None, defaults to "ModelReport.qmd".
+      :type qmd_file: Union[str, Path, None], optional
+      :param full_embed: When True, fully embeds all JavaScript libraries (Plotly, itables,
+                         etc.) into the HTML output (larger file, requires esbuild).
+                         When False, loads JavaScript libraries from CDN (smaller, requires
+                         internet). See issue #620.
+      :type full_embed: bool, default=False
+
+      :returns: The path to the generated report file.
+      :rtype: Path
+
+      :raises ValueError: If there's an error in report generation or invalid parameters.
+      :raises FileNotFoundError: If required files are not found.
+      :raises subprocess.SubprocessError: If there's an error in running external commands.
+
+
+
+   .. py:method:: health_check(name: str | None = None, title: str = 'ADM Model Overview', subtitle: str = '', disclaimer: str = '', output_dir: os.PathLike | None = None, *, query: pdstools.utils.types.QUERY | None = None, output_type: str = 'html', keep_temp_files: bool = False, verbose: bool = False, prediction=None, model_file_path: os.PathLike | None = None, predictor_file_path: os.PathLike | None = None, prediction_file_path: os.PathLike | None = None, qmd_file: os.PathLike | None = None, full_embed: bool = False) -> pathlib.Path
+
+      Generates Health Check report for ADM models, optionally including predictor and prediction sections.
+
+      :param name: The (base) file name of the report.
+      :type name: str, optional
+      :param title: Title to put in the report, uses a default string if not given.
+      :type title: str, optional
+      :param subtitle: Subtitle to put in the report, empty if not given.
+      :type subtitle: str, optional
+      :param disclaimer: Disclaimer blub to put in the report, empty if not given.
+      :type disclaimer: str, optional
+      :param query: Optional extra filter on the datamart data
+      :type query: QUERY, optional
+      :param output_dir: The directory for the output. If None, uses current working directory.
+      :type output_dir: Union[str, Path, None], optional
+      :param output_type: The type of the output file (e.g., "html", "pdf").
+      :type output_type: str, default='html'
+      :param keep_temp_files: If True, the temporary directory with temp files will not be deleted after report generation.
+      :type keep_temp_files: bool, optional
+      :param verbose: If True, prints detailed logs during execution.
+      :type verbose: bool, optional
+      :param prediction: Optional Prediction object to include in the health check. If provided without
+                         prediction_file_path, the prediction data will be automatically cached to a temporary file.
+      :type prediction: Prediction, optional
+      :param model_file_path: Optional name of the actual model data file, so it does not get copied
+      :type model_file_path: Union[str, Path, None], optional
+      :param predictor_file_path: Optional name of the actual predictor data file, so it does not get copied
+      :type predictor_file_path: Union[str, Path, None], optional
+      :param prediction_file_path: Optional name of the actual predictions data file. If not provided but prediction object
+                                   is given, the data will be automatically cached from the prediction object.
+      :type prediction_file_path: Union[str, Path, None], optional
+      :param qmd_file: Optional path to the Quarto file to use for the health check report.
+                       If None, defaults to "HealthCheck.qmd".
+      :type qmd_file: Union[str, Path, None], optional
+      :param full_embed: When True, fully embeds all JavaScript libraries (Plotly, itables,
+                         etc.) into the HTML output (larger file, requires esbuild).
+                         When False, loads JavaScript libraries from CDN (smaller, requires
+                         internet). See issue #620.
+      :type full_embed: bool, default=False
+
+      :returns: The path to the generated report file.
+      :rtype: Path
+
+      :raises ValueError: If there's an error in report generation or invalid parameters.
+      :raises FileNotFoundError: If required files are not found.
+      :raises subprocess.SubprocessError: If there's an error in running external commands.
+
+
+
+   .. py:method:: excel_report(name: pathlib.Path | str = Path('Tables.xlsx'), predictor_binning: bool = False) -> tuple[pathlib.Path | None, list[str]]
+
+      Export raw data to an Excel file.
+
+      This method exports the last snapshots of model_data, predictor summary,
+      and optionally predictor_binning data to separate sheets in an Excel file.
+
+      If a specific table is not available or too large, it will be skipped without
+      causing the export to fail.
+
+      :param name: The path where the Excel file will be saved.
+                   Defaults to Path("Tables.xlsx").
+      :type name: Union[Path, str], optional
+      :param predictor_binning: If True, include predictor_binning data in the export.
+                                This is the last snapshot of the raw data, so it can be big.
+                                Defaults to False.
+      :type predictor_binning: bool, optional
+
+      :returns: A tuple containing:
+                - The path to the created Excel file if the export was successful, None if no data was available
+                - A list of warning messages (empty if no warnings)
+      :rtype: tuple[Union[Path, None], list[str]]
+
+
+

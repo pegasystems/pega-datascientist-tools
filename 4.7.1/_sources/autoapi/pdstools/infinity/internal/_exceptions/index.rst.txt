@@ -1,0 +1,248 @@
+pdstools.infinity.internal._exceptions
+======================================
+
+.. py:module:: pdstools.infinity.internal._exceptions
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.internal._exceptions.error_map
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.internal._exceptions.PegaException
+   pdstools.infinity.internal._exceptions.MultipleErrors
+   pdstools.infinity.internal._exceptions.APITimeoutError
+   pdstools.infinity.internal._exceptions.APIConnectionError
+   pdstools.infinity.internal._exceptions.InvalidInputs
+   pdstools.infinity.internal._exceptions.InternalServerError
+   pdstools.infinity.internal._exceptions.PegaMLopsError
+   pdstools.infinity.internal._exceptions.NoMonitoringInfo
+   pdstools.infinity.internal._exceptions.ShadowCCExists
+   pdstools.infinity.internal._exceptions.NoMonitoringExportError
+   pdstools.infinity.internal._exceptions.InvalidRequest
+   pdstools.infinity.internal._exceptions.IncompatiblePegaVersionError
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.infinity.internal._exceptions.handle_pega_exception
+
+
+Module Contents
+---------------
+
+.. py:exception:: PegaException(base_url: str, endpoint: str, params: dict, response: httpx.Response, override_message: str | None = None)
+
+   Bases: :py:obj:`Exception`
+
+
+   Common base class for all non-exit exceptions.
+
+
+   .. py:attribute:: status_code
+      :type:  int
+
+
+   .. py:attribute:: classification
+      :type:  str
+
+
+   .. py:attribute:: localized_value
+      :type:  str
+
+
+   .. py:attribute:: details
+      :type:  list[dict[str, Any]]
+
+
+   .. py:attribute:: base_url
+
+
+   .. py:attribute:: endpoint
+
+
+   .. py:attribute:: params
+
+
+   .. py:attribute:: response
+
+
+   .. py:attribute:: override_message
+      :value: None
+
+
+
+   .. py:method:: __str__()
+
+      Return str(self).
+
+
+
+.. py:exception:: MultipleErrors(details)
+
+   Bases: :py:obj:`Exception`
+
+
+   Common base class for all non-exit exceptions.
+
+
+   .. py:attribute:: details
+
+
+   .. py:method:: __str__()
+
+      Return str(self).
+
+
+
+.. py:exception:: APITimeoutError(request)
+
+   Bases: :py:obj:`Exception`
+
+
+   Common base class for all non-exit exceptions.
+
+
+   .. py:attribute:: request
+
+
+   .. py:method:: __str__()
+
+      Return str(self).
+
+
+
+.. py:exception:: APIConnectionError(request)
+
+   Bases: :py:obj:`Exception`
+
+
+   Common base class for all non-exit exceptions.
+
+
+   .. py:attribute:: request
+
+
+   .. py:method:: __str__()
+
+      Return str(self).
+
+
+
+.. py:exception:: InvalidInputs(base_url: str, endpoint: str, params: dict, response: httpx.Response, override_message: str | None = None)
+
+   Bases: :py:obj:`PegaException`
+
+
+   Request contains invalid inputs
+
+
+.. py:exception:: InternalServerError(base_url: str, endpoint: str, params: dict, response: httpx.Response, override_message: str | None = None)
+
+   Bases: :py:obj:`PegaException`
+
+
+   Internal server error
+
+
+.. py:exception:: PegaMLopsError
+
+   Bases: :py:obj:`Exception`
+
+
+   Custom exception for Pega MLOps errors.
+
+
+.. py:exception:: NoMonitoringInfo(base_url: str, endpoint: str, params: dict, response: httpx.Response, override_message: str | None = None)
+
+   Bases: :py:obj:`InvalidInputs`
+
+
+   No monitoring info available.
+
+
+   .. py:method:: __str__()
+
+      Return str(self).
+
+
+
+.. py:exception:: ShadowCCExists(base_url: str, endpoint: str, params: dict, response: httpx.Response, override_message: str | None = None)
+
+   Bases: :py:obj:`PegaException`
+
+
+   Shadow CC already exists.
+
+
+   .. py:method:: __str__()
+
+      Return str(self).
+
+
+
+.. py:exception:: NoMonitoringExportError(base_url: str, endpoint: str, params: dict, response: httpx.Response, override_message: str | None = None)
+
+   Bases: :py:obj:`PegaException`
+
+
+   The prediction studio export is not properly configured
+
+
+   .. py:method:: __str__()
+
+      Return str(self).
+
+
+
+.. py:exception:: InvalidRequest(base_url: str, endpoint: str, params: dict, response: httpx.Response, override_message: str | None = None)
+
+   Bases: :py:obj:`PegaException`
+
+
+   Invalid request.
+
+
+   .. py:method:: __str__()
+
+      Return str(self).
+
+
+
+.. py:exception:: IncompatiblePegaVersionError(minimum_supported_version: str, functionality_description: str | None = None)
+
+   Bases: :py:obj:`PegaException`
+
+
+   Common base class for all non-exit exceptions.
+
+
+   .. py:attribute:: minimum_supported_version
+
+
+   .. py:attribute:: functionality_description
+      :value: None
+
+
+
+   .. py:method:: __str__()
+
+      Return str(self).
+
+
+
+.. py:data:: error_map
+
+.. py:function:: handle_pega_exception(base_url: httpx.URL | str, endpoint: str, params: dict, response: httpx.Response) -> PegaException | Exception
+

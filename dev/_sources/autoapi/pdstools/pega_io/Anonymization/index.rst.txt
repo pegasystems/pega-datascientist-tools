@@ -1,0 +1,174 @@
+pdstools.pega_io.Anonymization
+==============================
+
+.. py:module:: pdstools.pega_io.Anonymization
+
+.. autoapi-nested-parse::
+
+   Hash-based anonymisation of Pega Historical Datasets.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.pega_io.Anonymization.logger
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.pega_io.Anonymization.Anonymization
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:class:: Anonymization(path_to_files: str, temporary_path: str | None = None, output_file: str = 'anonymised.parquet', skip_columns_with_prefix: list[str] | tuple[str, Ellipsis] | None = None, batch_size: int = 500, file_limit: int | None = None)
+
+   Anonymise Pega datasets (in particular, the Historical Dataset).
+
+   Numeric columns are min-max scaled to ``[0, 1]``.  Symbolic columns
+   are hashed with SHA-256.  Columns whose name starts with one of the
+   ``skip_columns_with_prefix`` values are passed through unchanged
+   (by default ``Context_*`` and ``Decision_*``).
+
+   Once constructed, call :meth:`anonymize` to run the pipeline.  All
+   file system work happens then; ``__init__`` is pure.
+
+   :param path_to_files: Glob pattern matching the input files, e.g. ``"~/Downloads/*.json"``.
+   :type path_to_files: str
+   :param temporary_path: Directory used for intermediate parquet chunks.  Defaults to a
+                          fresh ``tempfile.mkdtemp`` directory created on first use.
+   :type temporary_path: str, optional
+   :param output_file: Path to write the final anonymised parquet file.
+   :type output_file: str, default="anonymised.parquet"
+   :param skip_columns_with_prefix: Column-name prefixes to leave unchanged. Defaults to
+                                    ``("Context_", "Decision_")``.
+   :type skip_columns_with_prefix: list[str], optional
+   :param batch_size: Number of input files combined per intermediate parquet chunk.
+   :type batch_size: int, default=500
+   :param file_limit: Process at most this many files (useful for testing).
+   :type file_limit: int, optional
+
+   .. rubric:: Examples
+
+   >>> Anonymization(
+   ...     path_to_files="~/Downloads/*.json",
+   ...     batch_size=1000,
+   ...     file_limit=10,
+   ... ).anonymize()
+
+
+   .. py:attribute:: path_to_files
+
+
+   .. py:attribute:: output_file
+      :value: 'anonymised.parquet'
+
+
+
+   .. py:attribute:: skip_col_prefix
+      :type:  tuple[str, Ellipsis]
+      :value: ('Context_', 'Decision_')
+
+
+
+   .. py:attribute:: batch_size
+      :value: 500
+
+
+
+   .. py:attribute:: file_limit
+      :value: None
+
+
+
+   .. py:property:: temp_path
+      :type: str
+
+
+      Lazily create (and cache) the temp directory.
+
+
+   .. py:method:: anonymize(verbose: bool = True) -> None
+
+      Run the full anonymisation pipeline.
+
+      :param verbose: Print progress messages between stages.
+      :type verbose: bool, default=True
+
+
+
+   .. py:method:: min_max(column_name: str, value_range: list[dict[str, float]]) -> polars.Expr
+      :staticmethod:
+
+
+      Return a min-max scaling expression for ``column_name``.
+
+      :param column_name: Column to normalise.
+      :type column_name: str
+      :param value_range: Single-element list whose dict has ``"min"`` and ``"max"``
+                          keys, matching the shape produced by Polars when collecting
+                          a struct of ``min``/``max`` aggregations.
+      :type value_range: list[dict[str, float]]
+
+      :returns: ``(col - min) / (max - min)``, or the literal ``0.0`` when
+                min == max.
+      :rtype: pl.Expr
+
+
+
+   .. py:method:: chunker(files: list[str], size: int) -> collections.abc.Iterator[list[str]]
+      :staticmethod:
+
+
+      Yield successive ``size``-element slices of ``files``.
+
+
+
+   .. py:method:: chunk_to_parquet(files: list[str], i: int) -> str
+
+      Read a chunk of NDJSON files and write them as a parquet file.
+
+      :param files: NDJSON file paths to combine.
+      :type files: list[str]
+      :param i: Chunk index (used in the output filename).
+      :type i: int
+
+      :returns: Path to the parquet file produced.
+      :rtype: str
+
+
+
+   .. py:method:: preprocess(verbose: bool) -> list[str]
+
+      Convert input files into intermediate parquet chunks.
+
+      :param verbose: Show a tqdm progress bar over chunks (if installed).
+      :type verbose: bool
+
+      :returns: Paths to the temporary chunked parquet files.
+      :rtype: list[str]
+
+
+
+   .. py:method:: process(chunked_files: list[str], verbose: bool = True) -> None
+
+      Hash, scale, and write the final anonymised parquet file.
+
+      :param chunked_files: Intermediate parquet files produced by :meth:`preprocess`.
+      :type chunked_files: list[str]
+      :param verbose: Print which columns will be hashed / scaled / preserved.
+      :type verbose: bool, default=True
+
+      :raises MissingDependenciesException: When ``polars-hash`` is not installed.
+
+
+

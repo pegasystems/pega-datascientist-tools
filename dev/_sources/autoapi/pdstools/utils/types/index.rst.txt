@@ -1,0 +1,26 @@
+pdstools.utils.types
+====================
+
+.. py:module:: pdstools.utils.types
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.utils.types.ANY_FRAME
+   pdstools.utils.types.QUERY
+
+
+Module Contents
+---------------
+
+.. py:type:: ANY_FRAME
+   :canonical: pl.DataFrame | pl.LazyFrame
+
+
+.. py:type:: QUERY
+   :canonical: pl.Expr | Iterable[pl.Expr] | dict[str, list]
+
+

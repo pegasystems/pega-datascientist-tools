@@ -1,0 +1,144 @@
+pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio
+=====================================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.PredictionStudio
+   pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio.AsyncPredictionStudio
+
+
+Module Contents
+---------------
+
+.. py:class:: PredictionStudio(client: pdstools.infinity.internal._base_client.SyncAPIClient)
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.v26_1.prediction_studio._sync.PredictionStudio`
+
+
+   v25 PredictionStudio — overrides list_models and list_predictions only.
+
+   Same endpoints as v26; the v25 API responses omit ``performance`` /
+   ``performanceMeasure`` so v25-specific Model and Prediction classes are
+   used to keep those attributes out of ``_public_dict`` / DataFrames.
+
+
+   .. py:attribute:: version
+      :type:  str
+      :value: '25.1'
+
+
+
+   .. py:property:: models
+      :type: pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v25_1.model.Model]
+
+
+      All models, addressable by label or id (``ps.models['My Model']``).
+
+
+   .. py:property:: predictions
+      :type: pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v25_1.prediction.Prediction]
+
+
+      All predictions, addressable by label or id (``ps.predictions['My Prediction']``).
+
+
+   .. py:method:: list_models(return_df: Literal[False] = False) -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v25_1.model.Model]
+                  list_models(return_df: Literal[True]) -> polars.DataFrame
+
+      Fetches a list of all models from Prediction Studio.
+
+      :param return_df: Set to True to get the results as a DataFrame. By default False.
+      :type return_df: bool, optional
+
+      :rtype: PaginatedList[Model] or polars.DataFrame
+
+
+
+   .. py:method:: list_predictions(return_df: Literal[False] = False) -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.v25_1.prediction.Prediction]
+                  list_predictions(return_df: Literal[True]) -> polars.DataFrame
+
+      Fetches a list of all predictions from Prediction Studio.
+
+      :param return_df: Set to True to get the results as a DataFrame. By default False.
+      :type return_df: bool, optional
+
+      :rtype: PaginatedList[Prediction] or polars.DataFrame
+
+
+
+.. py:class:: AsyncPredictionStudio(client: pdstools.infinity.internal._base_client.AsyncAPIClient)
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.v26_1.prediction_studio._async.AsyncPredictionStudio`
+
+
+   v25 async PredictionStudio — overrides list_models and list_predictions only.
+
+
+   .. py:attribute:: version
+      :type:  str
+      :value: '25.1'
+
+
+
+   .. py:property:: models
+      :type: pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v25_1.model.AsyncModel]
+
+
+      All models, addressable by label or id (``await ps.models.get(label=...)``).
+
+
+   .. py:property:: predictions
+      :type: pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v25_1.prediction.AsyncPrediction]
+
+
+      All predictions, addressable by label or id (``await ps.predictions.get(label=...)``).
+
+
+   .. py:method:: list_models(return_df: bool = False) -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v25_1.model.AsyncModel] | polars.DataFrame
+      :async:
+
+
+      Fetches a list of all models from Prediction Studio.
+
+      :param return_df: Set to True to get the results as a DataFrame.
+      :type return_df: bool, optional
+
+      :rtype: AsyncPaginatedList[AsyncModel] or polars.DataFrame
+
+
+
+   .. py:method:: list_predictions(return_df: bool = False) -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.v25_1.prediction.AsyncPrediction] | polars.DataFrame
+      :async:
+
+
+      Fetches a list of all predictions from Prediction Studio.
+
+      :param return_df: Set to True to get the results as a DataFrame.
+      :type return_df: bool, optional
+
+      :rtype: AsyncPaginatedList[AsyncPrediction] or polars.DataFrame
+
+
+
+   .. py:method:: get_prediction(prediction_id: str | None = None, label: str | None = None, **kwargs) -> pdstools.infinity.resources.prediction_studio.v25_1.prediction.AsyncPrediction
+      :async:
+
+
+      Finds and returns a specific prediction from Prediction Studio.
+
+
+
+   .. py:method:: get_model(model_id: str | None = None, label: str | None = None, **kwargs) -> pdstools.infinity.resources.prediction_studio.v25_1.model.AsyncModel
+      :async:
+
+
+      Finds and returns a specific model from Prediction Studio.
+
+
+

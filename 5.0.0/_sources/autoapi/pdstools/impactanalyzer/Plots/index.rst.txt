@@ -1,0 +1,222 @@
+pdstools.impactanalyzer.Plots
+=============================
+
+.. py:module:: pdstools.impactanalyzer.Plots
+
+.. autoapi-nested-parse::
+
+   Plotting utilities for Impact Analyzer visualization.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.impactanalyzer.Plots.logger
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.impactanalyzer.Plots.Plots
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:class:: Plots(ia: pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Visualization methods for Impact Analyzer experiment data.
+
+   This class provides plotting capabilities for analyzing Impact Analyzer
+   experiment results. It is accessed through the `plot` attribute of an
+   :class:`~pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer` instance.
+
+   All plot methods support:
+
+   - Custom titles via `title` parameter
+   - Data filtering via `query` parameter
+   - Faceting by dimension via `facet` parameter
+   - Returning underlying data via `return_df=True`
+
+   .. seealso::
+
+      :py:obj:`pdstools.impactanalyzer.ImpactAnalyzer`
+          Main analysis class.
+
+   .. rubric:: Examples
+
+   >>> ia = ImpactAnalyzer.from_pdc("export.json")
+   >>> ia.plot.overview()
+   >>> ia.plot.trend(metric="Value_Lift", facet="Channel")
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['plotly']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'adm'
+
+
+
+   .. py:attribute:: ia
+      :type:  pdstools.impactanalyzer.ImpactAnalyzer.ImpactAnalyzer
+
+      Reference to the parent ImpactAnalyzer instance.
+
+
+   .. py:method:: overview(*, title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., metric: str = ..., facet: str | None = ..., return_df: Literal[False] = ...) -> pdstools.utils.plot_utils.Figure
+                  overview(*, title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., metric: str = ..., facet: str | None = ..., return_df: Literal[True]) -> polars.LazyFrame
+
+      Create a bar chart comparing experiment performance.
+
+      Displays a horizontal bar chart comparing Impact Analyzer experiments
+      for the specified lift metric.
+
+      :param title: Custom title. If None, auto-generated from metric.
+      :type title: str, optional
+      :param query: Polars expression to filter the data.
+      :type query: QUERY, optional
+      :param metric: Metric to display: "CTR_Lift" or "Value_Lift".
+      :type metric: str, default "CTR_Lift"
+      :param facet: Column name for faceting (e.g., "Channel").
+      :type facet: str, optional
+      :param return_df: If True, return data as LazyFrame instead of figure.
+      :type return_df: bool, default False
+
+      :returns: Plotly figure, or LazyFrame if `return_df=True`.
+      :rtype: Figure or pl.LazyFrame
+
+      .. seealso::
+
+         :py:obj:`trend`
+             Time series of experiment metrics.
+         
+         :py:obj:`control_groups_trend`
+             Time series of control group metrics.
+
+      .. rubric:: Examples
+
+      >>> ia.plot.overview()
+      >>> ia.plot.overview(metric="Value_Lift", facet="Channel")
+      >>> df = ia.plot.overview(return_df=True)
+
+
+
+   .. py:method:: control_groups_trend(*, title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., metric: str = ..., facet: str | None = ..., every: str | None = ..., return_df: Literal[False] = ...) -> pdstools.utils.plot_utils.Figure
+                  control_groups_trend(*, title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., metric: str = ..., facet: str | None = ..., every: str | None = ..., return_df: Literal[True]) -> polars.LazyFrame
+
+      Create a line chart of control group metrics over time.
+
+      Displays how different control groups perform over time for
+      the specified metric.
+
+      :param title: Custom title. If None, auto-generated from metric.
+      :type title: str, optional
+      :param query: Polars expression to filter the data.
+      :type query: QUERY, optional
+      :param metric: Metric to display: "CTR" or "ValuePerImpression".
+      :type metric: str, default "CTR"
+      :param facet: Column name for faceting (e.g., "Channel").
+      :type facet: str, optional
+      :param every: Time aggregation period using Polars syntax:
+                    "1d" (daily), "1w" (weekly), "1mo" (monthly), etc.
+      :type every: str, optional
+      :param return_df: If True, return data as LazyFrame instead of figure.
+      :type return_df: bool, default False
+
+      :returns: Plotly figure, or LazyFrame if `return_df=True`.
+      :rtype: Figure or pl.LazyFrame
+
+      .. seealso::
+
+         :py:obj:`trend`
+             Time series of experiment lift metrics.
+         
+         :py:obj:`overview`
+             Bar chart of experiment metrics.
+
+      .. rubric:: Examples
+
+      >>> ia.plot.control_groups_trend()
+      >>> ia.plot.control_groups_trend(metric="ValuePerImpression", every="1w")
+      >>> ia.plot.control_groups_trend(facet="Channel", every="1mo")
+
+
+
+   .. py:method:: trend(*, title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., metric: str = ..., facet: str | None = ..., every: str | None = ..., return_df: Literal[False] = ...) -> pdstools.utils.plot_utils.Figure
+                  trend(*, title: str | None = ..., query: pdstools.utils.types.QUERY | None = ..., metric: str = ..., facet: str | None = ..., every: str | None = ..., return_df: Literal[True]) -> polars.LazyFrame
+
+      Create a line chart of experiment lift metrics over time.
+
+      Displays how different experiments' lift metrics evolve over time.
+
+      :param title: Custom title. If None, auto-generated from metric.
+      :type title: str, optional
+      :param query: Polars expression to filter the data.
+      :type query: QUERY, optional
+      :param metric: Metric to display: "CTR_Lift" or "Value_Lift".
+      :type metric: str, default "CTR_Lift"
+      :param facet: Column name for faceting (e.g., "Channel").
+      :type facet: str, optional
+      :param every: Time aggregation period using Polars syntax:
+                    "1d" (daily), "1w" (weekly), "1mo" (monthly), etc.
+      :type every: str, optional
+      :param return_df: If True, return data as LazyFrame instead of figure.
+      :type return_df: bool, default False
+
+      :returns: Plotly figure, or LazyFrame if `return_df=True`.
+      :rtype: Figure or pl.LazyFrame
+
+      .. seealso::
+
+         :py:obj:`overview`
+             Bar chart of experiment metrics.
+         
+         :py:obj:`control_groups_trend`
+             Time series of control group metrics.
+
+      .. rubric:: Examples
+
+      >>> ia.plot.trend()
+      >>> ia.plot.trend(metric="Value_Lift", every="1w")
+      >>> ia.plot.trend(facet="Channel", every="1mo")
+
+
+
+   .. py:method:: control_fraction_heatmap(*, title: str | None = ..., return_df: Literal[False] = ...) -> pdstools.utils.plot_utils.Figure
+                  control_fraction_heatmap(*, title: str | None = ..., return_df: Literal[True]) -> polars.LazyFrame
+
+      Heatmap of control fraction by Channel x Experiment.
+
+      Surfaces mismatches in how control percentages are configured in
+      the Pega product. Each cell shows the fraction of impressions
+      assigned to the control group for that (Channel, Experiment)
+      pair; rows that vary noticeably across channels usually point
+      at a misconfigured experiment in one of the channels.
+
+      :param title: Custom title. If None, a default is used.
+      :type title: str, optional
+      :param return_df: If True, return the underlying long-form data (one row per
+                        non-null Channel x Experiment cell) as a LazyFrame instead
+                        of the figure.
+      :type return_df: bool, default False
+
+      :returns: Plotly heatmap, or the underlying LazyFrame when
+                ``return_df=True``.
+      :rtype: Figure or pl.LazyFrame
+
+
+

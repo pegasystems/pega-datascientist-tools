@@ -1,0 +1,89 @@
+pdstools.valuefinder.Plots
+==========================
+
+.. py:module:: pdstools.valuefinder.Plots
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.valuefinder.Plots.logger
+   pdstools.valuefinder.Plots.COLORSCALE_TYPES
+   pdstools.valuefinder.Plots.T
+   pdstools.valuefinder.Plots.P
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.valuefinder.Plots.Plots
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:data:: COLORSCALE_TYPES
+
+.. py:data:: T
+
+.. py:data:: P
+
+.. py:class:: Plots(vf: pdstools.valuefinder.ValueFinder.ValueFinder)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Plots.
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['plotly']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'adm'
+
+
+
+   .. py:attribute:: vf
+
+
+   .. py:method:: funnel_chart(by: str, query: pdstools.utils.types.QUERY | None = None, return_df: Literal[False] = False) -> pdstools.utils.plot_utils.Figure
+                  funnel_chart(by: str, query: pdstools.utils.types.QUERY | None = None, return_df: Literal[True] = True) -> polars.LazyFrame
+
+      Funnel chart.
+
+
+
+   .. py:method:: propensity_distribution(sample_size: int = 10000) -> pdstools.utils.plot_utils.Figure
+
+      Propensity distribution.
+
+
+
+   .. py:method:: propensity_threshold(sample_size: int = 10000, stage='Eligibility') -> pdstools.utils.plot_utils.Figure
+
+      Propensity threshold.
+
+
+
+   .. py:method:: pie_charts(*, thresholds: collections.abc.Iterable[float] | None = None, quantiles: collections.abc.Iterable[float] | None = None, rounding: int = 3)
+
+      Pie charts.
+
+
+
+   .. py:method:: distribution_per_threshold(*, thresholds: collections.abc.Iterable[float] | None = None, quantiles: collections.abc.Iterable[float] | None = None, rounding: int = 3)
+
+      Distribution per threshold.
+
+
+

@@ -1,0 +1,34 @@
+pdstools.infinity.resources.prediction_studio.v24_1.prediction
+==============================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_1.prediction
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v24_1.prediction.Prediction
+   pdstools.infinity.resources.prediction_studio.v24_1.prediction.AsyncPrediction
+
+
+Module Contents
+---------------
+
+.. py:class:: Prediction(client, **payload)
+
+   Bases: :py:obj:`_PredictionV24_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.Prediction`
+
+
+   v24.1 Prediction business logic — defined once.
+
+
+.. py:class:: AsyncPrediction(client, **payload)
+
+   Bases: :py:obj:`_PredictionV24_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncPrediction`
+
+
+   v24.1 Prediction business logic — defined once.
+
+
