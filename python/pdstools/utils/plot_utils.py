@@ -56,7 +56,8 @@ def _sample_plot_data(
     Returns
     -------
     pl.DataFrame
-        A deterministic quantile-stratified subset of ``data``.
+        A deterministic quantile-stratified subset of ``data``. Rows with a
+        null ``value_column`` are dropped, since plots cannot render them.
     """
     if isinstance(max_points_per_group, bool) or not isinstance(max_points_per_group, int):
         raise TypeError("max_points_per_group must be an integer.")
@@ -66,14 +67,14 @@ def _sample_plot_data(
     groups = data.partition_by(group_column, maintain_order=True) if group_column else [data]
     sampled_groups = []
     for group in groups:
+        group = group.filter(pl.col(value_column).is_not_null())
         if group.height <= max_points_per_group:
-            sampled_groups.append(group)
+            if group.height > 0:
+                sampled_groups.append(group)
             continue
 
-        sorted_group = group.filter(pl.col(value_column).is_not_null()).sort(value_column)
+        sorted_group = group.sort(value_column)
         n_rows = sorted_group.height
-        if n_rows == 0:
-            continue
         if max_points_per_group == 1:
             indices = [(n_rows - 1) // 2]
         else:
