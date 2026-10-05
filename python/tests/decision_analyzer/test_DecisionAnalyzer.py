@@ -1063,6 +1063,12 @@ class TestBoxplotPointCapAndSampling:
         )
         assert isinstance(result, tuple)
         assert len(result) == 2
+        fig, _ = result
+        if fig is not None:
+            assert all(
+                max(len(trace.x) if trace.x is not None else 0, len(trace.y) if trace.y is not None else 0) <= 250
+                for trace in fig.data
+            )
 
     def test_prio_factor_boxplots_return_df(self, da_v1):
         first_action = da_v1.decision_data.select("Action").first().collect().item()
