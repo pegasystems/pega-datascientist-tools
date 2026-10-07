@@ -1041,71 +1041,49 @@ class TestHeadToHeadAtStage:
 
 
 # ---------------------------------------------------------------------------
-# Boxplot point cap and sampling in plots
+# Boxplot sampling in plots
 # ---------------------------------------------------------------------------
 
 
-class TestBoxplotPointCapAndSampling:
-    def test_boxplot_point_cap_returns_sample_size(self, da_v1):
-        assert da_v1.plot._boxplot_point_cap() == da_v1.sample_size
-
-    def test_boxplot_point_cap_returns_default_when_no_sample_size(self, da_v1):
-        from pdstools.decision_analyzer.plots import DEFAULT_BOXPLOT_POINT_CAP
-
-        original = da_v1.sample_size
-        da_v1.sample_size = None
-        try:
-            assert da_v1.plot._boxplot_point_cap() == DEFAULT_BOXPLOT_POINT_CAP
-        finally:
-            da_v1.sample_size = original
-
+class TestBoxplotSampling:
     def test_prio_factor_boxplots_returns_tuple(self, da_v1):
+        from pdstools.decision_analyzer.utils import PRIO_FACTORS
+
         first_action = da_v1.decision_data.select("Action").first().collect().item()
         result = da_v1.plot.prio_factor_boxplots(
             reference=pl.col("Action") == first_action,
         )
         assert isinstance(result, tuple)
         assert len(result) == 2
+        fig, _ = result
+        # One box per segment (2) and prioritization factor
+        assert len(fig.data) == 2 * len(PRIO_FACTORS)
+        assert all(
+            max(len(trace.x) if trace.x is not None else 0, len(trace.y) if trace.y is not None else 0) <= 250
+            for trace in fig.data
+        )
 
-    def test_prio_factor_boxplots_return_df(self, da_v1):
+    def test_prio_factor_boxplots_return_df_is_unsampled(self, da_v1):
         first_action = da_v1.decision_data.select("Action").first().collect().item()
         df = da_v1.plot.prio_factor_boxplots(
             reference=pl.col("Action") == first_action,
             return_df=True,
+            max_points_per_group=10,
         )
         assert "segment" in df.columns
-        # The sample data has more arbitration-stage rows than sample_size (5000),
-        # so the result is capped to exactly sample_size by the point cap logic.
-        assert df.height == da_v1.sample_size
-
-    def test_prio_factor_boxplots_sampling_caps_rows(self, da_v1):
-        first_action = da_v1.decision_data.select("Action").first().collect().item()
-        original = da_v1.sample_size
-        da_v1.sample_size = 100
-        try:
-            df = da_v1.plot.prio_factor_boxplots(
-                reference=pl.col("Action") == first_action,
-                return_df=True,
-            )
-            assert df.height == 100
-        finally:
-            da_v1.sample_size = original
+        assert df.height == da_v1.arbitration_stage.collect().height
 
     def test_prio_factor_boxplots_warning_message(self, da_v1):
         """When data exceeds point cap but both segments survive, return sampling warning."""
+        from pdstools.decision_analyzer.utils import PRIO_FACTORS
+
         first_action = da_v1.decision_data.select("Action").first().collect().item()
-        original = da_v1.sample_size
-        da_v1.sample_size = 5000
-        try:
-            result = da_v1.plot.prio_factor_boxplots(
-                reference=pl.col("Action") == first_action,
-            )
-            fig, warning = result
-            if fig is not None:
-                assert isinstance(warning, str)
-                assert "sample" in warning.lower()
-        finally:
-            da_v1.sample_size = original
+        fig, warning = da_v1.plot.prio_factor_boxplots(
+            reference=pl.col("Action") == first_action,
+        )
+        assert len(fig.data) == 2 * len(PRIO_FACTORS)
+        assert isinstance(warning, str)
+        assert "sample" in warning.lower()
 
     def test_rank_boxplot_returns_figure(self, da_v1):
         first_action = da_v1.decision_data.select("Action").first().collect().item()

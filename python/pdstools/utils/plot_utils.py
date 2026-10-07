@@ -31,6 +31,68 @@ else:
     Figure = Any
 
 
+DEFAULT_PLOT_POINTS_PER_GROUP = 250
+
+
+def downsample_distribution(
+    data: pl.DataFrame,
+    value_column: str,
+    max_points_per_group: int | None,
+    group_column: str | None = None,
+) -> pl.DataFrame:
+    """Keep evenly spaced order statistics for compact distribution plots.
+
+    Parameters
+    ----------
+    data : pl.DataFrame
+        Values used to build a plot.
+    value_column : str
+        Numeric column whose distribution is being shown.
+    max_points_per_group : int or None
+        Maximum number of values to keep per group. ``None`` keeps all values.
+    group_column : str, optional
+        Column defining independent distributions.
+
+    Returns
+    -------
+    pl.DataFrame
+        A deterministic quantile-stratified subset of ``data``. Rows with a
+        null ``value_column`` are dropped, since plots cannot render them.
+
+    Examples
+    --------
+    >>> df = pl.DataFrame({"x": [5, 1, 4, 2, 3]})
+    >>> downsample_distribution(df, "x", max_points_per_group=3)["x"].to_list()
+    [1, 3, 5]
+    """
+    if max_points_per_group is not None:
+        if isinstance(max_points_per_group, bool) or not isinstance(max_points_per_group, int):
+            raise TypeError("max_points_per_group must be an integer or None.")
+        if max_points_per_group < 1:
+            raise ValueError("max_points_per_group must be at least 1.")
+
+    groups = data.partition_by(group_column, maintain_order=True) if group_column else [data]
+    sampled_groups = []
+    for group in groups:
+        group = group.filter(pl.col(value_column).is_not_null())
+        if max_points_per_group is None or group.height <= max_points_per_group:
+            if group.height > 0:
+                sampled_groups.append(group)
+            continue
+
+        sorted_group = group.sort(value_column)
+        n_rows = sorted_group.height
+        if max_points_per_group == 1:
+            indices = [(n_rows - 1) // 2]
+        else:
+            indices = [index * (n_rows - 1) // (max_points_per_group - 1) for index in range(max_points_per_group)]
+        sampled_groups.append(sorted_group[indices])
+
+    if not sampled_groups:
+        return data.head(0)
+    return pl.concat(sampled_groups, how="vertical")
+
+
 # Color map used by all bin-lift plots (BinAggregator + ADM Plots).
 LIFT_DIRECTION_COLORS: dict[str, str] = {
     "neg": "#A01503",
