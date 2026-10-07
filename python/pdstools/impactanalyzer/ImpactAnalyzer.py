@@ -1037,6 +1037,7 @@ class ImpactAnalyzer:
         if query is not None:
             # Materialize each arm separately to avoid Polars 2 misplanning
             # filters when the lazy branches are concatenated.
+            # Workaround for pola-rs/polars#29788; drop once fixed upstream.
             filtered_test = _apply_query(test_long, query=query, allow_empty=True).collect()
             filtered_control = _apply_query(control_long, query=query, allow_empty=True).collect()
             if filtered_test.height + filtered_control.height == 0:
