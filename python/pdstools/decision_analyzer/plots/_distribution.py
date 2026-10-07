@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import polars as pl
 from plotly.subplots import make_subplots
 
-from ...utils.plot_utils import DEFAULT_PLOT_POINTS_PER_GROUP, _sample_plot_data
+from ...utils.plot_utils import DEFAULT_PLOT_POINTS_PER_GROUP, downsample_distribution
 from ..utils import PRIO_FACTORS, apply_filter
 
 
@@ -140,7 +140,7 @@ def rank_boxplot(
         .select("Rank")
         .collect()
     )
-    ranks = _sample_plot_data(
+    ranks = downsample_distribution(
         ranks,
         value_column="Rank",
         max_points_per_group=max_points_per_group,
@@ -192,7 +192,7 @@ def create_parameter_distribution_boxplots(
         for j, segment in enumerate(["Selected Actions", "Others"]):
             segment_data = segmented_df.filter(pl.col("segment") == segment)
             if segment_data.height > 0:
-                plot_data = _sample_plot_data(
+                plot_data = downsample_distribution(
                     segment_data,
                     value_column=metric,
                     max_points_per_group=max_points_per_group,

@@ -3,14 +3,14 @@ import polars as pl
 import pytest
 from pdstools.utils.metric_limits import MetricLimits
 from pdstools.utils.plot_utils import (
-    _sample_plot_data,
+    downsample_distribution,
     fig_update_facet,
     get_colorscale,
     hide_metric_annotations_on_non_rightmost,
 )
 
 
-class TestSamplePlotData:
+class TestDownsampleDistribution:
     def test_keeps_evenly_spaced_order_statistics_per_group(self):
         data = pl.DataFrame(
             {
@@ -19,7 +19,7 @@ class TestSamplePlotData:
             }
         )
 
-        result = _sample_plot_data(data, "value", max_points_per_group=4, group_column="group")
+        result = downsample_distribution(data, "value", max_points_per_group=4, group_column="group")
 
         assert result.rows() == [("A", 0), ("A", 3), ("A", 6), ("A", 9), ("B", 20), ("B", 21)]
 
@@ -31,19 +31,19 @@ class TestSamplePlotData:
             }
         )
 
-        result = _sample_plot_data(data, "value", max_points_per_group=3, group_column="group")
+        result = downsample_distribution(data, "value", max_points_per_group=3, group_column="group")
 
         assert result.rows() == [("small", 1), ("small", 2), ("large", 0), ("large", 2), ("large", 4)]
 
     def test_single_point_keeps_median(self):
         data = pl.DataFrame({"value": [5, 1, 3, 2, 4]})
 
-        assert _sample_plot_data(data, "value", max_points_per_group=1)["value"].to_list() == [3]
+        assert downsample_distribution(data, "value", max_points_per_group=1)["value"].to_list() == [3]
 
     def test_none_keeps_all_non_null_values(self):
         data = pl.DataFrame({"value": [5, None, 1, 3]})
 
-        assert _sample_plot_data(data, "value", max_points_per_group=None)["value"].to_list() == [5, 1, 3]
+        assert downsample_distribution(data, "value", max_points_per_group=None)["value"].to_list() == [5, 1, 3]
 
     @pytest.mark.parametrize(
         ("cap", "error"),
@@ -51,7 +51,7 @@ class TestSamplePlotData:
     )
     def test_rejects_invalid_caps(self, cap, error):
         with pytest.raises(error):
-            _sample_plot_data(pl.DataFrame({"value": [1]}), "value", max_points_per_group=cap)
+            downsample_distribution(pl.DataFrame({"value": [1]}), "value", max_points_per_group=cap)
 
 
 def test_performance_colorscale_uses_metric_limits():

@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import polars as pl
 from plotly.subplots import make_subplots
 
-from ...utils.plot_utils import DEFAULT_PLOT_POINTS_PER_GROUP, _sample_plot_data, simplify_facet_titles
+from ...utils.plot_utils import DEFAULT_PLOT_POINTS_PER_GROUP, downsample_distribution, simplify_facet_titles
 
 
 def filtering_components(
@@ -304,7 +304,7 @@ def plot_priority_component_distribution(
         Violin figure, ECDF figure, and full-data summary statistics.
     """
     collected = value_data.collect()
-    plot_data = _sample_plot_data(
+    plot_data = downsample_distribution(
         collected,
         value_column=component,
         group_column=granularity,
@@ -417,7 +417,7 @@ def plot_component_overview(
         row = idx // n_cols + 1
         col = idx % n_cols + 1
         component_data = collected.select([granularity, component])
-        component_data = _sample_plot_data(
+        component_data = downsample_distribution(
             component_data,
             value_column=component,
             group_column=granularity,

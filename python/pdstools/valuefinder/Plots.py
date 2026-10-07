@@ -15,7 +15,7 @@ from typing_extensions import ParamSpec
 
 from ..utils.cdh_utils import _apply_query, lazy_sample
 from ..utils.namespaces import LazyNamespace
-from ..utils.plot_utils import DEFAULT_PLOT_POINTS_PER_GROUP, _sample_plot_data
+from ..utils.plot_utils import DEFAULT_PLOT_POINTS_PER_GROUP, downsample_distribution
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +137,7 @@ class Plots(LazyNamespace):
             tempdf = pl.DataFrame(
                 {"x": temp["data"][0]["x"], "y": temp["data"][0]["y"]},
             )
-            plot_data = _sample_plot_data(
+            plot_data = downsample_distribution(
                 sample,
                 value_column="ModelPropensity",
                 max_points_per_group=max_points_per_group,
@@ -218,7 +218,7 @@ class Plots(LazyNamespace):
             tempdf = pl.DataFrame(
                 {"x": temp["data"][0]["x"], "y": temp["data"][0]["y"]},
             )
-            plot_data = _sample_plot_data(
+            plot_data = downsample_distribution(
                 data.select(ptype),
                 value_column=ptype,
                 max_points_per_group=max_points_per_group,

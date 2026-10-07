@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import polars as pl
 from plotly.subplots import make_subplots
 
-from ...utils.plot_utils import DEFAULT_PLOT_POINTS_PER_GROUP, _sample_plot_data
+from ...utils.plot_utils import DEFAULT_PLOT_POINTS_PER_GROUP, downsample_distribution
 from ..utils import PRIO_FACTORS, apply_filter
 from ._common import _boxplot_point_cap
 
@@ -199,7 +199,7 @@ def prio_factor_boxplots(
     for i, metric in enumerate(prio_factors, start=1):
         for _, segment in enumerate(["Comparison Group", "Other Offers"]):
             segment_data = segmented_df.filter(segment=segment).select(metric)
-            plot_data = _sample_plot_data(
+            plot_data = downsample_distribution(
                 segment_data,
                 value_column=metric,
                 max_points_per_group=max_points_per_group,

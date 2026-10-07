@@ -1057,6 +1057,8 @@ class TestBoxplotPointCapAndSampling:
             da_v1.sample_size = original
 
     def test_prio_factor_boxplots_returns_tuple(self, da_v1):
+        from pdstools.decision_analyzer.utils import PRIO_FACTORS
+
         first_action = da_v1.decision_data.select("Action").first().collect().item()
         result = da_v1.plot.prio_factor_boxplots(
             reference=pl.col("Action") == first_action,
@@ -1064,11 +1066,12 @@ class TestBoxplotPointCapAndSampling:
         assert isinstance(result, tuple)
         assert len(result) == 2
         fig, _ = result
-        if fig is not None:
-            assert all(
-                max(len(trace.x) if trace.x is not None else 0, len(trace.y) if trace.y is not None else 0) <= 250
-                for trace in fig.data
-            )
+        # One box per segment (2) and prioritization factor
+        assert len(fig.data) == 2 * len(PRIO_FACTORS)
+        assert all(
+            max(len(trace.x) if trace.x is not None else 0, len(trace.y) if trace.y is not None else 0) <= 250
+            for trace in fig.data
+        )
 
     def test_prio_factor_boxplots_return_df(self, da_v1):
         first_action = da_v1.decision_data.select("Action").first().collect().item()
@@ -1096,6 +1099,8 @@ class TestBoxplotPointCapAndSampling:
 
     def test_prio_factor_boxplots_warning_message(self, da_v1):
         """When data exceeds point cap but both segments survive, return sampling warning."""
+        from pdstools.decision_analyzer.utils import PRIO_FACTORS
+
         first_action = da_v1.decision_data.select("Action").first().collect().item()
         original = da_v1.sample_size
         da_v1.sample_size = 5000
@@ -1104,9 +1109,9 @@ class TestBoxplotPointCapAndSampling:
                 reference=pl.col("Action") == first_action,
             )
             fig, warning = result
-            if fig is not None:
-                assert isinstance(warning, str)
-                assert "sample" in warning.lower()
+            assert len(fig.data) == 2 * len(PRIO_FACTORS)
+            assert isinstance(warning, str)
+            assert "sample" in warning.lower()
         finally:
             da_v1.sample_size = original
 

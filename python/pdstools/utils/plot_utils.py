@@ -34,7 +34,7 @@ else:
 DEFAULT_PLOT_POINTS_PER_GROUP = 250
 
 
-def _sample_plot_data(
+def downsample_distribution(
     data: pl.DataFrame,
     value_column: str,
     max_points_per_group: int | None,
@@ -58,6 +58,12 @@ def _sample_plot_data(
     pl.DataFrame
         A deterministic quantile-stratified subset of ``data``. Rows with a
         null ``value_column`` are dropped, since plots cannot render them.
+
+    Examples
+    --------
+    >>> df = pl.DataFrame({"x": [5, 1, 4, 2, 3]})
+    >>> downsample_distribution(df, "x", max_points_per_group=3)["x"].to_list()
+    [1, 3, 5]
     """
     if max_points_per_group is not None:
         if isinstance(max_points_per_group, bool) or not isinstance(max_points_per_group, int):
