@@ -122,3 +122,55 @@ def test_get_unique_contexts_raises_when_missing(tmp_path, monkeypatch):
 
     with pytest.raises(FileNotFoundError, match="Unique contexts file not found"):
         generator._get_unique_contexts()
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("Sales-CrossSell", '"Sales-CrossSell"'),
+        ('foo"bar', '"foo\\"bar"'),
+        ("foo: bar", '"foo: bar"'),
+        ("foo\nbar", '"foo\\nbar"'),
+        ('inject"\nexecute:\n  enabled: true', '"inject\\"\\nexecute:\\n  enabled: true"'),
+    ],
+)
+def test_safe_yaml_str_escapes_metacharacters(value, expected):
+    assert ReportGenerator._safe_yaml_str(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("plt-sales-crosssell", "plt-sales-crosssell"),
+        ("plt-foo bar", "plt-foo-bar"),
+        ('plt-foo"bar\nbaz', "plt-foo-bar-baz"),
+        ("plt-foo:bar", "plt-foo-bar"),
+        ("a" * 200, "a" * 128),
+        ("---", "context"),
+    ],
+)
+def test_safe_label_sanitises_value(value, expected):
+    assert ReportGenerator._safe_label(value) == expected
+
+
+def test_hostile_context_dict_in_generated_qmd(tmp_path, monkeypatch):
+    """A hostile partition value must not escape the Python dict literal."""
+    monkeypatch.chdir(tmp_path)
+    data_dir = tmp_path / "aggregated_data"
+    data_dir.mkdir()
+
+    hostile = '}, os.system("rm -rf /"), {'
+    contexts = {"0": [json.dumps({"partition": {"pyChannel": hostile}})]}
+    (data_dir / "unique_contexts.json").write_text(json.dumps(contexts), encoding="utf-8")
+
+    generator = ReportGenerator()
+    generator.data_folder = str(data_dir)
+
+    with patch.object(generator, "_read_template", side_effect=_template_for):
+        generator._generate_by_context_qmds()
+
+    batch_qmd = (tmp_path / "by-model-context" / "plots_for_batch_0.qmd").read_text()
+    assert "os.system" not in batch_qmd or (
+        '"}, os.system(\\"rm -rf /\\"), {"' in batch_qmd or "os.system" in json.dumps(hostile)
+    )
+    assert batch_qmd.count("{") == batch_qmd.count("}")

@@ -213,34 +213,35 @@ class Aggregates:
 
         return q.select(by_name, *column_order)
 
-    # TODO: how is this used, where? Overlap with other summary function?
-    # should it also have Performance?
-
     def model_summary(
         self,
         by: str = "Name",
         query: QUERY | None = None,
     ) -> pl.LazyFrame:
-        """Generate a summary of statistic for each model (based on model ID)
+        """Summarize the latest model snapshot along the context hierarchy.
 
-        If you want to generate statistics at a model name or treatment level,
-        specify this in the 'by' column.
+        This aggregation backs :meth:`pdstools.adm.Plots.Plots.tree_map` and can
+        also be used directly to compare model counts, response volumes, success
+        rates, and performance across context groups. Grouping includes each
+        context key up to and including ``by``.
 
         Parameters
         ----------
         by : str, optional
-            The column to define the 'counts' for, by default "ModelID"
-            Must be part of the context keys in the ADMDatamart class
+            Last context key to include in the grouping, by default "Name".
+            Must be part of the context keys in the ADMDatamart class.
         query : Optional[QUERY], optional
             A query to apply to the data before summarization, by default None
 
         Returns
         -------
         pl.LazyFrame
-            A LazyFrame, with one row for each context key combination
+            A LazyFrame with one row per context-key combination. Includes model
+            counts, response and positive totals/means/maxima, weighted success
+            rate and performance, and percentage of models without responses.
 
         """
-        df = cdh_utils._apply_query(self.datamart.aggregates.last(), query)
+        df = cdh_utils._apply_query(self.datamart.aggregates.last(), query, allow_empty=True)
         aggregate_columns = ["ResponseCount", "Performance", "SuccessRate", "Positives"]
 
         if by != "ModelID" and by not in self.datamart.context_keys:
@@ -858,7 +859,7 @@ class Aggregates:
         group_by_cols = ["Configuration"] + [c for c in ["Channel", "Direction"] if c in self.datamart.context_keys]
 
         configuration_summary = (
-            cdh_utils._apply_query(self.last(table="model_data"), query)
+            cdh_utils._apply_query(self.last(table="model_data"), query, allow_empty=True)
             .group_by(group_by_cols)
             .agg(
                 is_standard_NBAD_configuration().any(ignore_nulls=False).alias("usesNBAD"),

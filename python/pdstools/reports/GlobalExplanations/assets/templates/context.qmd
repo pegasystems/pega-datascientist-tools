@@ -1,5 +1,5 @@
 ---
-title: "{CONTEXT_STR}"
+title: {CONTEXT_STR}
 format: html
 date: today
 published-title: "Report generated on"

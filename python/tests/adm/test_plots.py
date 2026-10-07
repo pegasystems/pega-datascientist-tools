@@ -57,6 +57,17 @@ def test_bubble_chart(sample: ADMDatamart):
     assert len(plot.data) == 1
 
 
+def test_bubble_chart_with_empty_query_returns_annotated_figure(sample: ADMDatamart):
+    query = pl.col("Name") == "missing-model"
+
+    empty_data = sample.plot.bubble_chart(query=query, return_df=True).collect()
+    figure = sample.plot.bubble_chart(query=query)
+
+    assert empty_data.height == 0
+    assert isinstance(figure, Figure)
+    assert figure.layout.annotations[0].text == "No models match the selected filters"
+
+
 def test_bubble_chart_with_metric_limits(sample: ADMDatamart):
     """Test bubble chart with metric limit lines enabled."""
     fig = sample.plot.bubble_chart(show_metric_limits=True)
@@ -597,6 +608,17 @@ def test_tree_map(sample: ADMDatamart):
     assert df.sort("Total number of positives").row(0)[-1] == 2.0
     plot = sample.plot.tree_map()
     assert isinstance(plot, Figure)
+
+
+def test_tree_map_with_empty_query_returns_annotated_figure(sample: ADMDatamart):
+    query = pl.col("Name") == "missing-model"
+
+    empty_data = sample.plot.tree_map(query=query, return_df=True).collect()
+    figure = sample.plot.tree_map(query=query)
+
+    assert empty_data.height == 0
+    assert isinstance(figure, Figure)
+    assert figure.layout.annotations[0].text == "No models match the selected filters"
 
 
 def test_predictor_count(sample: ADMDatamart):

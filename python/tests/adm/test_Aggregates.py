@@ -502,6 +502,20 @@ def test_summary_by_configuration_query_filters_models():
     assert filtered["Positives"].to_list() == [2]
 
 
+def test_configuration_overview_returns_empty_for_no_matching_models():
+    df = modeldata_from_scratch(
+        Name=["A"],
+        SnapshotTime=["20250101"],
+        Configuration=["CfgX"],
+    )
+    dm = ADMDatamart(df)
+
+    overview = dm.aggregates.configuration_overview(query=pl.col("Configuration") == "Missing")
+
+    assert overview.height == 0
+    assert {"Configuration", "ModelID", "NBAD", "AGB"}.issubset(overview.columns)
+
+
 def test_summary_by_configuration_query_active_models_filter():
     """The HealthCheck-style ``LastUpdate``-based active-models filter works end-to-end."""
     from datetime import timedelta

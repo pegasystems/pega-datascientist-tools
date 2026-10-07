@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import shutil
 from pathlib import Path
 from typing import cast
@@ -184,6 +185,29 @@ class ReportGenerator:
         return "-".join([v.replace(" ", "") for _, v in self._get_context_dict(context_info).items()])
 
     @staticmethod
+    def _safe_yaml_str(value: str) -> str:
+        """Serialise *value* to a YAML-safe double-quoted scalar for front matter.
+
+        Always uses YAML double-quote style so the result is a single line with
+        all special characters (newlines, quotes, colons) escaped by the YAML
+        encoder. Safe to place directly after ``title:`` in a .qmd front matter
+        block without surrounding static quotes in the template.
+        """
+        return yaml.dump(value, default_style='"').rstrip("\n")
+
+    @staticmethod
+    def _safe_label(value: str) -> str:
+        """Return a filesystem- and Quarto-label-safe version of *value*.
+
+        Keeps only alphanumeric characters and hyphens, collapses runs of
+        invalid characters to a single hyphen, strips leading/trailing hyphens,
+        and caps the length to 128 characters to keep generated filenames
+        manageable.
+        """
+        slug = re.sub(r"[^a-zA-Z0-9]+", "-", value).strip("-")[:128]
+        return slug or "context"
+
+    @staticmethod
     def _read_template(template_filename: str) -> str:
         """Read a template file and return its content.
 
@@ -216,7 +240,7 @@ class ReportGenerator:
             fw.write(
                 template.format(
                     EMBED_PATH_FOR_BATCH=embed_path_for_batch,
-                    CONTEXT_STR=context_str,
+                    CONTEXT_STR=self._safe_yaml_str(context_str),
                     CONTEXT_LABEL=context_label,
                     TOP_N=self.top_n,
                     SORT_BY_TEXT=self.sort_by_text,
@@ -252,7 +276,7 @@ class ReportGenerator:
             writer.write("\n")
             writer.write(
                 template.format(
-                    CONTEXT_DICT=context_dict,
+                    CONTEXT_DICT=json.dumps(context_dict),
                     CONTEXT_LABEL=context_label,
                     TOP_N=self.top_n,
                     TOP_K=self.top_k,
@@ -290,7 +314,7 @@ class ReportGenerator:
 
             for context in batch_contexts:
                 context_str = self._get_context_string(context)
-                context_label = ("plt-" + context_str).lower()
+                context_label = self._safe_label(("plt-" + context_str).lower())
 
                 self._append_content_to_file(
                     filename=plots_for_batch_filepath,

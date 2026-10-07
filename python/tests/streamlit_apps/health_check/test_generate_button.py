@@ -17,12 +17,10 @@ the page renders before the button is clicked.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import builtins
+from io import StringIO
 
 from streamlit.testing.v1 import AppTest
-
-if TYPE_CHECKING:
-    pass
 
 
 def test_generate_button_shows_download_button(
@@ -221,3 +219,37 @@ def test_generate_button_increments_run_id_on_successive_clicks(
     assert not at.exception
     assert at.session_state["runID"] == 2, f"Second click should set runID to 2, got {at.session_state['runID']}"
     assert 2 in at.session_state["run"], "session_state['run'] should contain an entry for the second run."
+
+
+def test_generation_error_log_uses_utf8(
+    hc_app_dir,
+    seeded_admdatamart,
+    monkeypatch,
+) -> None:
+    """Unicode tracebacks remain downloadable with a Windows-style default encoding."""
+
+    def fail_health_check(**kwargs):
+        raise RuntimeError("failed at step A \N{RIGHTWARDS ARROW} step B")
+
+    real_open = builtins.open
+
+    def cp1252_default_open(file, mode="r", *args, **kwargs):
+        if "w" in mode and "b" not in mode and "encoding" not in kwargs:
+            kwargs["encoding"] = "cp1252"
+        return real_open(file, mode, *args, **kwargs)
+
+    seeded_admdatamart.generate.health_check = fail_health_check
+    monkeypatch.setattr(builtins, "open", cp1252_default_open)
+
+    page = hc_app_dir / "pages" / "2_Reports.py"
+    at = AppTest.from_file(str(page), default_timeout=30)
+    at.session_state["dm"] = seeded_admdatamart
+    at.session_state["log_buffer"] = StringIO("step A \N{RIGHTWARDS ARROW} step B")
+    at.run()
+    assert not at.exception
+
+    gen_button = next(button for button in at.button if button.label == "Generate Health Check")
+    gen_button.click().run()
+
+    assert not at.exception
+    assert any(button.label == "Download error log" for button in at.get("download_button"))
