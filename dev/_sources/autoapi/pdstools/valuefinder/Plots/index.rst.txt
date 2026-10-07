@@ -63,15 +63,35 @@ Module Contents
 
 
 
-   .. py:method:: propensity_distribution(sample_size: int = 10000) -> pdstools.utils.plot_utils.Figure
+   .. py:method:: propensity_distribution(sample_size: int = 10000, *, max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP) -> pdstools.utils.plot_utils.Figure
 
-      Propensity distribution.
+      Plot the propensity distribution for each stage.
+
+      :param sample_size: Number of rows per stage used to estimate the density.
+      :type sample_size: int, default 10000
+      :param max_points_per_group: Maximum number of box-plot values per stage. ``None`` plots all
+                                   sampled values.
+      :type max_points_per_group: int or None, default 250
+
+      :returns: Propensity density and box plots.
+      :rtype: Figure
 
 
 
-   .. py:method:: propensity_threshold(sample_size: int = 10000, stage='Eligibility') -> pdstools.utils.plot_utils.Figure
+   .. py:method:: propensity_threshold(sample_size: int = 10000, stage: str = 'Eligibility', *, max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP) -> pdstools.utils.plot_utils.Figure
 
-      Propensity threshold.
+      Plot propensity distributions against the configured threshold.
+
+      :param sample_size: Number of rows used to estimate the density.
+      :type sample_size: int, default 10000
+      :param stage: Stage whose propensity values are plotted.
+      :type stage: str, default "Eligibility"
+      :param max_points_per_group: Maximum number of histogram values per propensity type. ``None``
+                                   plots all sampled values.
+      :type max_points_per_group: int or None, default 250
+
+      :returns: Propensity density and histogram plots.
+      :rtype: Figure
 
 
 
