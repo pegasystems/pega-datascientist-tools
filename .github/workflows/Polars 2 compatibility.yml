@@ -34,7 +34,7 @@ jobs:
         run: uv venv --python 3.12
 
       - name: Install the project with Polars 2
-        run: uv pip install --python .venv/bin/python --editable '.[tests]' --overrides .github/polars-v2-constraints.txt --prerelease allow --resolution highest
+        run: uv pip install --python .venv/bin/python --editable '.[tests]' --overrides .github/polars-v2-constraints.txt --resolution highest
 
       - name: Verify Polars major version
         run: uv run --no-sync python -c 'import polars; assert polars.__version__.startswith("2."), polars.__version__; print(f"Polars {polars.__version__}")'

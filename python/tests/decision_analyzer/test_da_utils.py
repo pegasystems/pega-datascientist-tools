@@ -638,6 +638,19 @@ class TestSampleInteractions:
         result = sample_interactions(sample_data, fraction=1.0, use_random=True).collect()
         assert result.height == 20  # All rows returned
 
+    def test_hash_sampling_fraction_one_returns_all(self, sample_data):
+        """fraction=1.0 without random sampling skips the hash filter."""
+        result = sample_interactions(sample_data, fraction=1.0).collect()
+        assert result.height == 20
+
+    def test_hash_sampling_with_known_total_uses_exact_threshold(self, sample_data):
+        """With total_interactions known, IDs below n/total of the hash range are kept."""
+        result = sample_interactions(sample_data, n=5, total_interactions=10).collect()
+        threshold = int(((1 << 64) - 1) * 5 / 10)
+        expected = sample_data.filter(pl.col("pxInteractionID").hash() < threshold).collect()
+        assert result.sort("value").equals(expected.sort("value"))
+        assert result.height == 2 * result.get_column("pxInteractionID").n_unique()
+
 
 # ---------------------------------------------------------------------------
 # prepare_and_save
