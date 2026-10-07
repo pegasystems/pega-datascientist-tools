@@ -143,8 +143,7 @@ def prio_factor_boxplots(
     additional_filters=None,
     others_filter: pl.Expr | list[pl.Expr] | None = None,
     *,
-    downsample: bool = True,
-    max_points_per_group: int = DEFAULT_PLOT_POINTS_PER_GROUP,
+    max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP,
 ) -> pl.DataFrame | tuple[go.Figure | None, str | None]:
     """Compare prioritization-factor distributions for selected and other actions.
 
@@ -158,10 +157,9 @@ def prio_factor_boxplots(
         Filters applied to the arbitration-stage data.
     others_filter : pl.Expr or list of pl.Expr, optional
         Optional filter for rows outside the comparison group.
-    downsample : bool, default True
-        Reduce only the values sent to each box plot.
-    max_points_per_group : int, default 250
+    max_points_per_group : int or None, default 250
         Maximum number of plotted values per comparison segment and factor.
+        ``None`` plots all values.
 
     Returns
     -------
@@ -201,15 +199,12 @@ def prio_factor_boxplots(
     for i, metric in enumerate(prio_factors, start=1):
         for _, segment in enumerate(["Comparison Group", "Other Offers"]):
             segment_data = segmented_df.filter(segment=segment).select(metric)
-            if downsample:
-                plot_data = _sample_plot_data(
-                    segment_data,
-                    value_column=metric,
-                    max_points_per_group=max_points_per_group,
-                )
-                downsampled = downsampled or plot_data.height < segment_data.height
-            else:
-                plot_data = segment_data
+            plot_data = _sample_plot_data(
+                segment_data,
+                value_column=metric,
+                max_points_per_group=max_points_per_group,
+            )
+            downsampled = downsampled or plot_data.height < segment_data.height
             prio_factor_values = plot_data.get_column(metric).to_list()
             fig.add_trace(
                 go.Box(

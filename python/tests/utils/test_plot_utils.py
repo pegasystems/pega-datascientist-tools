@@ -40,6 +40,11 @@ class TestSamplePlotData:
 
         assert _sample_plot_data(data, "value", max_points_per_group=1)["value"].to_list() == [3]
 
+    def test_none_keeps_all_non_null_values(self):
+        data = pl.DataFrame({"value": [5, None, 1, 3]})
+
+        assert _sample_plot_data(data, "value", max_points_per_group=None)["value"].to_list() == [5, 1, 3]
+
     @pytest.mark.parametrize(
         ("cap", "error"),
         [(0, ValueError), (True, TypeError), (2.5, TypeError)],

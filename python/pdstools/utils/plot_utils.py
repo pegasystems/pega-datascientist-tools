@@ -37,7 +37,7 @@ DEFAULT_PLOT_POINTS_PER_GROUP = 250
 def _sample_plot_data(
     data: pl.DataFrame,
     value_column: str,
-    max_points_per_group: int,
+    max_points_per_group: int | None,
     group_column: str | None = None,
 ) -> pl.DataFrame:
     """Keep evenly spaced order statistics for compact distribution plots.
@@ -48,8 +48,8 @@ def _sample_plot_data(
         Values used to build a plot.
     value_column : str
         Numeric column whose distribution is being shown.
-    max_points_per_group : int
-        Maximum number of values to keep per group.
+    max_points_per_group : int or None
+        Maximum number of values to keep per group. ``None`` keeps all values.
     group_column : str, optional
         Column defining independent distributions.
 
@@ -59,16 +59,17 @@ def _sample_plot_data(
         A deterministic quantile-stratified subset of ``data``. Rows with a
         null ``value_column`` are dropped, since plots cannot render them.
     """
-    if isinstance(max_points_per_group, bool) or not isinstance(max_points_per_group, int):
-        raise TypeError("max_points_per_group must be an integer.")
-    if max_points_per_group < 1:
-        raise ValueError("max_points_per_group must be at least 1.")
+    if max_points_per_group is not None:
+        if isinstance(max_points_per_group, bool) or not isinstance(max_points_per_group, int):
+            raise TypeError("max_points_per_group must be an integer or None.")
+        if max_points_per_group < 1:
+            raise ValueError("max_points_per_group must be at least 1.")
 
     groups = data.partition_by(group_column, maintain_order=True) if group_column else [data]
     sampled_groups = []
     for group in groups:
         group = group.filter(pl.col(value_column).is_not_null())
-        if group.height <= max_points_per_group:
+        if max_points_per_group is None or group.height <= max_points_per_group:
             if group.height > 0:
                 sampled_groups.append(group)
             continue

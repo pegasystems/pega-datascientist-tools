@@ -145,7 +145,7 @@ def test_propensity_distribution(vf: ValueFinder):
     assert len(box_traces) == len(vf.nbad_stages)
     assert all(len(trace.x) <= 250 for trace in box_traces)
 
-    full_fig = vf.plot.propensity_distribution(sample_size=500, downsample=False)
+    full_fig = vf.plot.propensity_distribution(sample_size=500, max_points_per_group=None)
     full_box_traces = [trace for trace in full_fig.data if trace.type == "box"]
     assert all(len(trace.x) > 250 for trace in full_box_traces)
 
@@ -156,7 +156,7 @@ def test_propensity_threshold(vf: ValueFinder):
     assert len(histogram_traces) == 3
     assert all(len(trace.x) <= 20 for trace in histogram_traces)
 
-    full_fig = vf.plot.propensity_threshold(sample_size=500, downsample=False)
+    full_fig = vf.plot.propensity_threshold(sample_size=500, max_points_per_group=None)
     full_histogram_traces = [trace for trace in full_fig.data if trace.type == "histogram"]
     assert all(len(trace.x) > 20 for trace in full_histogram_traces)
 

@@ -96,8 +96,7 @@ class Plots(LazyNamespace):
         self,
         sample_size: int = 10_000,
         *,
-        downsample: bool = True,
-        max_points_per_group: int = DEFAULT_PLOT_POINTS_PER_GROUP,
+        max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP,
     ) -> Figure:
         """Plot the propensity distribution for each stage.
 
@@ -105,10 +104,9 @@ class Plots(LazyNamespace):
         ----------
         sample_size : int, default 10000
             Number of rows per stage used to estimate the density.
-        downsample : bool, default True
-            Reduce only the values sent to each box plot.
-        max_points_per_group : int, default 250
-            Maximum number of box-plot values per stage.
+        max_points_per_group : int or None, default 250
+            Maximum number of box-plot values per stage. ``None`` plots all
+            sampled values.
 
         Returns
         -------
@@ -139,14 +137,10 @@ class Plots(LazyNamespace):
             tempdf = pl.DataFrame(
                 {"x": temp["data"][0]["x"], "y": temp["data"][0]["y"]},
             )
-            plot_data = (
-                _sample_plot_data(
-                    sample,
-                    value_column="ModelPropensity",
-                    max_points_per_group=max_points_per_group,
-                )
-                if downsample
-                else sample
+            plot_data = _sample_plot_data(
+                sample,
+                value_column="ModelPropensity",
+                max_points_per_group=max_points_per_group,
             )
             fig = go.Scatter(
                 x=tempdf["x"],
@@ -180,8 +174,7 @@ class Plots(LazyNamespace):
         sample_size: int = 10_000,
         stage: str = "Eligibility",
         *,
-        downsample: bool = True,
-        max_points_per_group: int = DEFAULT_PLOT_POINTS_PER_GROUP,
+        max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP,
     ) -> Figure:
         """Plot propensity distributions against the configured threshold.
 
@@ -191,10 +184,9 @@ class Plots(LazyNamespace):
             Number of rows used to estimate the density.
         stage : str, default "Eligibility"
             Stage whose propensity values are plotted.
-        downsample : bool, default True
-            Reduce only the values sent to each histogram.
-        max_points_per_group : int, default 250
-            Maximum number of histogram values per propensity type.
+        max_points_per_group : int or None, default 250
+            Maximum number of histogram values per propensity type. ``None``
+            plots all sampled values.
 
         Returns
         -------
@@ -226,14 +218,10 @@ class Plots(LazyNamespace):
             tempdf = pl.DataFrame(
                 {"x": temp["data"][0]["x"], "y": temp["data"][0]["y"]},
             )
-            plot_data = (
-                _sample_plot_data(
-                    data.select(ptype),
-                    value_column=ptype,
-                    max_points_per_group=max_points_per_group,
-                )
-                if downsample
-                else data.select(ptype)
+            plot_data = _sample_plot_data(
+                data.select(ptype),
+                value_column=ptype,
+                max_points_per_group=max_points_per_group,
             )
             figs.add_trace(
                 go.Scatter(

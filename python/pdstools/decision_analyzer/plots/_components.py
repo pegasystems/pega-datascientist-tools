@@ -277,8 +277,7 @@ def plot_priority_component_distribution(
     granularity: str,
     color_discrete_map: dict[str, str] | None = None,
     *,
-    downsample: bool = True,
-    max_points_per_group: int = DEFAULT_PLOT_POINTS_PER_GROUP,
+    max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP,
 ) -> tuple[go.Figure, go.Figure, pl.DataFrame]:
     """Violin + ECDF + summary statistics for a single prioritization component.
 
@@ -295,10 +294,9 @@ def plot_priority_component_distribution(
         Column defining independent distributions.
     color_discrete_map : dict[str, str], optional
         Colors for the granularity categories.
-    downsample : bool, default True
-        Reduce only the plotted values, leaving the source data and statistics unchanged.
-    max_points_per_group : int, default 250
-        Maximum number of plotted values per granularity category.
+    max_points_per_group : int or None, default 250
+        Maximum number of plotted values per granularity category. ``None``
+        plots all values. The source data and statistics are never reduced.
 
     Returns
     -------
@@ -306,15 +304,11 @@ def plot_priority_component_distribution(
         Violin figure, ECDF figure, and full-data summary statistics.
     """
     collected = value_data.collect()
-    plot_data = (
-        _sample_plot_data(
-            collected,
-            value_column=component,
-            group_column=granularity,
-            max_points_per_group=max_points_per_group,
-        )
-        if downsample
-        else collected
+    plot_data = _sample_plot_data(
+        collected,
+        value_column=component,
+        group_column=granularity,
+        max_points_per_group=max_points_per_group,
     )
 
     violin_fig = px.violin(
@@ -374,14 +368,13 @@ def plot_component_overview(
     components: list[str],
     granularity: str,
     *,
-    downsample: bool = True,
-    max_points_per_group: int = DEFAULT_PLOT_POINTS_PER_GROUP,
+    max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP,
 ) -> go.Figure:
     """Small-multiples violin panel showing all components side by side.
 
     Each component gets its own subplot with a fully independent x-axis
     so their different scales are always visible. Each violin is built from
-    at most ``max_points_per_group`` quantile-stratified values by default.
+    at most ``max_points_per_group`` quantile-stratified values.
 
     Parameters
     ----------
@@ -391,10 +384,9 @@ def plot_component_overview(
         Numeric component columns to include.
     granularity : str
         Column defining independent distributions.
-    downsample : bool, default True
-        Reduce only the plotted values.
-    max_points_per_group : int, default 250
+    max_points_per_group : int or None, default 250
         Maximum number of plotted values per category and component.
+        ``None`` plots all values.
 
     Returns
     -------
@@ -425,13 +417,12 @@ def plot_component_overview(
         row = idx // n_cols + 1
         col = idx % n_cols + 1
         component_data = collected.select([granularity, component])
-        if downsample:
-            component_data = _sample_plot_data(
-                component_data,
-                value_column=component,
-                group_column=granularity,
-                max_points_per_group=max_points_per_group,
-            )
+        component_data = _sample_plot_data(
+            component_data,
+            value_column=component,
+            group_column=granularity,
+            max_points_per_group=max_points_per_group,
+        )
         for group in groups:
             vals = component_data.filter(pl.col(granularity) == group).get_column(component).drop_nulls().to_list()
             if not vals:

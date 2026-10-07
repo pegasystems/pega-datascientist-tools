@@ -819,7 +819,7 @@ class TestPlotPriorityComponentDistribution:
             value_data,
             component="Value",
             granularity="Issue",
-            downsample=False,
+            max_points_per_group=None,
         )
         assert sum(len(trace.x) for trace in full_violin.data) == 15
 
@@ -901,7 +901,7 @@ class TestCreateParameterDistributionBoxplots:
         full_fig = create_parameter_distribution_boxplots(
             segmented_data,
             parameters=["Value"],
-            downsample=False,
+            max_points_per_group=None,
         )
         assert [len(trace.y) for trace in full_fig.data] == [10, 5]
 

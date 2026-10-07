@@ -116,8 +116,7 @@ def rank_boxplot(
     return_df=False,
     additional_filters=None,
     *,
-    downsample: bool = True,
-    max_points_per_group: int = DEFAULT_PLOT_POINTS_PER_GROUP,
+    max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP,
 ):
     """Show the rank distribution for surviving actions.
 
@@ -129,10 +128,8 @@ def rank_boxplot(
         Return the filtered source data instead of a figure.
     additional_filters : pl.Expr or list of pl.Expr, optional
         Additional filters applied before plotting.
-    downsample : bool, default True
-        Reduce only the values sent to the chart.
-    max_points_per_group : int, default 250
-        Maximum number of plotted rank values.
+    max_points_per_group : int or None, default 250
+        Maximum number of plotted rank values. ``None`` plots all values.
     """
     df = apply_filter(self._decision_data.sample, additional_filters)
     if return_df:
@@ -143,12 +140,11 @@ def rank_boxplot(
         .select("Rank")
         .collect()
     )
-    if downsample:
-        ranks = _sample_plot_data(
-            ranks,
-            value_column="Rank",
-            max_points_per_group=max_points_per_group,
-        )
+    ranks = _sample_plot_data(
+        ranks,
+        value_column="Rank",
+        max_points_per_group=max_points_per_group,
+    )
 
     fig = px.box(ranks, x="Rank", orientation="h", template="pega")
     return fig.update_layout(height=300, xaxis_title="Rank")
@@ -159,8 +155,7 @@ def create_parameter_distribution_boxplots(
     parameters: list[str] | None = None,
     title: str = "Parameter Distributions: Selected Actions vs Competitors",
     *,
-    downsample: bool = True,
-    max_points_per_group: int = DEFAULT_PLOT_POINTS_PER_GROUP,
+    max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP,
 ) -> go.Figure:
     """
     Create box plots comparing parameter distributions between selected actions and others.
@@ -174,10 +169,9 @@ def create_parameter_distribution_boxplots(
         List of parameter column names to plot
     title : str, optional
         Title for the plot
-    downsample : bool, default True
-        Reduce only the plotted values.
-    max_points_per_group : int, default 250
+    max_points_per_group : int or None, default 250
         Maximum number of plotted values per segment and parameter.
+        ``None`` plots all values.
 
     Returns
     -------
@@ -198,14 +192,10 @@ def create_parameter_distribution_boxplots(
         for j, segment in enumerate(["Selected Actions", "Others"]):
             segment_data = segmented_df.filter(pl.col("segment") == segment)
             if segment_data.height > 0:
-                plot_data = (
-                    _sample_plot_data(
-                        segment_data,
-                        value_column=metric,
-                        max_points_per_group=max_points_per_group,
-                    )
-                    if downsample
-                    else segment_data
+                plot_data = _sample_plot_data(
+                    segment_data,
+                    value_column=metric,
+                    max_points_per_group=max_points_per_group,
                 )
                 fig.add_trace(
                     go.Box(
