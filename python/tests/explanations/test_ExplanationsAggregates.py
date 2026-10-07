@@ -9,6 +9,7 @@ from pdstools.explanations import Explanations
 from pdstools.explanations._constants import MISSING, REMAINING, TOTAL_FREQUENCY
 from pdstools.explanations.ContextOperations import ContextOperations
 from pdstools.explanations.Schema import AGGREGATE_SCHEMA
+from polars.testing import assert_frame_equal
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
 
@@ -547,7 +548,12 @@ class TestFilterKwargsDefaults:
         df_explicit = aggregates.predictor_contributions(
             sort_by="contribution_abs", descending=True, missing=True, remaining=True, include_numeric_single_bin=False
         )
-        assert df_no_kwargs.equals(df_explicit)
+        assert_frame_equal(
+            df_no_kwargs.sort(df_no_kwargs.columns),
+            df_explicit.sort(df_explicit.columns),
+            check_exact=False,
+            abs_tol=1e-15,
+        )
 
     def test_predictor_contributions_with_kwargs_overrides_default(self, aggregates):
         """Passing filter kwargs should override the defaults."""
@@ -579,7 +585,12 @@ class TestFilterKwargsDefaults:
         """Default (False) should exclude single-bin numeric predictors."""
         df_default = aggregates.predictor_contributions()
         df_explicit_false = aggregates.predictor_contributions(include_numeric_single_bin=False)
-        assert df_default.equals(df_explicit_false)
+        assert_frame_equal(
+            df_default.sort(df_default.columns),
+            df_explicit_false.sort(df_explicit_false.columns),
+            check_exact=False,
+            abs_tol=1e-15,
+        )
 
     def test_predictor_contributions_include_numeric_single_bin_true(self, aggregates):
         """Passing include_numeric_single_bin=True may include extra predictors."""

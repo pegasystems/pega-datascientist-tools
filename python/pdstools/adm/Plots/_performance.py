@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from itertools import pairwise
 from typing import TYPE_CHECKING, Any
 
 import polars as pl
@@ -539,13 +540,23 @@ class _PerformancePlotsMixin(_PlotsBase):
             df = df.with_columns(pl.concat_str(by_list, separator="/").alias("_GroupBy"))
             group_cols = ["_GroupBy"]
 
+        # Polars 2 replaces cut() with bin_intervals().
+        performance = pl.col("Performance") * 100
+        breaks = list(range(50, 100, bin_width))
+        bin_intervals = getattr(performance, "bin_intervals", None)
+        if bin_intervals is not None:  # pragma: no cover - Polars 2 only; covered by the Polars 2 CI job
+            labels = [
+                f"(-inf, {breaks[0]})",
+                *(f"[{left}, {right})" for left, right in pairwise(breaks)),
+                f"[{breaks[-1]}, inf)",
+            ]
+            performance_binned = bin_intervals(breaks, labels=labels)
+        else:
+            performance_binned = performance.cut(breaks=breaks, left_closed=True)
+
         # Bin performance and aggregate
         df = (
-            df.with_columns(
-                (pl.col("Performance") * 100)
-                .cut(breaks=[p for p in range(50, 100, bin_width)], left_closed=True)
-                .alias("PerformanceBinned"),
-            )
+            df.with_columns(performance_binned.alias("PerformanceBinned"))
             .group_by([*group_cols, "PerformanceBinned"])
             .agg(
                 pl.sum("ResponseCount"),
