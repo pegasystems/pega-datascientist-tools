@@ -9,7 +9,6 @@ from plotly.subplots import make_subplots
 
 from ...utils.plot_utils import DEFAULT_PLOT_POINTS_PER_GROUP, downsample_distribution
 from ..utils import PRIO_FACTORS, apply_filter
-from ._common import _boxplot_point_cap
 
 
 def threshold_deciles(self, thresholding_on, thresholding_name, return_df=False):
@@ -152,7 +151,8 @@ def prio_factor_boxplots(
     reference : pl.Expr or list of pl.Expr, optional
         Expression identifying the comparison group.
     return_df : bool, default False
-        Return the segmented source data instead of a figure.
+        Return the full, unsampled segmented source data instead of a figure.
+        ``max_points_per_group`` only affects the figure.
     additional_filters : pl.Expr or list of pl.Expr, optional
         Filters applied to the arbitration-stage data.
     others_filter : pl.Expr or list of pl.Expr, optional
@@ -166,7 +166,6 @@ def prio_factor_boxplots(
     pl.DataFrame or tuple of go.Figure or None, str or None
         Segmented source data, or the figure and an optional sampling warning.
     """
-    point_cap = _boxplot_point_cap(self)
     df = apply_filter(self._decision_data.arbitration_stage, additional_filters)
     prio_factors = PRIO_FACTORS
     reference_expr = reference if isinstance(reference, pl.Expr) else pl.all_horizontal(reference or [pl.lit(False)])
@@ -179,8 +178,6 @@ def prio_factor_boxplots(
         tagged = tagged.filter(keep_selected | others_match)
     segmented_df = tagged.select([*prio_factors, "segment"]).collect()
     if return_df:
-        if segmented_df.height > point_cap:
-            segmented_df = segmented_df.sample(n=point_cap, shuffle=True, seed=1)
         return segmented_df
 
     warning_message = None
