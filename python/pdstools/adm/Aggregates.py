@@ -14,6 +14,12 @@ from ..utils.metric_limits import (
     is_standard_NBAD_configuration,
 )
 
+MIN_CHANNEL_POSITIVES = 200
+"""Minimum total positives for a channel to have sufficient feedback."""
+
+MIN_CHANNEL_RESPONSES = 1_000
+"""Minimum total responses for a channel to have sufficient feedback."""
+
 if TYPE_CHECKING:
     import datetime
 
@@ -21,6 +27,14 @@ if TYPE_CHECKING:
     from .ADMDatamart import ADMDatamart
 
 logger = logging.getLogger(__name__)
+
+
+def channel_is_valid_expr() -> pl.Expr:
+    """Expression flagging channels with sufficient feedback.
+
+    Expects ``TotalPositives`` and ``TotalResponseCount`` columns.
+    """
+    return (pl.col("TotalPositives") >= MIN_CHANNEL_POSITIVES) & (pl.col("TotalResponseCount") >= MIN_CHANNEL_RESPONSES)
 
 
 class Aggregates:
@@ -505,7 +519,7 @@ class Aggregates:
             )
             .with_columns(
                 # applies to totals not delta
-                isValid=(pl.col("TotalPositives") >= 200) & (pl.col("TotalResponseCount") >= 1000),
+                isValid=channel_is_valid_expr(),
             )
             .drop([] if debug else ["ResponseCount", "Positives"])
         )
