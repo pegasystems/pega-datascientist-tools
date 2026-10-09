@@ -1,0 +1,141 @@
+pdstools.pega_io.S3
+===================
+
+.. py:module:: pdstools.pega_io.S3
+
+.. autoapi-nested-parse::
+
+   Async S3 helper for downloading Pega dataset exports.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.pega_io.S3.logger
+   pdstools.pega_io.S3.DATAMART_TABLE_PREFIXES
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.pega_io.S3.S3Data
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:data:: DATAMART_TABLE_PREFIXES
+   :type:  dict[str, str]
+
+.. py:class:: S3Data(bucket_name: str, temp_dir: str = './s3_download')
+
+   Asynchronous helper for downloading Pega datasets from S3.
+
+   Use this when Prediction Studio is configured to export monitoring
+   tables to an S3 bucket: it downloads the partitioned ``.json.gz``
+   files into a local directory and (optionally) hands them off to
+   :class:`pdstools.adm.ADMDatamart`.
+
+   :param bucket_name: Name of the S3 bucket containing the dataset folder.
+   :type bucket_name: str
+   :param temp_dir: Directory where downloaded files are placed.  Should be a folder
+                    you don't mind being filled with cached exports.
+   :type temp_dir: str, default="./s3_download"
+
+
+   .. py:attribute:: bucket_name
+
+
+   .. py:attribute:: temp_dir
+      :value: './s3_download'
+
+
+
+   .. py:method:: get_files(prefix: str, *, use_meta_files: bool = False, verbose: bool = True) -> list[str]
+      :async:
+
+
+      Download files from the bucket whose key starts with ``prefix``.
+
+      Pega data exports are split into many small files.  This method
+      fetches them concurrently into :attr:`temp_dir`, skipping any
+      file that already exists locally.
+
+      When ``use_meta_files`` is True, each real export file ``X`` is
+      accompanied by a ``.X.meta`` sentinel file that signals the
+      export has finished. We list keys under the dotted prefix
+      (``path/to/.files``), keep entries ending in ``.meta``, and map
+      them back to the underlying file (``path/to/files_001.json``).
+      ``.meta`` files themselves are never copied locally.
+
+      When ``use_meta_files`` is False, every key under ``prefix`` is
+      downloaded.
+
+      :param prefix: S3 key prefix (see boto3 ``Bucket.objects.filter(Prefix=...)``).
+      :type prefix: str
+      :param use_meta_files: Whether to use companion ``.meta`` files to gate downloads.
+      :type use_meta_files: bool, keyword-only, default=False
+      :param verbose: Show a tqdm progress bar (if installed) and print a summary.
+      :type verbose: bool, keyword-only, default=True
+
+      :returns: Local paths of all files that match ``prefix`` (newly
+                downloaded *and* already cached).
+      :rtype: list[str]
+
+
+
+   .. py:method:: get_datamart_data(table: str, *, datamart_folder: str = 'datamart', verbose: bool = True) -> list[str]
+      :async:
+
+
+      Download a single datamart table from S3.
+
+      :param table: Datamart table name. One of the keys in
+                    :data:`DATAMART_TABLE_PREFIXES`: ``"modelSnapshot"``,
+                    ``"predictorSnapshot"``, ``"binaryDistribution"``,
+                    ``"contingencyTable"``, ``"histogram"``, ``"snapshot"``,
+                    ``"notification"``.
+      :type table: str
+      :param datamart_folder: Top-level folder inside the bucket that contains the
+                              datamart export.
+      :type datamart_folder: str, keyword-only, default="datamart"
+      :param verbose: Show download progress.
+      :type verbose: bool, keyword-only, default=True
+
+      :returns: Local paths of the downloaded files.
+      :rtype: list[str]
+
+
+
+   .. py:method:: get_adm_datamart(*, datamart_folder: str = 'datamart', verbose: bool = True) -> pdstools.adm.ADMDatamart.ADMDatamart
+      :async:
+
+
+      Construct an :class:`ADMDatamart` directly from S3.
+
+      Convenience wrapper that downloads the model and predictor
+      snapshot exports and feeds them into :class:`ADMDatamart`.
+      Because this is an async function, it must be awaited.
+
+      :param datamart_folder: Top-level folder inside the bucket that contains the
+                              datamart export.
+      :type datamart_folder: str, keyword-only, default="datamart"
+      :param verbose: Show download progress.
+      :type verbose: bool, keyword-only, default=True
+
+      :returns: A datamart populated with the freshly downloaded files.
+      :rtype: ADMDatamart
+
+      .. rubric:: Examples
+
+      >>> dm = await S3Data(bucket_name="testbucket").get_adm_datamart()
+
+
+

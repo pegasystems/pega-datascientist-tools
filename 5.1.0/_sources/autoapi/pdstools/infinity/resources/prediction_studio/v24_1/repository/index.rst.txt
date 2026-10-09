@@ -1,0 +1,42 @@
+pdstools.infinity.resources.prediction_studio.v24_1.repository
+==============================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_1.repository
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v24_1.repository.Repository
+   pdstools.infinity.resources.prediction_studio.v24_1.repository.AsyncRepository
+
+
+Module Contents
+---------------
+
+.. py:class:: Repository(client, repository_name: str)
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.base.Repository`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:attribute:: name
+
+
+.. py:class:: AsyncRepository(client, repository_name: str)
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncRepository`
+
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+
+   .. py:attribute:: name
+
+

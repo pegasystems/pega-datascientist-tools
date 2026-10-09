@@ -1,0 +1,109 @@
+pdstools.valuefinder.Plots
+==========================
+
+.. py:module:: pdstools.valuefinder.Plots
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.valuefinder.Plots.logger
+   pdstools.valuefinder.Plots.COLORSCALE_TYPES
+   pdstools.valuefinder.Plots.T
+   pdstools.valuefinder.Plots.P
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.valuefinder.Plots.Plots
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:data:: COLORSCALE_TYPES
+
+.. py:data:: T
+
+.. py:data:: P
+
+.. py:class:: Plots(vf: pdstools.valuefinder.ValueFinder.ValueFinder)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Plots.
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['plotly']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'adm'
+
+
+
+   .. py:attribute:: vf
+
+
+   .. py:method:: funnel_chart(by: str, query: pdstools.utils.types.QUERY | None = None, return_df: Literal[False] = False) -> pdstools.utils.plot_utils.Figure
+                  funnel_chart(by: str, query: pdstools.utils.types.QUERY | None = None, return_df: Literal[True] = True) -> polars.LazyFrame
+
+      Funnel chart.
+
+
+
+   .. py:method:: propensity_distribution(sample_size: int = 10000, *, max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP) -> pdstools.utils.plot_utils.Figure
+
+      Plot the propensity distribution for each stage.
+
+      :param sample_size: Number of rows per stage used to estimate the density.
+      :type sample_size: int, default 10000
+      :param max_points_per_group: Maximum number of box-plot values per stage. ``None`` plots all
+                                   sampled values.
+      :type max_points_per_group: int or None, default 250
+
+      :returns: Propensity density and box plots.
+      :rtype: Figure
+
+
+
+   .. py:method:: propensity_threshold(sample_size: int = 10000, stage: str = 'Eligibility', *, max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP) -> pdstools.utils.plot_utils.Figure
+
+      Plot propensity distributions against the configured threshold.
+
+      :param sample_size: Number of rows used to estimate the density.
+      :type sample_size: int, default 10000
+      :param stage: Stage whose propensity values are plotted.
+      :type stage: str, default "Eligibility"
+      :param max_points_per_group: Maximum number of histogram values per propensity type. ``None``
+                                   plots all sampled values.
+      :type max_points_per_group: int or None, default 250
+
+      :returns: Propensity density and histogram plots.
+      :rtype: Figure
+
+
+
+   .. py:method:: pie_charts(*, thresholds: collections.abc.Iterable[float] | None = None, quantiles: collections.abc.Iterable[float] | None = None, rounding: int = 3)
+
+      Pie charts.
+
+
+
+   .. py:method:: distribution_per_threshold(*, thresholds: collections.abc.Iterable[float] | None = None, quantiles: collections.abc.Iterable[float] | None = None, rounding: int = 3)
+
+      Distribution per threshold.
+
+
+
