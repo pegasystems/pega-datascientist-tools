@@ -85,6 +85,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Health Check retains all channels when excluding those with insufficient
+  feedback would remove every channel, and shows a prominent insufficient-feedback
+  finding before the first chart.
 - AGB active ranges no longer double-count malformed classifier-bin rows
   that differ only by `BinIndex`, which skewed AGB AUC and its confidence
   interval
