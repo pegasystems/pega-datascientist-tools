@@ -7,10 +7,7 @@ import plotly.graph_objects as go
 import polars as pl
 from plotly.subplots import make_subplots
 
-from ...utils.plot_utils import simplify_facet_titles
-
-# ECDF sends one point per row to the browser; cap to keep it responsive.
-_ECDF_MAX_ROWS = 50_000
+from ...utils.plot_utils import DEFAULT_PLOT_POINTS_PER_GROUP, downsample_distribution, simplify_facet_titles
 
 
 def filtering_components(
@@ -275,19 +272,47 @@ def component_drilldown(
 
 
 def plot_priority_component_distribution(
-    value_data: pl.LazyFrame, component: str, granularity: str, color_discrete_map: dict[str, str] | None = None
-):
+    value_data: pl.LazyFrame,
+    component: str,
+    granularity: str,
+    color_discrete_map: dict[str, str] | None = None,
+    *,
+    max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP,
+) -> tuple[go.Figure, go.Figure, pl.DataFrame]:
     """Violin + ECDF + summary statistics for a single prioritization component.
+
+    Distribution figures use a deterministic quantile-stratified subset by
+    default. Summary statistics are always calculated from the full data.
+
+    Parameters
+    ----------
+    value_data : pl.LazyFrame
+        Component values to plot.
+    component : str
+        Numeric value column.
+    granularity : str
+        Column defining independent distributions.
+    color_discrete_map : dict[str, str], optional
+        Colors for the granularity categories.
+    max_points_per_group : int or None, default 250
+        Maximum number of plotted values per granularity category. ``None``
+        plots all values. The source data and statistics are never reduced.
 
     Returns
     -------
-    tuple of (go.Figure, go.Figure, pl.DataFrame)
-        violin_fig, ecdf_fig, stats_df
+    tuple of go.Figure, go.Figure, pl.DataFrame
+        Violin figure, ECDF figure, and full-data summary statistics.
     """
     collected = value_data.collect()
+    plot_data = downsample_distribution(
+        collected,
+        value_column=component,
+        group_column=granularity,
+        max_points_per_group=max_points_per_group,
+    )
 
     violin_fig = px.violin(
-        collected,
+        plot_data,
         x=component,
         color=granularity,
         color_discrete_map=color_discrete_map,
@@ -303,7 +328,7 @@ def plot_priority_component_distribution(
         violin_fig.update_xaxes(tickformat=",.0%")
 
     ecdf_fig = px.ecdf(
-        collected,
+        plot_data,
         x=component,
         color=granularity,
         color_discrete_map=color_discrete_map,
@@ -338,11 +363,30 @@ def plot_priority_component_distribution(
     return violin_fig, ecdf_fig, stats_df
 
 
-def plot_component_overview(value_data: pl.LazyFrame, components: list[str], granularity: str) -> go.Figure:
+def plot_component_overview(
+    value_data: pl.LazyFrame,
+    components: list[str],
+    granularity: str,
+    *,
+    max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP,
+) -> go.Figure:
     """Small-multiples violin panel showing all components side by side.
 
     Each component gets its own subplot with a fully independent x-axis
-    so their different scales are always visible.
+    so their different scales are always visible. Each violin is built from
+    at most ``max_points_per_group`` quantile-stratified values.
+
+    Parameters
+    ----------
+    value_data : pl.LazyFrame
+        Component values to plot.
+    components : list of str
+        Numeric component columns to include.
+    granularity : str
+        Column defining independent distributions.
+    max_points_per_group : int or None, default 250
+        Maximum number of plotted values per category and component.
+        ``None`` plots all values.
 
     Returns
     -------
@@ -372,8 +416,15 @@ def plot_component_overview(value_data: pl.LazyFrame, components: list[str], gra
     for idx, component in enumerate(components):
         row = idx // n_cols + 1
         col = idx % n_cols + 1
+        component_data = collected.select([granularity, component])
+        component_data = downsample_distribution(
+            component_data,
+            value_column=component,
+            group_column=granularity,
+            max_points_per_group=max_points_per_group,
+        )
         for group in groups:
-            vals = collected.filter(pl.col(granularity) == group).get_column(component).drop_nulls().to_list()
+            vals = component_data.filter(pl.col(granularity) == group).get_column(component).drop_nulls().to_list()
             if not vals:
                 continue
             fig.add_trace(

@@ -555,7 +555,7 @@ class _PredictorPlotsMixin(_PlotsBase):
             query,
         ).filter(pl.col("EntryType") != "Classifier")
 
-        collected = df.group_by(["ModelID", *by_list]).agg(Count=pl.n_unique("PredictorName")).collect()
+        collected = df.group_by(["ModelID", *by_list]).agg(Count=pl.n_unique("PredictorName").cast(pl.UInt64)).collect()
 
         if len(by_list) > 1:
             collected = pl.concat(

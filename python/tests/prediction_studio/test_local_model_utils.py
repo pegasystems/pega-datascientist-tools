@@ -1,5 +1,3 @@
-import warnings
-
 # Compatibility patches
 import onnx
 import polars as pl
@@ -55,7 +53,7 @@ def get_classification_onnx_model():
     )
     y = ["setosa", "setosa", "versicolor", "versicolor", "virginica", "virginica"]
     preprocessor = ColumnTransformer(
-        transformers=[("num", StandardScaler(), cleaned_names)],
+        transformers=[("num", StandardScaler(), list(range(len(cleaned_names))))],
     )
     pipeline = Pipeline(
         [
@@ -63,15 +61,9 @@ def get_classification_onnx_model():
             ("regressor", RandomForestClassifier(n_estimators=1, random_state=0)),
         ],
     )
-    with warnings.catch_warnings():
-        # scikit-learn <1.9 probes Polars' deprecated dataframe interchange
-        # protocol; scikit-learn 1.9 replaces this path with Narwhals.
-        warnings.filterwarnings(
-            "ignore",
-            message="Support for the dataframe interchange protocol is deprecated since version 1\\.40\\.0",
-            category=DeprecationWarning,
-        )
-        pipeline.fit(X_df, y)
+    # Fit on a NumPy array: scikit-learn <1.9 can't consume Polars 2 frames,
+    # and the frame type is not what these tests exercise.
+    pipeline.fit(X_df.to_numpy(), y)
     initial_types = [(col, FloatTensorType([None, 1])) for col in cleaned_names]
     metadata = Metadata(
         type=OutcomeType.CATEGORICAL,

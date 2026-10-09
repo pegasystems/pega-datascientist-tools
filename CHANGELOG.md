@@ -6,7 +6,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [5.1.0] — 2026-10-09
+
 ### Added
+
+- Polars 2 is now supported; the dependency cap is `polars<3`
+  ([#961](https://github.com/pegasystems/pega-datascientist-tools/pull/961)).
+- Distribution plots in the Decision Analysis Tool and Value Finder take a
+  `max_points_per_group` argument (default 250, `None` for no cap). It
+  draws a quantile-stratified sample per group so charts and exported HTML
+  stay small; the underlying data and all calculations stay complete. This
+  applies to `prio_factor_boxplots`, `plot_priority_component_distribution`,
+  `plot_component_overview`, `rank_boxplot`,
+  `create_parameter_distribution_boxplots` and the Value Finder
+  `propensity_distribution` and `propensity_threshold`. The reusable
+  helper is public as `pdstools.utils.plot_utils.downsample_distribution`
+  ([#966](https://github.com/pegasystems/pega-datascientist-tools/pull/966)).
 
 - ADM Model Reports now show AUC confidence intervals (DeLong-style,
   grouped by bin) for the model and for each predictor's univariate AUC,
@@ -49,13 +64,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Polars expressions instead of grouped Python UDFs, which was 2× faster or
   more in benchmarks
   ([#934](https://github.com/pegasystems/pega-datascientist-tools/pull/934)).
-- Metric limits renamed to follow naming conventions:
-  `AverageGroupsPerIssue` is now `GroupsPerIssueAverage` and
+- **Breaking:** metric limits renamed to follow naming conventions, so
+  code that looks them up by name (for example
+  `MetricLimits.best_practice_min("AverageGroupsPerIssue")`) must use the
+  new names. `AverageGroupsPerIssue` is now `GroupsPerIssueAverage` and
   `AverageTreatmentsPerChannelPerAction` is now
   `TreatmentsPerChannelPerActionAverage`. Treatment-count limits now match
   the documented Pega Cloud service limits
   ([#860](https://github.com/pegasystems/pega-datascientist-tools/pull/860),
   [#944](https://github.com/pegasystems/pega-datascientist-tools/pull/944)).
+- Decision Analysis Tool plots no longer use a point cap derived from the
+  loaded sample size; sampling is controlled by `max_points_per_group`
+  (see above). The Win/Loss page only shows blocking warnings, not
+  sampling notices
+  ([#966](https://github.com/pegasystems/pega-datascientist-tools/pull/966)).
 - Requires `plotly>=6.7`; the `healthcheck` extra now also installs
   `packaging`
   ([#921](https://github.com/pegasystems/pega-datascientist-tools/pull/921),
