@@ -456,17 +456,17 @@ def weighted_auc_ci_from_estimates(
     *,
     confidence_level: float = 0.95,
 ) -> dict[str, float | bool | str | None]:
-    """Combine independent model-level AUC estimates with response weights.
+    """Combine independent model-level AUC estimates with supplied weights.
 
     The returned interval describes the uncertainty of a weighted average of
     model-level estimates. It is not a confidence interval for AUC computed
     from pooled observations.
 
-    The weighted estimate uses normalized response-count-style weights. Under
-    the independence assumption, its variance is the sum of each model
-    variance multiplied by the square of its normalized weight. AUC and
-    confidence bounds are returned on the conventional 0-to-1 scale. The
-    point estimates have already been normalized with ``safe_range_auc``.
+    The weighted estimate uses normalized supplied weights. Under the
+    independence assumption, its variance is the sum of each model variance
+    multiplied by the square of its normalized weight. AUC and confidence
+    bounds are returned on the conventional 0-to-1 scale. The point estimates
+    have already been normalized with ``safe_range_auc``.
     The ``safe_ci_lower`` and ``safe_ci_upper`` fields apply the same safe
     AUC convention to the confidence interval for Pega-style display.
 
