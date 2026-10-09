@@ -14,7 +14,7 @@ import polars as pl
 
 from ..utils import cdh_utils, report_utils
 from ..utils.metric_limits import MetricLimits
-from ._constants import channel_is_valid_expr
+from .Aggregates import channel_is_valid_expr
 from .HealthCheckMarkdown import HealthCheckMarkdownRenderer, _format_markdown_value
 
 if TYPE_CHECKING:  # pragma: no cover
