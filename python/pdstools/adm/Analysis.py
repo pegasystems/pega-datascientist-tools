@@ -14,6 +14,7 @@ import polars as pl
 
 from ..utils import cdh_utils, report_utils
 from ..utils.metric_limits import MetricLimits
+from ._constants import channel_is_valid_expr
 from .HealthCheckMarkdown import HealthCheckMarkdownRenderer, _format_markdown_value
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -656,7 +657,7 @@ class Analysis:
                 CTR=pl.when(pl.col("Responses") > 0)
                 .then(pl.col("Positives") / pl.col("Responses"))
                 .otherwise(pl.lit(None)),
-                isValid=(pl.col("TotalPositives") >= 200) & (pl.col("TotalResponseCount") >= 1000),
+                isValid=channel_is_valid_expr(),
                 ChannelDirection=pl.format("{}/{}", pl.col("Channel"), pl.col("Direction")),
             )
             .collect()

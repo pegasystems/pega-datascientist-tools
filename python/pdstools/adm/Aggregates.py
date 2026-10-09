@@ -13,6 +13,7 @@ from ..utils.metric_limits import (
     get_standard_NBAD_channels,
     is_standard_NBAD_configuration,
 )
+from ._constants import channel_is_valid_expr
 
 if TYPE_CHECKING:
     import datetime
@@ -505,7 +506,7 @@ class Aggregates:
             )
             .with_columns(
                 # applies to totals not delta
-                isValid=(pl.col("TotalPositives") >= 200) & (pl.col("TotalResponseCount") >= 1000),
+                isValid=channel_is_valid_expr(),
             )
             .drop([] if debug else ["ResponseCount", "Positives"])
         )
