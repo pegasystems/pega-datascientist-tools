@@ -7,15 +7,19 @@ state dict rather than launching a Streamlit server.
 
 from __future__ import annotations
 
+import gzip
 import io
 import zipfile
+from contextlib import nullcontext
 from unittest.mock import MagicMock, patch
 
+import polars as pl
 import pytest
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
     _DECISION_STATE_KEYS,
     _is_upload_noise,
     clear_decision_state,
+    handle_data_path,
 )
 
 # ---------------------------------------------------------------------------
@@ -175,3 +179,42 @@ def test_read_uploaded_zip_all_noise_gives_empty_inner_names() -> None:
         inner_names = [n for n in zf.namelist() if not _is_upload_noise(n)]
 
     assert inner_names == []
+
+
+def test_handle_data_path_reads_parquet_from_nested_zip(tmp_path, monkeypatch) -> None:
+    archive_path = tmp_path / "action-analysis.zip"
+    with zipfile.ZipFile(archive_path, "w") as outer_archive:
+        for part_name, values in (("part-1.zip", [1, 2]), ("part-2.zip", [3])):
+            parquet_data = io.BytesIO()
+            pl.DataFrame({"value": values}).write_parquet(parquet_data)
+
+            nested_archive = io.BytesIO()
+            with zipfile.ZipFile(nested_archive, "w") as inner_archive:
+                inner_archive.writestr("nested/part.parquet", parquet_data.getvalue())
+            outer_archive.writestr(f"chunks/{part_name}", nested_archive.getvalue())
+
+        outer_archive.writestr("chunks/invalid.zip", b"not a ZIP archive")
+
+    monkeypatch.setenv("PDSTOOLS_DATA_PATH", str(archive_path))
+    with patch(
+        "pdstools.app.decision_analyzer.da_streamlit_utils.st.spinner",
+        return_value=nullcontext(),
+    ):
+        result = handle_data_path()
+
+    assert result.collect().sort("value").to_dict(as_series=False) == {"value": [1, 2, 3]}
+
+
+def test_handle_data_path_reads_gzipped_action_analysis_chunks(tmp_path, monkeypatch) -> None:
+    archive_path = tmp_path / "action-analysis.zip"
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        archive.writestr("chunks/part-1.zip", gzip.compress(b'{"value": 1}\n'))
+
+    monkeypatch.setenv("PDSTOOLS_DATA_PATH", str(archive_path))
+    with patch(
+        "pdstools.app.decision_analyzer.da_streamlit_utils.st.spinner",
+        return_value=nullcontext(),
+    ):
+        result = handle_data_path()
+
+    assert result.collect().to_dict(as_series=False) == {"value": [1]}

@@ -505,8 +505,20 @@ def handle_data_path() -> pl.LazyFrame | None:
 
     # Single zip file: extract first, then read the extracted contents
     if p.is_file() and p.suffix.lower() == ".zip":
-        import tempfile
         import zipfile
+
+        is_gzipped_action_analysis = False
+        with zipfile.ZipFile(p, "r") as archive:
+            nested_archives = [
+                info
+                for info in archive.infolist()
+                if not info.is_dir() and info.filename.lower().endswith(".zip") and not _is_upload_noise(info.filename)
+            ]
+            for info in nested_archives:
+                with archive.open(info) as nested_file:
+                    if nested_file.read(2) == b"\x1f\x8b":
+                        is_gzipped_action_analysis = True
+                        break
 
         try:
             from pdstools.utils.progress_utils import (
@@ -521,12 +533,8 @@ def handle_data_path() -> pl.LazyFrame | None:
         except (ImportError, OSError, AttributeError):
             spinner_msg = "Extracting archive..."
 
-        tmp_dir = tempfile.mkdtemp(prefix="da_path_")
         with st.spinner(spinner_msg):
-            with zipfile.ZipFile(p, "r") as zf:
-                zf.extractall(tmp_dir)
-        _clean_artifacts(tmp_dir)
-        return read_data(tmp_dir)
+            return read_nested_zip_files(p) if is_gzipped_action_analysis else read_data(data_path)
 
     # Tar archive (plain or compressed): extract first, then read contents
     if p.is_file() and _is_tar_file(p):

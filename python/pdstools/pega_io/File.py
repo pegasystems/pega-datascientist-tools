@@ -144,6 +144,25 @@ def _extract_zip(archive_path: Path) -> str:
     return tmp_dir
 
 
+def _extract_nested_zip_archives(directory: str) -> None:
+    """Extract real nested ZIP files from a temporary archive tree."""
+    pending = sorted(path for path in Path(directory).rglob("*") if path.is_file() and path.suffix.lower() == ".zip")
+    while pending:
+        archive_path = pending.pop()
+        if not zipfile.is_zipfile(archive_path):
+            logger.warning("Skipping a non-ZIP file with a .zip extension in the archive.")
+            archive_path.unlink(missing_ok=True)
+            continue
+
+        extracted_dir = archive_path.with_suffix("")
+        extracted_dir.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(archive_path, "r") as archive:
+            archive.extractall(extracted_dir)
+        archive_path.unlink()
+        _clean_artifacts(str(extracted_dir))
+        pending.extend(path for path in extracted_dir.rglob("*") if path.is_file() and path.suffix.lower() == ".zip")
+
+
 def _scan_by_extension(
     file: str | Path | BytesIO,
     extension: str,
@@ -374,6 +393,7 @@ def read_data(
     json, xlsx, xls, zip, tar, tar.gz, tgz, and gz.
     Handles both individual files and directories (including Hive-partitioned structures).
     Archives (zip, tar) are automatically extracted to temporary directories.
+    Real nested ZIP archives are recursively extracted before scanning.
     Gzip files (.gz) are automatically decompressed.
 
     Parameters
@@ -552,6 +572,7 @@ def read_data(
         elif extension == ".zip":
             tmp_dir = _extract_zip(original_path)
             _clean_artifacts(tmp_dir)
+            _extract_nested_zip_archives(tmp_dir)
             return read_data(tmp_dir, read_options=read_options)
 
     if extension is None:

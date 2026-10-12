@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Decision Analysis Tool: `--data-path` now reads ZIP archives containing nested Parquet files.
+
 ## [5.1.0] — 2026-10-09
 
 ### Added
