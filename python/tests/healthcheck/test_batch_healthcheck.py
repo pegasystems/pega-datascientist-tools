@@ -86,6 +86,48 @@ def test_select_interesting_models_excludes_empty_active_ranges():
     assert batch.select_interesting_models(datamart) == ["valid"]
 
 
+def test_compute_auc_rollup_comparison_counts_one_estimate_for_pooled_agb_ci():
+    datamart = MagicMock()
+    datamart.model_data = pl.LazyFrame({"ModelID": ["m1", "m2", "m3"]})
+    datamart.predictor_data = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m2", "m3"],
+            "EntryType": ["Classifier", "Classifier", "Classifier"],
+        }
+    )
+    datamart.aggregates.last.return_value = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m2", "m3"],
+            "Configuration": ["config"] * 3,
+            "Performance": [0.61, 0.72, 0.83],
+            "Positives": [100, 200, 300],
+            "ResponseCount": [1000, 2000, 3000],
+        }
+    )
+    datamart.active_ranges.return_value = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m2", "m3"],
+            "AUC_ActiveRange": [0.61, 0.72, 0.83],
+            "AUC_ActiveRange_CI_Variance": [0.01, 0.02, 0.03],
+            "AUC_ActiveRange_CI_Estimate": [0.74, 0.74, 0.74],
+            "AUC_ActiveRange_CI_Scope": ["configuration"] * 3,
+            "AUC_ActiveRange_CI_Available": [True, True, True],
+        }
+    )
+
+    result = batch.compute_auc_rollup_comparison(datamart)
+
+    assert result.select("Configuration", "N_DeLong_Estimates").to_dicts() == [
+        {"Configuration": "config", "N_DeLong_Estimates": 1}
+    ]
+    pair_counts = [100 * 900, 200 * 1800, 300 * 2700]
+    expected_pair_pooled_auc = sum(
+        auc * pair_count for auc, pair_count in zip([0.61, 0.72, 0.83], pair_counts, strict=True)
+    ) / sum(pair_counts)
+    assert result["AUC_Weighted_PosNeg"][0] == pytest.approx(expected_pair_pooled_auc)
+    assert result["AUC_Weighted_InverseVariance_DeLong"][0] == pytest.approx(0.74)
+
+
 def test_print_dataset_paths_omits_missing_optional_files(capsys):
     batch._print_dataset_paths(
         {
@@ -218,6 +260,7 @@ def test_main_defaults_to_per_dataset_output(tmp_path, monkeypatch):
         positives_maturity_threshold=200,
         ci_maturity_dataset_rows=[],
         ci_maturity_model_rows=[],
+        auc_rollup_rows=[],
     )
     assert (tmp_path / "summary.csv").exists()
 
@@ -412,19 +455,30 @@ def test_compute_ci_maturity_analysis_retains_rows_when_ci_fails_for_some_models
         }
     )
 
-    def active_ranges_side_effect(model_id):
-        if model_id == "m1":
-            return pl.LazyFrame(
-                {
-                    "ModelID": ["m1"],
-                    "AUC_ActiveRange": [0.72],
-                    "AUC_ActiveRange_CI_Lower": [0.69],
-                    "AUC_ActiveRange_CI_Upper": [0.75],
-                    "AUC_ActiveRange_CI_Available": [True],
-                    "AUC_ActiveRange_CI_Reason": [None],
-                }
-            )
-        raise ValueError("pos and neg must be non-empty")
+    def active_ranges_side_effect(model_ids):
+        rows = {
+            "m1": {
+                "AUC_ActiveRange": 0.72,
+                "AUC_ActiveRange_CI_Lower": 0.69,
+                "AUC_ActiveRange_CI_Upper": 0.75,
+                "AUC_ActiveRange_CI_Available": True,
+                "AUC_ActiveRange_CI_Reason": None,
+            },
+            "m2": {
+                "AUC_ActiveRange": None,
+                "AUC_ActiveRange_CI_Lower": None,
+                "AUC_ActiveRange_CI_Upper": None,
+                "AUC_ActiveRange_CI_Available": False,
+                "AUC_ActiveRange_CI_Reason": "analysis_error",
+            },
+        }
+        selected = [rows[model_id] for model_id in model_ids]
+        return pl.LazyFrame(
+            {
+                "ModelID": list(model_ids),
+                **{key: [row[key] for row in selected] for key in rows["m1"]},
+            }
+        )
 
     datamart.active_ranges.side_effect = active_ranges_side_effect
 
@@ -462,15 +516,15 @@ def test_compute_ci_maturity_analysis_splits_agb_and_defaults_missing_technique(
         }
     )
 
-    def active_ranges(model_id):
+    def active_ranges(model_ids):
         return pl.LazyFrame(
             {
-                "ModelID": [model_id],
-                "AUC_ActiveRange": [0.7],
-                "AUC_ActiveRange_CI_Lower": [0.65],
-                "AUC_ActiveRange_CI_Upper": [0.75],
-                "AUC_ActiveRange_CI_Available": [True],
-                "AUC_ActiveRange_CI_Reason": [None],
+                "ModelID": list(model_ids),
+                "AUC_ActiveRange": [0.7] * len(model_ids),
+                "AUC_ActiveRange_CI_Lower": [0.65] * len(model_ids),
+                "AUC_ActiveRange_CI_Upper": [0.75] * len(model_ids),
+                "AUC_ActiveRange_CI_Available": [True] * len(model_ids),
+                "AUC_ActiveRange_CI_Reason": [None] * len(model_ids),
             }
         )
 
