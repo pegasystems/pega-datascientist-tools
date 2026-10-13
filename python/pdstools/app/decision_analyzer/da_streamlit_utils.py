@@ -11,8 +11,12 @@ from pdstools.decision_analyzer.plots import (
     plot_component_overview,
     plot_priority_component_distribution,
 )
-from pdstools.pega_io import read_nested_zip_files
-from pdstools.pega_io.File import _clean_artifacts, read_data, read_ds_export
+from pdstools.pega_io.File import (
+    _clean_artifacts,
+    _extract_nested_zip_archives,
+    read_data,
+    read_ds_export,
+)
 from pdstools.utils.streamlit_utils import (
     _apply_sidebar_logo,
     ensure_session_data,
@@ -505,21 +509,6 @@ def handle_data_path() -> pl.LazyFrame | None:
 
     # Single zip file: extract first, then read the extracted contents
     if p.is_file() and p.suffix.lower() == ".zip":
-        import zipfile
-
-        is_gzipped_action_analysis = False
-        with zipfile.ZipFile(p, "r") as archive:
-            nested_archives = [
-                info
-                for info in archive.infolist()
-                if not info.is_dir() and info.filename.lower().endswith(".zip") and not _is_upload_noise(info.filename)
-            ]
-            for info in nested_archives:
-                with archive.open(info) as nested_file:
-                    if nested_file.read(2) == b"\x1f\x8b":
-                        is_gzipped_action_analysis = True
-                        break
-
         try:
             from pdstools.utils.progress_utils import (
                 estimate_extraction_time,
@@ -534,7 +523,7 @@ def handle_data_path() -> pl.LazyFrame | None:
             spinner_msg = "Extracting archive..."
 
         with st.spinner(spinner_msg):
-            return read_nested_zip_files(p) if is_gzipped_action_analysis else read_data(data_path)
+            return read_data(data_path)
 
     # Tar archive (plain or compressed): extract first, then read contents
     if p.is_file() and _is_tar_file(p):
@@ -587,13 +576,8 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
                 f"(Explainability Extract or Action Analysis)."
             )
 
-        # If the zip contains .zip files, treat as Pega Action Analysis export format
-        # (nested archive where inner ".zip" files are actually gzipped NDJSON)
-        if ".zip" in inner_exts:
-            file_buffer.seek(0)
-            return read_nested_zip_files(file_buffer)
-
-        # Otherwise extract to a temp directory and use read_data
+        # Extract to a temp directory; nested .zip entries (real ZIPs or
+        # Action Analysis gzip chunks) are expanded before read_data.
         try:
             from pdstools.utils.progress_utils import (
                 estimate_extraction_time,
@@ -613,8 +597,9 @@ def _read_uploaded_zip(file_buffer) -> pl.LazyFrame:
         tmp_dir = tempfile.mkdtemp(prefix="da_upload_")
         with st.spinner(spinner_msg):
             zf.extractall(tmp_dir)
+            _clean_artifacts(tmp_dir)
+            _extract_nested_zip_archives(tmp_dir)
 
-    _clean_artifacts(tmp_dir)
     return read_data(tmp_dir)
 
 

@@ -8,7 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- Decision Analysis Tool: `--data-path` now reads ZIP archives containing nested Parquet files.
+- Decision Analysis Tool: `--data-path` and file upload now read ZIP archives containing nested Parquet ZIP files.
+- `read_data` (and therefore `DecisionAnalyzer` constructors) now reads Pega Action Analysis ZIP exports, whose inner `.zip` chunks are gzipped NDJSON.
 
 ## [5.1.0] — 2026-10-09
 
