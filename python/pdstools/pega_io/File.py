@@ -144,6 +144,65 @@ def _extract_zip(archive_path: Path) -> str:
     return tmp_dir
 
 
+_MAX_NESTED_ZIP_DEPTH = 5
+
+
+def _find_zip_files(directory: Path) -> list[Path]:
+    return sorted(path for path in directory.rglob("*") if path.is_file() and path.suffix.lower() == ".zip")
+
+
+def _unique_sibling(path: Path) -> Path:
+    candidate = path
+    counter = 1
+    while candidate.exists():
+        candidate = path.with_name(f"{path.name}_{counter}")
+        counter += 1
+    return candidate
+
+
+def _extract_nested_zip_archives(directory: str) -> None:
+    """Expand nested ``.zip`` entries in an extracted archive tree, in place.
+
+    Real ZIP archives are extracted recursively. Gzip files with a ``.zip``
+    extension (the chunk format of Pega Action Analysis exports) are
+    decompressed to ``.ndjson``. Any other ``.zip`` file is skipped with a
+    warning.
+
+    Raises
+    ------
+    ValueError
+        When ZIP archives are nested deeper than ``_MAX_NESTED_ZIP_DEPTH``.
+    """
+    pending = [(path, 1) for path in _find_zip_files(Path(directory))]
+    while pending:
+        archive_path, depth = pending.pop()
+        with archive_path.open("rb") as fh:
+            is_gzip = fh.read(2) == b"\x1f\x8b"
+
+        if is_gzip:
+            target = _unique_sibling(archive_path.with_suffix(".ndjson"))
+            with gzip.open(archive_path, "rb") as src, target.open("wb") as dst:
+                shutil.copyfileobj(src, dst)
+            archive_path.unlink()
+            continue
+
+        if not zipfile.is_zipfile(archive_path):
+            logger.warning("Skipping a non-ZIP file with a .zip extension in the archive.")
+            archive_path.unlink(missing_ok=True)
+            continue
+
+        if depth > _MAX_NESTED_ZIP_DEPTH:
+            raise ValueError(f"ZIP archives are nested more than {_MAX_NESTED_ZIP_DEPTH} levels deep.")
+
+        extracted_dir = _unique_sibling(archive_path.with_suffix(""))
+        extracted_dir.mkdir(parents=True)
+        with zipfile.ZipFile(archive_path, "r") as archive:
+            archive.extractall(extracted_dir)
+        archive_path.unlink()
+        _clean_artifacts(str(extracted_dir))
+        pending.extend((path, depth + 1) for path in _find_zip_files(extracted_dir))
+
+
 def _scan_by_extension(
     file: str | Path | BytesIO,
     extension: str,
@@ -374,6 +433,8 @@ def read_data(
     json, xlsx, xls, zip, tar, tar.gz, tgz, and gz.
     Handles both individual files and directories (including Hive-partitioned structures).
     Archives (zip, tar) are automatically extracted to temporary directories.
+    Nested ZIP archives are recursively extracted before scanning; gzip chunks
+    with a ``.zip`` extension (Pega Action Analysis exports) are read as NDJSON.
     Gzip files (.gz) are automatically decompressed.
 
     Parameters
@@ -552,6 +613,7 @@ def read_data(
         elif extension == ".zip":
             tmp_dir = _extract_zip(original_path)
             _clean_artifacts(tmp_dir)
+            _extract_nested_zip_archives(tmp_dir)
             return read_data(tmp_dir, read_options=read_options)
 
     if extension is None:
