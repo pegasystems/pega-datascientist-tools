@@ -75,6 +75,8 @@ Module Contents
    json, xlsx, xls, zip, tar, tar.gz, tgz, and gz.
    Handles both individual files and directories (including Hive-partitioned structures).
    Archives (zip, tar) are automatically extracted to temporary directories.
+   Nested ZIP archives are recursively extracted before scanning; gzip chunks
+   with a ``.zip`` extension (Pega Action Analysis exports) are read as NDJSON.
    Gzip files (.gz) are automatically decompressed.
 
    :param path: Path to a data file, archive, directory, or BytesIO object.
