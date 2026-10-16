@@ -1171,11 +1171,20 @@ if naming_review is not None and naming_review.height > 0:
     n_empty = required["Models with Empty Value"].sum()
     n_hidden = naming_review["Models with Hidden Characters"].sum()
     if n_empty > 0 or n_hidden > 0:
-        report_utils.quarto_callout_important(
-            f"{n_empty:,} models have a missing value in one of Configuration, Channel, Direction, Issue, Group or Name, "
-            f"and {n_hidden:,} models have an identifier with hidden characters. "
-            "A non-zero 'Name Clashes' in the table below means models with the cleaned value also exist, so responses for the same name are split over both."
-        )
+        issues = []
+        if n_empty > 0:
+            issues.append(
+                f"{n_empty:,} models have a missing value in one of Configuration, Channel, Direction, Issue, Group or Name"
+            )
+        if n_hidden > 0:
+            issues.append(f"{n_hidden:,} models have an identifier with hidden characters")
+        message = " and ".join(issues) + ". "
+        if n_hidden > 0:
+            message += (
+                "A non-zero 'Name Clashes' in the table below means models with the cleaned value also exist, "
+                "so responses for the same name are split over both."
+            )
+        report_utils.quarto_callout_important(message.strip())
     else:
         report_utils.quarto_print("All model identifiers are present and free of hidden characters.")
     display(GT(naming_review))
@@ -1184,7 +1193,7 @@ if naming_review is not None and naming_review.height > 0:
 ```
 
 ::: {.callout-tip title="Guidance"}
--   Missing Channel or Direction values usually mean the channel was not populated when the model was created. These models are excluded from the channel overview
+-   Missing Channel or Direction values usually mean the channel was not populated when the model was created; fix this upstream
 -   A missing Treatment is expected for models that do not distinguish treatments
 -   Values with hidden characters should be cleaned upstream, so that responses are not spread over models with clashing names
 :::
@@ -1601,7 +1610,15 @@ Adaptive Gradient Boosting (AGB) models do not have univariate predictor perform
 # | error: true
 agb_query = pl.col("ModelTechnique") == "GradientBoost"
 agb_importance = None
-if datamart.predictor_data is not None and "FeatureImportance" in datamart.predictor_data.collect_schema().names():
+if datamart.predictor_data is None or "FeatureImportance" not in datamart.predictor_data.collect_schema().names():
+    agb_unavailable = "The predictor data has no feature importance, so there is nothing to show for Adaptive Gradient Boosting models."
+elif datamart.model_data.filter(agb_query).select(pl.len()).collect().item() == 0:
+    agb_unavailable = "There are no Adaptive Gradient Boosting models in this data."
+else:
+    agb_unavailable = (
+        "None of the Adaptive Gradient Boosting models in this data has predictor importance yet. "
+        "Models that have not built any trees, or that are not active, are left out."
+    )
     try:
         agb_importance = datamart.aggregates.predictor_importance(
             by="PredictorCategory", query=agb_query & active_models_filter_expr
@@ -1610,9 +1627,7 @@ if datamart.predictor_data is not None and "FeatureImportance" in datamart.predi
         report_utils.quarto_plot_exception("AGB predictor importance", e)
 
 if agb_importance is None or agb_importance.height == 0:
-    report_utils.quarto_callout_info(
-        "No predictor importance is available for Adaptive Gradient Boosting models in this data."
-    )
+    report_utils.quarto_callout_info(agb_unavailable)
 else:
     try:
         fig = datamart.plot.predictor_category_importance(query=agb_query & active_models_filter_expr)
