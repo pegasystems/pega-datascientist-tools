@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 import polars as pl
 import polars.selectors as cs
@@ -13,6 +13,7 @@ from ._base import _PlotsBase
 from ._helpers import requires
 
 if TYPE_CHECKING:
+    from ...utils.plot_utils import Figure
     from ...utils.types import QUERY
 
 
@@ -159,8 +160,12 @@ class _PredictorPlotsMixin(_PlotsBase):
         Parameters
         ----------
         metric : str, optional
-            The metric to plot, by default "Performance"
-            This is more for future-proofing, once FeatureImportance gets more used.
+            The metric to plot, by default "Performance" (univariate predictor
+            performance). Use ``"FeatureImportance"`` for the feature importance
+            of Gradient Boosting models: the box plot then covers the per-action
+            Gradient Boosting model instances only. Naive Bayes models and the
+            configuration-level ("overall") Gradient Boosting models are excluded;
+            see :meth:`agb_feature_importance` for the overall model.
         top_n : Optional[int], optional
             The top n predictors to plot, by default None
         active_only : bool, optional
@@ -174,6 +179,12 @@ class _PredictorPlotsMixin(_PlotsBase):
         -------
         Figure | pl.LazyFrame | None
             Plotly box plot figure, LazyFrame if return_df=True, or None if no data
+
+        Raises
+        ------
+        ValueError
+            If ``metric="FeatureImportance"`` and the data has no
+            ``FeatureImportance`` or ``ModelTechnique`` column.
 
         See Also
         --------
@@ -193,7 +204,17 @@ class _PredictorPlotsMixin(_PlotsBase):
         ...     return_df=True,
         ... )
 
+        >>> # Feature importance across the Gradient Boosting model instances
+        >>> fig = dm.plot.predictor_performance(metric="FeatureImportance", top_n=30)
+
         """
+        if metric == "FeatureImportance":
+            return self._gradient_boost_importance_boxplot(
+                top_n=top_n,
+                active_only=active_only,
+                query=query,
+                return_df=return_df,
+            )
         # in combined_data, the performance metric is renamed to PredictorPerformance
         metric = "PredictorPerformance" if metric == "Performance" else metric
         df = cdh_utils._apply_query(
@@ -232,6 +253,178 @@ class _PredictorPlotsMixin(_PlotsBase):
             fig.update_xaxes(title="Performance")
             fig.update_layout(title=f"{metric} by Predictor Category")
 
+        return fig
+
+    def _gradient_boost_importance_boxplot(
+        self,
+        *,
+        top_n: int | None,
+        active_only: bool,
+        query: QUERY | None,
+        return_df: bool,
+    ):
+        """Box plot of FeatureImportance across the Gradient Boosting model instances."""
+        combined = self.datamart.aggregates.last(table="combined_data")
+        missing = {"FeatureImportance", "ModelTechnique"} - set(combined.collect_schema().names())
+        if missing:
+            raise ValueError(f"Missing required combined columns:{missing}")
+
+        df = combined.filter(
+            pl.col("ModelTechnique") == "GradientBoost",
+            pl.col("EntryType") != "Classifier",
+            pl.col("FeatureImportance").is_not_null(),
+        ).unique(subset=["ModelID", "PredictorName"], keep="first")
+        # The overall models are not part of combined_data; guard explicitly so
+        # their importances can never end up in the per-instance box plot.
+        if self.datamart.agb_overall_model_data is not None:
+            df = df.join(
+                self.datamart.agb_overall_model_data.select("ModelID").unique(),
+                on="ModelID",
+                how="anti",
+            )
+        df = cdh_utils._apply_query(df, query=query, allow_empty=True)
+        if active_only:
+            df = df.filter(pl.col("EntryType") == "Active")
+        if top_n:
+            df = self.datamart.aggregates._top_n(df, top_n, "FeatureImportance", weight_col=None)
+
+        fig = self._boxplot_pre_aggregated(
+            df,
+            y_col="PredictorName",
+            metric_col="FeatureImportance",
+            legend_col="PredictorCategory",
+            color_discrete_map=self.datamart.predictor_category_color_map,
+            return_df=return_df,
+        )
+        if fig is not None and not return_df:
+            fig.update_xaxes(title="Feature Importance (%)")
+            fig.update_layout(title="Feature Importance of the Gradient Boosting model instances")
+        return fig
+
+    @overload
+    def agb_feature_importance(
+        self,
+        *,
+        top_n: int | None = ...,
+        query: QUERY | None = ...,
+        return_df: Literal[False] = ...,
+    ) -> Figure | None: ...
+
+    @overload
+    def agb_feature_importance(
+        self,
+        *,
+        top_n: int | None = ...,
+        query: QUERY | None = ...,
+        return_df: Literal[True],
+    ) -> pl.LazyFrame: ...
+
+    def agb_feature_importance(
+        self,
+        *,
+        top_n: int | None = 30,
+        query: QUERY | None = None,
+        return_df: bool = False,
+    ) -> Figure | pl.LazyFrame | None:
+        """Bar chart of the feature importance of the overall Gradient Boosting model.
+
+        Gradient Boosting configurations train one model across all actions. This
+        chart shows the predictor-level feature importance of that overall
+        model, one bar per predictor, ranked and coloured by predictor
+        category. The per-action model instances are not included; use
+        :meth:`predictor_performance` with ``metric="FeatureImportance"`` for
+        those. When the data contains several configurations, each gets its
+        own panel.
+
+        Parameters
+        ----------
+        top_n : int or None, default 30
+            Number of predictors to show per configuration. ``None`` shows all
+            predictors with a non-zero importance.
+        query : QUERY, optional
+            Filter on the overall model data, typically on ``Configuration``.
+        return_df : bool, default False
+            Return the data behind the chart instead of the figure.
+
+        Returns
+        -------
+        Figure | pl.LazyFrame | None
+            Plotly bar chart, LazyFrame if ``return_df=True``, or ``None`` when
+            there is no overall Gradient Boosting feature importance in the data.
+
+        See Also
+        --------
+        pdstools.adm.Aggregates.agb_feature_importance : the underlying data
+
+        Examples
+        --------
+        >>> fig = dm.plot.agb_feature_importance()
+
+        >>> # All predictors of one configuration
+        >>> fig = dm.plot.agb_feature_importance(
+        ...     top_n=None,
+        ...     query=pl.col("Configuration") == "Web_Click_Through_Rate",
+        ... )
+        """
+        all_predictors = self.datamart.aggregates.agb_feature_importance(query=query).filter(
+            pl.col("FeatureImportance") > 0,
+        )
+        df = all_predictors
+        if top_n is not None and top_n > 0:
+            df = df.filter(
+                pl.col("FeatureImportance").rank("ordinal", descending=True).over("Configuration") <= top_n,
+            )
+        if return_df:
+            return df
+
+        data = df.collect().with_columns(pl.col("PredictorCategory").fill_null("Missing"))
+        if data.height == 0:
+            return None
+
+        import plotly.express as px
+
+        configurations = data["Configuration"].unique(maintain_order=True).to_list()
+        categories = sorted(data["PredictorCategory"].unique().to_list())
+        multiple = len(configurations) > 1
+        fig = px.bar(
+            data,
+            x="FeatureImportance",
+            y="PredictorName",
+            color="PredictorCategory",
+            orientation="h",
+            facet_row="Configuration" if multiple else None,
+            category_orders={"PredictorCategory": categories, "Configuration": configurations},
+            color_discrete_map=self.datamart.predictor_category_color_map,
+            hover_data={"EntryType": True, "FeatureImportance": ":.2f"},
+            template="pega",
+        )
+
+        title = "Feature Importance of the overall Gradient Boosting model"
+        if not multiple:
+            summary = (
+                all_predictors.group_by(pl.col("PredictorCategory").fill_null("Missing"))
+                .agg(pl.col("FeatureImportance").sum())
+                .with_columns(Share=pl.col("FeatureImportance") / pl.col("FeatureImportance").sum() * 100)
+                .sort("Share", descending=True)
+                .select(pl.format("{} {}%", "PredictorCategory", pl.col("Share").round(1)).str.join(" · "))
+                .collect()
+                .item()
+            )
+            title += f"<br><sup>{configurations[0]}: {summary}</sup>"
+        else:
+            fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+            fig.update_yaxes(matches=None, showticklabels=True)
+
+        max_bars: int = data.group_by("Configuration").len().select(pl.col("len").max()).item()
+        fig.update_yaxes(categoryorder="total ascending", automargin=True, title="")
+        fig.update_layout(
+            title=title,
+            xaxis_title="Feature Importance (%)",
+            legend_title="Predictor Category",
+            height=max(400, len(configurations) * (max_bars * 18 + 80) + 120),
+            margin=dict(t=100),
+            yaxis_automargin=True,
+        )
         return fig
 
     @requires(
