@@ -232,7 +232,7 @@ class _PredictorPlotsMixin(_PlotsBase):
 
         if fig is not None and not return_df:
             fig.update_xaxes(title="Performance")
-            fig.update_layout(title=f"{metric} by Predictor Category")
+            fig.update_layout(title="Predictor Performance by Predictor Category")
 
         return fig
 
@@ -400,7 +400,7 @@ class _PredictorPlotsMixin(_PlotsBase):
             labels={"PredictorCategory": "Predictor Category"},
             orientation="h",
             template="pega",
-            title="Contribution of different sources",
+            title="Contribution by Predictor Category",
         )
 
     @requires(
