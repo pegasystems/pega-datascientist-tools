@@ -630,3 +630,169 @@ class _PredictorPlotsMixin(_PlotsBase):
             fig.update_layout(legend=dict(traceorder="reversed"))
 
         return fig
+
+    @requires(
+        combined_columns={
+            "ModelID",
+            "PredictorName",
+            "PredictorCategory",
+            "EntryType",
+            "FeatureImportance",
+        },
+    )
+    def predictor_importance(
+        self,
+        *,
+        top_n: int = 20,
+        query: QUERY | None = None,
+        return_df: bool = False,
+    ):
+        """Bar chart of the predictors carrying most of the model importance.
+
+        Uses the platform's ``FeatureImportance``, so it also works for
+        Adaptive Gradient Boosting (AGB) models, whose predictors have no
+        univariate performance. For each model the importances are rescaled
+        to sum to 100% and averaged over the models in scope; see
+        :meth:`pdstools.adm.Aggregates.Aggregates.predictor_importance`.
+
+        Parameters
+        ----------
+        top_n : int, default 20
+            Number of predictors to show.
+        query : QUERY, optional
+            Restricts the models in scope, for example a single
+            configuration. When it spans several configurations they are
+            averaged, weighted by their number of models.
+        return_df : bool, default False
+            Return the plotted data instead of the figure.
+
+        Returns
+        -------
+        Figure | pl.DataFrame | None
+            Plotly figure, the data if ``return_df``, or None if there is no
+            importance data in scope.
+
+        Examples
+        --------
+        >>> fig = dm.plot.predictor_importance(
+        ...     query=pl.col("ModelTechnique") == "GradientBoost",
+        ... )
+        """
+        data = self.datamart.aggregates.predictor_importance(by="PredictorName", query=query).collect()
+        if data.height == 0:
+            return None
+        context = [c for c in ("Configuration", "Channel", "Direction", "ModelTechnique") if c in data.columns]
+        total_models = data.unique(subset=context).get_column("Models").sum()
+        collapsed = (
+            data.group_by("PredictorName", "PredictorCategory")
+            .agg(
+                (pl.col("Importance %") * pl.col("Models")).sum() / total_models,
+                (pl.col("Active Predictors") * pl.col("Models")).sum() / total_models,
+            )
+            .sort("Importance %", descending=True)
+            .head(top_n)
+        )
+        if return_df:
+            return collapsed
+
+        import plotly.express as px
+
+        fig = px.bar(
+            collapsed,
+            x="Importance %",
+            y="PredictorName",
+            color="PredictorCategory",
+            color_discrete_map=self.datamart.predictor_category_color_map,
+            orientation="h",
+            hover_data={"Active Predictors": False},
+            title=f"Top {collapsed.height} predictors by share of model importance",
+            template="pega",
+        )
+        fig.update_yaxes(
+            title="",
+            automargin=True,
+            categoryorder="array",
+            categoryarray=collapsed["PredictorName"].to_list(),
+            autorange="reversed",
+        )
+        fig.update_xaxes(title="Average importance within a model (%)")
+        return fig
+
+    @requires(
+        combined_columns={
+            "ModelID",
+            "PredictorName",
+            "PredictorCategory",
+            "EntryType",
+            "FeatureImportance",
+        },
+    )
+    def predictor_category_importance(
+        self,
+        *,
+        query: QUERY | None = None,
+        return_df: bool = False,
+    ):
+        """Stacked bars of the model importance per predictor category.
+
+        One bar per model configuration shows how the importance divides
+        over the predictor categories (for example ``Customer``, ``IH``,
+        ``Param``). Works for Adaptive Gradient Boosting (AGB) models too;
+        see :meth:`pdstools.adm.Aggregates.Aggregates.predictor_importance`.
+
+        Parameters
+        ----------
+        query : QUERY, optional
+            Restricts the models in scope, for example
+            ``pl.col("ModelTechnique") == "GradientBoost"``.
+        return_df : bool, default False
+            Return the plotted data instead of the figure.
+
+        Returns
+        -------
+        Figure | pl.DataFrame | None
+            Plotly figure, the data if ``return_df``, or None if there is no
+            importance data in scope.
+
+        Examples
+        --------
+        >>> fig = dm.plot.predictor_category_importance(
+        ...     query=pl.col("ModelTechnique") == "GradientBoost",
+        ... )
+        """
+        data = self.datamart.aggregates.predictor_importance(by="PredictorCategory", query=query).collect()
+        if data.height == 0:
+            return None
+        if return_df:
+            return data
+
+        import plotly.express as px
+
+        label_columns = [c for c in ("Configuration", "Channel", "Direction") if c in data.columns]
+        data = data.with_columns(
+            pl.concat_str(
+                pl.col(label_columns[0]).cast(pl.Utf8),
+                pl.concat_str([pl.col(c).cast(pl.Utf8) for c in label_columns[1:]], separator="/").map_batches(
+                    lambda s: "(" + s + ")"
+                )
+                if len(label_columns) > 1
+                else pl.lit(""),
+                separator=" ",
+            ).alias("Model configuration")
+            if label_columns
+            else pl.lit("All models").alias("Model configuration")
+        )
+        fig = px.bar(
+            data,
+            x="Importance %",
+            y="Model configuration",
+            color="PredictorCategory",
+            color_discrete_map=self.datamart.predictor_category_color_map,
+            orientation="h",
+            hover_data=["Models", "Active Predictors"],
+            title="Share of model importance per predictor category",
+            template="pega",
+        )
+        fig.update_yaxes(title="", automargin=True)
+        fig.update_xaxes(title="Average importance within a model (%)", range=[0, 100])
+        return fig

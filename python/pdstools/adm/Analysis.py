@@ -22,6 +22,9 @@ if TYPE_CHECKING:  # pragma: no cover
     from ..prediction.Prediction import Prediction
 
 logger = logging.getLogger(__name__)
+IMPLAUSIBLE_SUCCESS_RATE = 0.9
+IMPLAUSIBLE_MIN_POSITIVES = 10
+
 RECOVERABLE_ANALYSIS_ERRORS = (
     pl.exceptions.PolarsError,
     AttributeError,
@@ -466,6 +469,8 @@ class Analysis:
         results: list[Finding] = []
         dq_findings, invalid_channels = self._check_data_quality()
         results.extend(dq_findings)
+        results.extend(self._check_hidden_characters())
+        results.extend(self._check_implausible_success_rates())
         channel_findings, dead_channel_count, has_mature_low_perf_channel = self._check_channels(
             active_filter,
             invalid_channels=invalid_channels,
@@ -868,6 +873,61 @@ class Analysis:
             )
         )
         return findings, invalid
+
+    def _check_hidden_characters(self) -> list[Finding]:
+        """Flag model identifiers with invisible characters."""
+        try:
+            hidden = self.datamart.aggregates.hidden_character_names().collect()
+        except RECOVERABLE_ANALYSIS_ERRORS as exc:
+            logger.debug("Could not check hidden characters: %s", exc)
+            return []
+        if hidden.height == 0:
+            return []
+        lookalikes = hidden.filter(pl.col("Lookalike Models") > 0).height
+        columns = ", ".join(sorted(hidden["Column"].unique().to_list()))
+        return [
+            Finding(
+                severity="warning",
+                category="data_quality",
+                title=f"{hidden.height:,} model identifier values contain hidden characters ({columns})",
+                detail=(
+                    "Invisible characters such as zero-width or non-breaking spaces, or leading and trailing "
+                    "whitespace, make values that look identical differ. Responses recorded under such "
+                    "lookalikes end up on separate models."
+                    + (
+                        f" For {lookalikes:,} of these values the cleaned value also exists as a separate value."
+                        if lookalikes
+                        else ""
+                    )
+                ),
+                data={"value_count": hidden.height, "lookalike_count": lookalikes},
+            )
+        ]
+
+    def _check_implausible_success_rates(self) -> list[Finding]:
+        """Flag models with a success rate close to 100%, usually missing negatives."""
+        try:
+            rates = self.datamart.aggregates.success_rate_intervals().collect()
+        except RECOVERABLE_ANALYSIS_ERRORS as exc:
+            logger.debug("Could not check success rates: %s", exc)
+            return []
+        suspicious = rates.filter(
+            (pl.col("SuccessRate") >= IMPLAUSIBLE_SUCCESS_RATE) & (pl.col("Positives") >= IMPLAUSIBLE_MIN_POSITIVES)
+        )
+        if suspicious.height == 0:
+            return []
+        return [
+            Finding(
+                severity="warning",
+                category="data_quality",
+                title=f"{suspicious.height:,} models have a success rate of at least {IMPLAUSIBLE_SUCCESS_RATE:.0%}",
+                detail=(
+                    "A success rate this high is implausible for most use cases and usually means that "
+                    "negative responses are not being recorded for these models."
+                ),
+                data={"model_count": suspicious.height},
+            )
+        ]
 
     def _check_channels(
         self,

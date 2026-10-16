@@ -77,6 +77,7 @@ from ._metrics import (
     safe_range_interval,
     validate_confidence_level,
     weighted_auc_ci_from_estimates,
+    wilson_interval,
     z_ratio,
 )
 from ._misc import legend_color_order, safe_flatten_list
@@ -139,5 +140,6 @@ __all__ = [
     "weighted_auc_ci_from_estimates",
     "weighted_average_polars",
     "weighted_performance_polars",
+    "wilson_interval",
     "z_ratio",
 ]

@@ -1055,6 +1055,46 @@ def feature_importance(
     return result
 
 
+def wilson_interval(
+    successes: pl.Expr,
+    total: pl.Expr,
+    confidence_level: float = 0.95,
+) -> tuple[pl.Expr, pl.Expr]:
+    """Wilson score confidence interval for a proportion.
+
+    Unlike the normal approximation this stays inside ``[0, 1]`` and gives a
+    sensible, non-degenerate interval when there are zero successes.
+
+    Parameters
+    ----------
+    successes : pl.Expr
+        Number of successes (e.g. positive responses).
+    total : pl.Expr
+        Number of trials (e.g. total responses).
+    confidence_level : float, default 0.95
+        Two-sided confidence level, strictly between 0 and 1.
+
+    Returns
+    -------
+    tuple[pl.Expr, pl.Expr]
+        Lower and upper bound expressions. Both are null when ``total`` is 0.
+
+    Examples
+    --------
+    >>> lower, upper = wilson_interval(pl.col("Positives"), pl.col("ResponseCount"))
+    """
+    z = NormalDist().inv_cdf(0.5 + validate_confidence_level(confidence_level) / 2)
+    n = total.cast(pl.Float64)
+    p = successes.cast(pl.Float64) / n
+    denominator = 1 + z**2 / n
+    centre = (p + z**2 / (2 * n)) / denominator
+    margin = z * ((p * (1 - p) / n + z**2 / (4 * n**2)).sqrt()) / denominator
+    return (
+        pl.when(n > 0).then((centre - margin).clip(0, 1)),
+        pl.when(n > 0).then((centre + margin).clip(0, 1)),
+    )
+
+
 def gains_table(df, value: str, index=None, by=None):
     """Calculates cumulative gains from any data frame.
 

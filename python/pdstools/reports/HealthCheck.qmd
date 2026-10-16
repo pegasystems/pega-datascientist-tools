@@ -1150,6 +1150,28 @@ if (unused_configurations.shape[0] > 0) and (
     last_data = datamart.get_last_data_for_report()
 ```
 
+## Model Identifiers with Hidden Characters
+
+```{python}
+# | echo: false
+# | error: true
+try:
+    hidden_names = datamart.aggregates.hidden_character_names().collect()
+except Exception as e:
+    hidden_names = None
+    report_utils.quarto_plot_exception("Hidden character check", e)
+
+if hidden_names is not None and hidden_names.height > 0:
+    report_utils.quarto_callout_important(
+        "Some model identifiers contain invisible characters such as zero-width or non-breaking spaces, or leading and trailing whitespace. "
+        "Values that look identical can then be different values, so their responses end up on separate models. "
+        "A non-zero 'Lookalike Models' means the cleaned value also exists as a separate value."
+    )
+    display(GT(hidden_names.head(50)))
+elif hidden_names is not None:
+    report_utils.quarto_print("No model identifiers contain hidden characters.")
+```
+
 ## Model Performance {#model-performance}
 
 ### Model Performance vs Action Success Rates (the Bubble Charts)
@@ -1342,6 +1364,28 @@ except Exception as e:
 
 ```
 
+### Success rate per model
+
+Every dot is a model, with its number of positives and negatives on logarithmic axes. The dashed line is the average success rate of all models. The vertical bars are the confidence interval of the model's success rate. Models in red have a success rate that is, with confidence, less than a tenth of the average; orange models are below average; green ones are above average. Grey ones cannot be told apart from the average.
+
+```{python}
+# | error: true
+try:
+    fig = datamart.plot.success_rate_intervals(query=active_models_filter_expr)
+    if fig is not None:
+        fig.show()
+    else:
+        report_utils.quarto_print("No models with responses.")
+except Exception as e:
+    report_utils.quarto_plot_exception("Success rate per model", e)
+```
+
+::: {.callout-tip title="Guidance"}
+-   A large group of models far below the average may point to propositions that are rarely relevant, or to issues in the response capture
+-   Models with a very high success rate and almost no negatives often indicate that negative responses are not recorded
+-   Models with few responses have wide intervals and say little yet
+:::
+
 ### Response counts for all the actions
 
 Using an interactive treemap to visualize the response counts. Different channels will have very different numbers but within one channel the relative differences in response counts give an indication how skewed the distribution is.
@@ -1530,6 +1574,44 @@ else:
 -   Predictors only showing as a single bar (no range) are suspicious
 -   A variation of predictors from different categories in the top 30
 -   A min/max of the univariate AUC performance somewhere between 55 and 75
+:::
+
+## Importance of Adaptive Gradient Boosting Predictors
+
+Adaptive Gradient Boosting (AGB) models do not have univariate predictor performance, so they do not show up in the sections above. Instead the importance reported by the platform is shown here. For each model the importances add up to 100%; the charts show the average over the models of a configuration. AGB models that have not built any trees yet have no importance and are left out.
+
+```{python}
+# | error: true
+agb_query = pl.col("ModelTechnique") == "GradientBoost"
+agb_importance = None
+if datamart.predictor_data is not None and "FeatureImportance" in datamart.predictor_data.collect_schema().names():
+    try:
+        agb_importance = datamart.aggregates.predictor_importance(
+            by="PredictorCategory", query=agb_query & active_models_filter_expr
+        ).collect()
+    except Exception as e:
+        report_utils.quarto_plot_exception("AGB predictor importance", e)
+
+if agb_importance is None or agb_importance.height == 0:
+    report_utils.quarto_callout_info(
+        "No predictor importance is available for Adaptive Gradient Boosting models in this data."
+    )
+else:
+    try:
+        fig = datamart.plot.predictor_category_importance(query=agb_query & active_models_filter_expr)
+        if fig is not None:
+            fig.show()
+        fig = datamart.plot.predictor_importance(query=agb_query & active_models_filter_expr)
+        if fig is not None:
+            fig.show()
+    except Exception as e:
+        report_utils.quarto_plot_exception("AGB predictor importance", e)
+```
+
+::: {.callout-tip title="Guidance"}
+-   Importance concentrated in a single predictor or category makes the model fragile; a healthy model draws on several
+-   Predictors that look like identifiers (very many distinct values) can dominate without being predictive in a meaningful way
+-   Parameters passed in with the request often carry the context; their share shows how much the model relies on it
 :::
 
 ## Importance by Predictor Category

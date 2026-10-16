@@ -3,6 +3,7 @@ from __future__ import annotations
 __all__ = ["Aggregates"]
 import datetime
 import logging
+import re
 from typing import TYPE_CHECKING, Literal
 
 import polars as pl
@@ -20,6 +21,13 @@ MIN_CHANNEL_POSITIVES = 200
 MIN_CHANNEL_RESPONSES = 1_000
 """Minimum total responses for a channel to have sufficient feedback."""
 
+VERY_LOW_SUCCESS_RATE_FRACTION = 0.1
+"""A model is "very low" when its whole success rate interval is below this
+fraction of the average success rate."""
+
+HIDDEN_CHARACTERS_PATTERN = r"[\x00-\x1f\x7f-\x9f\u00a0\u00ad\u200b-\u200f\u2028-\u202f\u2060-\u2064\ufeff]"
+"""Control, zero-width, directional and non-breaking space characters."""
+
 if TYPE_CHECKING:
     import datetime
 
@@ -27,6 +35,13 @@ if TYPE_CHECKING:
     from .ADMDatamart import ADMDatamart
 
 logger = logging.getLogger(__name__)
+
+_HIDDEN_CHARACTERS = re.compile(HIDDEN_CHARACTERS_PATTERN)
+
+
+def _spell_out_hidden_characters(value: str) -> str:
+    """Quote a value and replace each hidden character by ``<U+XXXX>``."""
+    return '"' + _HIDDEN_CHARACTERS.sub(lambda m: f"<U+{ord(m.group()):04X}>", value) + '"'
 
 
 def channel_is_valid_expr() -> pl.Expr:
@@ -1132,6 +1147,227 @@ class Aggregates:
             ["GroupIndex", "isActive", "Univariate Performance"],
             descending=[False, True, True],
             nulls_last=True,
+        )
+
+    def success_rate_intervals(
+        self,
+        *,
+        confidence_level: float = 0.95,
+        query: QUERY | None = None,
+    ) -> pl.LazyFrame:
+        """Success rate of each model with a Wilson confidence interval.
+
+        Every model (last snapshot) is compared to the average success rate
+        of all models in scope (total positives over total responses) and
+        classified by its confidence interval, without any assumption on
+        the model names.
+
+        Parameters
+        ----------
+        confidence_level : float, default 0.95
+            Two-sided confidence level of the Wilson interval.
+        query : QUERY, optional
+            Restricts the models in scope. The average success rate is
+            computed over the models that remain.
+
+        Returns
+        -------
+        pl.LazyFrame
+            One row per model with, next to the descriptive columns that
+            exist in the data, ``Positives``, ``Negatives``,
+            ``ResponseCount``, ``SuccessRate``, ``SuccessRate_CI_Lower``,
+            ``SuccessRate_CI_Upper``, ``AverageSuccessRate`` and
+            ``SuccessRateCategory``. The category is one of:
+
+            - ``Very low``: the whole interval is below a tenth of the average
+            - ``Below average``: the whole interval is below the average
+            - ``Above average``: the whole interval is above the average
+            - ``Consistent with average``: the interval contains the average
+
+            Models without responses are left out.
+        """
+        model_data = cdh_utils._apply_query(self.last(table="model_data"), query, allow_empty=True)
+        lower, upper = cdh_utils.wilson_interval(
+            pl.col("Positives"),
+            pl.col("ResponseCount"),
+            confidence_level,
+        )
+        names = model_data.collect_schema().names()
+        descriptive = [
+            c
+            for c in ("ModelID", "Configuration", "Channel", "Direction", "Issue", "Group", "Name", "Treatment")
+            if c in names
+        ]
+        return (
+            model_data.filter(pl.col("ResponseCount") > 0)
+            .select(
+                *descriptive,
+                pl.col("Positives").cast(pl.Float64),
+                (pl.col("ResponseCount") - pl.col("Positives")).cast(pl.Float64).alias("Negatives"),
+                pl.col("ResponseCount").cast(pl.Float64),
+            )
+            .with_columns(
+                (pl.col("Positives") / pl.col("ResponseCount")).alias("SuccessRate"),
+                lower.alias("SuccessRate_CI_Lower"),
+                upper.alias("SuccessRate_CI_Upper"),
+                (pl.col("Positives").sum() / pl.col("ResponseCount").sum()).alias("AverageSuccessRate"),
+            )
+            .with_columns(
+                pl.when(pl.col("SuccessRate_CI_Upper") < pl.col("AverageSuccessRate") * VERY_LOW_SUCCESS_RATE_FRACTION)
+                .then(pl.lit("Very low"))
+                .when(pl.col("SuccessRate_CI_Upper") < pl.col("AverageSuccessRate"))
+                .then(pl.lit("Below average"))
+                .when(pl.col("SuccessRate_CI_Lower") > pl.col("AverageSuccessRate"))
+                .then(pl.lit("Above average"))
+                .otherwise(pl.lit("Consistent with average"))
+                .alias("SuccessRateCategory")
+            )
+        )
+
+    def hidden_character_names(
+        self,
+        *,
+        columns: tuple[str, ...] = ("Configuration", "Issue", "Group", "Name", "Treatment"),
+        query: QUERY | None = None,
+    ) -> pl.LazyFrame:
+        """Model identifiers that contain invisible or control characters.
+
+        Zero-width spaces, non-breaking spaces, control characters and
+        leading or trailing whitespace are invisible in most tools, so two
+        names that look identical can be different values. When
+        presentations and responses are recorded under such lookalikes they
+        end up on different models.
+
+        Parameters
+        ----------
+        columns : tuple[str, ...]
+            The model columns to inspect. Columns absent from the data are
+            skipped.
+        query : QUERY, optional
+            Restricts the models in scope.
+
+        Returns
+        -------
+        pl.LazyFrame
+            One row per affected value with ``Column``, ``Value`` (shown
+            quoted with the hidden characters spelled out as ``<U+XXXX>``),
+            ``Cleaned`` (the value without hidden characters), ``Models``
+            (number of models with this value) and ``Lookalike Models``
+            (number of models that have the cleaned value). A non-zero
+            lookalike count means the data holds two values that appear
+            identical.
+        """
+        model_data = cdh_utils._apply_query(self.last(table="model_data"), query, allow_empty=True)
+        names = model_data.collect_schema().names()
+        schema = {
+            "Column": pl.Utf8,
+            "Value": pl.Utf8,
+            "Cleaned": pl.Utf8,
+            "Models": pl.UInt32,
+            "Lookalike Models": pl.UInt32,
+        }
+        frames = []
+        for column in (c for c in columns if c in names):
+            values = (
+                model_data.select(pl.col(column).cast(pl.Utf8).alias("Raw"), "ModelID")
+                .drop_nulls("Raw")
+                .group_by("Raw")
+                .agg(pl.col("ModelID").n_unique().alias("Models"))
+            )
+            cleaned = values.with_columns(
+                pl.col("Raw").str.replace_all(HIDDEN_CHARACTERS_PATTERN, "").str.strip_chars().alias("Cleaned")
+            )
+            frames.append(
+                cleaned.filter(pl.col("Raw") != pl.col("Cleaned"))
+                .join(
+                    values.select(pl.col("Raw").alias("Cleaned"), pl.col("Models").alias("Lookalike Models")),
+                    on="Cleaned",
+                    how="left",
+                )
+                .select(
+                    pl.lit(column).alias("Column"),
+                    pl.col("Raw").map_elements(_spell_out_hidden_characters, return_dtype=pl.Utf8).alias("Value"),
+                    "Cleaned",
+                    "Models",
+                    pl.col("Lookalike Models").fill_null(0),
+                )
+            )
+        if not frames:
+            return pl.LazyFrame(schema=schema)
+        return pl.concat(frames).sort("Column", "Models", descending=[False, True])
+
+    def predictor_importance(
+        self,
+        *,
+        by: Literal["PredictorName", "PredictorCategory"] = "PredictorName",
+        query: QUERY | None = None,
+    ) -> pl.LazyFrame:
+        """Share of the model importance carried by predictors or categories.
+
+        Uses the ``FeatureImportance`` the platform stores for the
+        predictors. For Adaptive Gradient Boosting (AGB) models this is the
+        only per-predictor measure: their predictors have no bin statistics
+        and hence no univariate performance. Per model the importances are
+        rescaled to sum to 100%, then averaged over the models of each
+        configuration. Models without any importance (for example AGB models
+        that have not built trees yet) are not counted.
+
+        Parameters
+        ----------
+        by : {"PredictorName", "PredictorCategory"}, default "PredictorName"
+            Whether to report each predictor or each predictor category.
+        query : QUERY, optional
+            Restricts the models in scope, for example
+            ``pl.col("ModelTechnique") == "GradientBoost"``.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Per Configuration, Channel, Direction and ModelTechnique (those
+            present in the data) and predictor (or category): ``Models``
+            (models in the group), ``Importance %`` (average share of the
+            model importance) and ``Active Predictors`` (average number of
+            active predictors per model).
+
+        Raises
+        ------
+        ValueError
+            If the data has no predictor importance.
+        """
+        combined = self.datamart.combined_data
+        if combined is None or "FeatureImportance" not in combined.collect_schema().names():
+            raise ValueError("Predictor importance requires predictor data with a FeatureImportance column")
+
+        context = [
+            c
+            for c in ("Configuration", "Channel", "Direction", "ModelTechnique")
+            if c in combined.collect_schema().names()
+        ]
+        group = context + (["PredictorName", "PredictorCategory"] if by == "PredictorName" else ["PredictorCategory"])
+        per_model = (
+            cdh_utils._apply_query(self.last(table="combined_data"), query, allow_empty=True)
+            .filter(pl.col("EntryType") != "Classifier")
+            .filter(pl.col("FeatureImportance").is_not_null())
+            .unique(subset=["ModelID", "PredictorName"], keep="first")
+            .with_columns(pl.col("FeatureImportance").sum().over("ModelID").alias("_Total"))
+            .filter(pl.col("_Total") > 0)
+            .with_columns((pl.col("FeatureImportance") / pl.col("_Total") * 100).alias("_Share"))
+        )
+        models = per_model.group_by(context).agg(pl.col("ModelID").n_unique().alias("Models"))
+        return (
+            per_model.group_by(group)
+            .agg(
+                pl.col("_Share").sum(),
+                (pl.col("EntryType") == "Active").sum().alias("_Active"),
+            )
+            .join(models, on=context, nulls_equal=True)
+            .select(
+                *group,
+                "Models",
+                (pl.col("_Share") / pl.col("Models")).alias("Importance %"),
+                (pl.col("_Active") / pl.col("Models")).alias("Active Predictors"),
+            )
+            .sort([*context, "Importance %"], descending=[False] * len(context) + [True])
         )
 
     def overall_summary(
