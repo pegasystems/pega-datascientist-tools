@@ -115,10 +115,12 @@ class _PredictorPlotsMixin(_PlotsBase):
                 ),
             )
 
+        legend_title = "Predictor Category" if legend_col == "PredictorCategory" else legend_col
         fig.update_layout(
-            title=f"{metric_col} by {legend_col}",
+            title=f"{metric_col} by {legend_title}",
             xaxis_title=metric_col,
             yaxis_title="",
+            legend_title_text=legend_title,
             template="pega",
         )
 
@@ -394,6 +396,8 @@ class _PredictorPlotsMixin(_PlotsBase):
             x="Contribution",
             y=by,
             color="PredictorCategory",
+            color_discrete_map=self.datamart.predictor_category_color_map,
+            labels={"PredictorCategory": "Predictor Category"},
             orientation="h",
             template="pega",
             title="Contribution of different sources",
@@ -581,6 +585,10 @@ class _PredictorPlotsMixin(_PlotsBase):
             x="Count",
             y="_Type",
             color=by_list[0],
+            color_discrete_map=(
+                self.datamart.predictor_category_color_map if by_list[0] == "PredictorCategory" else None
+            ),
+            labels={"PredictorCategory": "Predictor Category"},
             custom_data=custom_data,
             template="pega",
         )
@@ -703,6 +711,7 @@ class _PredictorPlotsMixin(_PlotsBase):
             y="PredictorName",
             color="PredictorCategory",
             color_discrete_map=self.datamart.predictor_category_color_map,
+            labels={"PredictorCategory": "Predictor Category"},
             orientation="h",
             hover_data={"Active Predictors": False},
             title=f"Top {collapsed.height} predictors by share of model importance",
@@ -788,6 +797,7 @@ class _PredictorPlotsMixin(_PlotsBase):
             y="Model configuration",
             color="PredictorCategory",
             color_discrete_map=self.datamart.predictor_category_color_map,
+            labels={"PredictorCategory": "Predictor Category"},
             orientation="h",
             hover_data=["Models", "Active Predictors"],
             title="Share of model importance per predictor category",

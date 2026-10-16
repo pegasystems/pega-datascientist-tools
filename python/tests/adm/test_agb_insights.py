@@ -118,7 +118,7 @@ def test_hidden_characters_none():
     assert df.columns == ["Column", "Value", "Cleaned", "Models", "Lookalike Models"]
 
 
-def _importance_dm():
+def _importance_dm(bin_responses=0):
     models = _models(
         [
             ("a1", "x", 10, 100, "GradientBoost"),
@@ -146,11 +146,11 @@ def _importance_dm():
             "BinIndex": 1,
             "BinType": "NONE",
             "BinSymbol": "",
-            "BinResponseCount": 0,
-            "BinPositives": 0,
+            "BinResponseCount": bin_responses,
+            "BinPositives": bin_responses // 10,
             "Type": "numeric",
             "Performance": 0.5,
-            "ResponseCount": 0,
+            "ResponseCount": bin_responses,
             "Positives": 0,
         }
     ).lazy()
@@ -216,3 +216,23 @@ def test_finding_very_low_success_rate_relative_to_channel():
     # the same low rate is unremarkable when its own channel has a similarly low average
     web = _models([("m1", "a", 1, 100000, "NaiveBayes"), ("m2", "b", 2, 100000, "NaiveBayes")])
     assert Analysis(ADMDatamart(model_df=web))._check_very_low_success_rates() == []
+
+
+def test_category_plots_share_colors_and_legend_title():
+    dm = _importance_dm(bin_responses=100)
+    expected = dm.predictor_category_color_map
+    assert expected["Customer"] == "#001F5F"
+    figs = {
+        "importance": dm.plot.predictor_importance(),
+        "category_importance": dm.plot.predictor_category_importance(),
+        "contribution": dm.plot.predictor_contribution(),
+        "performance": dm.plot.predictor_performance(),
+        "category_performance": dm.plot.predictor_category_performance(),
+        "count": dm.plot.predictor_count(by=["PredictorCategory"]),
+    }
+    for name, fig in figs.items():
+        assert type(fig).__name__ == "Figure", name
+        assert fig.layout.legend.title.text == "Predictor Category", name
+        colors = {t.name: t.marker.color for t in fig.data if t.name in expected}
+        assert colors, name
+        assert all(colors[c] == expected[c] for c in colors), name
