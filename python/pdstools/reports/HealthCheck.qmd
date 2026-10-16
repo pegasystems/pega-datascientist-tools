@@ -1112,7 +1112,7 @@ unused_configurations = (
 )
 ```
 
-::: {.callout-important title="Excluded Configurations"}
+::: {#excluded-configurations .callout-important title="Excluded Configurations"}
 ```{python}
 # | echo: false
 report_utils.quarto_print(
@@ -1149,6 +1149,54 @@ if (unused_configurations.shape[0] > 0) and (
     # Regenerate formatted data for report display
     last_data = datamart.get_last_data_for_report()
 ```
+
+## Model Naming Review
+
+ADM models are identified by their Configuration, Channel, Direction, Issue, Group, Name and Treatment. This review checks these identifiers for values that are missing, or that contain invisible characters such as zero-width or non-breaking spaces or leading and trailing whitespace. Values that look identical can then be different values, so their responses end up on separate models.
+
+```{python}
+# | echo: false
+# | error: true
+try:
+    naming_review = datamart.aggregates.naming_review().collect()
+    hidden_names = datamart.aggregates.hidden_character_names().collect()
+except Exception as e:
+    naming_review = None
+    hidden_names = None
+    report_utils.quarto_plot_exception("Model naming review", e)
+
+if naming_review is not None and naming_review.height > 0:
+    # A missing Treatment is normal for models that are not at treatment level.
+    required = naming_review.filter(pl.col("Column") != "Treatment")
+    n_empty = required["Models with Empty Value"].sum()
+    n_hidden = naming_review["Models with Hidden Characters"].sum()
+    if n_empty > 0 or n_hidden > 0:
+        issues = []
+        if n_empty > 0:
+            issues.append(
+                f"{n_empty:,} models have a missing value in one of Configuration, Channel, Direction, Issue, Group or Name"
+            )
+        if n_hidden > 0:
+            issues.append(f"{n_hidden:,} models have an identifier with hidden characters")
+        message = " and ".join(issues) + ". "
+        if n_hidden > 0:
+            message += (
+                "A non-zero 'Name Clashes' in the table below means models with the cleaned value also exist, "
+                "so responses for the same name are split over both."
+            )
+        report_utils.quarto_callout_important(message.strip())
+    else:
+        report_utils.quarto_print("All model identifiers are present and free of hidden characters.")
+    display(GT(naming_review))
+    if hidden_names is not None and hidden_names.height > 0:
+        display(GT(hidden_names.head(50)))
+```
+
+::: {.callout-tip title="Guidance"}
+-   Missing Channel or Direction values usually mean the channel was not populated when the model was created; fix this upstream
+-   A missing Treatment is expected for models that do not distinguish treatments
+-   Values with hidden characters should be cleaned upstream, so that responses are not spread over models with clashing names
+:::
 
 ## Model Performance {#model-performance}
 
@@ -1446,9 +1494,9 @@ else:
 -   Consistency in the numbers across configurations
 :::
 
-## Predictor Importance
+## Importance of Naive Bayes Predictors
 
-Box plots of the predictor importance. Predictor importance is using the univariate predictor performance.
+Box plots of the predictor importance of the Naive Bayes models. Predictor importance is using the univariate predictor performance. Adaptive Gradient Boosting models have no univariate predictor performance; their importance is shown in a separate section below.
 
 ```{python}
 # TODO: Enable calculated feature importance
@@ -1532,9 +1580,9 @@ else:
 -   A min/max of the univariate AUC performance somewhere between 55 and 75
 :::
 
-## Importance by Predictor Category
+## Importance of Naive Bayes Predictors by Category
 
-Aggregating up to the category of the predictors. This gives a view at a glance of how well e.g. interaction history, external model scores or contextual data are doing overall.
+Aggregating up to the category of the predictors, using the univariate predictor performance of the Naive Bayes models. This gives a view at a glance of how well e.g. interaction history, external model scores or contextual data are doing overall.
 
 ```{python}
 # | error: true
@@ -1548,11 +1596,67 @@ if datamart.predictor_data is not None:
         else:
             report_utils.quarto_print("No predictor category data available to plot.")
     except Exception as e:
-        report_utils.quarto_plot_exception("Importance by Predictor Category", e)
+        report_utils.quarto_plot_exception("Importance of Naive Bayes Predictors by Category", e)
 else:
     report_utils.quarto_callout_no_predictor_data_warning()
 
 ```
+
+## Importance of Adaptive Gradient Boosting Predictors
+
+Adaptive Gradient Boosting (AGB) models do not have univariate predictor performance, so they do not show up in the Naive Bayes sections above. Instead the importance reported by the platform is shown here. For each model the importances add up to 100%; the charts show the average over the models of a configuration. AGB models that have not built any trees yet have no importance and are left out.
+
+```{python}
+# | error: true
+agb_query = pl.col("ModelTechnique") == "GradientBoost"
+agb_importance = None
+if datamart.predictor_data is None or "FeatureImportance" not in datamart.predictor_data.collect_schema().names():
+    agb_unavailable = "The predictor data has no feature importance, so there is nothing to show for Adaptive Gradient Boosting models."
+elif datamart.model_data.filter(agb_query & active_models_filter_expr).select(pl.len()).collect().item() == 0:
+    n_excluded_agb = (
+        trend_datamart.model_data.filter(agb_query & active_models_filter_expr)
+        .select(pl.col("ModelID").n_unique())
+        .collect()
+        .item()
+    )
+    if n_excluded_agb > 0:
+        agb_unavailable = (
+            f"{n_excluded_agb} active Adaptive Gradient Boosting model(s) in this data were left out because "
+            "their configuration is excluded from the detailed analyses (see [Excluded Configurations](#excluded-configurations))."
+        )
+    else:
+        agb_unavailable = "There are no active Adaptive Gradient Boosting models in this data."
+else:
+    agb_unavailable = (
+        "None of the Adaptive Gradient Boosting models in this data has predictor importance yet. "
+        "Models that have not built any trees, or that are not active, are left out."
+    )
+    try:
+        agb_importance = datamart.aggregates.predictor_importance(
+            by="PredictorCategory", query=agb_query & active_models_filter_expr
+        ).collect()
+    except Exception as e:
+        report_utils.quarto_plot_exception("AGB predictor importance", e)
+
+if agb_importance is None or agb_importance.height == 0:
+    report_utils.quarto_callout_info(agb_unavailable)
+else:
+    try:
+        fig = datamart.plot.predictor_category_importance(query=agb_query & active_models_filter_expr)
+        if fig is not None:
+            fig.show()
+        fig = datamart.plot.predictor_importance(query=agb_query & active_models_filter_expr)
+        if fig is not None:
+            fig.show()
+    except Exception as e:
+        report_utils.quarto_plot_exception("AGB predictor importance", e)
+```
+
+::: {.callout-tip title="Guidance"}
+-   Importance concentrated in a single predictor or category makes the model fragile; a healthy model draws on several
+-   Predictors that look like identifiers (very many distinct values) can dominate without being predictive in a meaningful way
+-   Parameters passed in with the request often carry the context; their share shows how much the model relies on it
+:::
 
 ## Global Predictor Overview
 

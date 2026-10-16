@@ -13,12 +13,13 @@ Layout
   :meth:`action_overlap`, :meth:`partitioned_plot`.
 - ``_performance`` – :meth:`over_time`, :meth:`gains_chart`,
   :meth:`performance_volume_distribution`,
-  :meth:`proposition_success_rates`.
+  :meth:`proposition_success_rates`, :meth:`success_rate_intervals`.
 - ``_score``      – :meth:`score_distribution`,
   :meth:`multiple_score_distributions`.
 - ``_predictors`` – :meth:`predictor_performance`,
   :meth:`predictor_category_performance`, :meth:`predictor_contribution`,
-  :meth:`predictor_performance_heatmap`, :meth:`predictor_count`.
+  :meth:`predictor_performance_heatmap`, :meth:`predictor_count`, :meth:`predictor_importance`,
+  :meth:`predictor_category_importance`.
 - ``_binning``    – :meth:`predictor_binning`,
   :meth:`multiple_predictor_binning`, :meth:`binning_lift`.
 """
