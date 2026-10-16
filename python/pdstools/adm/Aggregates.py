@@ -1314,10 +1314,10 @@ class Aggregates:
         pl.LazyFrame
             One row per affected value with ``Column``, ``Value`` (shown
             quoted with the hidden characters spelled out as ``<U+XXXX>``),
-            ``Cleaned`` (the value without hidden characters), ``Models``
-            (number of models with this value) and ``Lookalike Models``
+            ``Cleaned`` (the value without hidden characters, also quoted), ``Models``
+            (number of models with this value) and ``Name Clashes``
             (number of models that have the cleaned value). A non-zero
-            lookalike count means the data holds two values that appear
+            clash count means the data holds two values that appear
             identical.
         """
         model_data = cdh_utils._apply_query(self.last(table="model_data"), query, allow_empty=True)
@@ -1327,7 +1327,7 @@ class Aggregates:
             "Value": pl.Utf8,
             "Cleaned": pl.Utf8,
             "Models": pl.UInt32,
-            "Lookalike Models": pl.UInt32,
+            "Name Clashes": pl.UInt32,
         }
         frames = []
         for column in (c for c in columns if c in names):
@@ -1343,16 +1343,16 @@ class Aggregates:
             frames.append(
                 cleaned.filter(pl.col("Raw") != pl.col("Cleaned"))
                 .join(
-                    values.select(pl.col("Raw").alias("Cleaned"), pl.col("Models").alias("Lookalike Models")),
+                    values.select(pl.col("Raw").alias("Cleaned"), pl.col("Models").alias("Name Clashes")),
                     on="Cleaned",
                     how="left",
                 )
                 .select(
                     pl.lit(column).alias("Column"),
                     pl.col("Raw").map_elements(_spell_out_hidden_characters, return_dtype=pl.Utf8).alias("Value"),
-                    "Cleaned",
+                    pl.format('"{}"', pl.col("Cleaned")).alias("Cleaned"),
                     "Models",
-                    pl.col("Lookalike Models").fill_null(0),
+                    pl.col("Name Clashes").fill_null(0),
                 )
             )
         if not frames:

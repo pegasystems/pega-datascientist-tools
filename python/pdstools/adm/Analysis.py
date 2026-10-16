@@ -884,7 +884,7 @@ class Analysis:
             return []
         if hidden.height == 0:
             return []
-        lookalikes = hidden.filter(pl.col("Lookalike Models") > 0).height
+        clashes = hidden.filter(pl.col("Name Clashes") > 0).height
         columns = ", ".join(sorted(hidden["Column"].unique().to_list()))
         return [
             Finding(
@@ -894,14 +894,14 @@ class Analysis:
                 detail=(
                     "Invisible characters such as zero-width or non-breaking spaces, or leading and trailing "
                     "whitespace, make values that look identical differ. Responses recorded under such "
-                    "lookalikes end up on separate models."
+                    "values can end up on separate models."
                     + (
-                        f" For {lookalikes:,} of these values the cleaned value also exists as a separate value."
-                        if lookalikes
+                        f" For {clashes:,} of these values the cleaned value also exists as a separate value."
+                        if clashes
                         else ""
                     )
                 ),
-                data={"value_count": hidden.height, "lookalike_count": lookalikes},
+                data={"value_count": hidden.height, "lookalike_count": clashes},
             )
         ]
 

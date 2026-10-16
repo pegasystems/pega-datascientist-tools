@@ -1174,7 +1174,7 @@ if naming_review is not None and naming_review.height > 0:
         report_utils.quarto_callout_important(
             f"{n_empty:,} models have a missing value in one of Configuration, Channel, Direction, Issue, Group or Name, "
             f"and {n_hidden:,} models have an identifier with hidden characters. "
-            "A non-zero 'Lookalike Models' in the table below means the cleaned value also exists as a separate value."
+            "A non-zero 'Name Clashes' in the table below means models with the cleaned value also exist, so responses for the same name are split over both."
         )
     else:
         report_utils.quarto_print("All model identifiers are present and free of hidden characters.")
@@ -1186,7 +1186,7 @@ if naming_review is not None and naming_review.height > 0:
 ::: {.callout-tip title="Guidance"}
 -   Missing Channel or Direction values usually mean the channel was not populated when the model was created. These models are excluded from the channel overview
 -   A missing Treatment is expected for models that do not distinguish treatments
--   Values with hidden characters should be cleaned upstream, so that responses are not spread over lookalike models
+-   Values with hidden characters should be cleaned upstream, so that responses are not spread over models with clashing names
 :::
 
 ## Model Performance {#model-performance}

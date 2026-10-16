@@ -105,9 +105,9 @@ def test_hidden_characters():
     ]
     dm = ADMDatamart(model_df=_models(rows))
     df = dm.aggregates.hidden_character_names().collect()
-    assert df.sort("Value").select("Column", "Value", "Cleaned", "Models", "Lookalike Models").rows() == [
-        ("Name", '" lonely"', "lonely", 1, 0),
-        ("Name", '"offer<U+200B>"', "offer", 1, 1),
+    assert df.sort("Value").select("Column", "Value", "Cleaned", "Models", "Name Clashes").rows() == [
+        ("Name", '" lonely"', '"lonely"', 1, 0),
+        ("Name", '"offer<U+200B>"', '"offer"', 1, 1),
     ]
 
 
@@ -115,7 +115,7 @@ def test_hidden_characters_none():
     dm = ADMDatamart(model_df=_models([("m1", "clean", 1, 10, "NaiveBayes")]))
     df = dm.aggregates.hidden_character_names().collect()
     assert df.height == 0
-    assert df.columns == ["Column", "Value", "Cleaned", "Models", "Lookalike Models"]
+    assert df.columns == ["Column", "Value", "Cleaned", "Models", "Name Clashes"]
 
 
 def test_naming_review():
