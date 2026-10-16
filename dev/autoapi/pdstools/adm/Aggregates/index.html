@@ -760,6 +760,140 @@ These will be added to the default aggregations.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.Aggregates.Aggregates.success_rate_intervals">
+<span class="sig-name descname"><span class="pre">success_rate_intervals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">confidence_level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.adm.Aggregates.Aggregates.success_rate_intervals" title="Link to this definition">¶</a></dt>
+<dd><p>Success rate of each model with a Wilson confidence interval.</p>
+<p>Every model (last snapshot) is compared to the average success rate
+of the models in its own channel and direction (total positives over
+total responses), as base rates differ widely between channels. It
+is classified by its confidence interval, without any assumption on
+the model names. Without <code class="docutils literal notranslate"><span class="pre">Channel</span></code> and <code class="docutils literal notranslate"><span class="pre">Direction</span></code> columns all
+models in scope are compared to one average.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>confidence_level</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a><em>, </em><em>default 0.95</em>) – Two-sided confidence level of the Wilson interval.</p></li>
+<li><p><strong>query</strong> (<a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><em>QUERY</em></a><em>, </em><em>optional</em>) – Restricts the models in scope. The averages are computed over
+the models that remain.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>One row per model with, next to the descriptive columns that
+exist in the data, <code class="docutils literal notranslate"><span class="pre">Positives</span></code>, <code class="docutils literal notranslate"><span class="pre">Negatives</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ResponseCount</span></code>, <code class="docutils literal notranslate"><span class="pre">SuccessRate</span></code>, <code class="docutils literal notranslate"><span class="pre">SuccessRate_CI_Lower</span></code>,
+<code class="docutils literal notranslate"><span class="pre">SuccessRate_CI_Upper</span></code>, <code class="docutils literal notranslate"><span class="pre">AverageSuccessRate</span></code> and
+<code class="docutils literal notranslate"><span class="pre">SuccessRateCategory</span></code>. The category is one of:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Very</span> <span class="pre">low</span></code>: the whole interval is below a tenth of the average</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Below</span> <span class="pre">average</span></code>: the whole interval is below the average</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Above</span> <span class="pre">average</span></code>: the whole interval is above the average</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Consistent</span> <span class="pre">with</span> <span class="pre">average</span></code>: the interval contains the average</p></li>
+</ul>
+<p>Models without responses are left out.</p>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.LazyFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.Aggregates.Aggregates.naming_review">
+<span class="sig-name descname"><span class="pre">naming_review</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Ellipsis</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">NAMING_COLUMNS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.adm.Aggregates.Aggregates.naming_review" title="Link to this definition">¶</a></dt>
+<dd><p>Completeness and cleanliness of the model identifier columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>columns</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><em>tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><em>...</em><em>]</em>) – The model columns to review. Columns absent from the data are
+skipped.</p></li>
+<li><p><strong>query</strong> (<a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><em>QUERY</em></a><em>, </em><em>optional</em>) – Restricts the models in scope.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One row per reviewed column with <code class="docutils literal notranslate"><span class="pre">Column</span></code>, <code class="docutils literal notranslate"><span class="pre">Distinct</span> <span class="pre">Values</span></code>
+(non-empty values), <code class="docutils literal notranslate"><span class="pre">Models</span> <span class="pre">with</span> <span class="pre">Empty</span> <span class="pre">Value</span></code> (null, empty or
+whitespace only), <code class="docutils literal notranslate"><span class="pre">Values</span> <span class="pre">with</span> <span class="pre">Hidden</span> <span class="pre">Characters</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Models</span> <span class="pre">with</span> <span class="pre">Hidden</span> <span class="pre">Characters</span></code>. Hidden characters are
+invisible characters such as zero-width or non-breaking spaces
+and leading or trailing whitespace; see <a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.hidden_character_names" title="pdstools.adm.Aggregates.Aggregates.hidden_character_names"><code class="xref py py-meth docutils literal notranslate"><span class="pre">hidden_character_names()</span></code></a>
+for the values themselves.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.LazyFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.Aggregates.Aggregates.hidden_character_names">
+<span class="sig-name descname"><span class="pre">hidden_character_names</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Ellipsis</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">NAMING_COLUMNS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.adm.Aggregates.Aggregates.hidden_character_names" title="Link to this definition">¶</a></dt>
+<dd><p>Model identifiers that contain invisible or control characters.</p>
+<p>Zero-width spaces, non-breaking spaces, control characters and
+leading or trailing whitespace are invisible in most tools, so two
+names that look identical can be different values. When
+presentations and responses are recorded under such lookalikes they
+end up on different models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>columns</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><em>tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>, </em><em>...</em><em>]</em>) – The model columns to inspect. Columns absent from the data are
+skipped.</p></li>
+<li><p><strong>query</strong> (<a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><em>QUERY</em></a><em>, </em><em>optional</em>) – Restricts the models in scope.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One row per affected value with <code class="docutils literal notranslate"><span class="pre">Column</span></code>, <code class="docutils literal notranslate"><span class="pre">Value</span></code> (shown
+quoted with the hidden characters spelled out as <code class="docutils literal notranslate"><span class="pre">[U+XXXX]</span></code>),
+<code class="docutils literal notranslate"><span class="pre">Hidden</span> <span class="pre">Characters</span></code> (what is hidden in the value),
+<code class="docutils literal notranslate"><span class="pre">Cleaned</span></code> (the value without hidden characters, also quoted), <code class="docutils literal notranslate"><span class="pre">Models</span></code>
+(number of models with this value) and <code class="docutils literal notranslate"><span class="pre">Name</span> <span class="pre">Clashes</span></code>
+(number of models that have the cleaned value). A non-zero
+clash count means the data holds two values that appear
+identical.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.LazyFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.Aggregates.Aggregates.predictor_importance">
+<span class="sig-name descname"><span class="pre">predictor_importance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'PredictorName'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'PredictorCategory'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'PredictorName'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.adm.Aggregates.Aggregates.predictor_importance" title="Link to this definition">¶</a></dt>
+<dd><p>Share of the model importance carried by predictors or categories.</p>
+<p>Uses the <code class="docutils literal notranslate"><span class="pre">FeatureImportance</span></code> the platform stores for the
+predictors. For Adaptive Gradient Boosting (AGB) models this is the
+only per-predictor measure: their predictors have no bin statistics
+and hence no univariate performance. Per model the importances are
+rescaled to sum to 100%, then averaged over the models of each
+configuration. Models without any importance (for example AGB models
+that have not built trees yet) are not counted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>by</strong> (<em>{&quot;PredictorName&quot;</em><em>, </em><em>&quot;PredictorCategory&quot;}</em><em>, </em><em>default &quot;PredictorName&quot;</em>) – Whether to report each predictor or each predictor category.</p></li>
+<li><p><strong>query</strong> (<a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><em>QUERY</em></a><em>, </em><em>optional</em>) – Restricts the models in scope, for example
+<code class="docutils literal notranslate"><span class="pre">pl.col(&quot;ModelTechnique&quot;)</span> <span class="pre">==</span> <span class="pre">&quot;GradientBoost&quot;</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Per Configuration, Channel, Direction and ModelTechnique (those
+present in the data) and predictor (or category): <code class="docutils literal notranslate"><span class="pre">Models</span></code>
+(models in the group), <code class="docutils literal notranslate"><span class="pre">Importance</span> <span class="pre">%</span></code> (average share of the
+model importance) and <code class="docutils literal notranslate"><span class="pre">Active</span> <span class="pre">Predictors</span></code> (average number of
+active predictors per model).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.LazyFrame</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If the data has no predictor importance.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.Aggregates.Aggregates.overall_summary">
 <span class="sig-name descname"><span class="pre">overall_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.15)"><span class="pre">datetime.datetime</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.15)"><span class="pre">datetime.datetime</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.timedelta" title="(in Python v3.15)"><span class="pre">datetime.timedelta</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">every</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.adm.Aggregates.Aggregates.overall_summary" title="Link to this definition">¶</a></dt>
 <dd><p>Overall ADM models summary. Only valid data is included.</p>
@@ -898,6 +1032,10 @@ For debug logging, use logging.basicConfig(level=logging.DEBUG).</p>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.predictors_global_overview"><code class="docutils literal notranslate"><span class="pre">predictors_global_overview()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.global_predictor_overview"><code class="docutils literal notranslate"><span class="pre">global_predictor_overview()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.predictors_overview"><code class="docutils literal notranslate"><span class="pre">predictors_overview()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.success_rate_intervals"><code class="docutils literal notranslate"><span class="pre">success_rate_intervals()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.naming_review"><code class="docutils literal notranslate"><span class="pre">naming_review()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.hidden_character_names"><code class="docutils literal notranslate"><span class="pre">hidden_character_names()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.predictor_importance"><code class="docutils literal notranslate"><span class="pre">predictor_importance()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.overall_summary"><code class="docutils literal notranslate"><span class="pre">overall_summary()</span></code></a></li>
 </ul>
 </li>

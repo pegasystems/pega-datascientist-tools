@@ -273,6 +273,117 @@ Module Contents
 
 
 
+   .. py:method:: success_rate_intervals(*, confidence_level: float = 0.95, query: pdstools.utils.types.QUERY | None = None) -> polars.LazyFrame
+
+      Success rate of each model with a Wilson confidence interval.
+
+      Every model (last snapshot) is compared to the average success rate
+      of the models in its own channel and direction (total positives over
+      total responses), as base rates differ widely between channels. It
+      is classified by its confidence interval, without any assumption on
+      the model names. Without ``Channel`` and ``Direction`` columns all
+      models in scope are compared to one average.
+
+      :param confidence_level: Two-sided confidence level of the Wilson interval.
+      :type confidence_level: float, default 0.95
+      :param query: Restricts the models in scope. The averages are computed over
+                    the models that remain.
+      :type query: QUERY, optional
+
+      :returns: One row per model with, next to the descriptive columns that
+                exist in the data, ``Positives``, ``Negatives``,
+                ``ResponseCount``, ``SuccessRate``, ``SuccessRate_CI_Lower``,
+                ``SuccessRate_CI_Upper``, ``AverageSuccessRate`` and
+                ``SuccessRateCategory``. The category is one of:
+
+                - ``Very low``: the whole interval is below a tenth of the average
+                - ``Below average``: the whole interval is below the average
+                - ``Above average``: the whole interval is above the average
+                - ``Consistent with average``: the interval contains the average
+
+                Models without responses are left out.
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: naming_review(*, columns: tuple[str, Ellipsis] = NAMING_COLUMNS, query: pdstools.utils.types.QUERY | None = None) -> polars.LazyFrame
+
+      Completeness and cleanliness of the model identifier columns.
+
+      :param columns: The model columns to review. Columns absent from the data are
+                      skipped.
+      :type columns: tuple[str, ...]
+      :param query: Restricts the models in scope.
+      :type query: QUERY, optional
+
+      :returns: One row per reviewed column with ``Column``, ``Distinct Values``
+                (non-empty values), ``Models with Empty Value`` (null, empty or
+                whitespace only), ``Values with Hidden Characters`` and
+                ``Models with Hidden Characters``. Hidden characters are
+                invisible characters such as zero-width or non-breaking spaces
+                and leading or trailing whitespace; see :meth:`hidden_character_names`
+                for the values themselves.
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: hidden_character_names(*, columns: tuple[str, Ellipsis] = NAMING_COLUMNS, query: pdstools.utils.types.QUERY | None = None) -> polars.LazyFrame
+
+      Model identifiers that contain invisible or control characters.
+
+      Zero-width spaces, non-breaking spaces, control characters and
+      leading or trailing whitespace are invisible in most tools, so two
+      names that look identical can be different values. When
+      presentations and responses are recorded under such lookalikes they
+      end up on different models.
+
+      :param columns: The model columns to inspect. Columns absent from the data are
+                      skipped.
+      :type columns: tuple[str, ...]
+      :param query: Restricts the models in scope.
+      :type query: QUERY, optional
+
+      :returns: One row per affected value with ``Column``, ``Value`` (shown
+                quoted with the hidden characters spelled out as ``[U+XXXX]``),
+                ``Hidden Characters`` (what is hidden in the value),
+                ``Cleaned`` (the value without hidden characters, also quoted), ``Models``
+                (number of models with this value) and ``Name Clashes``
+                (number of models that have the cleaned value). A non-zero
+                clash count means the data holds two values that appear
+                identical.
+      :rtype: pl.LazyFrame
+
+
+
+   .. py:method:: predictor_importance(*, by: Literal['PredictorName', 'PredictorCategory'] = 'PredictorName', query: pdstools.utils.types.QUERY | None = None) -> polars.LazyFrame
+
+      Share of the model importance carried by predictors or categories.
+
+      Uses the ``FeatureImportance`` the platform stores for the
+      predictors. For Adaptive Gradient Boosting (AGB) models this is the
+      only per-predictor measure: their predictors have no bin statistics
+      and hence no univariate performance. Per model the importances are
+      rescaled to sum to 100%, then averaged over the models of each
+      configuration. Models without any importance (for example AGB models
+      that have not built trees yet) are not counted.
+
+      :param by: Whether to report each predictor or each predictor category.
+      :type by: {"PredictorName", "PredictorCategory"}, default "PredictorName"
+      :param query: Restricts the models in scope, for example
+                    ``pl.col("ModelTechnique") == "GradientBoost"``.
+      :type query: QUERY, optional
+
+      :returns: Per Configuration, Channel, Direction and ModelTechnique (those
+                present in the data) and predictor (or category): ``Models``
+                (models in the group), ``Importance %`` (average share of the
+                model importance) and ``Active Predictors`` (average number of
+                active predictors per model).
+      :rtype: pl.LazyFrame
+
+      :raises ValueError: If the data has no predictor importance.
+
+
+
    .. py:method:: overall_summary(*, start_date: datetime.datetime | None = None, end_date: datetime.datetime | None = None, window: int | datetime.timedelta | None = None, every: str | None = None, debug: bool = False) -> polars.LazyFrame
 
       Overall ADM models summary. Only valid data is included.

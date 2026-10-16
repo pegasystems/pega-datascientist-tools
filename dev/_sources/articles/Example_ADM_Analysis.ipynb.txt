@@ -209,6 +209,23 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
+    "A low success rate on a model with few responses says little. `success_rate_intervals` puts every model at its number of negatives and positives (logarithmic axes, so lines through the origin are constant success rates) and adds the confidence interval of its success rate. There is one panel per channel and direction, each with its own average (the dashed line). Models are coloured by whether the interval is entirely below, entirely above, or consistent with that average."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = CDHSample.plot.success_rate_intervals()\n",
+    "fig.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
     "If we want to look at the distribution of responses and their propensities for a given model, we can subset that model and call plotScoreDistribution. Note here we subset the model by its ID."
    ]
   },
