@@ -4,6 +4,7 @@ __all__ = ["Aggregates"]
 import datetime
 import logging
 import re
+import unicodedata
 from typing import TYPE_CHECKING, Literal
 
 import polars as pl
@@ -43,8 +44,21 @@ _HIDDEN_CHARACTERS = re.compile(HIDDEN_CHARACTERS_PATTERN)
 
 
 def _spell_out_hidden_characters(value: str) -> str:
-    """Quote a value and replace each hidden character by ``<U+XXXX>``."""
-    return '"' + _HIDDEN_CHARACTERS.sub(lambda m: f"<U+{ord(m.group()):04X}>", value) + '"'
+    """Quote a value and replace each hidden character by ``[U+XXXX]``.
+
+    Square brackets are used because angle brackets are swallowed as HTML tags
+    when the value is shown in a report.
+    """
+    return '"' + _HIDDEN_CHARACTERS.sub(lambda m: f"[U+{ord(m.group()):04X}]", value) + '"'
+
+
+def _describe_hidden_characters(value: str) -> str:
+    """Name the hidden characters in a value, e.g. ``U+200B zero width space``."""
+    found = dict.fromkeys(_HIDDEN_CHARACTERS.findall(value))
+    parts = [f"U+{ord(c):04X} {unicodedata.name(c, 'control character').lower()}" for c in found]
+    if value != value.strip():
+        parts.append("leading or trailing whitespace")
+    return ", ".join(parts)
 
 
 def channel_is_valid_expr() -> pl.Expr:
@@ -1313,7 +1327,8 @@ class Aggregates:
         -------
         pl.LazyFrame
             One row per affected value with ``Column``, ``Value`` (shown
-            quoted with the hidden characters spelled out as ``<U+XXXX>``),
+            quoted with the hidden characters spelled out as ``[U+XXXX]``),
+            ``Hidden Characters`` (what is hidden in the value),
             ``Cleaned`` (the value without hidden characters, also quoted), ``Models``
             (number of models with this value) and ``Name Clashes``
             (number of models that have the cleaned value). A non-zero
@@ -1325,6 +1340,7 @@ class Aggregates:
         schema = {
             "Column": pl.Utf8,
             "Value": pl.Utf8,
+            "Hidden Characters": pl.Utf8,
             "Cleaned": pl.Utf8,
             "Models": pl.UInt32,
             "Name Clashes": pl.UInt32,
@@ -1350,6 +1366,9 @@ class Aggregates:
                 .select(
                     pl.lit(column).alias("Column"),
                     pl.col("Raw").map_elements(_spell_out_hidden_characters, return_dtype=pl.Utf8).alias("Value"),
+                    pl.col("Raw")
+                    .map_elements(_describe_hidden_characters, return_dtype=pl.Utf8)
+                    .alias("Hidden Characters"),
                     pl.format('"{}"', pl.col("Cleaned")).alias("Cleaned"),
                     "Models",
                     pl.col("Name Clashes").fill_null(0),
