@@ -16,7 +16,12 @@ def report_cells():
     template = Path(__file__).parents[2] / "pdstools" / "reports" / "HealthCheck.qmd"
     cells = re.findall(r"```\{python\}\n(.*?)\n```", template.read_text(encoding="utf-8"), re.DOTALL)
     result = []
-    for marker in ("Insufficient feedback across all channels", "unused_channels = "):
+    for marker in (
+        "Insufficient feedback across all channels",
+        "unused_channels = ",
+        "The following channels will be excluded",
+        "Apply the channel exclusion",
+    ):
         matches = [cell for cell in cells if marker in cell]
         assert len(matches) == 1
         result.append(compile(matches[0], str(template), "exec"))
