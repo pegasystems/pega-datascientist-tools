@@ -25,6 +25,9 @@ VERY_LOW_SUCCESS_RATE_FRACTION = 0.1
 """A model is "very low" when its whole success rate interval is below this
 fraction of the average success rate."""
 
+NAMING_COLUMNS = ("Configuration", "Channel", "Direction", "Issue", "Group", "Name", "Treatment")
+"""Model identifier columns covered by the naming review."""
+
 HIDDEN_CHARACTERS_PATTERN = r"[\x00-\x1f\x7f-\x9f\u00a0\u00ad\u200b-\u200f\u2028-\u202f\u2060-\u2064\ufeff]"
 """Control, zero-width, directional and non-breaking space characters."""
 
@@ -1229,10 +1232,65 @@ class Aggregates:
             )
         )
 
+    def naming_review(
+        self,
+        *,
+        columns: tuple[str, ...] = NAMING_COLUMNS,
+        query: QUERY | None = None,
+    ) -> pl.LazyFrame:
+        """Completeness and cleanliness of the model identifier columns.
+
+        Parameters
+        ----------
+        columns : tuple[str, ...]
+            The model columns to review. Columns absent from the data are
+            skipped.
+        query : QUERY, optional
+            Restricts the models in scope.
+
+        Returns
+        -------
+        pl.LazyFrame
+            One row per reviewed column with ``Column``, ``Distinct Values``
+            (non-empty values), ``Models with Empty Value`` (null, empty or
+            whitespace only), ``Values with Hidden Characters`` and
+            ``Models with Hidden Characters``. Hidden characters are
+            invisible characters such as zero-width or non-breaking spaces
+            and leading or trailing whitespace; see :meth:`hidden_character_names`
+            for the values themselves.
+        """
+        model_data = cdh_utils._apply_query(self.last(table="model_data"), query, allow_empty=True)
+        names = model_data.collect_schema().names()
+        schema = {
+            "Column": pl.Utf8,
+            "Distinct Values": pl.UInt32,
+            "Models with Empty Value": pl.UInt32,
+            "Values with Hidden Characters": pl.UInt32,
+            "Models with Hidden Characters": pl.UInt32,
+        }
+        frames = []
+        for column in (c for c in columns if c in names):
+            raw = pl.col("Raw")
+            cleaned = raw.str.replace_all(HIDDEN_CHARACTERS_PATTERN, "").str.strip_chars()
+            empty = raw.is_null() | (cleaned == "")
+            hidden = ~empty & (raw != cleaned)
+            frames.append(
+                model_data.select(pl.col(column).cast(pl.Utf8).alias("Raw"), "ModelID").select(
+                    pl.lit(column).alias("Column"),
+                    raw.filter(~empty).n_unique().cast(pl.UInt32).alias("Distinct Values"),
+                    pl.col("ModelID").filter(empty).n_unique().cast(pl.UInt32).alias("Models with Empty Value"),
+                    raw.filter(hidden).n_unique().cast(pl.UInt32).alias("Values with Hidden Characters"),
+                    pl.col("ModelID").filter(hidden).n_unique().cast(pl.UInt32).alias("Models with Hidden Characters"),
+                )
+            )
+        if not frames:
+            return pl.LazyFrame(schema=schema)
+        return pl.concat(frames)
+
     def hidden_character_names(
         self,
         *,
-        columns: tuple[str, ...] = ("Configuration", "Issue", "Group", "Name", "Treatment"),
+        columns: tuple[str, ...] = NAMING_COLUMNS,
         query: QUERY | None = None,
     ) -> pl.LazyFrame:
         """Model identifiers that contain invisible or control characters.

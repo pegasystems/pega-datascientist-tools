@@ -118,6 +118,30 @@ def test_hidden_characters_none():
     assert df.columns == ["Column", "Value", "Cleaned", "Models", "Lookalike Models"]
 
 
+def test_naming_review():
+    rows = [
+        ("m1", "offer", 1, 10, "NaiveBayes"),
+        ("m2", f"offer{ZWSP}", 1, 10, "NaiveBayes"),
+        ("m3", " ", 1, 10, "NaiveBayes"),
+        ("m4", "clean", 1, 10, "NaiveBayes"),
+    ]
+    dm = ADMDatamart(model_df=_models(rows))
+    df = dm.aggregates.naming_review().collect()
+    name = df.filter(pl.col("Column") == "Name").row(0, named=True)
+    assert name["Distinct Values"] == 3
+    assert name["Models with Empty Value"] == 1
+    assert name["Values with Hidden Characters"] == 1
+    assert name["Models with Hidden Characters"] == 1
+    assert df.filter(pl.col("Column") == "Channel")["Models with Empty Value"].item() == 0
+
+
+def test_naming_review_no_columns():
+    dm = ADMDatamart(model_df=_models([("m1", "clean", 1, 10, "NaiveBayes")]))
+    df = dm.aggregates.naming_review(columns=("Nonexistent",)).collect()
+    assert df.height == 0
+    assert df.columns[0] == "Column"
+
+
 def _importance_dm(bin_responses=0):
     models = _models(
         [

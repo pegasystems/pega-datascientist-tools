@@ -1150,27 +1150,44 @@ if (unused_configurations.shape[0] > 0) and (
     last_data = datamart.get_last_data_for_report()
 ```
 
-## Model Identifiers with Hidden Characters
+## Model Naming Review
+
+ADM models are identified by their Configuration, Channel, Direction, Issue, Group, Name and Treatment. This review checks these identifiers for values that are missing, or that contain invisible characters such as zero-width or non-breaking spaces or leading and trailing whitespace. Values that look identical can then be different values, so their responses end up on separate models.
 
 ```{python}
 # | echo: false
 # | error: true
 try:
+    naming_review = datamart.aggregates.naming_review().collect()
     hidden_names = datamart.aggregates.hidden_character_names().collect()
 except Exception as e:
+    naming_review = None
     hidden_names = None
-    report_utils.quarto_plot_exception("Hidden character check", e)
+    report_utils.quarto_plot_exception("Model naming review", e)
 
-if hidden_names is not None and hidden_names.height > 0:
-    report_utils.quarto_callout_important(
-        "Some model identifiers contain invisible characters such as zero-width or non-breaking spaces, or leading and trailing whitespace. "
-        "Values that look identical can then be different values, so their responses end up on separate models. "
-        "A non-zero 'Lookalike Models' means the cleaned value also exists as a separate value."
-    )
-    display(GT(hidden_names.head(50)))
-elif hidden_names is not None:
-    report_utils.quarto_print("No model identifiers contain hidden characters.")
+if naming_review is not None and naming_review.height > 0:
+    # A missing Treatment is normal for models that are not at treatment level.
+    required = naming_review.filter(pl.col("Column") != "Treatment")
+    n_empty = required["Models with Empty Value"].sum()
+    n_hidden = naming_review["Models with Hidden Characters"].sum()
+    if n_empty > 0 or n_hidden > 0:
+        report_utils.quarto_callout_important(
+            f"{n_empty:,} models have a missing value in one of Configuration, Channel, Direction, Issue, Group or Name, "
+            f"and {n_hidden:,} models have an identifier with hidden characters. "
+            "A non-zero 'Lookalike Models' in the table below means the cleaned value also exists as a separate value."
+        )
+    else:
+        report_utils.quarto_print("All model identifiers are present and free of hidden characters.")
+    display(GT(naming_review))
+    if hidden_names is not None and hidden_names.height > 0:
+        display(GT(hidden_names.head(50)))
 ```
+
+::: {.callout-tip title="Guidance"}
+-   Missing Channel or Direction values usually mean the channel was not populated when the model was created. These models are excluded from the channel overview
+-   A missing Treatment is expected for models that do not distinguish treatments
+-   Values with hidden characters should be cleaned upstream, so that responses are not spread over lookalike models
+:::
 
 ## Model Performance {#model-performance}
 
