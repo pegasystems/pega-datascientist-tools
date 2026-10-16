@@ -441,9 +441,40 @@ display(
 In the ADM models, the total number of responses and positives are summed up over the models for that channel. If the models are configured differently, e.g. in a serial manner (shadow pattern for example) rather than in parallel (independently learning champion challenger setup) the actual counts per channel may be off. Ultimately, the real counts per channel can only be derived from **Interaction History data**.
 :::
 
-### Exclude unused Channels
+```{python}
+# | echo: false
+all_channels = df_channel_overview.select(["Channel", "Direction"]).unique()
+unused_channels_display = (
+    df_channel_overview.filter(pl.col.isValid.not_())
+    .select(["Channel", "Direction", "Configuration", "Responses", "Positives"])
+    .sort(["Channel", "Direction"])
+)
+# Categorical so the anti-join with the datamart's categorical columns works
+unused_channels = unused_channels_display.select(
+    ["Channel", "Direction", "Configuration"]
+).with_columns(cs.string().cast(pl.Categorical))
+```
 
-Channels with fewer than 200 positives or 1,000 responses will be excluded from subsequent analyses, unless this would exclude every channel. In that case, all channels are retained so their lack of feedback can still be investigated. Channels with insufficient feedback have been highlighted in the channel overview with a strike-through.
+::: {.callout-important title="Excluded Channels"}
+```{python}
+# | echo: false
+report_utils.quarto_print(
+    """
+Channels with fewer than 200 positives or 1,000 responses are excluded from the detailed analyses after the model overview, unless this would exclude every channel. In that case, all channels are retained so their lack of feedback can still be investigated. Channels with insufficient feedback are highlighted in the channel overview with a strike-through.
+"""
+)
+
+if 0 < unused_channels.height < all_channels.height:
+    report_utils.quarto_print("The following channels will be excluded:")
+    display(GT(unused_channels_display))
+elif unused_channels.height > 0:
+    report_utils.quarto_print(
+        "No channels are excluded, because all channels have insufficient feedback and excluding them would remove every model."
+    )
+else:
+    report_utils.quarto_print("No channels are excluded.")
+```
+:::
 
 ## Omni Channel Actions
 
@@ -829,21 +860,8 @@ else:
 ## Success Rates
 
 ```{python}
-all_channels = df_channel_overview.select(["Channel", "Direction"]).unique()
-unused_channels = df_channel_overview.filter(pl.col.isValid.not_()).select(["Channel", "Direction","Configuration"]).with_columns(
-    cs.string().cast(pl.Categorical)
-)
+# Apply the channel exclusion announced in the "Excluded Channels" callout
 if 0 < unused_channels.height < all_channels.height:
-    report_utils.quarto_print(
-        f"""
-In the detailed analyses after the model overview, the following channels that have been marked as "invalid" because there are no responses or no positives, will be excluded:
-    """
-    )
-
-    display(
-        GT(unused_channels.sort(["Channel","Direction"])).tab_options(table_font_size=8)
-    )
-
     # Filter out unused channels from datamart
     datamart = ADMDatamart(
         model_df=datamart.model_data.join(
@@ -856,12 +874,6 @@ In the detailed analyses after the model overview, the following channels that h
 
     # Regenerate formatted data for report display
     last_data = datamart.get_last_data_for_report()
-elif unused_channels.height > 0:
-    report_utils.quarto_print(
-        """
-No channels are excluded from the detailed analyses, because all channels have insufficient feedback and doing so would remove every model.
-"""
-    )
 ```
 
 ```{python}
@@ -1080,12 +1092,7 @@ display(
 :::
 
 ```{python}
-report_utils.quarto_print(
-    f"""
-If there are any model configurations that have fewer than {configuration_responses_threshold} responses in total or no positives at all, these will be excluded. However if no configurations would be left, we don't do that.
-"""
-)
-
+# | echo: false
 configuration_overview = (
     datamart.aggregates.last(table="model_data")
     .filter(active_models_filter_expr)
@@ -1103,20 +1110,28 @@ unused_configurations = (
     .select(["Configuration", "Responses", "Positives"])
     .unique()
 )
-
-if (unused_configurations.shape[0] > 0) & (
-    unused_configurations.shape[0] != all_configurations.shape[0]
-):
-    report_utils.quarto_print(
-        f"""
-In the detailed analyses after the model overview, the following configurations will be excluded:
-    """
-    )
-
-    display(
-        GT(unused_configurations.sort(["Configuration"])).tab_options(table_font_size=8)
-    )
 ```
+
+::: {.callout-important title="Excluded Configurations"}
+```{python}
+# | echo: false
+report_utils.quarto_print(
+    f"""
+Model configurations with fewer than {configuration_responses_threshold} responses in total or no positives at all are excluded from the detailed analyses after the model overview, unless this would exclude every configuration.
+"""
+)
+
+if 0 < unused_configurations.height < all_configurations.height:
+    report_utils.quarto_print("The following configurations will be excluded:")
+    display(GT(unused_configurations.sort(["Configuration"])))
+elif unused_configurations.height > 0:
+    report_utils.quarto_print(
+        "No configurations are excluded, because all of them have insufficient feedback and excluding them would remove every model."
+    )
+else:
+    report_utils.quarto_print("No configurations are excluded.")
+```
+:::
 
 ```{python}
 if (unused_configurations.shape[0] > 0) and (
