@@ -1364,28 +1364,6 @@ except Exception as e:
 
 ```
 
-### Success rate per model
-
-Every dot is a model, with its number of positives and negatives on logarithmic axes. There is one panel per channel and direction, as success rates differ widely between them. The dashed line is the average success rate of the models in that panel. The vertical bars are the confidence interval of the model's success rate. Models in red have a success rate that is, with confidence, less than a tenth of the average; orange models are below average; green ones are above average. Grey ones cannot be told apart from the average.
-
-```{python}
-# | error: true
-try:
-    fig = datamart.plot.success_rate_intervals(query=active_models_filter_expr)
-    if fig is not None:
-        fig.show()
-    else:
-        report_utils.quarto_print("No models with responses.")
-except Exception as e:
-    report_utils.quarto_plot_exception("Success rate per model", e)
-```
-
-::: {.callout-tip title="Guidance"}
--   A large group of models far below the average may point to propositions that are rarely relevant, or to issues in the response capture
--   Models with a very high success rate and almost no negatives often indicate that negative responses are not recorded
--   Models with few responses have wide intervals and say little yet
-:::
-
 ### Response counts for all the actions
 
 Using an interactive treemap to visualize the response counts. Different channels will have very different numbers but within one channel the relative differences in response counts give an indication how skewed the distribution is.

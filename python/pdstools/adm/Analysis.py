@@ -471,6 +471,7 @@ class Analysis:
         results.extend(dq_findings)
         results.extend(self._check_hidden_characters())
         results.extend(self._check_implausible_success_rates())
+        results.extend(self._check_very_low_success_rates())
         channel_findings, dead_channel_count, has_mature_low_perf_channel = self._check_channels(
             active_filter,
             invalid_channels=invalid_channels,
@@ -926,6 +927,32 @@ class Analysis:
                     "negative responses are not being recorded for these models."
                 ),
                 data={"model_count": suspicious.height},
+            )
+        ]
+
+    def _check_very_low_success_rates(self) -> list[Finding]:
+        """Flag models that, with confidence, succeed far less than their channel average."""
+        try:
+            rates = self.datamart.aggregates.success_rate_intervals().collect()
+        except RECOVERABLE_ANALYSIS_ERRORS as exc:
+            logger.debug("Could not check success rates: %s", exc)
+            return []
+        very_low = rates.filter(pl.col("SuccessRateCategory") == "Very low")
+        if very_low.height == 0:
+            return []
+        return [
+            Finding(
+                severity="warning",
+                category="data_quality",
+                title=(
+                    f"{very_low.height:,} models have a success rate of less than a tenth "
+                    "of the average of their channel and direction"
+                ),
+                detail=(
+                    "The confidence interval of these success rates lies entirely below a tenth of the average. "
+                    "This may point to propositions that are rarely relevant, or to issues in the response capture."
+                ),
+                data={"model_count": very_low.height},
             )
         ]
 

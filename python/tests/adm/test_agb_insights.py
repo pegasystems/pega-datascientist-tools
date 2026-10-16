@@ -203,3 +203,16 @@ def test_findings_hidden_and_implausible():
     clean = Analysis(ADMDatamart(model_df=_models([("m1", "x", 100, 10000, "NaiveBayes")])))
     assert clean._check_hidden_characters() == []
     assert clean._check_implausible_success_rates() == []
+
+
+def test_finding_very_low_success_rate_relative_to_channel():
+    rows = [
+        ("m1", "dead", 1, 100000, "NaiveBayes"),
+        ("m2", "fine", 20000, 100000, "NaiveBayes"),
+    ]
+    findings = Analysis(ADMDatamart(model_df=_models(rows)))._check_very_low_success_rates()
+    assert len(findings) == 1 and findings[0].data["model_count"] == 1
+
+    # the same low rate is unremarkable when its own channel has a similarly low average
+    web = _models([("m1", "a", 1, 100000, "NaiveBayes"), ("m2", "b", 2, 100000, "NaiveBayes")])
+    assert Analysis(ADMDatamart(model_df=web))._check_very_low_success_rates() == []
