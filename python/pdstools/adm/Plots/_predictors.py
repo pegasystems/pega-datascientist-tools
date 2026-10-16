@@ -162,9 +162,9 @@ class _PredictorPlotsMixin(_PlotsBase):
         metric : str, optional
             The metric to plot, by default "Performance" (univariate predictor
             performance). Use ``"FeatureImportance"`` for the feature importance
-            of Gradient Boost models: the box plot then covers the per-action
-            Gradient Boost model instances only. Naive Bayes models and the
-            configuration-level ("overall") Gradient Boost models are excluded;
+            of Gradient Boosting models: the box plot then covers the per-action
+            Gradient Boosting model instances only. Naive Bayes models and the
+            configuration-level ("overall") Gradient Boosting models are excluded;
             see :meth:`agb_feature_importance` for the overall model.
         top_n : Optional[int], optional
             The top n predictors to plot, by default None
@@ -204,7 +204,7 @@ class _PredictorPlotsMixin(_PlotsBase):
         ...     return_df=True,
         ... )
 
-        >>> # Feature importance across the Gradient Boost model instances
+        >>> # Feature importance across the Gradient Boosting model instances
         >>> fig = dm.plot.predictor_performance(metric="FeatureImportance", top_n=30)
 
         """
@@ -263,7 +263,7 @@ class _PredictorPlotsMixin(_PlotsBase):
         query: QUERY | None,
         return_df: bool,
     ):
-        """Box plot of FeatureImportance across the Gradient Boost model instances."""
+        """Box plot of FeatureImportance across the Gradient Boosting model instances."""
         combined = self.datamart.aggregates.last(table="combined_data")
         missing = {"FeatureImportance", "ModelTechnique"} - set(combined.collect_schema().names())
         if missing:
@@ -298,7 +298,7 @@ class _PredictorPlotsMixin(_PlotsBase):
         )
         if fig is not None and not return_df:
             fig.update_xaxes(title="Feature Importance (%)")
-            fig.update_layout(title="Feature Importance of the Gradient Boost model instances")
+            fig.update_layout(title="Feature Importance of the Gradient Boosting model instances")
         return fig
 
     @overload
@@ -326,9 +326,9 @@ class _PredictorPlotsMixin(_PlotsBase):
         query: QUERY | None = None,
         return_df: bool = False,
     ) -> Figure | pl.LazyFrame | None:
-        """Bar chart of the feature importance of the overall Gradient Boost model.
+        """Bar chart of the feature importance of the overall Gradient Boosting model.
 
-        Gradient Boost configurations train one model across all actions. This
+        Gradient Boosting configurations train one model across all actions. This
         chart shows the predictor-level feature importance of that overall
         model, one bar per predictor, ranked and coloured by predictor
         category. The per-action model instances are not included; use
@@ -350,7 +350,7 @@ class _PredictorPlotsMixin(_PlotsBase):
         -------
         Figure | pl.LazyFrame | None
             Plotly bar chart, LazyFrame if ``return_df=True``, or ``None`` when
-            there is no overall Gradient Boost feature importance in the data.
+            there is no overall Gradient Boosting feature importance in the data.
 
         See Also
         --------
@@ -399,7 +399,7 @@ class _PredictorPlotsMixin(_PlotsBase):
             template="pega",
         )
 
-        title = "Feature Importance of the overall Gradient Boost model"
+        title = "Feature Importance of the overall Gradient Boosting model"
         if not multiple:
             summary = (
                 all_predictors.group_by(pl.col("PredictorCategory").fill_null("Missing"))

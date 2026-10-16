@@ -1,4 +1,4 @@
-"""Gradient Boost feature importance: overall-model split, aggregates, plots and report cells."""
+"""Gradient Boosting feature importance: overall-model split, aggregates, plots and report cells."""
 
 import datetime
 import re
@@ -305,7 +305,7 @@ def test_report_gradient_boost_feature_importance_cell(dm, shown_figures):
     assert len(shown_figures) == 1
     assert "AGBConfig" in shown_figures[0].layout.title.text
     report_utils.quarto_callout_info.assert_called_once_with(
-        "The overall Gradient Boost model has no active predictors for: EmailAGB."
+        "The overall Gradient Boosting model has no active predictors for: EmailAGB."
     )
 
 
@@ -326,4 +326,4 @@ def test_report_predictor_importance_cell_includes_gradient_boost(dm, shown_figu
     report_utils.quarto_plot_exception.assert_not_called()
     titles = sorted(fig.layout.title.text for fig in shown_figures)
     assert len(titles) == 3
-    assert sum("Feature importance of the Gradient Boost model instances" in t for t in titles) == 2
+    assert sum("Feature importance of the Gradient Boosting model instances" in t for t in titles) == 2

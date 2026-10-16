@@ -125,9 +125,9 @@ class Aggregates:
         )
 
     def agb_feature_importance(self, *, query: QUERY | None = None) -> pl.LazyFrame:
-        """Feature importance of the overall Gradient Boost model per configuration.
+        """Feature importance of the overall Gradient Boosting model per configuration.
 
-        Gradient Boost configurations train one model across all actions. Its
+        Gradient Boosting configurations train one model across all actions. Its
         configuration-level record (empty context keys, see issue #667) carries
         the feature importance of that model. This method returns the
         predictor-level ``FeatureImportance`` from the latest snapshot of those
@@ -146,7 +146,7 @@ class Aggregates:
             with columns ``ModelID``, ``Configuration``, ``PredictorName``,
             ``PredictorCategory``, ``EntryType``, ``Type`` and
             ``FeatureImportance``, sorted by configuration and descending
-            importance. Empty when the data has no overall Gradient Boost
+            importance. Empty when the data has no overall Gradient Boosting
             records or no ``FeatureImportance``.
 
         Examples
@@ -378,7 +378,7 @@ class Aggregates:
             Subsets top_n predictors over facets. Seperate top predictors for each facet
         weight_col : str or None, default "ResponseCountBin"
             Column used to weight the metric when ranking predictors. Use
-            ``None`` for an unweighted mean, e.g. for Gradient Boost models
+            ``None`` for an unweighted mean, e.g. for Gradient Boosting models
             whose bins carry no response counts.
 
         Returns

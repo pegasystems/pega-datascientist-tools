@@ -1100,7 +1100,7 @@ if (unused_configurations.shape[0] > 0) and (
 ):
 
     # Filter out unused configurations from datamart (keeps the overall
-    # Gradient Boost rows of the configurations that still have models)
+    # Gradient Boosting rows of the configurations that still have models)
     datamart = datamart.with_model_data(
         datamart.model_data.join(
             unused_configurations.lazy(), on=["Configuration"], how="anti"
@@ -1409,7 +1409,7 @@ else:
 
 ## Predictor Importance
 
-Box plots of the predictor importance per model configuration. For Naive Bayes models, predictor importance uses the univariate predictor performance (AUC). For Gradient Boost models, it uses the feature importance of the per-action model instances. Context predictors such as `pyTreatment`, `pyName` and `pyGroup` have no importance within a single model instance (each instance is one action), so they do not show up here; their importance is shown for the overall Gradient Boost model in the next section.
+Box plots of the predictor importance per model configuration. For Naive Bayes models, predictor importance uses the univariate predictor performance (AUC). For Gradient Boosting models, it uses the feature importance of the per-action model instances. Context predictors such as `pyTreatment`, `pyName` and `pyGroup` have no importance within a single model instance (each instance is one action), so they do not show up here; their importance is shown for the overall Gradient Boosting model in the next section.
 
 ```{python}
 # TODO: Enable calculated feature importance for Naive Bayes models
@@ -1424,7 +1424,7 @@ Box plots of the predictor importance per model configuration. For Naive Bayes m
 # 3. Use "FeatureImportance" column in the Naive Bayes box plots below
 # 4. Add note in report about calculation method (platform stored vs calculated)
 # See: python/docs/source/articles/ADMExplained.ipynb for formula explanation
-# Gradient Boost feature importance is not affected by BUG-880410 and is
+# Gradient Boosting feature importance is not affected by BUG-880410 and is
 # already used below.
 
 if datamart.predictor_data is not None:
@@ -1456,13 +1456,13 @@ The data contains many ({len(datamart.unique_configurations)}) model configurati
         is_gradient_boost = facet.get("ModelTechnique") == "GradientBoost"
         if is_gradient_boost and not gb_feature_importance_available:
             report_utils.quarto_print(
-                f"No feature importance available for the Gradient Boost models ({facet_str})."
+                f"No feature importance available for the Gradient Boosting models ({facet_str})."
             )
             continue
-        # Gradient Boost bins carry no response counts, so the response-count
+        # Gradient Boosting bins carry no response counts, so the response-count
         # based predictor_analysis_query does not apply to them.
         metric, facet_query, facet_title = (
-            ("FeatureImportance", active_models_filter_expr, f"{main_title}<br>{facet_str}<br><sup>Feature importance of the Gradient Boost model instances</sup>")
+            ("FeatureImportance", active_models_filter_expr, f"{main_title}<br>{facet_str}<br><sup>Feature importance of the Gradient Boosting model instances</sup>")
             if is_gradient_boost
             else ("Performance", predictor_analysis_query & active_models_filter_expr, f"{main_title}<br>{facet_str}")
         )
@@ -1499,12 +1499,12 @@ else:
 -   Predictors only showing as a single bar (no range) are suspicious
 -   A variation of predictors from different categories in the top 30
 -   A min/max of the univariate AUC performance somewhere between 55 and 75
--   For Gradient Boost models the boxes are usually narrow: one model is trained across all actions of a configuration, so the feature importance of the model instances is similar
+-   For Gradient Boosting models the boxes are usually narrow: one model is trained across all actions of a configuration, so the feature importance of the model instances is similar
 :::
 
-## Gradient Boost Feature Importance
+## Gradient Boosting Feature Importance
 
-Gradient Boost configurations train one model across all actions. The charts below show the feature importance of that overall model, one bar per predictor, coloured by predictor category. The importances of a configuration add up to 100%.
+Gradient Boosting configurations train one model across all actions. The charts below show the feature importance of that overall model, one bar per predictor, coloured by predictor category. The importances of a configuration add up to 100%.
 
 ```{python}
 if datamart.predictor_data is not None:
@@ -1518,18 +1518,18 @@ if datamart.predictor_data is not None:
         )
         if overall_importance.height == 0:
             report_utils.quarto_print(
-                "There is no overall Gradient Boost model feature importance in the data."
+                "There is no overall Gradient Boosting model feature importance in the data."
             )
         else:
             empty = overall_importance.filter(pl.col("TotalImportance") <= 0)["Configuration"].to_list()
             configurations = overall_importance.filter(pl.col("TotalImportance") > 0)["Configuration"].to_list()
             if empty:
                 report_utils.quarto_callout_info(
-                    "The overall Gradient Boost model has no active predictors for: " + ", ".join(empty) + "."
+                    "The overall Gradient Boosting model has no active predictors for: " + ", ".join(empty) + "."
                 )
             if len(configurations) > configurations_max:
                 report_utils.quarto_callout_info(
-                    f"The data contains {len(configurations)} Gradient Boost configurations. To limit the size of the report only the first {configurations_max} are shown."
+                    f"The data contains {len(configurations)} Gradient Boosting configurations. To limit the size of the report only the first {configurations_max} are shown."
                 )
             for configuration in configurations[:configurations_max]:
                 fig = datamart.plot.agb_feature_importance(
@@ -1539,7 +1539,7 @@ if datamart.predictor_data is not None:
                 if fig is not None:
                     fig.show()
     except Exception as e:
-        report_utils.quarto_plot_exception("Gradient Boost Feature Importance", e)
+        report_utils.quarto_plot_exception("Gradient Boosting Feature Importance", e)
 else:
     report_utils.quarto_callout_no_predictor_data_warning()
 ```

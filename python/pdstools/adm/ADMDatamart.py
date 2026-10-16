@@ -160,9 +160,9 @@ class ADMDatamart:
     predictor_data: pl.LazyFrame | None
     combined_data: pl.LazyFrame | None
     agb_overall_model_data: pl.LazyFrame | None
-    """Configuration-level ("overall") Gradient Boost model rows.
+    """Configuration-level ("overall") Gradient Boosting model rows.
 
-    Gradient Boost configurations write one extra model row per configuration
+    Gradient Boosting configurations write one extra model row per configuration
     with empty context keys (issue #667). These rows are kept out of
     ``model_data`` and stored here instead, for the configurations that have
     model instances in ``model_data``. Only their predictor-level
@@ -175,7 +175,7 @@ class ADMDatamart:
     these rows, use :meth:`with_model_data`.
     """
     agb_overall_predictor_data: pl.LazyFrame | None
-    """Predictor binning rows of the overall Gradient Boost models.
+    """Predictor binning rows of the overall Gradient Boosting models.
 
     Kept out of ``predictor_data`` so predictor-level analyses only see the
     per-action model instances. ``None`` when there is no model or predictor
@@ -730,9 +730,9 @@ class ADMDatamart:
 
     @staticmethod
     def _agb_overall_expr(schema_names: list[str]) -> pl.Expr | None:
-        """Expression flagging configuration-level Gradient Boost rows.
+        """Expression flagging configuration-level Gradient Boosting rows.
 
-        Issue #667: Gradient Boost configurations emit an additional "totals" row
+        Issue #667: Gradient Boosting configurations emit an additional "totals" row
         with empty context keys. It duplicates aggregated data and can carry a
         miscomputed AUC, so it is kept out of ``model_data``. Rows are only
         flagged when ``ModelTechnique`` is known; with an unknown technique an
@@ -753,7 +753,7 @@ class ADMDatamart:
         cls,
         df: pl.LazyFrame | None,
     ) -> tuple[pl.LazyFrame | None, pl.LazyFrame | None]:
-        """Split validated model data into model instances and overall Gradient Boost rows.
+        """Split validated model data into model instances and overall Gradient Boosting rows.
 
         Parameters
         ----------
@@ -763,7 +763,7 @@ class ADMDatamart:
         Returns
         -------
         tuple of (pl.LazyFrame or None, pl.LazyFrame or None)
-            The model instances, and the configuration-level Gradient Boost rows
+            The model instances, and the configuration-level Gradient Boosting rows
             (``None`` when they cannot be identified).
         """
         if df is None:
@@ -779,24 +779,24 @@ class ADMDatamart:
         overall_models: pl.LazyFrame | None,
         kept_overall_models: pl.LazyFrame | None,
     ) -> tuple[pl.LazyFrame | None, pl.LazyFrame | None]:
-        """Split predictor data into model-instance rows and overall Gradient Boost rows.
+        """Split predictor data into model-instance rows and overall Gradient Boosting rows.
 
         Parameters
         ----------
         df : pl.LazyFrame or None
             Validated predictor binning data.
         overall_models : pl.LazyFrame or None
-            All configuration-level Gradient Boost model rows; their predictor
+            All configuration-level Gradient Boosting model rows; their predictor
             rows are removed from ``df``.
         kept_overall_models : pl.LazyFrame or None
-            The configuration-level Gradient Boost model rows to keep the
+            The configuration-level Gradient Boosting model rows to keep the
             predictor rows of.
 
         Returns
         -------
         tuple of (pl.LazyFrame or None, pl.LazyFrame or None)
             Predictor rows of the model instances, and predictor rows of the
-            kept overall Gradient Boost models (``None`` when there are none).
+            kept overall Gradient Boosting models (``None`` when there are none).
         """
         if df is None or overall_models is None or kept_overall_models is None:
             return df, None
@@ -812,7 +812,7 @@ class ADMDatamart:
     ) -> pl.LazyFrame | None:
         """Keep only rows of ``df`` whose ``Configuration`` occurs in ``reference``.
 
-        Overall Gradient Boost rows have empty context keys, so a query on e.g.
+        Overall Gradient Boosting rows have empty context keys, so a query on e.g.
         ``Channel`` cannot be applied to them directly. Instead they follow the
         configurations that remain in the (queried) model instances.
         """
@@ -991,7 +991,7 @@ class ADMDatamart:
     ) -> tuple[Path | None, Path | None]:
         """Caches model_data and predictor_data to files.
 
-        The configuration-level Gradient Boost rows (``agb_overall_model_data``
+        The configuration-level Gradient Boosting rows (``agb_overall_model_data``
         and ``agb_overall_predictor_data``) are written to the same files, so
         they are restored when the files are read back into an ``ADMDatamart``.
 
@@ -1000,7 +1000,7 @@ class ADMDatamart:
         path : str
             Where to place the files
         selected_model_ids : list[str]
-            Optional list of model IDs to restrict to. Overall Gradient Boost
+            Optional list of model IDs to restrict to. Overall Gradient Boosting
             rows are kept for the configurations of the selected models.
 
         Returns
@@ -1055,7 +1055,7 @@ class ADMDatamart:
 
         Use this instead of ``ADMDatamart(model_df=..., predictor_df=dm.predictor_data)``
         when narrowing down an existing datamart: the configuration-level
-        Gradient Boost rows (``agb_overall_model_data`` and
+        Gradient Boosting rows (``agb_overall_model_data`` and
         ``agb_overall_predictor_data``) are passed along and kept for the
         configurations that remain in ``model_df``.
 
@@ -1069,7 +1069,7 @@ class ADMDatamart:
         -------
         ADMDatamart
             A new datamart with ``model_df``, the current predictor data and the
-            matching overall Gradient Boost rows.
+            matching overall Gradient Boosting rows.
 
         Examples
         --------
