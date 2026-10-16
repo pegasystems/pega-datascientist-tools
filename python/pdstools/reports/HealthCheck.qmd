@@ -1468,9 +1468,9 @@ else:
 -   Consistency in the numbers across configurations
 :::
 
-## Predictor Importance
+## Importance of Naive Bayes Predictors
 
-Box plots of the predictor importance. Predictor importance is using the univariate predictor performance.
+Box plots of the predictor importance of the Naive Bayes models. Predictor importance is using the univariate predictor performance. Adaptive Gradient Boosting models have no univariate predictor performance; their importance is shown in a separate section below.
 
 ```{python}
 # TODO: Enable calculated feature importance
@@ -1554,9 +1554,31 @@ else:
 -   A min/max of the univariate AUC performance somewhere between 55 and 75
 :::
 
+## Importance of Naive Bayes Predictors by Category
+
+Aggregating up to the category of the predictors, using the univariate predictor performance of the Naive Bayes models. This gives a view at a glance of how well e.g. interaction history, external model scores or contextual data are doing overall.
+
+```{python}
+# | error: true
+
+if datamart.predictor_data is not None:
+    try:
+        fig = datamart.plot.predictor_category_performance(query=active_models_filter_expr)
+        if fig is not None:
+            fig.update_layout(title=f"Univariate Predictor Performance<br><sup>models updated since {active_models_threshold_date_string}</sup>")
+            fig.show()
+        else:
+            report_utils.quarto_print("No predictor category data available to plot.")
+    except Exception as e:
+        report_utils.quarto_plot_exception("Importance by Predictor Category", e)
+else:
+    report_utils.quarto_callout_no_predictor_data_warning()
+
+```
+
 ## Importance of Adaptive Gradient Boosting Predictors
 
-Adaptive Gradient Boosting (AGB) models do not have univariate predictor performance, so they do not show up in the sections above. Instead the importance reported by the platform is shown here. For each model the importances add up to 100%; the charts show the average over the models of a configuration. AGB models that have not built any trees yet have no importance and are left out.
+Adaptive Gradient Boosting (AGB) models do not have univariate predictor performance, so they do not show up in the Naive Bayes sections above. Instead the importance reported by the platform is shown here. For each model the importances add up to 100%; the charts show the average over the models of a configuration. AGB models that have not built any trees yet have no importance and are left out.
 
 ```{python}
 # | error: true
@@ -1591,28 +1613,6 @@ else:
 -   Predictors that look like identifiers (very many distinct values) can dominate without being predictive in a meaningful way
 -   Parameters passed in with the request often carry the context; their share shows how much the model relies on it
 :::
-
-## Importance by Predictor Category
-
-Aggregating up to the category of the predictors. This gives a view at a glance of how well e.g. interaction history, external model scores or contextual data are doing overall.
-
-```{python}
-# | error: true
-
-if datamart.predictor_data is not None:
-    try:
-        fig = datamart.plot.predictor_category_performance(query=active_models_filter_expr)
-        if fig is not None:
-            fig.update_layout(title=f"Univariate Predictor Performance<br><sup>models updated since {active_models_threshold_date_string}</sup>")
-            fig.show()
-        else:
-            report_utils.quarto_print("No predictor category data available to plot.")
-    except Exception as e:
-        report_utils.quarto_plot_exception("Importance by Predictor Category", e)
-else:
-    report_utils.quarto_callout_no_predictor_data_warning()
-
-```
 
 ## Global Predictor Overview
 
