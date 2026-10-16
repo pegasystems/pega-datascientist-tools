@@ -1613,7 +1613,19 @@ agb_importance = None
 if datamart.predictor_data is None or "FeatureImportance" not in datamart.predictor_data.collect_schema().names():
     agb_unavailable = "The predictor data has no feature importance, so there is nothing to show for Adaptive Gradient Boosting models."
 elif datamart.model_data.filter(agb_query & active_models_filter_expr).select(pl.len()).collect().item() == 0:
-    agb_unavailable = "There are no active Adaptive Gradient Boosting models in this data."
+    n_excluded_agb = (
+        trend_datamart.model_data.filter(agb_query & active_models_filter_expr)
+        .select(pl.col("ModelID").n_unique())
+        .collect()
+        .item()
+    )
+    if n_excluded_agb > 0:
+        agb_unavailable = (
+            f"{n_excluded_agb} active Adaptive Gradient Boosting model(s) in this data were left out because "
+            "their configuration is excluded from the detailed analyses (see Excluded Configurations)."
+        )
+    else:
+        agb_unavailable = "There are no active Adaptive Gradient Boosting models in this data."
 else:
     agb_unavailable = (
         "None of the Adaptive Gradient Boosting models in this data has predictor importance yet. "
