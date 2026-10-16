@@ -310,10 +310,13 @@ The "OmniChannel" percentage is an indicator of the overlap of actions between c
 
 -   The average performance is a weighted average of all the individual model performances, weighted by number of responses.
 -   The AGB flag is derived from a field in the datamart, but only more recent product versions support that flag, so sometimes there is a question mark there, when we don't know
--   A configuration marked with "(\*)" contains models with the AGB (Adaptive Gradient Boosting) technique. This is purely derived from the model technique in the datamart, not from configuration names.
+-   A configuration marked with a superscript asterisk (<sup>\*</sup>) contains models with the AGB (Adaptive Gradient Boosting) technique. This is purely derived from the model technique in the datamart, not from configuration names.
 -   The NBAD flag really means that one of the configurations supporting this channel is an Out of the Box configuration name. When all of the configurations are changed to custom names, the flag will say "No" even if NBAD is used - we just don't have a way to tell from the ADM datamart data this is based on.
 
 ```{python}
+
+from html import escape as html_escape
+
 
 def _mark_agb_configurations(row_configs: str, agb_configs: str) -> str:
     agb = {c.strip() for c in (agb_configs or "").split(",") if c.strip()}
@@ -349,6 +352,10 @@ formatted_channel_overview = (
             "Direction" : report_utils.standard_NBAD_directions_rag,
 
         },
+    )
+    .fmt(
+        lambda x: html_escape(x or "").replace(" (*)", "<sup>*</sup>"),
+        columns="Configuration",
     )
     .cols_label(
         CTR="Base Rate",
