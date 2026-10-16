@@ -151,6 +151,7 @@ Module Contents
                 Technology Usage Indicators:
                 - usesNBAD - Boolean indicating whether any standard NBAD configurations are used
                 - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
+                - AGB Configurations - Comma-separated names of the configurations that contain AGB models (empty if none)
       :rtype: pl.LazyFrame
 
 
