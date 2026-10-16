@@ -604,12 +604,22 @@ class Aggregates:
         model_data: pl.LazyFrame,
         debug: bool,
     ) -> pl.LazyFrame:
-        result = model_data.group_by(grouping).agg(
-            is_standard_NBAD_configuration().any(ignore_nulls=False).alias("usesNBAD"),
-            (pl.col("ModelTechnique") == "GradientBoost").any(ignore_nulls=False).alias("usesAGB"),
-            # For debugging:
-            pl.col("ModelTechnique").unique().sort(),
-            pl.col("Configuration").unique().sort().alias("Configurations"),
+        result = (
+            model_data.group_by(grouping)
+            .agg(
+                is_standard_NBAD_configuration().any(ignore_nulls=False).alias("usesNBAD"),
+                (pl.col("ModelTechnique") == "GradientBoost").any(ignore_nulls=False).alias("usesAGB"),
+                pl.col("Configuration")
+                .cast(pl.Utf8)
+                .filter(pl.col("ModelTechnique") == "GradientBoost")
+                .unique()
+                .sort()
+                .alias("AGB Configurations"),
+                # For debugging:
+                pl.col("ModelTechnique").unique().sort(),
+                pl.col("Configuration").unique().sort().alias("Configurations"),
+            )
+            .with_columns(pl.col("AGB Configurations").list.join(", "))
         )
 
         if debug:
@@ -695,6 +705,7 @@ class Aggregates:
             Technology Usage Indicators:
             - usesNBAD - Boolean indicating whether any standard NBAD configurations are used
             - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
+            - AGB Configurations - Comma-separated names of the configurations that contain AGB models (empty if none)
 
         """
         start_date, end_date = cdh_utils._get_start_end_date_args(
