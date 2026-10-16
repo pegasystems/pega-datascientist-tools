@@ -1112,7 +1112,7 @@ unused_configurations = (
 )
 ```
 
-::: {.callout-important title="Excluded Configurations"}
+::: {#excluded-configurations .callout-important title="Excluded Configurations"}
 ```{python}
 # | echo: false
 report_utils.quarto_print(
@@ -1622,7 +1622,7 @@ elif datamart.model_data.filter(agb_query & active_models_filter_expr).select(pl
     if n_excluded_agb > 0:
         agb_unavailable = (
             f"{n_excluded_agb} active Adaptive Gradient Boosting model(s) in this data were left out because "
-            "their configuration is excluded from the detailed analyses (see Excluded Configurations)."
+            "their configuration is excluded from the detailed analyses (see [Excluded Configurations](#excluded-configurations))."
         )
     else:
         agb_unavailable = "There are no active Adaptive Gradient Boosting models in this data."
