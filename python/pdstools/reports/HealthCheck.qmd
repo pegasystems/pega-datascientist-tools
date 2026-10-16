@@ -1570,7 +1570,7 @@ if datamart.predictor_data is not None:
         else:
             report_utils.quarto_print("No predictor category data available to plot.")
     except Exception as e:
-        report_utils.quarto_plot_exception("Importance by Predictor Category", e)
+        report_utils.quarto_plot_exception("Importance of Naive Bayes Predictors by Category", e)
 else:
     report_utils.quarto_callout_no_predictor_data_warning()
 
