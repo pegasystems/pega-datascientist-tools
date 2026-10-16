@@ -310,14 +310,30 @@ The "OmniChannel" percentage is an indicator of the overlap of actions between c
 
 -   The average performance is a weighted average of all the individual model performances, weighted by number of responses.
 -   The AGB flag is derived from a field in the datamart, but only more recent product versions support that flag, so sometimes there is a question mark there, when we don't know
--   "AGB in Configurations" lists the model configurations of this channel that contain models with the AGB (Adaptive Gradient Boosting) technique. This is purely derived from the model technique in the datamart, not from configuration names.
+-   A configuration marked with "(\*)" contains models with the AGB (Adaptive Gradient Boosting) technique. This is purely derived from the model technique in the datamart, not from configuration names.
 -   The NBAD flag really means that one of the configurations supporting this channel is an Out of the Box configuration name. When all of the configurations are changed to custom names, the flag will say "No" even if NBAD is used - we just don't have a way to tell from the ADM datamart data this is based on.
 
 ```{python}
 
+def _mark_agb_configurations(row_configs: str, agb_configs: str) -> str:
+    agb = {c.strip() for c in (agb_configs or "").split(",") if c.strip()}
+    return ", ".join(
+        f"{c.strip()} (*)" if c.strip() in agb else c.strip() for c in (row_configs or "").split(",") if c.strip()
+    )
+
+
+df_channel_overview_display = df_channel_overview.with_columns(
+    pl.struct(["Configuration", "AGB Configurations"])
+    .map_elements(
+        lambda r: _mark_agb_configurations(r["Configuration"], r["AGB Configurations"]),
+        return_dtype=pl.Utf8,
+    )
+    .alias("Configuration")
+).drop("AGB Configurations")
+
 formatted_channel_overview = (
     report_utils.create_metric_gttable(
-        df_channel_overview,
+        df_channel_overview_display,
         title=f"Channel Overview (models updated since {active_models_threshold_date_string})",
         column_to_metric={
             "Performance": "ModelPerformance",
@@ -337,12 +353,11 @@ formatted_channel_overview = (
     .cols_label(
         CTR="Base Rate",
         Configuration="Supported by Configurations",
-        **{"AGB Configurations": "AGB in Configurations"},
         Performance="Average Performance",
     )
     .tab_spanner(
         label=html("<b>ADM Models</b>"),
-        columns=["Positives", "Responses", "Performance", "Configuration", "AGB", "AGB Configurations"],
+        columns=["Positives", "Responses", "Performance", "Configuration", "AGB"],
     )
     .tab_spanner(
         label=html("<b>NBAD Setup</b>"),
@@ -395,7 +410,6 @@ display(
             "Performance",
             "Configuration",
             "AGB",
-            "AGB Configurations",
             "isValid",
             "usesNBAD",
             "usesAGB",
