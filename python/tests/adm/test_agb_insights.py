@@ -77,6 +77,25 @@ def test_success_rate_plot(rates_dm):
     assert rates_dm.plot.success_rate_intervals(return_df=True).height == 5
 
 
+def test_success_rate_average_is_per_channel_and_direction():
+    models = pl.concat(
+        [
+            _models([("a", "web_a", 1000, 100000, "NaiveBayes"), ("b", "web_b", 3000, 100000, "NaiveBayes")]),
+            _models(
+                [("c", "mail_c", 50, 100000, "NaiveBayes"), ("d", "mail_d", 150, 100000, "NaiveBayes")]
+            ).with_columns(Channel=pl.lit("Email"), Direction=pl.lit("Outbound")),
+        ]
+    )
+    dm = ADMDatamart(model_df=models)
+    df = dm.aggregates.success_rate_intervals().collect()
+    averages = dict(zip(df["Name"], df["AverageSuccessRate"], strict=True))
+    assert averages["web_a"] == pytest.approx(0.02)
+    assert averages["mail_c"] == pytest.approx(0.001)
+    fig = dm.plot.success_rate_intervals()
+    assert [a.text for a in fig.layout.annotations] == ["Email/Outbound", "Web/Inbound"]
+    assert sum(1 for t in fig.data if t.mode == "lines") == 2
+
+
 def test_hidden_characters():
     rows = [
         ("m1", "offer", 1, 10, "NaiveBayes"),

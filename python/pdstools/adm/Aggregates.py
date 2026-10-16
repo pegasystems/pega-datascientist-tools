@@ -1158,17 +1158,19 @@ class Aggregates:
         """Success rate of each model with a Wilson confidence interval.
 
         Every model (last snapshot) is compared to the average success rate
-        of all models in scope (total positives over total responses) and
-        classified by its confidence interval, without any assumption on
-        the model names.
+        of the models in its own channel and direction (total positives over
+        total responses), as base rates differ widely between channels. It
+        is classified by its confidence interval, without any assumption on
+        the model names. Without ``Channel`` and ``Direction`` columns all
+        models in scope are compared to one average.
 
         Parameters
         ----------
         confidence_level : float, default 0.95
             Two-sided confidence level of the Wilson interval.
         query : QUERY, optional
-            Restricts the models in scope. The average success rate is
-            computed over the models that remain.
+            Restricts the models in scope. The averages are computed over
+            the models that remain.
 
         Returns
         -------
@@ -1198,6 +1200,7 @@ class Aggregates:
             for c in ("ModelID", "Configuration", "Channel", "Direction", "Issue", "Group", "Name", "Treatment")
             if c in names
         ]
+        group = [c for c in ("Channel", "Direction") if c in names]
         return (
             model_data.filter(pl.col("ResponseCount") > 0)
             .select(
@@ -1210,7 +1213,9 @@ class Aggregates:
                 (pl.col("Positives") / pl.col("ResponseCount")).alias("SuccessRate"),
                 lower.alias("SuccessRate_CI_Lower"),
                 upper.alias("SuccessRate_CI_Upper"),
-                (pl.col("Positives").sum() / pl.col("ResponseCount").sum()).alias("AverageSuccessRate"),
+                (pl.col("Positives").sum().over(group) / pl.col("ResponseCount").sum().over(group)).alias(
+                    "AverageSuccessRate"
+                ),
             )
             .with_columns(
                 pl.when(pl.col("SuccessRate_CI_Upper") < pl.col("AverageSuccessRate") * VERY_LOW_SUCCESS_RATE_FRACTION)

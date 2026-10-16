@@ -68,6 +68,7 @@ be `async def` and decorated with `@api_method`.
 from typing import Optional
 from ...internal._resource import AsyncAPIResource, SyncAPIResource, api_method
 
+
 class _MyResourceMixin:
     """Business logic for MyResource — defined once."""
 
@@ -108,6 +109,7 @@ class _MyResourceMixin:
 
 ```python
 # Same file, below the mixin:
+
 
 class MyResource(_MyResourceMixin, SyncAPIResource):
     def __init__(self, client):

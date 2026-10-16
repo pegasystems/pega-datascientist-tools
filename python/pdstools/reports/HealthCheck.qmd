@@ -1366,7 +1366,7 @@ except Exception as e:
 
 ### Success rate per model
 
-Every dot is a model, with its number of positives and negatives on logarithmic axes. The dashed line is the average success rate of all models. The vertical bars are the confidence interval of the model's success rate. Models in red have a success rate that is, with confidence, less than a tenth of the average; orange models are below average; green ones are above average. Grey ones cannot be told apart from the average.
+Every dot is a model, with its number of positives and negatives on logarithmic axes. There is one panel per channel and direction, as success rates differ widely between them. The dashed line is the average success rate of the models in that panel. The vertical bars are the confidence interval of the model's success rate. Models in red have a success rate that is, with confidence, less than a tenth of the average; orange models are below average; green ones are above average. Grey ones cannot be told apart from the average.
 
 ```{python}
 # | error: true
