@@ -716,7 +716,7 @@ class _PerformancePlotsMixin(_PlotsBase):
             )
 
         average = data["AverageSuccessRate"][0]
-        x_max = max(float(data["Negatives"].max() or 0) + 1, 10.0)
+        x_max = max(float(data.select(pl.col("Negatives").max().fill_null(0).cast(pl.Float64)).item()) + 1, 10.0)
         fig.add_trace(
             go.Scatter(
                 x=[1, x_max],
