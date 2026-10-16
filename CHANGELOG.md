@@ -6,6 +6,35 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- ADM Health Check: Gradient Boost configurations now show predictor
+  importance. The "Predictor Importance" box plots use the feature
+  importance of the per-action Gradient Boost model instances
+  (`dm.plot.predictor_performance(metric="FeatureImportance")`), and a new
+  "Gradient Boost Feature Importance" section shows a ranked bar chart of
+  the overall Gradient Boost model per configuration
+  (`dm.plot.agb_feature_importance()`, data from
+  `dm.aggregates.agb_feature_importance()`). Previously Gradient Boost
+  predictors were missing from the Predictor Importance plots.
+- `ADMDatamart.agb_overall_model_data` and
+  `ADMDatamart.agb_overall_predictor_data` hold the configuration-level
+  Gradient Boost records with empty context keys. `model_data` is unchanged:
+  these rows stay out of it, as before
+  ([#667](https://github.com/pegasystems/pega-datascientist-tools/issues/667)).
+  `save_data()` writes them along with the model and predictor data, so
+  they survive Health Check report generation.
+- `ADMDatamart.with_model_data(model_df)` rebuilds the datamart from a
+  filtered set of models and keeps the matching overall Gradient Boost
+  records.
+
+### Changed
+
+- `ADMDatamart.predictor_data` no longer contains the predictor rows of the
+  configuration-level Gradient Boost records; they are in
+  `agb_overall_predictor_data`. Before, these rows had no matching model
+  row and were only visible to analyses that read `predictor_data` directly.
+
 ### Fixed
 
 - Decision Analysis Tool: `--data-path` and file upload now read ZIP archives containing nested Parquet ZIP files.

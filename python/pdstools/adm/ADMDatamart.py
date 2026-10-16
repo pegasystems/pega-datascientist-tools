@@ -159,6 +159,28 @@ class ADMDatamart:
     model_data: pl.LazyFrame | None
     predictor_data: pl.LazyFrame | None
     combined_data: pl.LazyFrame | None
+    agb_overall_model_data: pl.LazyFrame | None
+    """Configuration-level ("overall") Gradient Boost model rows.
+
+    Gradient Boost configurations write one extra model row per configuration
+    with empty context keys (issue #667). These rows are kept out of
+    ``model_data`` and stored here instead, for the configurations that have
+    model instances in ``model_data``. Only their predictor-level
+    ``FeatureImportance`` is used, see
+    :meth:`pdstools.adm.Aggregates.agb_feature_importance`.
+    Empty when the data has no such rows or the model technique is unknown;
+    ``None`` when there is no model data.
+
+    To build a new ``ADMDatamart`` from a filtered ``model_data`` while keeping
+    these rows, use :meth:`with_model_data`.
+    """
+    agb_overall_predictor_data: pl.LazyFrame | None
+    """Predictor binning rows of the overall Gradient Boost models.
+
+    Kept out of ``predictor_data`` so predictor-level analyses only see the
+    per-action model instances. ``None`` when there is no model or predictor
+    data.
+    """
     plot: Plots
     aggregates: Aggregates
     agb: AGB
@@ -191,9 +213,11 @@ class ADMDatamart:
         self.generate = Reports(datamart=self)
 
         logger.info("Validating ADM model data.")
-        model_data_validated = self._validate_model_data(
-            model_df,
-            extract_pyname_keys=extract_pyname_keys,
+        model_data_validated, agb_overall_models = self._split_agb_overall_models(
+            self._validate_model_data(
+                model_df,
+                extract_pyname_keys=extract_pyname_keys,
+            ),
         )
 
         # First occurence of actions (before filtering!) kept here so we can derive the "New Actions"
@@ -203,6 +227,7 @@ class ADMDatamart:
         self.model_data = (
             cdh_utils._apply_query(model_data_validated, query) if model_data_validated is not None else None
         )
+        self.agb_overall_model_data = self._restrict_to_configurations(agb_overall_models, self.model_data)
 
         # NOTE: model and predictor data are validated independently. When a
         # query is supplied it filters model_data only — predictor_data may
@@ -210,7 +235,11 @@ class ADMDatamart:
         # Downstream joins handle this; revisit if a stricter intersection
         # is needed.
         logger.info("Validating ADM predictor data.")
-        self.predictor_data = self._validate_predictor_data(predictor_df)
+        self.predictor_data, self.agb_overall_predictor_data = self._split_agb_overall_predictors(
+            self._validate_predictor_data(predictor_df),
+            agb_overall_models,
+            self.agb_overall_model_data,
+        )
 
         logger.info("Preparing combined ADM data.")
         self.combined_data = self.aggregates._combine_data(
@@ -633,20 +662,6 @@ class ADMDatamart:
             schema = df.collect_schema()
         self.context_keys = [k for k in self.context_keys if k in schema.names()]
 
-        # Issue #667: AGB models emit an additional "totals" row per configuration
-        # with empty context keys. It duplicates aggregated data and can carry a
-        # miscomputed AUC. Pega reporting filters it out — do the same here so all
-        # downstream consumers see consistent data. Only filter when ModelTechnique
-        # is known (not null) — otherwise empty context could be a genuine data
-        # issue worth surfacing.
-        agb_context_cols = [c for c in ("Issue", "Group", "Name", "Treatment") if c in schema.names()]
-        if agb_context_cols:
-            empty_context = pl.all_horizontal(
-                [(pl.col(c).is_null() | (pl.col(c) == "")) for c in agb_context_cols],
-            )
-            is_agb = (pl.col("ModelTechnique") == "GradientBoost").fill_null(False)
-            df = df.filter(~(is_agb & empty_context))
-
         snapshot_type = schema.get("SnapshotTime")
         if snapshot_type is None or not snapshot_type.is_temporal():  # pl.Datetime
             df = df.with_columns(
@@ -712,6 +727,109 @@ class ADMDatamart:
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
 
         return self._normalize_performance_scale(df)
+
+    @staticmethod
+    def _agb_overall_expr(schema_names: list[str]) -> pl.Expr | None:
+        """Expression flagging configuration-level Gradient Boost rows.
+
+        Issue #667: Gradient Boost configurations emit an additional "totals" row
+        with empty context keys. It duplicates aggregated data and can carry a
+        miscomputed AUC, so it is kept out of ``model_data``. Rows are only
+        flagged when ``ModelTechnique`` is known; with an unknown technique an
+        empty context may be a genuine data issue worth surfacing.
+
+        Returns ``None`` when the required columns are not available.
+        """
+        context_cols = [c for c in ("Issue", "Group", "Name", "Treatment") if c in schema_names]
+        if not context_cols or "ModelTechnique" not in schema_names:
+            return None
+        empty_context = pl.all_horizontal(
+            [(pl.col(c).is_null() | (pl.col(c).cast(pl.String) == "")) for c in context_cols],
+        )
+        return (pl.col("ModelTechnique") == "GradientBoost").fill_null(False) & empty_context
+
+    @classmethod
+    def _split_agb_overall_models(
+        cls,
+        df: pl.LazyFrame | None,
+    ) -> tuple[pl.LazyFrame | None, pl.LazyFrame | None]:
+        """Split validated model data into model instances and overall Gradient Boost rows.
+
+        Parameters
+        ----------
+        df : pl.LazyFrame or None
+            Validated model snapshot data.
+
+        Returns
+        -------
+        tuple of (pl.LazyFrame or None, pl.LazyFrame or None)
+            The model instances, and the configuration-level Gradient Boost rows
+            (``None`` when they cannot be identified).
+        """
+        if df is None:
+            return None, None
+        is_overall = cls._agb_overall_expr(df.collect_schema().names())
+        if is_overall is None:
+            return df, None
+        return df.filter(~is_overall), df.filter(is_overall)
+
+    @staticmethod
+    def _split_agb_overall_predictors(
+        df: pl.LazyFrame | None,
+        overall_models: pl.LazyFrame | None,
+        kept_overall_models: pl.LazyFrame | None,
+    ) -> tuple[pl.LazyFrame | None, pl.LazyFrame | None]:
+        """Split predictor data into model-instance rows and overall Gradient Boost rows.
+
+        Parameters
+        ----------
+        df : pl.LazyFrame or None
+            Validated predictor binning data.
+        overall_models : pl.LazyFrame or None
+            All configuration-level Gradient Boost model rows; their predictor
+            rows are removed from ``df``.
+        kept_overall_models : pl.LazyFrame or None
+            The configuration-level Gradient Boost model rows to keep the
+            predictor rows of.
+
+        Returns
+        -------
+        tuple of (pl.LazyFrame or None, pl.LazyFrame or None)
+            Predictor rows of the model instances, and predictor rows of the
+            kept overall Gradient Boost models (``None`` when there are none).
+        """
+        if df is None or overall_models is None or kept_overall_models is None:
+            return df, None
+        return (
+            df.join(overall_models.select("ModelID").unique(), on="ModelID", how="anti"),
+            df.join(kept_overall_models.select("ModelID").unique(), on="ModelID", how="semi"),
+        )
+
+    @staticmethod
+    def _restrict_to_configurations(
+        df: pl.LazyFrame | None,
+        reference: pl.LazyFrame | None,
+    ) -> pl.LazyFrame | None:
+        """Keep only rows of ``df`` whose ``Configuration`` occurs in ``reference``.
+
+        Overall Gradient Boost rows have empty context keys, so a query on e.g.
+        ``Channel`` cannot be applied to them directly. Instead they follow the
+        configurations that remain in the (queried) model instances.
+        """
+        if df is None or reference is None:
+            return df
+        if (
+            "Configuration" not in df.collect_schema().names()
+            or "Configuration" not in reference.collect_schema().names()
+        ):
+            return df
+        configurations = reference.select(pl.col("Configuration").cast(pl.String)).unique()
+        return df.join(
+            configurations,
+            left_on=pl.col("Configuration").cast(pl.String),
+            right_on="Configuration",
+            how="semi",
+        )
 
     @staticmethod
     def _normalize_performance_scale(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -859,6 +977,8 @@ class ADMDatamart:
 
         if hasattr(self, "predictor_data") and self.predictor_data is not None:
             self.predictor_data = set_categories(self.predictor_data)
+        if hasattr(self, "agb_overall_predictor_data") and self.agb_overall_predictor_data is not None:
+            self.agb_overall_predictor_data = set_categories(self.agb_overall_predictor_data)
         if hasattr(self, "combined_data") and self.combined_data is not None:
             self.combined_data = set_categories(self.combined_data)
         self.__dict__.pop("unique_predictor_categories", None)
@@ -871,12 +991,17 @@ class ADMDatamart:
     ) -> tuple[Path | None, Path | None]:
         """Caches model_data and predictor_data to files.
 
+        The configuration-level Gradient Boost rows (``agb_overall_model_data``
+        and ``agb_overall_predictor_data``) are written to the same files, so
+        they are restored when the files are read back into an ``ADMDatamart``.
+
         Parameters
         ----------
         path : str
             Where to place the files
         selected_model_ids : list[str]
-            Optional list of model IDs to restrict to
+            Optional list of model IDs to restrict to. Overall Gradient Boost
+            rows are kept for the configurations of the selected models.
 
         Returns
         -------
@@ -887,36 +1012,79 @@ class ADMDatamart:
         abs_path = Path(path).resolve()
         time = datetime.datetime.now().strftime("%Y%m%dT%H%M%S.%f")[:-3]
         modeldata_cache, predictordata_cache = None, None
-        if self.model_data is not None:
-            if selected_model_ids is None:
-                modeldata_cache = pega_io.cache_to_file(
-                    self.model_data,
-                    abs_path,
-                    name=f"cached_model_data_{time}",
-                )
-            else:
-                modeldata_cache = pega_io.cache_to_file(
-                    self.model_data.filter(pl.col("ModelID").is_in(selected_model_ids)),
-                    abs_path,
-                    name=f"cached_model_data_{time}",
-                )
+
+        model_data = self.model_data
+        if model_data is not None and selected_model_ids is not None:
+            model_data = model_data.filter(pl.col("ModelID").is_in(selected_model_ids))
+        overall_models = self._restrict_to_configurations(self.agb_overall_model_data, model_data)
+
+        if model_data is not None:
+            if overall_models is not None:
+                model_data = pl.concat([model_data, overall_models], how="diagonal_relaxed")
+            modeldata_cache = pega_io.cache_to_file(
+                model_data,
+                abs_path,
+                name=f"cached_model_data_{time}",
+            )
         if self.predictor_data is not None:
-            if selected_model_ids is None:
-                predictordata_cache = pega_io.cache_to_file(
-                    self.predictor_data,
-                    abs_path,
-                    name=f"cached_predictor_data_{time}",
+            predictor_data = self.predictor_data
+            if selected_model_ids is not None:
+                predictor_data = predictor_data.filter(pl.col("ModelID").is_in(selected_model_ids))
+            if self.agb_overall_predictor_data is not None and overall_models is not None:
+                predictor_data = pl.concat(
+                    [
+                        predictor_data,
+                        self.agb_overall_predictor_data.join(
+                            overall_models.select("ModelID").unique(),
+                            on="ModelID",
+                            how="semi",
+                        ),
+                    ],
+                    how="diagonal_relaxed",
                 )
-            else:
-                predictordata_cache = pega_io.cache_to_file(
-                    self.predictor_data.filter(
-                        pl.col("ModelID").is_in(selected_model_ids),
-                    ),
-                    abs_path,
-                    name=f"cached_predictor_data_{time}",
-                )
+            predictordata_cache = pega_io.cache_to_file(
+                predictor_data,
+                abs_path,
+                name=f"cached_predictor_data_{time}",
+            )
 
         return modeldata_cache, predictordata_cache
+
+    def with_model_data(self, model_df: pl.LazyFrame) -> ADMDatamart:
+        """Build a new ``ADMDatamart`` from (filtered) model data and the current predictor data.
+
+        Use this instead of ``ADMDatamart(model_df=..., predictor_df=dm.predictor_data)``
+        when narrowing down an existing datamart: the configuration-level
+        Gradient Boost rows (``agb_overall_model_data`` and
+        ``agb_overall_predictor_data``) are passed along and kept for the
+        configurations that remain in ``model_df``.
+
+        Parameters
+        ----------
+        model_df : pl.LazyFrame
+            Model data to build the new datamart from, typically a filtered
+            version of ``model_data``.
+
+        Returns
+        -------
+        ADMDatamart
+            A new datamart with ``model_df``, the current predictor data and the
+            matching overall Gradient Boost rows.
+
+        Examples
+        --------
+        >>> web_only = dm.with_model_data(dm.model_data.filter(pl.col("Channel") == "Web"))
+        """
+
+        def with_overall(df: pl.LazyFrame | None, overall: pl.LazyFrame | None) -> pl.LazyFrame | None:
+            if df is None or overall is None:
+                return df
+            return pl.concat([df, overall], how="diagonal_relaxed")
+
+        return ADMDatamart(
+            model_df=with_overall(model_df, self.agb_overall_model_data),
+            predictor_df=with_overall(self.predictor_data, self.agb_overall_predictor_data),
+        )
 
     def _unique_sorted_from_model_data(self, expr: pl.Expr, alias: str) -> list[str]:
         """Helper for the ``unique_*`` cached_properties on model data.

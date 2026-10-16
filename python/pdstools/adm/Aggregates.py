@@ -124,6 +124,80 @@ class Aggregates:
             .rename({"PerformanceBin": "PredictorPerformance"}, strict=False)
         )
 
+    def agb_feature_importance(self, *, query: QUERY | None = None) -> pl.LazyFrame:
+        """Feature importance of the overall Gradient Boost model per configuration.
+
+        Gradient Boost configurations train one model across all actions. Its
+        configuration-level record (empty context keys, see issue #667) carries
+        the feature importance of that model. This method returns the
+        predictor-level ``FeatureImportance`` from the latest snapshot of those
+        records. The per-action model instances are not included.
+
+        Parameters
+        ----------
+        query : QUERY, optional
+            Filter applied to the result, for example on ``Configuration``.
+            Context keys such as ``Channel`` are empty for these records.
+
+        Returns
+        -------
+        pl.LazyFrame
+            One row per configuration and predictor (``Classifier`` excluded)
+            with columns ``ModelID``, ``Configuration``, ``PredictorName``,
+            ``PredictorCategory``, ``EntryType``, ``Type`` and
+            ``FeatureImportance``, sorted by configuration and descending
+            importance. Empty when the data has no overall Gradient Boost
+            records or no ``FeatureImportance``.
+
+        Examples
+        --------
+        >>> dm.aggregates.agb_feature_importance().collect()
+        >>> dm.aggregates.agb_feature_importance(
+        ...     query=pl.col("Configuration") == "Web_Click_Through_Rate"
+        ... ).collect()
+        """
+        result_schema = {
+            "ModelID": pl.String,
+            "Configuration": pl.String,
+            "PredictorName": pl.String,
+            "PredictorCategory": pl.String,
+            "EntryType": pl.String,
+            "Type": pl.String,
+            "FeatureImportance": pl.Float64,
+        }
+        models = self.datamart.agb_overall_model_data
+        predictors = self.datamart.agb_overall_predictor_data
+        predictor_columns = [] if predictors is None else predictors.collect_schema().names()
+        if models is None or predictors is None or "FeatureImportance" not in predictor_columns:
+            return pl.LazyFrame(schema=result_schema)
+
+        per_predictor = (
+            predictors.filter(
+                (
+                    (pl.col("SnapshotTime").n_unique() == 1) | (pl.col("SnapshotTime") == pl.col("SnapshotTime").max())
+                ).over("ModelID"),
+                pl.col("EntryType") != "Classifier",
+            )
+            .group_by("ModelID", pl.col("PredictorName").cast(pl.String))
+            .agg(
+                pl.col("PredictorCategory", "EntryType").cast(pl.String).first(),
+                Type=pl.col("Type").cast(pl.String).first() if "Type" in predictor_columns else pl.lit(None, pl.String),
+                FeatureImportance=pl.col("FeatureImportance").cast(pl.Float64).first(),
+            )
+        )
+        df = (
+            models.sort("SnapshotTime")
+            .unique("ModelID", keep="last")
+            .select("ModelID", pl.col("Configuration").cast(pl.String))
+            .join(per_predictor, on="ModelID")
+            .select(list(result_schema))
+        )
+        return cdh_utils._apply_query(df, query, allow_empty=True).sort(
+            ["Configuration", "FeatureImportance", "PredictorName"],
+            descending=[False, True, False],
+            nulls_last=True,
+        )
+
     def predictor_performance_pivot(
         self,
         *,
@@ -288,6 +362,7 @@ class Aggregates:
         top_n: int,
         metric: str = "PredictorPerformance",
         facets: list[str] | None = None,
+        weight_col: str | None = "ResponseCountBin",
     ) -> pl.LazyFrame:
         """Subsets DataFrame to contain only top_n predictors.
 
@@ -301,6 +376,10 @@ class Aggregates:
             Metric to use for comparing predictors
         facets : list
             Subsets top_n predictors over facets. Seperate top predictors for each facet
+        weight_col : str or None, default "ResponseCountBin"
+            Column used to weight the metric when ranking predictors. Use
+            ``None`` for an unweighted mean, e.g. for Gradient Boost models
+            whose bins carry no response counts.
 
         Returns
         -------
@@ -310,10 +389,11 @@ class Aggregates:
         """
         if top_n < 1:
             return df
+        rank_expr = pl.mean(metric) if weight_col is None else cdh_utils.weighted_average_polars(metric, weight_col)
         if facets:
             return df.join(
                 df.group_by([*facets, "PredictorName"])
-                .agg(cdh_utils.weighted_average_polars(metric, "ResponseCountBin"))
+                .agg(rank_expr)
                 .filter(pl.col(metric).is_not_nan())
                 .group_by(*facets)
                 .agg(
@@ -325,7 +405,7 @@ class Aggregates:
 
         return df.join(
             df.group_by("PredictorName")
-            .agg(cdh_utils.weighted_average_polars(metric, "ResponseCountBin"))
+            .agg(rank_expr)
             .filter(pl.col(metric).is_not_nan())
             .sort(metric, descending=True)
             .head(top_n)
