@@ -113,6 +113,13 @@ def test_hidden_characters():
     ]
 
 
+@pytest.mark.parametrize("char", ["\u2003", "\u3000", "\u00a0", "\u200b", "\ufeff", "\t"])
+def test_hidden_characters_inside_value(char):
+    dm = ADMDatamart(model_df=_models([("m1", f"a{char}b", 1, 10, "NaiveBayes")]))
+    df = dm.aggregates.hidden_character_names().collect()
+    assert df["Cleaned"].to_list() == ['"ab"']
+
+
 def test_hidden_characters_none():
     dm = ADMDatamart(model_df=_models([("m1", "clean", 1, 10, "NaiveBayes")]))
     df = dm.aggregates.hidden_character_names().collect()

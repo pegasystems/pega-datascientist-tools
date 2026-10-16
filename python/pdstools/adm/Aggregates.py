@@ -29,8 +29,10 @@ fraction of the average success rate."""
 NAMING_COLUMNS = ("Configuration", "Channel", "Direction", "Issue", "Group", "Name", "Treatment")
 """Model identifier columns covered by the naming review."""
 
-HIDDEN_CHARACTERS_PATTERN = r"[\x00-\x1f\x7f-\x9f\u00a0\u00ad\u200b-\u200f\u2028-\u202f\u2060-\u2064\ufeff]"
-"""Control, zero-width, directional and non-breaking space characters."""
+HIDDEN_CHARACTERS_PATTERN = (
+    r"[\x00-\x1f\x7f-\x9f\u00a0\u00ad\u1680\u180e\u2000-\u200f\u2028-\u202f\u205f-\u2064\u3000\ufeff]"
+)
+"""Control, zero-width, directional and non-standard space characters."""
 
 if TYPE_CHECKING:
     import datetime
