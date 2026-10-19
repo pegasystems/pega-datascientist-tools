@@ -116,7 +116,7 @@ def test_agb_report_partitioning(agb_report_cell, importance_dm, configurations_
             pytest.approx({"Age": 20.0, "IH.Clicks": 80.0}),
         ]
         assert titles == [
-            f"Predictor Importance<br>Configuration={configuration}<br>"
+            f"Predictor Importance: {configuration}<br>"
             f"Channel={channel}, Direction={direction}, ModelTechnique=GradientBoost"
             for configuration, channel, direction in [
                 ("A", "Web", "Inbound"),
@@ -131,7 +131,7 @@ def test_agb_report_partitioning(agb_report_cell, importance_dm, configurations_
             pytest.approx({"Age": 50.0, "Param.Tier": 20.0, "IH.Clicks": 30.0}),
         ]
         assert titles == [
-            "Predictor Importance<br>Configuration=C<br>Channel=Email, Direction=None, ModelTechnique=GradientBoost",
+            "Predictor Importance: C<br>Channel=Email, Direction=None, ModelTechnique=GradientBoost",
             "Predictor Importance (configurations combined)<br>"
             "Channel=Web, Direction=Inbound, ModelTechnique=GradientBoost",
         ]
@@ -165,7 +165,7 @@ def test_nb_report_titles_and_fallback(nb_report_cell, importance_dm, configurat
     titles = [fig.layout.title.text for fig in shown]
     if configurations_max == 3:
         assert titles == [
-            f"Predictor Importance<br>Configuration={configuration}<br>"
+            f"Predictor Importance: {configuration}<br>"
             f"Channel={channel}, Direction={direction}, ModelTechnique=NaiveBayes"
             for configuration, channel, direction in [
                 ("A", "Web", "Inbound"),
@@ -176,7 +176,7 @@ def test_nb_report_titles_and_fallback(nb_report_cell, importance_dm, configurat
         report_utils.quarto_callout_info.assert_not_called()
     else:
         assert titles == [
-            "Predictor Importance<br>Configuration=C<br>Channel=Email, Direction=None, ModelTechnique=NaiveBayes",
+            "Predictor Importance: C<br>Channel=Email, Direction=None, ModelTechnique=NaiveBayes",
             "Predictor Importance (configurations combined)<br>"
             "Channel=Web, Direction=Inbound, ModelTechnique=NaiveBayes",
         ]
@@ -193,7 +193,7 @@ def test_importance_title_wraps_and_escapes_configuration_names(title_helper_cel
     )
     assert "A&lt;test&gt;" in title
     assert "<sup>" not in title
-    assert all(len(unescape(line)) <= 65 for line in title.split("<br>")[1:])
+    assert all(len(unescape(line)) <= 65 for line in title.split("<br>"))
 
 
 @pytest.mark.parametrize("model_name", ["untrained", "nb", "missing"])

@@ -183,13 +183,13 @@ def predictor_importance_title(facet, configurations):
 
     title = "Predictor Importance"
     if len(configurations) == 1:
-        lines = wrap(f"Configuration={configurations[0]}", width=65)
+        title += f": {configurations[0]}"
     else:
         title += " (configurations combined)"
-        lines = []
+    lines = wrap(title, width=65)
     context = ", ".join(f"{key}={value}" for key, value in facet.items() if key != "Configuration")
     lines.extend(wrap(context, width=65))
-    return title + "<br>" + "<br>".join(escape(line) for line in lines)
+    return "<br>".join(escape(line) for line in lines)
 
 
 ```
