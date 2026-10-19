@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- ADM Health Check ranks AGB predictors separately per model configuration,
+  channel and direction instead of pooling all configurations. Reports with
+  more than ten configuration groups fall back to channel/direction and
+  modelling technique, matching the Naive Bayes section.
 - Decision Analysis Tool: `--data-path` and file upload now read ZIP archives containing nested Parquet ZIP files.
 - `read_data` (and therefore `DecisionAnalyzer` constructors) now reads Pega Action Analysis ZIP exports, whose inner `.zip` chunks are gzipped NDJSON.
 

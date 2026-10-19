@@ -1604,7 +1604,7 @@ else:
 
 ## Importance of Adaptive Gradient Boosting Predictors
 
-Adaptive Gradient Boosting (AGB) models do not have univariate predictor performance, so they do not show up in the Naive Bayes sections above. Instead the importance reported by the platform is shown here. For each model the importances add up to 100%; the charts show the average over the models of a configuration. AGB models that have not built any trees yet have no importance and are left out.
+Adaptive Gradient Boosting (AGB) models do not have univariate predictor performance, so they do not show up in the Naive Bayes sections above. Instead the importance reported by the platform is shown here. For each model the importances add up to 100%; the charts show the average over the models of a configuration. Top predictors are ranked separately per Configuration, Channel and Direction. As in the Naive Bayes section, when there are too many configurations, the top-predictor charts combine configurations within each Channel/Direction and Modelling Technique. AGB models that have not built any trees yet have no importance and are left out.
 
 ```{python}
 # | error: true
@@ -1645,9 +1645,34 @@ else:
         fig = datamart.plot.predictor_category_importance(query=agb_query & active_models_filter_expr)
         if fig is not None:
             fig.show()
-        fig = datamart.plot.predictor_importance(query=agb_query & active_models_filter_expr)
-        if fig is not None:
-            fig.show()
+        agb_facet_columns = ["Configuration", "Channel", "Direction", "ModelTechnique"]
+        agb_facets = agb_importance.select(agb_facet_columns).unique().sort(agb_facet_columns).to_dicts()
+        agb_main_title = "AGB Predictor Importance per Model Configuration"
+        if len(agb_facets) > configurations_max:
+            report_utils.quarto_callout_info(
+                f"The data contains many ({len(agb_facets)}) AGB model configurations. "
+                "To limit the size of the generated report we only show top AGB predictors per "
+                "Channel/Direction + Modelling Technique. To view details per model configuration, split up the data."
+            )
+            agb_facet_columns = ["Channel", "Direction", "ModelTechnique"]
+            agb_facets = agb_importance.select(agb_facet_columns).unique().sort(agb_facet_columns).to_dicts()
+            agb_main_title = "AGB Predictor Importance for all Model Configurations"
+        agb_figs = datamart.plot.partitioned_plot(
+            datamart.plot.predictor_importance,
+            query=agb_query & active_models_filter_expr,
+            facets=agb_facets,
+            show_plots=False,
+        )
+        for fig, facet in zip(agb_figs, agb_facets, strict=True):
+            if fig is not None:
+                facet_str = "<br>".join(f"{k}={v}" for k, v in facet.items())
+                fig.update_layout(
+                    title=f"{agb_main_title}<br><sup>{facet_str}</sup>",
+                    font=dict(size=10),
+                    height=700,
+                    margin=dict(t=140),
+                )
+                fig.show()
     except Exception as e:
         report_utils.quarto_plot_exception("AGB predictor importance", e)
 ```
