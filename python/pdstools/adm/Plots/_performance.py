@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 import polars as pl
 
 from ...utils import cdh_utils
+from .._constants import MODEL_TECHNIQUE_ORDER, model_technique_label
 from ._base import _PlotsBase
 from ._helpers import add_metric_limit_lines, requires
 
@@ -146,6 +147,10 @@ class _PerformancePlotsMixin(_PlotsBase):
             grouping_columns.append(facet)
         df = df.with_columns(by).set_sorted("SnapshotTime")
 
+        if "ModelTechnique" in grouping_columns:
+            # Models without a recorded technique predate AGB and are Naive Bayes.
+            df = df.with_columns(pl.col("ModelTechnique").fill_null("NaiveBayes"))
+
         # Filter out null values in SnapshotTime and grouping columns to avoid issues with group_by_dynamic
         null_filters = [pl.col("SnapshotTime").is_not_null()] + [pl.col(col).is_not_null() for col in grouping_columns]
         df = df.filter(pl.all_horizontal(null_filters))
@@ -243,8 +248,14 @@ class _PerformancePlotsMixin(_PlotsBase):
             unique_facet_values = final_df.select(facet).unique().height
             facet_col_wrap = max(2, int(unique_facet_values**0.5))
 
+        category_orders: dict[str, list[str]] = {}
+        if "ModelTechnique" in final_df.columns:
+            final_df = final_df.with_columns(model_technique_label())
+            category_orders["ModelTechnique"] = MODEL_TECHNIQUE_ORDER
+
         title = "over all models" if facet is None else f"per {facet}"
         line_kwargs: dict[str, Any] = {
+            "category_orders": category_orders,
             "x": "SnapshotTime",
             "y": plot_metric,
             "color": by_col,

@@ -35,6 +35,15 @@ dependencies and execution.
   regression window where the fix lacks the surrounding context.
 - **Product naming.** User-facing text: "Decision Analysis Tool",
   "ADM Health Check". Code/CLI: `decision_analyzer`, `adm_healthcheck`.
+- **Model technique naming.** User-facing text (plot labels, facet and
+  chart titles, report prose) says "Naive Bayes" and "Adaptive Gradient
+  Boosting", always in that order — never the raw `ModelTechnique`
+  values `NaiveBayes` / `GradientBoost`. Use `model_technique_label()`,
+  `MODEL_TECHNIQUE_LABELS` and `MODEL_TECHNIQUE_ORDER` from
+  `pdstools.adm._constants` (pass the order as plotly `category_orders`).
+  A null technique predates AGB ('24) and is shown as Naive Bayes, but
+  keep the null in the data so "unknown" stays distinguishable (e.g. the
+  `usesAGB` "?" flag). Code comparisons keep using the raw values.
 - **`verbose` parameters.** Reserve `verbose` for genuine user-facing
   progress — tqdm progress bars on long-running I/O, multi-stage CLI
   output (`"Step 1/3: writing parquet…"`). For anything that prints

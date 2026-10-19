@@ -18,6 +18,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Success-rate axes in `ADMDatamart.plot.over_time(metric="SuccessRate")` and
   `ADMDatamart.plot.bubble_chart` now always start at 0, also when channels are
   hidden from the legend, so small differences are no longer exaggerated.
+- Model techniques are labelled "Naive Bayes" and "Adaptive Gradient Boosting"
+  (in that order) instead of `NaiveBayes` / `GradientBoost` in
+  `ADMDatamart.plot.over_time` and `bubble_chart` facets and in the ADM Health
+  Check chart titles. `over_time` faceted on `ModelTechnique` no longer drops
+  models without a recorded technique; they are shown as Naive Bayes.
 - ADM Health Check ranks AGB predictors separately per model configuration,
   channel and direction instead of pooling all configurations. Reports with
   more than ten configuration groups fall back to channel/direction and

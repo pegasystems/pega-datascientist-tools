@@ -145,6 +145,56 @@ def test_over_time_metric_limits_only_for_performance(sample2: ADMDatamart):
     assert len(shapes) == 0
 
 
+def _technique_datamart() -> ADMDatamart:
+    data = pl.DataFrame(
+        {
+            "SnapshotTime": [datetime(2024, 1, 1), datetime(2024, 1, 2)] * 3,
+            "ModelID": ["1", "1", "2", "2", "3", "3"],
+            "Name": ["A", "A", "B", "B", "C", "C"],
+            "Configuration": ["AGB", "AGB", "NB", "NB", "Legacy", "Legacy"],
+            "ModelTechnique": ["GradientBoost", "GradientBoost", "NaiveBayes", "NaiveBayes", None, None],
+            "Performance": [0.70, 0.72, 0.60, 0.62, 0.55, 0.56],
+            "ResponseCount": [100, 120, 100, 110, 100, 105],
+            "Positives": [10, 12, 5, 6, 2, 3],
+        },
+    ).lazy()
+    return ADMDatamart(model_df=data)
+
+
+def test_model_technique_label():
+    from pdstools.adm._constants import model_technique_label
+
+    labels = (
+        pl.DataFrame({"ModelTechnique": ["GradientBoost", "NaiveBayes", None, "Other"]})
+        .select(model_technique_label())
+        .get_column("ModelTechnique")
+        .to_list()
+    )
+    assert labels == ["Adaptive Gradient Boosting", "Naive Bayes", "Naive Bayes", "Other"]
+
+
+def _facet_titles(fig: Figure) -> list[str]:
+    return [a.text for a in sorted(fig.layout.annotations, key=lambda a: a.x)]
+
+
+def test_over_time_model_technique_facets_use_display_names():
+    dm = _technique_datamart()
+    fig = dm.plot.over_time(metric="Performance", by="Configuration", facet="ModelTechnique")
+    assert _facet_titles(fig) == ["ModelTechnique=Naive Bayes", "ModelTechnique=Adaptive Gradient Boosting"]
+    assert {t.name: [round(y, 6) for y in t.y] for t in fig.data} == {
+        "NB": [60.0, 62.0],
+        "Legacy": [55.0, 56.0],
+        "AGB": [70.0, 72.0],
+    }
+    raw = dm.plot.over_time(metric="Performance", by="Configuration", facet="ModelTechnique", return_df=True)
+    assert set(raw.collect()["ModelTechnique"].to_list()) == {"GradientBoost", "NaiveBayes"}
+
+
+def test_bubble_chart_model_technique_facets_use_display_names():
+    fig = _technique_datamart().plot.bubble_chart(facet="ModelTechnique")
+    assert _facet_titles(fig) == ["ModelTechnique=Naive Bayes", "ModelTechnique=Adaptive Gradient Boosting"]
+
+
 def test_over_time(sample2: ADMDatamart):
     fig = sample2.plot.over_time(metric="Performance", by="ModelID")
     assert isinstance(fig, Figure)

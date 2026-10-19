@@ -186,9 +186,25 @@ def predictor_importance_title(facet, configurations):
         title += f": {configurations[0]}"
     else:
         title += " (configurations combined)"
+    from pdstools.adm._constants import MODEL_TECHNIQUE_LABELS
+
     lines = wrap(title, width=65)
-    context = ", ".join(f"{key}={value}" for key, value in facet.items() if key != "Configuration")
-    lines.extend(wrap(context, width=65))
+
+    def context_item(key, value):
+        if key == "ModelTechnique":
+            return f"Model Technique={MODEL_TECHNIQUE_LABELS.get(value or 'NaiveBayes', value)}"
+        return f"{key}={value}"
+
+    # Wrap between context items so no value is split across lines.
+    context_line = ""
+    for item in (context_item(key, value) for key, value in facet.items() if key != "Configuration"):
+        if context_line and len(context_line) + len(item) + 2 > 65:
+            lines.append(context_line + ",")
+            context_line = item
+        else:
+            context_line = f"{context_line}, {item}" if context_line else item
+    if context_line:
+        lines.append(context_line)
     return "<br>".join(escape(line) for line in lines)
 
 
@@ -1221,6 +1237,8 @@ if naming_review is not None and naming_review.height > 0:
 This “Bubble Chart” - similar to the standard ADM models overview in Pega Prediction Studio - shows the relation between model performance and proposition success rates. The size of the bubbles indicates the number of responses.
 
 ```{python}
+from pdstools.adm._constants import model_technique_label
+
 try:
     # Check number of unique Configuration/Channel/Direction/ModelTechnique combinations
     all_facets = (
@@ -1243,13 +1261,11 @@ try:
     if n_configs > configurations_max:
         # Too many configurations - drop Configuration, keep ModelTechnique (if available)
         if has_model_technique:
-            # Count actual facet combinations with ModelTechnique (excluding null ModelTechnique)
-            n_facets = all_facets.filter(
-                pl.col("ModelTechnique").is_not_null()
-            ).select([
+            # Count facet combinations as shown (missing technique is shown as Naive Bayes)
+            n_facets = all_facets.select([
                 pl.col("Channel"),
                 pl.col("Direction"),
-                pl.col("ModelTechnique"),
+                model_technique_label(),
             ]).unique().shape[0]
 
             report_utils.quarto_callout_info(
@@ -1260,7 +1276,7 @@ The data contains many ({n_configs}) model configurations. To limit the size of 
             facet = pl.concat_str(
                 pl.col("Channel").cast(pl.Utf8).fill_null(""),
                 pl.col("Direction").cast(pl.Utf8).fill_null(""),
-                pl.col("ModelTechnique").cast(pl.Utf8).fill_null(""),
+                model_technique_label(),
                 separator="/"
             ).alias("Facet")
             bubble_title_detail = "Channel/Direction and Model Technique"

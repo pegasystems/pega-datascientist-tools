@@ -117,7 +117,7 @@ def test_agb_report_partitioning(agb_report_cell, importance_dm, configurations_
         ]
         assert titles == [
             f"Predictor Importance: {configuration}<br>"
-            f"Channel={channel}, Direction={direction}, ModelTechnique=GradientBoost"
+            f"Channel={channel}, Direction={direction},<br>Model Technique=Adaptive Gradient Boosting"
             for configuration, channel, direction in [
                 ("A", "Web", "Inbound"),
                 ("B", "Web", "Inbound"),
@@ -131,9 +131,9 @@ def test_agb_report_partitioning(agb_report_cell, importance_dm, configurations_
             pytest.approx({"Age": 50.0, "Param.Tier": 20.0, "IH.Clicks": 30.0}),
         ]
         assert titles == [
-            "Predictor Importance: C<br>Channel=Email, Direction=None, ModelTechnique=GradientBoost",
+            "Predictor Importance: C<br>Channel=Email, Direction=None,<br>Model Technique=Adaptive Gradient Boosting",
             "Predictor Importance (configurations combined)<br>"
-            "Channel=Web, Direction=Inbound, ModelTechnique=GradientBoost",
+            "Channel=Web, Direction=Inbound,<br>Model Technique=Adaptive Gradient Boosting",
         ]
         report_utils.quarto_callout_info.assert_called_once()
         assert "(3) AGB model configurations" in report_utils.quarto_callout_info.call_args.args[0]
@@ -170,7 +170,7 @@ def test_nb_report_titles_and_fallback(nb_report_cell, importance_dm, configurat
     if configurations_max == 3:
         assert titles == [
             f"Predictor Importance: {configuration}<br>"
-            f"Channel={channel}, Direction={direction}, ModelTechnique=NaiveBayes"
+            f"Channel={channel}, Direction={direction}, Model Technique=Naive Bayes"
             for configuration, channel, direction in [
                 ("A", "Web", "Inbound"),
                 ("B", "Web", "Inbound"),
@@ -180,9 +180,9 @@ def test_nb_report_titles_and_fallback(nb_report_cell, importance_dm, configurat
         report_utils.quarto_callout_info.assert_not_called()
     else:
         assert titles == [
-            "Predictor Importance: C<br>Channel=Email, Direction=None, ModelTechnique=NaiveBayes",
+            "Predictor Importance: C<br>Channel=Email, Direction=None, Model Technique=Naive Bayes",
             "Predictor Importance (configurations combined)<br>"
-            "Channel=Web, Direction=Inbound, ModelTechnique=NaiveBayes",
+            "Channel=Web, Direction=Inbound, Model Technique=Naive Bayes",
         ]
         report_utils.quarto_callout_info.assert_called_once()
         assert "(3) Naive Bayes model configurations" in report_utils.quarto_callout_info.call_args.args[0]

@@ -8,6 +8,7 @@ import polars as pl
 
 from ...utils import cdh_utils
 from ...utils.plot_utils import get_colorscale
+from .._constants import MODEL_TECHNIQUE_ORDER, model_technique_label
 from ._base import _PlotsBase
 from ._helpers import (
     add_bottom_left_text_to_bubble_plot,
@@ -144,11 +145,16 @@ class _OverviewPlotsMixin(_PlotsBase):
                 fig = add_metric_limit_lines(fig)
             return fig
 
+        category_orders: dict[str, list[str]] = {}
+        if facet_name == "ModelTechnique":
+            collected = collected.with_columns(model_technique_label())
+            category_orders["ModelTechnique"] = MODEL_TECHNIQUE_ORDER
         fig = px.scatter(
             collected.with_columns(
                 pl.col("LastUpdate").dt.strftime("%v"),
                 pl.col(self.datamart.context_keys).fill_null(""),
             ),
+            category_orders=category_orders,
             x="Performance",
             y="SuccessRate",
             color=color,
