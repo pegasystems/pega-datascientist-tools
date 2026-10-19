@@ -1,6 +1,7 @@
 """Exact-value regressions for AGB importance partitioning in the report."""
 
 import re
+from html import unescape
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -11,12 +12,26 @@ from pdstools import ADMDatamart
 
 
 @pytest.fixture
-def agb_report_cell():
+def report_cells():
     template = Path(__file__).parents[2] / "pdstools" / "reports" / "HealthCheck.qmd"
-    cells = re.findall(r"```\{python\}\n(.*?)\n```", template.read_text(encoding="utf-8"), re.DOTALL)
-    matches = [cell for cell in cells if 'agb_query = pl.col("ModelTechnique")' in cell]
-    assert len(matches) == 1
-    return compile(matches[0], str(template), "exec")
+    return re.findall(r"```\{python\}\n(.*?)\n```", template.read_text(encoding="utf-8"), re.DOTALL)
+
+
+@pytest.fixture
+def title_helper_cell(report_cells):
+    return next(cell for cell in report_cells if "def predictor_importance_title(" in cell)
+
+
+@pytest.fixture
+def agb_report_cell(report_cells, title_helper_cell):
+    cell = next(cell for cell in report_cells if 'agb_query = pl.col("ModelTechnique")' in cell)
+    return compile(title_helper_cell + "\n" + cell, "HealthCheck.qmd", "exec")
+
+
+@pytest.fixture
+def nb_report_cell(report_cells, title_helper_cell):
+    cell = next(cell for cell in report_cells if "nb_importance_groups = " in cell)
+    return compile(title_helper_cell + "\n" + cell, "HealthCheck.qmd", "exec")
 
 
 @pytest.fixture
@@ -61,7 +76,7 @@ def importance_dm():
             "BinPositives": 0,
             "Type": "numeric",
             "Performance": 0.5,
-            "ResponseCount": 0,
+            "ResponseCount": 1000,
             "Positives": 0,
         }
     ).lazy()
@@ -90,7 +105,10 @@ def test_agb_report_partitioning(agb_report_cell, importance_dm, configurations_
         {name: value for trace in fig.data for name, value in zip(trace.y, trace.x, strict=True)} for fig in shown[1:]
     ]
     titles = [fig.layout.title.text for fig in shown[1:]]
-    assert all(fig.layout.margin.t == 170 for fig in shown[1:])
+    assert all(fig.layout.title.font.size == 14 for fig in shown[1:])
+    assert all(
+        fig.layout.margin.t == 80 + 20 * title.count("<br>") for fig, title in zip(shown[1:], titles, strict=True)
+    )
     if configurations_max == 3:
         assert shares == [
             pytest.approx({"Age": 70.0, "Param.Tier": 30.0}),
@@ -98,9 +116,8 @@ def test_agb_report_partitioning(agb_report_cell, importance_dm, configurations_
             pytest.approx({"Age": 20.0, "IH.Clicks": 80.0}),
         ]
         assert titles == [
-            "AGB Predictor Importance per Model Configuration<br>"
-            f"<sup>Configuration={configuration}<br>Channel={channel}<br>"
-            f"Direction={direction}<br>ModelTechnique=GradientBoost</sup>"
+            f"Predictor Importance<br>Configuration={configuration}<br>"
+            f"Channel={channel}, Direction={direction}, ModelTechnique=GradientBoost"
             for configuration, channel, direction in [
                 ("A", "Web", "Inbound"),
                 ("B", "Web", "Inbound"),
@@ -114,12 +131,69 @@ def test_agb_report_partitioning(agb_report_cell, importance_dm, configurations_
             pytest.approx({"Age": 50.0, "Param.Tier": 20.0, "IH.Clicks": 30.0}),
         ]
         assert titles == [
-            "AGB Predictor Importance for all Model Configurations<br>"
-            f"<sup>Channel={channel}<br>Direction={direction}<br>ModelTechnique=GradientBoost</sup>"
-            for channel, direction in [("Email", None), ("Web", "Inbound")]
+            "Predictor Importance<br>Configuration=C<br>Channel=Email, Direction=None, ModelTechnique=GradientBoost",
+            "Predictor Importance (configurations combined)<br>"
+            "Channel=Web, Direction=Inbound, ModelTechnique=GradientBoost",
         ]
         report_utils.quarto_callout_info.assert_called_once()
         assert "(3) AGB model configurations" in report_utils.quarto_callout_info.call_args.args[0]
+
+
+@pytest.mark.parametrize("configurations_max", [3, 2])
+def test_nb_report_titles_and_fallback(nb_report_cell, importance_dm, configurations_max, monkeypatch):
+    dm = ADMDatamart(
+        model_df=importance_dm.model_data.filter(~pl.col("Name").is_in(["nb", "inactive", "untrained"])).with_columns(
+            pl.lit("NaiveBayes").alias("ModelTechnique"),
+        ),
+        predictor_df=importance_dm.predictor_data,
+    )
+    shown = []
+    monkeypatch.setattr(go.Figure, "show", lambda self: shown.append(self))
+    report_utils = Mock()
+    namespace = {
+        "pl": pl,
+        "datamart": dm,
+        "active_models_filter_expr": ~pl.col("Name").is_in(["inactive", "untrained"]),
+        "predictor_analysis_query": pl.col("ResponseCountBin") > 200,
+        "configurations_max": configurations_max,
+        "report_utils": report_utils,
+    }
+
+    exec(nb_report_cell, namespace)
+
+    report_utils.quarto_plot_exception.assert_not_called()
+    titles = [fig.layout.title.text for fig in shown]
+    if configurations_max == 3:
+        assert titles == [
+            f"Predictor Importance<br>Configuration={configuration}<br>"
+            f"Channel={channel}, Direction={direction}, ModelTechnique=NaiveBayes"
+            for configuration, channel, direction in [
+                ("A", "Web", "Inbound"),
+                ("B", "Web", "Inbound"),
+                ("C", "Email", None),
+            ]
+        ]
+        report_utils.quarto_callout_info.assert_not_called()
+    else:
+        assert titles == [
+            "Predictor Importance<br>Configuration=C<br>Channel=Email, Direction=None, ModelTechnique=NaiveBayes",
+            "Predictor Importance (configurations combined)<br>"
+            "Channel=Web, Direction=Inbound, ModelTechnique=NaiveBayes",
+        ]
+        report_utils.quarto_callout_info.assert_called_once()
+    assert all(fig.layout.title.font.size == 14 for fig in shown)
+
+
+def test_importance_title_wraps_and_escapes_configuration_names(title_helper_cell):
+    namespace = {}
+    exec(title_helper_cell, namespace)
+    title = namespace["predictor_importance_title"](
+        {"Channel": "Web", "Direction": "Inbound", "ModelTechnique": "GradientBoost"},
+        ["A<test>" + "B" * 100],
+    )
+    assert "A&lt;test&gt;" in title
+    assert "<sup>" not in title
+    assert all(len(unescape(line)) <= 65 for line in title.split("<br>")[1:])
 
 
 @pytest.mark.parametrize("model_name", ["untrained", "nb", "missing"])

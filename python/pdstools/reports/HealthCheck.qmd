@@ -176,6 +176,22 @@ def safe_facet_col_wrap(n_facets: int, max_rows: int = 15) -> int:
         return max(2, math.ceil(n_facets / max_rows))
 
 
+def predictor_importance_title(facet, configurations):
+    """Show the configuration or combined scope and model context in the chart title."""
+    from html import escape
+    from textwrap import wrap
+
+    title = "Predictor Importance"
+    if len(configurations) == 1:
+        lines = wrap(f"Configuration={configurations[0]}", width=65)
+    else:
+        title += " (configurations combined)"
+        lines = []
+    context = ", ".join(f"{key}={value}" for key, value in facet.items() if key != "Configuration")
+    lines.extend(wrap(context, width=65))
+    return title + "<br>" + "<br>".join(escape(line) for line in lines)
+
+
 ```
 
 ```{python}
@@ -1518,28 +1534,30 @@ Box plots of the predictor importance of the Naive Bayes models. Predictor impor
 # )
 
 if datamart.predictor_data is not None:
-    facets = (
+    nb_importance_groups = (
         datamart.aggregates.last(table="combined_data")
         .select(pl.col("Configuration", "Channel", "Direction", "ModelTechnique"))
         .unique()
         .collect()
+    )
+    facets = (
+        nb_importance_groups
+        .sort("Configuration", "Channel", "Direction", "ModelTechnique")
         .to_dicts()
     )
-    main_title = "Predictor Importance per Model Configuration"
     # If there's too many configurations, drop this from
     # the partitioning.
     if len(facets) > configurations_max:
         report_utils.quarto_callout_info(f"""
-The data contains many ({len(datamart.unique_configurations)}) model configurations. To limit the size of the generated report we only show predictor importance per Channel/Direction + Modelling Technique. In order to view all of the details per model configuration, we suggest you split up the data.
+The data contains many ({len(datamart.unique_configurations)}) model configurations. To limit the size of the generated report we only show predictor importance per Channel/Direction + Modelling Technique. "Configurations combined" means only the configurations within the channel/direction and technique shown in the chart title. In order to view all of the details per model configuration, we suggest you split up the data.
 """)
         facets = (
-            datamart.aggregates.last(table="combined_data")
+            nb_importance_groups
             .select(pl.col("Channel", "Direction", "ModelTechnique"))
             .unique()
-            .collect()
+            .sort("Channel", "Direction", "ModelTechnique")
             .to_dicts()
         )
-        main_title = "Predictor Importance for all Model Configurations"
     try:
         figs = datamart.plot.partitioned_plot(
             datamart.plot.predictor_performance,
@@ -1553,14 +1571,26 @@ The data contains many ({len(datamart.unique_configurations)}) model configurati
         if not isinstance(figs, list):
             figs = [figs]
 
-        for fig, facet in zip(figs, facets):
-            facet_str = ", ".join([f"{k}={v}" for k, v in facet.items()])
+        for fig, facet in zip(figs, facets, strict=True):
             if fig is not None:
+                configurations = (
+                    nb_importance_groups
+                    .filter(pl.all_horizontal(
+                        pl.col(key).is_null() if value is None else pl.col(key) == value
+                        for key, value in facet.items()
+                    ))
+                    .get_column("Configuration")
+                    .unique()
+                    .sort()
+                    .to_list()
+                )
+                chart_title = predictor_importance_title(facet, configurations)
                 fig.update_traces(width=0.3)
                 fig.update_layout(
-                    title=f"{main_title}<br>{facet_str}",
+                    title=dict(text=chart_title, font=dict(size=14)),
                     font=dict(size=10),
                     height=700,
+                    margin=dict(t=80 + 20 * chart_title.count("<br>")),
                     yaxis_title="",
                 )
                 fig.layout.xaxis.tickformat = ".d"
@@ -1647,7 +1677,6 @@ else:
             fig.show()
         agb_facet_columns = ["Configuration", "Channel", "Direction", "ModelTechnique"]
         agb_facets = agb_importance.select(agb_facet_columns).unique().sort(agb_facet_columns).to_dicts()
-        agb_main_title = "AGB Predictor Importance per Model Configuration"
         if len(agb_facets) > configurations_max:
             report_utils.quarto_callout_info(
                 f"The data contains many ({len(agb_facets)}) AGB model configurations. "
@@ -1656,7 +1685,6 @@ else:
             )
             agb_facet_columns = ["Channel", "Direction", "ModelTechnique"]
             agb_facets = agb_importance.select(agb_facet_columns).unique().sort(agb_facet_columns).to_dicts()
-            agb_main_title = "AGB Predictor Importance for all Model Configurations"
         agb_figs = datamart.plot.partitioned_plot(
             datamart.plot.predictor_importance,
             query=agb_query & active_models_filter_expr,
@@ -1665,12 +1693,23 @@ else:
         )
         for fig, facet in zip(agb_figs, agb_facets, strict=True):
             if fig is not None:
-                facet_str = "<br>".join(f"{k}={v}" for k, v in facet.items())
+                configurations = (
+                    agb_importance
+                    .filter(pl.all_horizontal(
+                        pl.col(key).is_null() if value is None else pl.col(key) == value
+                        for key, value in facet.items()
+                    ))
+                    .get_column("Configuration")
+                    .unique()
+                    .sort()
+                    .to_list()
+                )
+                chart_title = predictor_importance_title(facet, configurations)
                 fig.update_layout(
-                    title=f"{agb_main_title}<br><sup>{facet_str}</sup>",
+                    title=dict(text=chart_title, font=dict(size=14)),
                     font=dict(size=10),
                     height=700,
-                    margin=dict(t=170),
+                    margin=dict(t=80 + 20 * chart_title.count("<br>")),
                 )
                 fig.show()
     except Exception as e:
