@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- ADM Health Check "Predictor Performance across Actions" and "Missing values"
+  sections now cover Naive Bayes models only, and their headers say so. AGB
+  predictors have no individual performance (the heatmap filled them in as
+  0.5) and no missing-value bins.
 - ADM Health Check ranks AGB predictors separately per model configuration,
   channel and direction instead of pooling all configurations. Reports with
   more than ten configuration groups fall back to channel/direction and

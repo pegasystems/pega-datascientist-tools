@@ -1872,11 +1872,13 @@ else:
 -   We expect a few dozen active predictors for every model instance.
 :::
 
-## Predictor Performance across Actions
+## Naive Bayes Predictor Performance across Actions
 
-A view of predictor performance across all propositions, ordered so that the best performing predictors are at the top and the best performing action/treatments are on the left. Green indicates good performance, red means more problematic - either too low or too good to be true.
+A view of Naive Bayes predictor performance (AUC) across all propositions, ordered so that the best performing predictors are at the top and the best performing action/treatments are on the left. Green indicates good performance, red means more problematic - either too low or too good to be true.
 
 Note that this view is really only useful when there is a limited number of actions. Also, we do not split by configuration here, to avoid having too many plots. It is often useful to zoom in into specific channels or configurations.
+
+Only Naive Bayes models are included. Adaptive Gradient Boosting predictors have no individual performance, and the AGB models for the different actions of a configuration share practically the same predictor importance; see the Adaptive Gradient Boosting predictor importance per configuration instead.
 
 ```{python}
 index_cols = report_utils.polars_subset_to_existing_cols(
@@ -1901,7 +1903,7 @@ if datamart.predictor_data is not None:
             top_predictors=barchart_max_bars,
             top_groups=barchart_max_bars,
             by=by_expr,
-            query=active_models_filter_expr,
+            query=active_models_filter_expr & nb_query,
         )
         if fig is not None:
             fig.update_layout(
@@ -1914,7 +1916,7 @@ if datamart.predictor_data is not None:
                     ],
                 },
                 font=dict(size=8),
-                title=f"Top predictors per Action<br>Globally, across all models and channels — models updated since {active_models_threshold_date_string}",
+                title=f"Top Naive Bayes predictors per Action<br>Globally, across all Naive Bayes models and channels — models updated since {active_models_threshold_date_string}",
             )
             fig.update_yaxes(dtick=1, automargin=True)
             fig.update_xaxes(dtick=1) #, tickangle=params.get("tickangle", None))
@@ -1932,9 +1934,11 @@ else:
     report_utils.quarto_callout_no_predictor_data_warning()
 ```
 
-## Missing values
+## Naive Bayes Missing Values
 
 If a predictor is low performing: are there too many missing values? This could point to a technical problem. IH fields often have missing values so they are excluded. We only list predictors that have \> 10% missing values.
+
+Only Naive Bayes models are included, because the datamart only holds missing-value bins for Naive Bayes predictors.
 
 ```{python}
 if datamart.predictor_data is not None:
@@ -1944,7 +1948,7 @@ if datamart.predictor_data is not None:
 
     active_model_ids = (
         datamart.aggregates.last(table="model_data")
-        .filter(active_models_filter_expr)
+        .filter(active_models_filter_expr & nb_query)
         .select("ModelID")
         .unique()
     )
@@ -1986,7 +1990,7 @@ if datamart.predictor_data is not None:
             color="Percentage without responses",
             template="pega",
             hover_data=hover_data,
-            title=f"Missing Predictor Data<br><sup>models updated since {active_models_threshold_date_string}</sup>",
+            title=f"Missing Naive Bayes Predictor Data<br><sup>models updated since {active_models_threshold_date_string}</sup>",
             range_color=[0, 1]
         )
 
