@@ -366,3 +366,107 @@ def test_predictor_count_is_naive_bayes_only(report_cells, poor_predictor_dm, mo
     assert fig.layout.title.text.startswith("Naive Bayes Predictor Counts")
     labels = {label for trace in fig.data for label in trace.y}
     assert labels == {"N / Active / numeric", "N / Active / Overall"}
+
+
+@pytest.fixture
+def mixed_technique_dm():
+    """One action with a Naive Bayes and an AGB model sharing predictor "Shared"."""
+    models = pl.DataFrame(
+        {
+            "ModelID": ["nb", "agb"],
+            "Issue": "Sales",
+            "Group": "Cards",
+            "Name": "Gold",
+            "Configuration": ["NBConfig", "AGBConfig"],
+            "Channel": "Web",
+            "Direction": "Inbound",
+            "ModelTechnique": ["NaiveBayes", "GradientBoost"],
+            "SnapshotTime": "20260101",
+            "ResponseCount": 1000,
+            "Positives": 100,
+            "Performance": 0.6,
+        }
+    ).lazy()
+    nb_bins = [
+        # (PredictorName, BinIndex, BinSymbol, BinResponseCount, Performance)
+        ("Shared", 1, "MISSING", 400, 0.7),
+        ("Shared", 2, "A", 600, 0.7),
+        ("NB.Only", 1, "MISSING", 50, 0.6),
+        ("NB.Only", 2, "B", 950, 0.6),
+    ]
+    predictors = pl.DataFrame(
+        {
+            "ModelID": ["nb"] * 4 + ["agb", "agb"],
+            "PredictorName": [b[0] for b in nb_bins] + ["Shared", "AGB.Only"],
+            "BinIndex": [b[1] for b in nb_bins] + [1, 1],
+            "BinSymbol": [b[2] for b in nb_bins] + ["", ""],
+            "BinResponseCount": [b[3] for b in nb_bins] + [0, 0],
+            "Performance": [b[4] for b in nb_bins] + [0.0, 0.0],
+            "FeatureImportance": [0.0] * 4 + [40.0, 60.0],
+            "EntryType": "Active",
+            "PredictorCategory": "Customer",
+            "SnapshotTime": "20260101",
+            "BinType": "SYMBOL",
+            "BinPositives": 10,
+            "Type": "symbolic",
+            "ResponseCount": 1000,
+            "Positives": 100,
+        }
+    ).lazy()
+    return ADMDatamart(model_df=models, predictor_df=predictors)
+
+
+def _nb_section_namespace(dm):
+    from pdstools.utils import report_utils as real_report_utils
+    from pdstools.utils.plot_utils import abbreviate_label
+
+    report_utils = Mock(polars_subset_to_existing_cols=real_report_utils.polars_subset_to_existing_cols)
+    return {
+        "pl": pl,
+        "datamart": dm,
+        "datamart_all_columns": dm.combined_data.collect_schema().names(),
+        "active_models_filter_expr": pl.lit(True),
+        "active_models_threshold_date_string": "2026-01-01",
+        "nb_query": pl.col("ModelTechnique").fill_null("").ne("GradientBoost"),
+        "barchart_max_bars": 20,
+        "abbreviate_label": abbreviate_label,
+        "report_utils": report_utils,
+    }
+
+
+def test_predictor_performance_across_actions_is_naive_bayes_only(report_cells, mixed_technique_dm, monkeypatch):
+    shown = []
+    monkeypatch.setattr(go.Figure, "show", lambda self: shown.append(self))
+    cell = next(cell for cell in report_cells if "predictor_performance_heatmap(" in cell)
+    namespace = _nb_section_namespace(mixed_technique_dm)
+    exec(compile(cell, "HealthCheck.qmd", "exec"), namespace)
+
+    namespace["report_utils"].quarto_plot_exception.assert_not_called()
+    (fig,) = shown
+    assert fig.layout.title.text.startswith("Top Naive Bayes predictors per Action")
+    # AGB-only predictor is absent and "Shared" keeps its NB performance (70 rather than a 50 filler).
+    assert list(fig.data[0].y) == ["Shared", "NB.Only"]
+    assert [row[0] for row in fig.data[0].z] == pytest.approx([70.0, 60.0])
+    assert fig.layout.margin.t == 90
+
+
+def test_missing_values_is_naive_bayes_only(report_cells, mixed_technique_dm):
+    cell = next(cell for cell in report_cells if "Percentage without responses" in cell)
+    namespace = _nb_section_namespace(mixed_technique_dm)
+    px = Mock()
+    namespace.update(px=px, pega_template=Mock())
+    exec(compile(cell, "HealthCheck.qmd", "exec"), namespace)
+
+    namespace["report_utils"].quarto_plot_exception.assert_not_called()
+    missing = px.treemap.call_args.args[0]
+    assert px.treemap.call_args.kwargs["title"].startswith("Missing Naive Bayes Predictor Data")
+    # "NB.Only" has 5% missing (below the 10% threshold); AGB rows add no responses.
+    assert missing.select("PredictorName", "MissingCount", "PredictorResponseCount").to_dicts() == [
+        {"PredictorName": "Shared", "MissingCount": 400, "PredictorResponseCount": 1000}
+    ]
+    namespace["report_utils"].quarto_print.assert_called_once()
+    assert (
+        namespace["report_utils"]
+        .quarto_print.call_args.args[0]
+        .startswith("50% of the Naive Bayes predictors (1 of 2) have 10% or less missing values")
+    )

@@ -498,12 +498,12 @@ class _PredictorPlotsMixin(_PlotsBase):
 
         title = "over all models"
         fig = px.imshow(
-            collected.select(pl.all().exclude(by_name)),
-            text_auto=cast(Any, ".3f"),
+            collected.select(pl.all().exclude(by_name) * 100),
+            text_auto=cast(Any, ".1f"),
             aspect="auto",
             color_continuous_scale=get_colorscale("Performance"),
             title=f"Top predictors {title}",
-            range_color=[0.5, 1],
+            range_color=[50, 100],
             y=collected[by_name],
         )
 
