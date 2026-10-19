@@ -90,6 +90,7 @@ def test_agb_report_partitioning(agb_report_cell, importance_dm, configurations_
         {name: value for trace in fig.data for name, value in zip(trace.y, trace.x, strict=True)} for fig in shown[1:]
     ]
     titles = [fig.layout.title.text for fig in shown[1:]]
+    assert all(fig.layout.margin.t == 170 for fig in shown[1:])
     if configurations_max == 3:
         assert shares == [
             pytest.approx({"Age": 70.0, "Param.Tier": 30.0}),

@@ -1670,7 +1670,7 @@ else:
                     title=f"{agb_main_title}<br><sup>{facet_str}</sup>",
                     font=dict(size=10),
                     height=700,
-                    margin=dict(t=140),
+                    margin=dict(t=170),
                 )
                 fig.show()
     except Exception as e:
