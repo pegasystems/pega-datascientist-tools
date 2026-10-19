@@ -288,6 +288,7 @@ def _run_poor_predictor_cells(cells, dm, active_models_filter_expr):
         "active_models_threshold_date_string": "2026-01-01",
         "agb_query": pl.col("ModelTechnique") == "GradientBoost",
         "agb_importance": pl.DataFrame({"x": [1]}),
+        "agb_unavailable": "no AGB importance",
         "MetricLimits": MetricLimits,
         "report_utils": report_utils,
         "display": displayed.append,
@@ -310,9 +311,7 @@ def test_poor_predictors_split_by_technique(poor_predictor_cells, poor_predictor
     # AGB zeros no longer drag NB "Age" (AUC 70) or AGB-only predictors into the NB table.
     assert nb_table.select("PredictorName", "Mean").to_dicts() == [{"PredictorName": "Poor.NB", "Mean": 50.5}]
     # Unused.Y is only in the inactive model; untrained models carry no importance.
-    assert agb_table.select("PredictorName", "Configurations", "Models").to_dicts() == [
-        {"PredictorName": "Unused.X", "Configurations": 2, "Models": 3}
-    ]
+    assert agb_table.to_dicts() == [{"PredictorName": "Unused.X", "PredictorCategory": "Unused", "Configurations": 2}]
     report_utils.quarto_callout_info.assert_not_called()
 
 
@@ -325,3 +324,37 @@ def test_unused_agb_predictors_none(poor_predictor_cells, poor_predictor_dm):
     report_utils.quarto_callout_info.assert_called_once_with(
         "Every predictor is used by at least one Adaptive Gradient Boosting model."
     )
+
+
+def test_unused_agb_predictors_without_agb_importance(poor_predictor_cells, poor_predictor_dm):
+    agb_cell = poor_predictor_cells[1]
+    report_utils = Mock()
+    exec(
+        agb_cell,
+        {"pl": pl, "agb_importance": None, "agb_unavailable": "no AGB importance", "report_utils": report_utils},
+    )
+    report_utils.quarto_callout_info.assert_called_once_with("no AGB importance")
+
+
+def test_predictor_count_is_naive_bayes_only(report_cells, poor_predictor_dm, monkeypatch):
+    shown = []
+    monkeypatch.setattr(go.Figure, "show", lambda self: shown.append(self))
+    count_cell = next(cell for cell in report_cells if "datamart.plot.predictor_count(" in cell)
+    report_utils = Mock()
+    exec(
+        compile(count_cell, "HealthCheck.qmd", "exec"),
+        {
+            "pl": pl,
+            "datamart": poor_predictor_dm,
+            "active_models_filter_expr": pl.lit(True),
+            "active_models_threshold_date_string": "2026-01-01",
+            "nb_query": pl.col("ModelTechnique").fill_null("").ne("GradientBoost"),
+            "report_utils": report_utils,
+        },
+    )
+
+    report_utils.quarto_plot_exception.assert_not_called()
+    (fig,) = shown
+    assert fig.layout.title.text.startswith("Naive Bayes Predictor Counts")
+    labels = {label for trace in fig.data for label in trace.y}
+    assert labels == {"N / Active / numeric", "N / Active / Overall"}

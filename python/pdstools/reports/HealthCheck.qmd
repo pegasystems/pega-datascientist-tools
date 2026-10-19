@@ -1731,14 +1731,74 @@ else:
 
 If predictors perform poorly across all models, that may be because of data sourcing issues or because it just is not related to any of the model outcomes. See also the analysis of missing data.
 
-Poor Naive Bayes predictors are those with a low univariate performance (AUC). Adaptive Gradient Boosting models have no univariate predictor performance, so their unused predictors are listed separately below.
+### Adaptive Gradient Boosting
+
+Adaptive Gradient Boosting models have no univariate predictor performance. Predictors that no trained AGB model uses (zero importance everywhere) are the AGB counterpart of poor predictors.
 
 ```{python}
+# | error: true
+# Uses agb_importance from the AGB importance section: trained, active AGB models only.
+if agb_importance is not None and agb_importance.height > 0:
+    try:
+        unused_agb_predictors = (
+            datamart.aggregates.predictor_importance(
+                query=agb_query & active_models_filter_expr
+            )
+            .group_by("PredictorName", "PredictorCategory")
+            .agg(
+                pl.col("Configuration").n_unique().alias("Configurations"),
+                pl.col("Importance %").max().alias("_MaxImportance"),
+            )
+            .filter(pl.col("_MaxImportance") == 0)
+            .drop("_MaxImportance")
+            .sort(["Configurations", "PredictorName"], descending=[True, False])
+            .collect()
+        )
+        if unused_agb_predictors.height == 0:
+            report_utils.quarto_callout_info(
+                "Every predictor is used by at least one Adaptive Gradient Boosting model."
+            )
+        else:
+            display(
+                report_utils.create_metric_gttable(
+                    unused_agb_predictors,
+                    title="Unused Adaptive Gradient Boosting Predictors",
+                    subtitle=(
+                        "zero importance in every trained AGB model updated since "
+                        f"{active_models_threshold_date_string}"
+                    ),
+                    rowname_col="PredictorName",
+                )
+                .tab_options(container_height="400px", container_overflow_y="auto")
+                .tab_style(
+                    style=style.text(align="left"),
+                    locations=loc.body(columns="PredictorName"),
+                )
+            )
+    except Exception as e:
+        report_utils.quarto_plot_exception("Unused AGB predictors", e)
+else:
+    report_utils.quarto_callout_info(agb_unavailable)
+```
+
+::: {.callout-tip title="Guidance"}
+-   AGB predictors that no model uses add data sourcing cost without contributing to the models.
+-   Be sure to check for data problems.
+-   Be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well.
+:::
+
+### Naive Bayes
+
+Poor Naive Bayes predictors are those with a low univariate performance (AUC) across the models.
+
+```{python}
+# Shared by the Naive Bayes cells in this section.
+nb_query = pl.col("ModelTechnique").fill_null("").ne("GradientBoost")
+
 if datamart.predictor_data is not None:
     bad_predictors = (
         datamart.aggregates.global_predictor_overview(
-            query=active_models_filter_expr
-            & pl.col("ModelTechnique").fill_null("").ne("GradientBoost")
+            query=active_models_filter_expr & nb_query
         )
         .filter(pl.col("Mean") < (MetricLimits.minimum("ModelPerformance")*100))
     )
@@ -1781,77 +1841,26 @@ else:
     report_utils.quarto_callout_no_predictor_data_warning()
 ```
 
-```{python}
-# | error: true
-# Uses agb_importance from the AGB importance section: trained, active AGB models only.
-if agb_importance is not None and agb_importance.height > 0:
-    try:
-        unused_agb_predictors = (
-            datamart.aggregates.predictor_importance(
-                query=agb_query & active_models_filter_expr
-            )
-            .group_by("PredictorName", "PredictorCategory")
-            .agg(
-                pl.col("Configuration").n_unique().alias("Configurations"),
-                pl.col("Models").sum(),
-                pl.col("Importance %").max().alias("_MaxImportance"),
-            )
-            .filter(pl.col("_MaxImportance") == 0)
-            .drop("_MaxImportance")
-            .sort(["Models", "PredictorName"], descending=[True, False])
-            .collect()
-        )
-        if unused_agb_predictors.height == 0:
-            report_utils.quarto_callout_info(
-                "Every predictor is used by at least one Adaptive Gradient Boosting model."
-            )
-        else:
-            display(
-                report_utils.create_metric_gttable(
-                    unused_agb_predictors,
-                    title="Unused Adaptive Gradient Boosting Predictors",
-                    subtitle=(
-                        "zero importance in every trained AGB model updated since "
-                        f"{active_models_threshold_date_string}"
-                    ),
-                    rowname_col="PredictorName",
-                )
-                .tab_options(container_height="400px", container_overflow_y="auto")
-                .tab_style(
-                    style=style.text(align="left"),
-                    locations=loc.body(columns="PredictorName"),
-                )
-            )
-    except Exception as e:
-        report_utils.quarto_plot_exception("Unused AGB predictors", e)
-```
-
-::: {.callout-tip title="Guidance"}
--   Predictors that consistently perform poorly could potentially be removed.
--   AGB predictors that no model uses add data sourcing cost without contributing to the models.
--   Be sure to check for data problems
--   Note we advise to be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well or if there is always a related predictor that performs better.
-:::
-
-## Number of Active and Inactive Predictors
-
-Showing the number of active and inactive predictors per model.
+Number of active and inactive Naive Bayes predictors per model configuration. Naive Bayes only uses predictors that are active, i.e. that perform sufficiently well and are not too correlated with a better predictor.
 
 ```{python}
 if datamart.predictor_data is not None:
     facet_cols = 2
     try:
-        fig = datamart.plot.predictor_count(by=["Type", "EntryType", "Configuration"], query=active_models_filter_expr)
-        fig.update_layout(title=f"Predictor Counts<br><sup>models updated since {active_models_threshold_date_string}</sup>")
+        fig = datamart.plot.predictor_count(by=["Type", "EntryType", "Configuration"], query=active_models_filter_expr & nb_query)
+        fig.update_layout(title=f"Naive Bayes Predictor Counts<br><sup>models updated since {active_models_threshold_date_string}</sup>")
         fig.show()
     except Exception as e:
-        report_utils.quarto_plot_exception("Number of Active and Inactive Predictors", e)
+        report_utils.quarto_plot_exception("Naive Bayes Predictor Counts", e)
 else:
     report_utils.quarto_callout_no_predictor_data_warning()
 ```
 
 ::: {.callout-tip title="Guidance"}
-We expect a few dozen active predictors for every model instance
+-   Predictors that consistently perform poorly could potentially be removed.
+-   Be sure to check for data problems.
+-   Note we advise to be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well or if there is always a related predictor that performs better.
+-   We expect a few dozen active predictors for every model instance.
 :::
 
 ## Predictor Performance across Actions

@@ -20,7 +20,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   "Poor Predictors Globally". Its poor-predictor table now covers Naive Bayes
   models only, because AGB predictors report a performance of 0 (they have no
   univariate AUC), which pulled averages below 50. A new table lists AGB
-  predictors that have zero importance in every trained AGB model.
+  predictors that have zero importance in every trained AGB model. The section
+  now has AGB and Naive Bayes subsections; the former "Number of Active and
+  Inactive Predictors" section moves under Naive Bayes and counts Naive Bayes
+  models only.
 - Decision Analysis Tool: `--data-path` and file upload now read ZIP archives containing nested Parquet ZIP files.
 - `read_data` (and therefore `DecisionAnalyzer` constructors) now reads Pega Action Analysis ZIP exports, whose inner `.zip` chunks are gzipped NDJSON.
 
