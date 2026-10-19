@@ -15,6 +15,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `ADMDatamart.plot.predictor_performance_heatmap` now shows AUC on the Pega
   50-100 scale (`return_df` still returns 0-1 values), and the Health Check
   heatmap title no longer overlaps the plot.
+- Success-rate axes in `ADMDatamart.plot.over_time(metric="SuccessRate")` and
+  `ADMDatamart.plot.bubble_chart` now always start at 0, also when channels are
+  hidden from the legend, so small differences are no longer exaggerated.
 - ADM Health Check ranks AGB predictors separately per model configuration,
   channel and direction instead of pooling all configurations. Reports with
   more than ten configuration groups fall back to channel/direction and

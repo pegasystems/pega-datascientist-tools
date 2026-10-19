@@ -265,7 +265,7 @@ class _PerformancePlotsMixin(_PlotsBase):
         fig = px.line(final_df, **line_kwargs)
 
         if metric == "SuccessRate":
-            fig.update_yaxes(tickformat=".2%", rangemode="nonnegative")
+            fig.update_yaxes(tickformat=".2%", rangemode="tozero")
 
         if show_metric_limits and metric == "Performance":
             fig = add_metric_limit_lines(fig, orientation="horizontal")

@@ -139,7 +139,7 @@ class _OverviewPlotsMixin(_PlotsBase):
         if collected.is_empty():
             fig = _empty_plot(f"Bubble Chart {title}")
             fig.update_xaxes(title="Performance")
-            fig.update_yaxes(title="SuccessRate", tickformat=".3%")
+            fig.update_yaxes(title="SuccessRate", tickformat=".3%", rangemode="tozero")
             if show_metric_limits:
                 fig = add_metric_limit_lines(fig)
             return fig
@@ -166,7 +166,7 @@ class _OverviewPlotsMixin(_PlotsBase):
         if show_metric_limits:
             fig = add_metric_limit_lines(fig)
         fig.update_traces(marker=dict(line=dict(color="black")))
-        fig.update_yaxes(tickformat=".3%")
+        fig.update_yaxes(tickformat=".3%", rangemode="tozero")
         return fig
 
     def tree_map(

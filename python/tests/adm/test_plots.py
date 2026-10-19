@@ -54,6 +54,7 @@ def test_bubble_chart(sample: ADMDatamart):
     assert isinstance(plot, Figure)
     assert plot.layout.xaxis.title.text == "Performance"
     assert plot.layout.yaxis.title.text == "SuccessRate"
+    assert plot.layout.yaxis.rangemode == "tozero"
     assert len(plot.data) == 1
 
 
@@ -190,8 +191,8 @@ def test_over_time(sample2: ADMDatamart):
         facet="Group",
         facet_col_spacing=0.08,
     )
-    assert fig_success_rate.layout.yaxis.rangemode == "nonnegative"
-    assert fig_success_rate.layout.yaxis2.rangemode == "nonnegative"
+    assert fig_success_rate.layout.yaxis.rangemode == "tozero"
+    assert fig_success_rate.layout.yaxis2.rangemode == "tozero"
     assert fig_success_rate.layout.yaxis2.matches == "y"
     assert fig_success_rate.layout.xaxis2.domain[0] - fig_success_rate.layout.xaxis.domain[1] == pytest.approx(0.08)
 
