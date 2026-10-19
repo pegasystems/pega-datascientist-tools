@@ -14,6 +14,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   modelling technique, matching the Naive Bayes section. Both techniques use
   consistent chart titles naming the actual configuration or identifying
   configurations combined within the displayed channel/direction and technique.
+  The Naive Bayes importance section now ignores AGB-only configurations, so
+  they no longer trigger its fallback or appear as empty facets.
 - Decision Analysis Tool: `--data-path` and file upload now read ZIP archives containing nested Parquet ZIP files.
 - `read_data` (and therefore `DecisionAnalyzer` constructors) now reads Pega Action Analysis ZIP exports, whose inner `.zip` chunks are gzipped NDJSON.
 

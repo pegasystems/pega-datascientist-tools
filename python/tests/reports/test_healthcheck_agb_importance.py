@@ -142,8 +142,12 @@ def test_agb_report_partitioning(agb_report_cell, importance_dm, configurations_
 @pytest.mark.parametrize("configurations_max", [3, 2])
 def test_nb_report_titles_and_fallback(nb_report_cell, importance_dm, configurations_max, monkeypatch):
     dm = ADMDatamart(
-        model_df=importance_dm.model_data.filter(~pl.col("Name").is_in(["nb", "inactive", "untrained"])).with_columns(
-            pl.lit("NaiveBayes").alias("ModelTechnique"),
+        # A/B/C become NB; D/E stay AGB-only and must not count towards the NB facets.
+        model_df=importance_dm.model_data.filter(pl.col("Name") != "nb").with_columns(
+            pl.when(pl.col("Configuration").is_in(["A", "B", "C"]))
+            .then(pl.lit("NaiveBayes"))
+            .otherwise(pl.col("ModelTechnique"))
+            .alias("ModelTechnique"),
         ),
         predictor_df=importance_dm.predictor_data,
     )
@@ -181,6 +185,7 @@ def test_nb_report_titles_and_fallback(nb_report_cell, importance_dm, configurat
             "Channel=Web, Direction=Inbound, ModelTechnique=NaiveBayes",
         ]
         report_utils.quarto_callout_info.assert_called_once()
+        assert "(3) Naive Bayes model configurations" in report_utils.quarto_callout_info.call_args.args[0]
     assert all(fig.layout.title.font.size == 14 for fig in shown)
 
 

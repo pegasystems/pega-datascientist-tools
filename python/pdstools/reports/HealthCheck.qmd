@@ -1534,8 +1534,11 @@ Box plots of the predictor importance of the Naive Bayes models. Predictor impor
 # )
 
 if datamart.predictor_data is not None:
+    # AGB-only configurations have their own importance section below.
+    nb_query = pl.col("ModelTechnique").fill_null("").ne("GradientBoost")
     nb_importance_groups = (
         datamart.aggregates.last(table="combined_data")
+        .filter(nb_query)
         .select(pl.col("Configuration", "Channel", "Direction", "ModelTechnique"))
         .unique()
         .collect()
@@ -1549,7 +1552,7 @@ if datamart.predictor_data is not None:
     # the partitioning.
     if len(facets) > configurations_max:
         report_utils.quarto_callout_info(f"""
-The data contains many ({len(datamart.unique_configurations)}) model configurations. To limit the size of the generated report we only show predictor importance per Channel/Direction + Modelling Technique. "Configurations combined" means only the configurations within the channel/direction and technique shown in the chart title. In order to view all of the details per model configuration, we suggest you split up the data.
+The data contains many ({len(facets)}) Naive Bayes model configurations. To limit the size of the generated report we only show predictor importance per Channel/Direction + Modelling Technique. "Configurations combined" means only the configurations within the channel/direction and technique shown in the chart title. In order to view all of the details per model configuration, we suggest you split up the data.
 """)
         facets = (
             nb_importance_groups
@@ -1564,7 +1567,7 @@ The data contains many ({len(datamart.unique_configurations)}) model configurati
             metric="Performance",
             top_n=30,
             active_only=False,
-            query=predictor_analysis_query & active_models_filter_expr,
+            query=predictor_analysis_query & active_models_filter_expr & nb_query,
             facets=facets,
             show_plots=False,
         )
@@ -1681,7 +1684,9 @@ else:
             report_utils.quarto_callout_info(
                 f"The data contains many ({len(agb_facets)}) AGB model configurations. "
                 "To limit the size of the generated report we only show top AGB predictors per "
-                "Channel/Direction + Modelling Technique. To view details per model configuration, split up the data."
+                "Channel/Direction + Modelling Technique. \"Configurations combined\" means only the configurations "
+                "within the channel/direction and technique shown in the chart title. "
+                "To view details per model configuration, split up the data."
             )
             agb_facet_columns = ["Channel", "Direction", "ModelTechnique"]
             agb_facets = agb_importance.select(agb_facet_columns).unique().sort(agb_facet_columns).to_dicts()
