@@ -1737,17 +1737,23 @@ Adaptive Gradient Boosting models have no univariate predictor performance. Pred
 
 ```{python}
 # | error: true
-# Uses agb_importance from the AGB importance section: trained, active AGB models only.
+# Trained AGB models are those with some predictor importance, i.e. that have built trees.
+agb_trained_query = pl.col("FeatureImportance").fill_null(0).sum().over("ModelID") > 0
+
 if agb_importance is not None and agb_importance.height > 0:
     try:
         unused_agb_predictors = (
-            datamart.aggregates.predictor_importance(
-                query=agb_query & active_models_filter_expr
-            )
+            datamart.aggregates.last(table="combined_data")
+            .filter(agb_query & active_models_filter_expr)
+            .filter(pl.col("EntryType") != "Classifier")
+            .unique(subset=["ModelID", "PredictorName"], keep="first")
+            .filter(agb_trained_query)
             .group_by("PredictorName", "PredictorCategory")
             .agg(
                 pl.col("Configuration").n_unique().alias("Configurations"),
-                pl.col("Importance %").max().alias("_MaxImportance"),
+                pl.min("ResponseCount").alias("Response Count Min"),
+                pl.max("ResponseCount").alias("Response Count Max"),
+                pl.col("FeatureImportance").fill_null(0).max().alias("_MaxImportance"),
             )
             .filter(pl.col("_MaxImportance") == 0)
             .drop("_MaxImportance")
@@ -1768,6 +1774,9 @@ if agb_importance is not None and agb_importance.height > 0:
                         f"{active_models_threshold_date_string}"
                     ),
                     rowname_col="PredictorName",
+                    column_to_metric={
+                        ("Response Count Min", "Response Count Max"): "TotalResponseCount"
+                    },
                 )
                 .tab_options(container_height="400px", container_overflow_y="auto")
                 .tab_style(
@@ -1781,10 +1790,29 @@ else:
     report_utils.quarto_callout_info(agb_unavailable)
 ```
 
+Number of active and inactive predictors per trained Adaptive Gradient Boosting model. For AGB, active predictors are the ones the trees split on.
+
+```{python}
+# | error: true
+if agb_importance is not None and agb_importance.height > 0:
+    try:
+        fig = datamart.plot.predictor_count(
+            by=["Type", "EntryType", "Configuration"],
+            query=agb_query & active_models_filter_expr & agb_trained_query,
+        )
+        fig.update_layout(
+            title=f"Adaptive Gradient Boosting Predictor Counts<br><sup>trained models updated since {active_models_threshold_date_string}</sup>"
+        )
+        fig.show()
+    except Exception as e:
+        report_utils.quarto_plot_exception("Adaptive Gradient Boosting Predictor Counts", e)
+```
+
 ::: {.callout-tip title="Guidance"}
 -   AGB predictors that no model uses add data sourcing cost without contributing to the models.
 -   Be sure to check for data problems.
 -   Be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well.
+-   Few active predictors per model may indicate the models have little data or that the predictors carry little signal.
 :::
 
 ### Naive Bayes
