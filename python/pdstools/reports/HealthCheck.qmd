@@ -176,6 +176,22 @@ def safe_facet_col_wrap(n_facets: int, max_rows: int = 15) -> int:
         return max(2, math.ceil(n_facets / max_rows))
 
 
+def predictor_importance_title(facet, configurations):
+    """Show the configuration or combined scope and model context in the chart title."""
+    from html import escape
+    from textwrap import wrap
+
+    title = "Predictor Importance"
+    if len(configurations) == 1:
+        title += f": {configurations[0]}"
+    else:
+        title += " (configurations combined)"
+    lines = wrap(title, width=65)
+    context = ", ".join(f"{key}={value}" for key, value in facet.items() if key != "Configuration")
+    lines.extend(wrap(context, width=65))
+    return "<br>".join(escape(line) for line in lines)
+
+
 ```
 
 ```{python}
@@ -1518,49 +1534,66 @@ Box plots of the predictor importance of the Naive Bayes models. Predictor impor
 # )
 
 if datamart.predictor_data is not None:
-    facets = (
+    # AGB-only configurations have their own importance section below.
+    nb_query = pl.col("ModelTechnique").fill_null("").ne("GradientBoost")
+    nb_importance_groups = (
         datamart.aggregates.last(table="combined_data")
+        .filter(nb_query)
         .select(pl.col("Configuration", "Channel", "Direction", "ModelTechnique"))
         .unique()
         .collect()
+    )
+    facets = (
+        nb_importance_groups
+        .sort("Configuration", "Channel", "Direction", "ModelTechnique")
         .to_dicts()
     )
-    main_title = "Predictor Importance per Model Configuration"
     # If there's too many configurations, drop this from
     # the partitioning.
     if len(facets) > configurations_max:
         report_utils.quarto_callout_info(f"""
-The data contains many ({len(datamart.unique_configurations)}) model configurations. To limit the size of the generated report we only show predictor importance per Channel/Direction + Modelling Technique. In order to view all of the details per model configuration, we suggest you split up the data.
+The data contains many ({len(facets)}) Naive Bayes model configurations. To limit the size of the generated report we only show predictor importance per Channel/Direction + Modelling Technique. "Configurations combined" means only the configurations within the channel/direction and technique shown in the chart title. In order to view all of the details per model configuration, we suggest you split up the data.
 """)
         facets = (
-            datamart.aggregates.last(table="combined_data")
+            nb_importance_groups
             .select(pl.col("Channel", "Direction", "ModelTechnique"))
             .unique()
-            .collect()
+            .sort("Channel", "Direction", "ModelTechnique")
             .to_dicts()
         )
-        main_title = "Predictor Importance for all Model Configurations"
     try:
         figs = datamart.plot.partitioned_plot(
             datamart.plot.predictor_performance,
             metric="Performance",
             top_n=30,
             active_only=False,
-            query=predictor_analysis_query & active_models_filter_expr,
+            query=predictor_analysis_query & active_models_filter_expr & nb_query,
             facets=facets,
             show_plots=False,
         )
         if not isinstance(figs, list):
             figs = [figs]
 
-        for fig, facet in zip(figs, facets):
-            facet_str = ", ".join([f"{k}={v}" for k, v in facet.items()])
+        for fig, facet in zip(figs, facets, strict=True):
             if fig is not None:
+                configurations = (
+                    nb_importance_groups
+                    .filter(pl.all_horizontal(
+                        pl.col(key).is_null() if value is None else pl.col(key) == value
+                        for key, value in facet.items()
+                    ))
+                    .get_column("Configuration")
+                    .unique()
+                    .sort()
+                    .to_list()
+                )
+                chart_title = predictor_importance_title(facet, configurations)
                 fig.update_traces(width=0.3)
                 fig.update_layout(
-                    title=f"{main_title}<br>{facet_str}",
+                    title=dict(text=chart_title, font=dict(size=14)),
                     font=dict(size=10),
                     height=700,
+                    margin=dict(t=80 + 20 * chart_title.count("<br>")),
                     yaxis_title="",
                 )
                 fig.layout.xaxis.tickformat = ".d"
@@ -1604,7 +1637,7 @@ else:
 
 ## Importance of Adaptive Gradient Boosting Predictors
 
-Adaptive Gradient Boosting (AGB) models do not have univariate predictor performance, so they do not show up in the Naive Bayes sections above. Instead the importance reported by the platform is shown here. For each model the importances add up to 100%; the charts show the average over the models of a configuration. AGB models that have not built any trees yet have no importance and are left out.
+Adaptive Gradient Boosting (AGB) models do not have univariate predictor performance, so they do not show up in the Naive Bayes sections above. Instead the importance reported by the platform is shown here. For each model the importances add up to 100%; the charts show the average over the models of a configuration. Top predictors are ranked separately per Configuration, Channel and Direction. As in the Naive Bayes section, when there are too many configurations, the top-predictor charts combine configurations within each Channel/Direction and Modelling Technique. AGB models that have not built any trees yet have no importance and are left out.
 
 ```{python}
 # | error: true
@@ -1645,9 +1678,45 @@ else:
         fig = datamart.plot.predictor_category_importance(query=agb_query & active_models_filter_expr)
         if fig is not None:
             fig.show()
-        fig = datamart.plot.predictor_importance(query=agb_query & active_models_filter_expr)
-        if fig is not None:
-            fig.show()
+        agb_facet_columns = ["Configuration", "Channel", "Direction", "ModelTechnique"]
+        agb_facets = agb_importance.select(agb_facet_columns).unique().sort(agb_facet_columns).to_dicts()
+        if len(agb_facets) > configurations_max:
+            report_utils.quarto_callout_info(
+                f"The data contains many ({len(agb_facets)}) AGB model configurations. "
+                "To limit the size of the generated report we only show top AGB predictors per "
+                "Channel/Direction + Modelling Technique. \"Configurations combined\" means only the configurations "
+                "within the channel/direction and technique shown in the chart title. "
+                "To view details per model configuration, split up the data."
+            )
+            agb_facet_columns = ["Channel", "Direction", "ModelTechnique"]
+            agb_facets = agb_importance.select(agb_facet_columns).unique().sort(agb_facet_columns).to_dicts()
+        agb_figs = datamart.plot.partitioned_plot(
+            datamart.plot.predictor_importance,
+            query=agb_query & active_models_filter_expr,
+            facets=agb_facets,
+            show_plots=False,
+        )
+        for fig, facet in zip(agb_figs, agb_facets, strict=True):
+            if fig is not None:
+                configurations = (
+                    agb_importance
+                    .filter(pl.all_horizontal(
+                        pl.col(key).is_null() if value is None else pl.col(key) == value
+                        for key, value in facet.items()
+                    ))
+                    .get_column("Configuration")
+                    .unique()
+                    .sort()
+                    .to_list()
+                )
+                chart_title = predictor_importance_title(facet, configurations)
+                fig.update_layout(
+                    title=dict(text=chart_title, font=dict(size=14)),
+                    font=dict(size=10),
+                    height=700,
+                    margin=dict(t=80 + 20 * chart_title.count("<br>")),
+                )
+                fig.show()
     except Exception as e:
         report_utils.quarto_plot_exception("AGB predictor importance", e)
 ```
@@ -1658,15 +1727,87 @@ else:
 -   Parameters passed in with the request often carry the context; their share shows how much the model relies on it
 :::
 
-## Global Predictor Overview
+## Poor Predictors Globally
 
 If predictors perform poorly across all models, that may be because of data sourcing issues or because it just is not related to any of the model outcomes. See also the analysis of missing data.
 
+### Adaptive Gradient Boosting
+
+Adaptive Gradient Boosting models have no univariate predictor performance. Predictors that no trained AGB model uses (zero importance everywhere) are the AGB counterpart of poor predictors.
+
 ```{python}
+# | error: true
+# Trained AGB models are those with some predictor importance, i.e. that have built trees.
+agb_trained_query = pl.col("FeatureImportance").fill_null(0).sum().over("ModelID") > 0
+
+if agb_importance is not None and agb_importance.height > 0:
+    try:
+        unused_agb_predictors = (
+            datamart.aggregates.last(table="combined_data")
+            .filter(agb_query & active_models_filter_expr)
+            .filter(pl.col("EntryType") != "Classifier")
+            .unique(subset=["ModelID", "PredictorName"], keep="first")
+            .filter(agb_trained_query)
+            .group_by("PredictorName", "PredictorCategory")
+            .agg(
+                pl.col("Configuration").n_unique().alias("Configurations"),
+                pl.min("ResponseCount").alias("Response Count Min"),
+                pl.max("ResponseCount").alias("Response Count Max"),
+                pl.col("FeatureImportance").fill_null(0).max().alias("_MaxImportance"),
+            )
+            .filter(pl.col("_MaxImportance") == 0)
+            .drop("_MaxImportance")
+            .sort(["Configurations", "PredictorName"], descending=[True, False])
+            .collect()
+        )
+        if unused_agb_predictors.height == 0:
+            report_utils.quarto_callout_info(
+                "Every predictor is used by at least one Adaptive Gradient Boosting model."
+            )
+        else:
+            display(
+                report_utils.create_metric_gttable(
+                    unused_agb_predictors,
+                    title="Unused Adaptive Gradient Boosting Predictors",
+                    subtitle=(
+                        "zero importance in every trained AGB model updated since "
+                        f"{active_models_threshold_date_string}"
+                    ),
+                    rowname_col="PredictorName",
+                    column_to_metric={
+                        ("Response Count Min", "Response Count Max"): "TotalResponseCount"
+                    },
+                )
+                .tab_options(container_height="400px", container_overflow_y="auto")
+                .tab_style(
+                    style=style.text(align="left"),
+                    locations=loc.body(columns="PredictorName"),
+                )
+            )
+    except Exception as e:
+        report_utils.quarto_plot_exception("Unused AGB predictors", e)
+else:
+    report_utils.quarto_callout_info(agb_unavailable)
+```
+
+::: {.callout-tip title="Guidance"}
+-   AGB predictors that no model uses add data sourcing cost without contributing to the models.
+-   Be sure to check for data problems.
+-   Be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well.
+:::
+
+### Naive Bayes
+
+Poor Naive Bayes predictors are those with a low univariate performance (AUC) across the models.
+
+```{python}
+# Shared by the Naive Bayes cells in this section.
+nb_query = pl.col("ModelTechnique").fill_null("").ne("GradientBoost")
+
 if datamart.predictor_data is not None:
     bad_predictors = (
         datamart.aggregates.global_predictor_overview(
-            query=active_models_filter_expr
+            query=active_models_filter_expr & nb_query
         )
         .filter(pl.col("Mean") < (MetricLimits.minimum("ModelPerformance")*100))
     )
@@ -1675,7 +1816,7 @@ if datamart.predictor_data is not None:
     display(
         report_utils.create_metric_gttable(
             bad_predictors,
-            title="Overview of Poor Predictors",
+            title="Overview of Poor Naive Bayes Predictors",
             subtitle=f"models updated since {active_models_threshold_date_string}",
             # .with_columns(MeanPlotData=pl.col("Mean")),
             rowname_col="PredictorName",
@@ -1709,31 +1850,26 @@ else:
     report_utils.quarto_callout_no_predictor_data_warning()
 ```
 
-::: {.callout-tip title="Guidance"}
--   Predictors that consistently perform poorly could potentially be removed.
--   Be sure to check for data problems
--   Note we advise to be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well or if there is always a related predictor that performs better.
-:::
-
-## Number of Active and Inactive Predictors
-
-Showing the number of active and inactive predictors per model.
+Number of active and inactive Naive Bayes predictors per model configuration. Naive Bayes only uses predictors that are active, i.e. that perform sufficiently well and are not too correlated with a better predictor.
 
 ```{python}
 if datamart.predictor_data is not None:
     facet_cols = 2
     try:
-        fig = datamart.plot.predictor_count(by=["Type", "EntryType", "Configuration"], query=active_models_filter_expr)
-        fig.update_layout(title=f"Predictor Counts<br><sup>models updated since {active_models_threshold_date_string}</sup>")
+        fig = datamart.plot.predictor_count(by=["Type", "EntryType", "Configuration"], query=active_models_filter_expr & nb_query)
+        fig.update_layout(title=f"Naive Bayes Predictor Counts<br><sup>models updated since {active_models_threshold_date_string}</sup>")
         fig.show()
     except Exception as e:
-        report_utils.quarto_plot_exception("Number of Active and Inactive Predictors", e)
+        report_utils.quarto_plot_exception("Naive Bayes Predictor Counts", e)
 else:
     report_utils.quarto_callout_no_predictor_data_warning()
 ```
 
 ::: {.callout-tip title="Guidance"}
-We expect a few dozen active predictors for every model instance
+-   Predictors that consistently perform poorly could potentially be removed.
+-   Be sure to check for data problems.
+-   Note we advise to be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well or if there is always a related predictor that performs better.
+-   We expect a few dozen active predictors for every model instance.
 :::
 
 ## Predictor Performance across Actions

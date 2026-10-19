@@ -8,6 +8,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- ADM Health Check ranks AGB predictors separately per model configuration,
+  channel and direction instead of pooling all configurations. Reports with
+  more than ten configuration groups fall back to channel/direction and
+  modelling technique, matching the Naive Bayes section. Both techniques use
+  consistent chart titles naming the actual configuration or identifying
+  configurations combined within the displayed channel/direction and technique.
+  The Naive Bayes importance section now ignores AGB-only configurations, so
+  they no longer trigger its fallback or appear as empty facets.
+- The ADM Health Check "Global Predictor Overview" section is renamed to
+  "Poor Predictors Globally". Its poor-predictor table now covers Naive Bayes
+  models only, because AGB predictors report a performance of 0 (they have no
+  univariate AUC), which pulled averages below 50. A new table lists AGB
+  predictors that have zero importance in every trained AGB model, with the
+  min/max response counts of those models. The section
+  now has AGB and Naive Bayes subsections; the former "Number of Active and
+  Inactive Predictors" section moves under Naive Bayes and counts Naive Bayes
+  models only.
 - Decision Analysis Tool: `--data-path` and file upload now read ZIP archives containing nested Parquet ZIP files.
 - `read_data` (and therefore `DecisionAnalyzer` constructors) now reads Pega Action Analysis ZIP exports, whose inner `.zip` chunks are gzipped NDJSON.
 
