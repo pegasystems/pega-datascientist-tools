@@ -222,3 +222,106 @@ def test_agb_report_no_importance(agb_report_cell, importance_dm, model_name, mo
     show.assert_not_called()
     report_utils.quarto_plot_exception.assert_not_called()
     report_utils.quarto_callout_info.assert_called_once()
+
+
+@pytest.fixture
+def poor_predictor_cells(report_cells):
+    nb_cell = next(cell for cell in report_cells if 'title="Overview of Poor Naive Bayes Predictors"' in cell)
+    agb_cell = next(cell for cell in report_cells if 'title="Unused Adaptive Gradient Boosting Predictors"' in cell)
+    return compile(nb_cell, "HealthCheck.qmd", "exec"), compile(agb_cell, "HealthCheck.qmd", "exec")
+
+
+@pytest.fixture
+def poor_predictor_dm(importance_dm):
+    extra = pl.DataFrame(
+        {
+            "ModelID": ["a1", "a2", "b1", "a1", "c1", "inactive", "nb"],
+            "PredictorName": ["Unused.X", "Unused.X", "Unused.X", "Partly.Z", "Partly.Z", "Unused.Y", "Poor.NB"],
+            "FeatureImportance": [0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0],
+            "EntryType": ["Inactive", "Inactive", "Inactive", "Inactive", "Active", "Inactive", "Active"],
+        }
+    )
+    predictors = (
+        pl.concat(
+            [
+                importance_dm.predictor_data.collect()
+                .select("ModelID", "PredictorName", "FeatureImportance", "EntryType")
+                .cast({"ModelID": pl.String, "PredictorName": pl.String, "EntryType": pl.String}),
+                extra,
+            ],
+            how="vertical_relaxed",
+        )
+        .with_columns(
+            # AGB predictors carry Performance 0 (no univariate AUC); NB "Age" is strong, "Poor.NB" weak.
+            pl.when(pl.col("ModelID") != "nb")
+            .then(0.0)
+            .when(pl.col("PredictorName") == "Poor.NB")
+            .then(0.505)
+            .otherwise(0.7)
+            .alias("Performance"),
+            SnapshotTime=pl.lit("20260101"),
+            BinIndex=pl.lit(1),
+            BinType=pl.lit("NONE"),
+            BinSymbol=pl.lit(""),
+            BinResponseCount=pl.lit(0),
+            BinPositives=pl.lit(0),
+            Type=pl.lit("numeric"),
+            ResponseCount=pl.lit(1000),
+            Positives=pl.lit(0),
+        )
+        .lazy()
+    )
+    return ADMDatamart(model_df=importance_dm.model_data, predictor_df=predictors)
+
+
+def _run_poor_predictor_cells(cells, dm, active_models_filter_expr):
+    from great_tables import html, loc, style
+    from pdstools.utils import report_utils as real_report_utils
+    from pdstools.utils.metric_limits import MetricLimits
+
+    displayed = []
+    report_utils = Mock(create_metric_gttable=real_report_utils.create_metric_gttable)
+    namespace = {
+        "pl": pl,
+        "datamart": dm,
+        "active_models_filter_expr": active_models_filter_expr,
+        "active_models_threshold_date_string": "2026-01-01",
+        "agb_query": pl.col("ModelTechnique") == "GradientBoost",
+        "agb_importance": pl.DataFrame({"x": [1]}),
+        "MetricLimits": MetricLimits,
+        "report_utils": report_utils,
+        "display": displayed.append,
+        "html": html,
+        "loc": loc,
+        "style": style,
+    }
+    for cell in cells:
+        exec(cell, namespace)
+    report_utils.quarto_plot_exception.assert_not_called()
+    return displayed, report_utils
+
+
+def test_poor_predictors_split_by_technique(poor_predictor_cells, poor_predictor_dm):
+    displayed, report_utils = _run_poor_predictor_cells(
+        poor_predictor_cells, poor_predictor_dm, pl.col("Name") != "inactive"
+    )
+
+    nb_table, agb_table = (gt._tbl_data for gt in displayed)
+    # AGB zeros no longer drag NB "Age" (AUC 70) or AGB-only predictors into the NB table.
+    assert nb_table.select("PredictorName", "Mean").to_dicts() == [{"PredictorName": "Poor.NB", "Mean": 50.5}]
+    # Unused.Y is only in the inactive model; untrained models carry no importance.
+    assert agb_table.select("PredictorName", "Configurations", "Models").to_dicts() == [
+        {"PredictorName": "Unused.X", "Configurations": 2, "Models": 3}
+    ]
+    report_utils.quarto_callout_info.assert_not_called()
+
+
+def test_unused_agb_predictors_none(poor_predictor_cells, poor_predictor_dm):
+    displayed, report_utils = _run_poor_predictor_cells(
+        poor_predictor_cells[1:], poor_predictor_dm, pl.col("Name").is_in(["c1", "nb"])
+    )
+
+    assert displayed == []
+    report_utils.quarto_callout_info.assert_called_once_with(
+        "Every predictor is used by at least one Adaptive Gradient Boosting model."
+    )

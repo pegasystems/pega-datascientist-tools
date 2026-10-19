@@ -1727,15 +1727,18 @@ else:
 -   Parameters passed in with the request often carry the context; their share shows how much the model relies on it
 :::
 
-## Global Predictor Overview
+## Poor Predictors Globally
 
 If predictors perform poorly across all models, that may be because of data sourcing issues or because it just is not related to any of the model outcomes. See also the analysis of missing data.
+
+Poor Naive Bayes predictors are those with a low univariate performance (AUC). Adaptive Gradient Boosting models have no univariate predictor performance, so their unused predictors are listed separately below.
 
 ```{python}
 if datamart.predictor_data is not None:
     bad_predictors = (
         datamart.aggregates.global_predictor_overview(
             query=active_models_filter_expr
+            & pl.col("ModelTechnique").fill_null("").ne("GradientBoost")
         )
         .filter(pl.col("Mean") < (MetricLimits.minimum("ModelPerformance")*100))
     )
@@ -1744,7 +1747,7 @@ if datamart.predictor_data is not None:
     display(
         report_utils.create_metric_gttable(
             bad_predictors,
-            title="Overview of Poor Predictors",
+            title="Overview of Poor Naive Bayes Predictors",
             subtitle=f"models updated since {active_models_threshold_date_string}",
             # .with_columns(MeanPlotData=pl.col("Mean")),
             rowname_col="PredictorName",
@@ -1778,8 +1781,54 @@ else:
     report_utils.quarto_callout_no_predictor_data_warning()
 ```
 
+```{python}
+# | error: true
+# Uses agb_importance from the AGB importance section: trained, active AGB models only.
+if agb_importance is not None and agb_importance.height > 0:
+    try:
+        unused_agb_predictors = (
+            datamart.aggregates.predictor_importance(
+                query=agb_query & active_models_filter_expr
+            )
+            .group_by("PredictorName", "PredictorCategory")
+            .agg(
+                pl.col("Configuration").n_unique().alias("Configurations"),
+                pl.col("Models").sum(),
+                pl.col("Importance %").max().alias("_MaxImportance"),
+            )
+            .filter(pl.col("_MaxImportance") == 0)
+            .drop("_MaxImportance")
+            .sort(["Models", "PredictorName"], descending=[True, False])
+            .collect()
+        )
+        if unused_agb_predictors.height == 0:
+            report_utils.quarto_callout_info(
+                "Every predictor is used by at least one Adaptive Gradient Boosting model."
+            )
+        else:
+            display(
+                report_utils.create_metric_gttable(
+                    unused_agb_predictors,
+                    title="Unused Adaptive Gradient Boosting Predictors",
+                    subtitle=(
+                        "zero importance in every trained AGB model updated since "
+                        f"{active_models_threshold_date_string}"
+                    ),
+                    rowname_col="PredictorName",
+                )
+                .tab_options(container_height="400px", container_overflow_y="auto")
+                .tab_style(
+                    style=style.text(align="left"),
+                    locations=loc.body(columns="PredictorName"),
+                )
+            )
+    except Exception as e:
+        report_utils.quarto_plot_exception("Unused AGB predictors", e)
+```
+
 ::: {.callout-tip title="Guidance"}
 -   Predictors that consistently perform poorly could potentially be removed.
+-   AGB predictors that no model uses add data sourcing cost without contributing to the models.
 -   Be sure to check for data problems
 -   Note we advise to be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well or if there is always a related predictor that performs better.
 :::
