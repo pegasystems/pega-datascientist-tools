@@ -25,6 +25,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   models without a recorded technique; they are shown as Naive Bayes.
 - ADM Health Check "Action Trends" chart switches from weekly to daily points
   when the data spans fewer than three weeks, instead of showing a single point.
+  It also gets guidance, and a warning when no actions received responses in the
+  latest periods.
 - ADM Health Check ranks AGB predictors separately per model configuration,
   channel and direction instead of pooling all configurations. Reports with
   more than ten configuration groups fall back to channel/direction and

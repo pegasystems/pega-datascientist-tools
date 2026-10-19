@@ -851,7 +851,7 @@ else:
     n_weeks = (
         datamart.model_data.select(pl.col("SnapshotTime").dt.truncate("1w").n_unique()).collect().item()
     )
-    trend_period, trend_every = ("weekly", "1w") if n_weeks >= 3 else ("daily", "1d")
+    trend_period, trend_unit, trend_every = ("weekly", "week", "1w") if n_weeks >= 3 else ("daily", "day", "1d")
     count_label = f"{trend_period.capitalize()} Count"
     action_trend_data = datamart.aggregates.overall_summary(every=trend_every).collect()
     plot_data = action_trend_data.unpivot(
@@ -894,7 +894,27 @@ else:
             )
 
     fig.show()
+
+    used_per_period = action_trend_data.select("DateRange Min", "Used Actions").sort("DateRange Min")
+    if used_per_period.height > 1 and used_per_period["Used Actions"][-1] == 0:
+        last_used = used_per_period.filter(pl.col("Used Actions") > 0)["DateRange Min"].max()
+        since = (
+            (f"after the week of {last_used:%-d %b %Y}" if trend_unit == "week" else f"after {last_used:%-d %b %Y}")
+            if last_used is not None
+            else "in any period of the data"
+        )
+        report_utils.quarto_callout_important(
+            f"No actions received responses {since}, while the models are still in the "
+            "snapshots. Check whether decisions are still being made and responses are still "
+            "being captured, and whether the ADM models are still being updated."
+        )
 ```
+
+::: {.callout-tip title="Guidance"}
+-   Expect the number of used actions to be well above zero in every period. If it drops to zero, the models stopped receiving responses: check that decisions are still being made, that responses are still being captured and that the ADM models are still being updated.
+
+-   Regularly introducing new actions keeps the offer set relevant. Long periods without new actions may be fine, but are worth discussing with the business.
+:::
 
 ## Success Rates
 
