@@ -464,3 +464,9 @@ def test_missing_values_is_naive_bayes_only(report_cells, mixed_technique_dm):
     assert missing.select("PredictorName", "MissingCount", "PredictorResponseCount").to_dicts() == [
         {"PredictorName": "Shared", "MissingCount": 400, "PredictorResponseCount": 1000}
     ]
+    namespace["report_utils"].quarto_print.assert_called_once()
+    assert (
+        namespace["report_utils"]
+        .quarto_print.call_args.args[0]
+        .startswith("50% of the Naive Bayes predictors (1 of 2) have 10% or less missing values")
+    )

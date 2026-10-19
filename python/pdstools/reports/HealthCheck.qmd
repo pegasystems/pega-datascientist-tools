@@ -1973,8 +1973,14 @@ if datamart.predictor_data is not None:
             )
         )
         .filter((~pl.col("Percentage without responses").is_nan()))
-        .filter((pl.col("Percentage without responses") > 0.1))
     ).collect()
+    n_predictors = missing.height
+    missing = missing.filter(pl.col("Percentage without responses") > 0.1)
+    if n_predictors > 0:
+        n_complete = n_predictors - missing.height
+        report_utils.quarto_print(
+            f"{n_complete / n_predictors:.0%} of the Naive Bayes predictors ({n_complete} of {n_predictors}) have 10% or less missing values and are not shown. The plot only shows the {missing.height} predictors with more than 10% missing values."
+        )
 
     hover_data = {
         "Percentage without responses": ":.2%",
