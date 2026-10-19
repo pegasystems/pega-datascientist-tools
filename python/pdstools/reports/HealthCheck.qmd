@@ -1790,29 +1790,10 @@ else:
     report_utils.quarto_callout_info(agb_unavailable)
 ```
 
-Number of active and inactive predictors per trained Adaptive Gradient Boosting model. For AGB, active predictors are the ones the trees split on.
-
-```{python}
-# | error: true
-if agb_importance is not None and agb_importance.height > 0:
-    try:
-        fig = datamart.plot.predictor_count(
-            by=["Type", "EntryType", "Configuration"],
-            query=agb_query & active_models_filter_expr & agb_trained_query,
-        )
-        fig.update_layout(
-            title=f"Adaptive Gradient Boosting Predictor Counts<br><sup>trained models updated since {active_models_threshold_date_string}</sup>"
-        )
-        fig.show()
-    except Exception as e:
-        report_utils.quarto_plot_exception("Adaptive Gradient Boosting Predictor Counts", e)
-```
-
 ::: {.callout-tip title="Guidance"}
 -   AGB predictors that no model uses add data sourcing cost without contributing to the models.
 -   Be sure to check for data problems.
 -   Be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well.
--   Few active predictors per model may indicate the models have little data or that the predictors carry little signal.
 :::
 
 ### Naive Bayes
