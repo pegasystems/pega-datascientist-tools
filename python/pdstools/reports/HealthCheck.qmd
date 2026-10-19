@@ -840,18 +840,25 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
 
 ## Action Trends
 
-In a healthy implementation, new actions are introduced regularly. This trend chart shows the number of new actions per week. It also shows the number of "used" actions, where used means they have been used in Pega decisions and AI processing has been applied (ADM Models used). The total number of actions reflects all the actions in the system that are modeled by ADM models. This is typically a much larger number, as we currently have no way to pull in the "active"/"inactive" status of actions into this ADM-based analysis.
+In a healthy implementation, new actions are introduced regularly. This trend chart shows the number of new actions per week (per day when the data covers less than three weeks). It also shows the number of "used" actions, where used means they have been used in Pega decisions and AI processing has been applied (ADM Models used). The total number of actions reflects all the actions in the system that are modeled by ADM models. This is typically a much larger number, as we currently have no way to pull in the "active"/"inactive" status of actions into this ADM-based analysis.
 
 ```{python}
 if datamart.has_single_snapshot:
     display(Markdown("::: {.callout-note title='Trend unavailable'}\nThis dataset contains only one snapshot. Trend plots require multiple snapshots captured over time.\n:::"))
 else:
-    action_trend_data = datamart.aggregates.overall_summary(every="1w").collect()
+    # Fall back to days when the data spans too few weeks: the first period is
+    # dropped below, so fewer than 3 weeks would leave at most one point.
+    n_weeks = (
+        datamart.model_data.select(pl.col("SnapshotTime").dt.truncate("1w").n_unique()).collect().item()
+    )
+    trend_period, trend_every = ("weekly", "1w") if n_weeks >= 3 else ("daily", "1d")
+    count_label = f"{trend_period.capitalize()} Count"
+    action_trend_data = datamart.aggregates.overall_summary(every=trend_every).collect()
     plot_data = action_trend_data.unpivot(
         on=["Actions", "New Actions", "Used Actions"],
         index="DateRange Min",
         variable_name="Action Type",
-        value_name="Weekly Count",
+        value_name=count_label,
     )
 
     # Drop the first data point if there are multiple,
@@ -863,11 +870,11 @@ else:
     fig = px.line(
         plot_data,
         x="DateRange Min",
-        y="Weekly Count",
+        y=count_label,
         color="Action Type",
         markers=True,
         template="pega",
-        title="Number of Actions Used and New (weekly)",
+        title=f"Number of Actions Used and New ({trend_period})",
     )
     fig.update_xaxes(title="")
     fig.update_layout(hovermode="x")
