@@ -1916,6 +1916,7 @@ if datamart.predictor_data is not None:
                     ],
                 },
                 font=dict(size=8),
+                margin=dict(t=90),
                 title=f"Top Naive Bayes predictors per Action<br>Globally, across all Naive Bayes models and channels — models updated since {active_models_threshold_date_string}",
             )
             fig.update_yaxes(dtick=1, automargin=True)

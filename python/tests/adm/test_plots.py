@@ -576,6 +576,19 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
 
     plot = sample.plot.predictor_performance_heatmap()
     assert isinstance(plot, Figure)
+    # Plotted on the Pega AUC scale (50-100); return_df keeps the 0-1 scale.
+    assert (plot.layout.coloraxis.cmin, plot.layout.coloraxis.cmax) == (50, 100)
+    assert (
+        round(
+            float(
+                plot.data[0].z[list(plot.data[0].y).index("Customer.AnnualIncome")][
+                    list(plot.data[0].x).index("AutoUsed60Months")
+                ]
+            ),
+            3,
+        )
+        == 69.054
+    )
 
     df = sample.plot.predictor_performance_heatmap(
         by=pl.concat_str(

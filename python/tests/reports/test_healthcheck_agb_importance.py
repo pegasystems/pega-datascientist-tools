@@ -444,9 +444,10 @@ def test_predictor_performance_across_actions_is_naive_bayes_only(report_cells, 
     namespace["report_utils"].quarto_plot_exception.assert_not_called()
     (fig,) = shown
     assert fig.layout.title.text.startswith("Top Naive Bayes predictors per Action")
-    # AGB-only predictor is absent and "Shared" keeps its NB performance (0.7 rather than a 0.5 filler).
+    # AGB-only predictor is absent and "Shared" keeps its NB performance (70 rather than a 50 filler).
     assert list(fig.data[0].y) == ["Shared", "NB.Only"]
-    assert [row[0] for row in fig.data[0].z] == pytest.approx([0.7, 0.6])
+    assert [row[0] for row in fig.data[0].z] == pytest.approx([70.0, 60.0])
+    assert fig.layout.margin.t == 90
 
 
 def test_missing_values_is_naive_bayes_only(report_cells, mixed_technique_dm):
