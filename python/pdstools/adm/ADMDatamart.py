@@ -189,6 +189,7 @@ class ADMDatamart:
         self.agb = AGB(datamart=self)
         self.analysis = Analysis(datamart=self)
         self.generate = Reports(datamart=self)
+        self._agb_importance_models: pl.LazyFrame | None = None
 
         logger.info("Validating ADM model data.")
         model_data_validated = self._validate_model_data(
@@ -645,6 +646,22 @@ class ADMDatamart:
                 [(pl.col(c).is_null() | (pl.col(c) == "")) for c in agb_context_cols],
             )
             is_agb = (pl.col("ModelTechnique") == "GradientBoost").fill_null(False)
+            if "Configuration" in schema and df.filter(is_agb & empty_context).select(pl.len()).collect().item():
+                # Retain the link to configuration-level predictor importance only.
+                # The summary models themselves must stay out of counts and AUCs.
+                summary_models = (
+                    df.filter(is_agb & empty_context)
+                    .sort("SnapshotTime")
+                    .unique(subset="Configuration", keep="last")
+                    .select("Configuration", pl.col("ModelID").alias("_ConfigurationModelID"))
+                )
+                self._agb_importance_models = (
+                    df.filter(is_agb & ~empty_context)
+                    .select("ModelID", "Configuration")
+                    .unique()
+                    .join(summary_models, on="Configuration")
+                    .select("ModelID", "_ConfigurationModelID")
+                )
             df = df.filter(~(is_agb & empty_context))
 
         snapshot_type = schema.get("SnapshotTime")
@@ -710,6 +727,25 @@ class ADMDatamart:
                 ),
             )
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
+
+        if (
+            self._agb_importance_models is not None
+            and "FeatureImportance" in schema
+            and "ConfigurationImportance" not in schema
+        ):
+            # Keep these values on the retained predictor rows so report caches
+            # and filtered datamarts preserve them without retaining summary models.
+            importance = self._agb_importance_models.join(
+                df.select(
+                    pl.col("ModelID").alias("_ConfigurationModelID"),
+                    "PredictorName",
+                    "SnapshotTime",
+                    pl.col("FeatureImportance").alias("ConfigurationImportance"),
+                    (pl.col("EntryType") == "Active").alias("ConfigurationActive"),
+                ).unique(subset=["_ConfigurationModelID", "PredictorName", "SnapshotTime"], keep="first"),
+                on="_ConfigurationModelID",
+            ).drop("_ConfigurationModelID")
+            df = df.join(importance, on=["ModelID", "PredictorName", "SnapshotTime"], how="left", nulls_equal=True)
 
         return self._normalize_performance_scale(df)
 

@@ -221,6 +221,123 @@ def test_predictor_importance_without_column():
         dm.aggregates.predictor_importance()
 
 
+@pytest.fixture
+def configuration_importance_dm():
+    models = _models(
+        [
+            ("a1", "first", 10, 100, "GradientBoost"),
+            ("a2", "second", 10, 100, "GradientBoost"),
+            ("summary_a", "", 20, 200, "GradientBoost"),
+            ("b1", "third", 10, 100, "GradientBoost"),
+            ("summary_b", "", 10, 100, "GradientBoost"),
+            ("nb", "fourth", 10, 100, "NaiveBayes"),
+        ],
+    ).with_columns(
+        Configuration=pl.when(pl.col("ModelID").is_in(["b1", "summary_b"])).then(pl.lit("B")).otherwise(pl.lit("A")),
+        Channel=pl.when(pl.col("Name") == "").then(pl.lit("")).otherwise(pl.col("Channel")),
+    )
+    rows = []
+    for model_id, primary in [
+        ("a1", 0.0),
+        ("a2", 0.0),
+        ("summary_a", 20.0),
+        ("b1", 0.0),
+        ("summary_b", 30.0),
+        ("nb", 0.0),
+    ]:
+        rows.extend(
+            [
+                (model_id, "pyGroup", primary, "Active" if primary else "Inactive"),
+                (model_id, "Customer.Age", 100.0 - primary, "Active"),
+                (model_id, "Classifier", 0.0, "Classifier"),
+            ],
+        )
+    # Importance repeats across bins and must be counted only once.
+    rows.append(("summary_a", "pyGroup", 20.0, "Active"))
+    predictors = (
+        pl.DataFrame(
+            rows,
+            schema=["ModelID", "PredictorName", "FeatureImportance", "EntryType"],
+            orient="row",
+        )
+        .lazy()
+        .with_columns(
+            SnapshotTime=pl.lit("20250102"),
+            BinIndex=pl.lit(1),
+            BinPositives=pl.lit(0),
+            BinResponseCount=pl.lit(0),
+            Performance=pl.lit(0.5),
+        )
+    )
+    return ADMDatamart(model_df=models, predictor_df=predictors)
+
+
+def test_agb_configuration_importance_preserves_model_and_bin_data(configuration_importance_dm):
+    dm = configuration_importance_dm
+    assert dm.model_data.select("ModelID").collect()["ModelID"].sort().to_list() == ["a1", "a2", "b1", "nb"]
+    assert dm.model_data.select(pl.col("ResponseCount").sum(), pl.col("Performance").mean()).collect().row(0) == (
+        400.0,
+        0.6,
+    )
+    # The original action-level predictor values remain intact for other consumers.
+    assert dm.combined_data.filter(pl.col("PredictorName") == "pyGroup").select(
+        pl.col("FeatureImportance").sum(),
+        (pl.col("EntryType") == "Active").sum(),
+    ).collect().row(0) == (0.0, 0)
+    result = dm.aggregates.predictor_importance(by="PredictorCategory").collect()
+    assert result.select(
+        "Configuration", "ModelTechnique", "PredictorCategory", "Models", "Importance %", "Active Predictors"
+    ).sort(
+        "Configuration",
+        "ModelTechnique",
+        "PredictorCategory",
+    ).rows() == [
+        ("A", "GradientBoost", "Customer", 2, 80.0, 1.0),
+        ("A", "GradientBoost", "Primary", 2, 20.0, 1.0),
+        ("A", "NaiveBayes", "Customer", 1, 100.0, 1.0),
+        ("A", "NaiveBayes", "Primary", 1, 0.0, 0.0),
+        ("B", "GradientBoost", "Customer", 1, 70.0, 1.0),
+        ("B", "GradientBoost", "Primary", 1, 30.0, 1.0),
+    ]
+    selected = dm.aggregates.predictor_importance(query=pl.col("Name") == "second").collect()
+    assert selected.select("PredictorName", "Models", "Importance %").sort("PredictorName").rows() == [
+        ("Customer.Age", 1, 80.0),
+        ("pyGroup", 1, 20.0),
+    ]
+
+
+def test_agb_configuration_importance_survives_report_cache(configuration_importance_dm, tmp_path):
+    dm = configuration_importance_dm
+    model_path, predictor_path = dm.save_data(tmp_path, selected_model_ids=["a1", "b1"])
+    restored = ADMDatamart.from_ds_export(model_filename=str(model_path), predictor_filename=str(predictor_path))
+    # Report sections reconstruct filtered datamarts again after cache loading.
+    filtered = ADMDatamart(
+        model_df=restored.model_data.filter(pl.col("Configuration") == "B"),
+        predictor_df=restored.predictor_data,
+    )
+    result = filtered.aggregates.predictor_importance(by="PredictorCategory").collect()
+    assert result.select("PredictorCategory", "Models", "Importance %").sort("PredictorCategory").rows() == [
+        ("Customer", 1, 70.0),
+        ("Primary", 1, 30.0),
+    ]
+
+
+def test_agb_configuration_importance_missing_predictor_rows(configuration_importance_dm):
+    dm = configuration_importance_dm
+    predictors = dm.predictor_data.drop("ConfigurationImportance", "ConfigurationActive")
+    # Recreate a summary model whose predictor snapshot is absent.
+    summary = dm.model_data.filter(pl.col("ModelID") == "a1").with_columns(
+        ModelID=pl.lit("missing_summary"),
+        Name=pl.lit(""),
+    )
+    restored = ADMDatamart(model_df=pl.concat([dm.model_data, summary]), predictor_df=predictors)
+    result = restored.aggregates.predictor_importance(query=pl.col("ModelID") == "a1").collect()
+    assert result.select("PredictorName", "Importance %").sort("PredictorName").rows() == [
+        ("Customer.Age", 100.0),
+        ("pyGroup", 0.0),
+    ]
+
+
 def test_findings_hidden_and_implausible():
     rows = [
         ("m1", f"offer{ZWSP}", 200, 210, "NaiveBayes"),

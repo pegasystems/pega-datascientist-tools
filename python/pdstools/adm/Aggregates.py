@@ -1396,6 +1396,11 @@ class Aggregates:
         configuration. Models without any importance (for example AGB models
         that have not built trees yet) are not counted.
 
+        When available, AGB configuration-level importance takes precedence
+        over the action-level values, which can mark context predictors as
+        inactive with zero importance. Model selection still uses the action
+        records; configuration summary records are not counted as models.
+
         Parameters
         ----------
         by : {"PredictorName", "PredictorCategory"}, default "PredictorName"
@@ -1422,6 +1427,13 @@ class Aggregates:
         if combined is None or "FeatureImportance" not in combined.collect_schema().names():
             raise ValueError("Predictor importance requires predictor data with a FeatureImportance column")
 
+        data = self.last(table="combined_data").with_columns(_Active=pl.col("EntryType") == "Active")
+        if "ConfigurationImportance" in data.collect_schema():
+            data = data.with_columns(
+                FeatureImportance=pl.coalesce("ConfigurationImportance", "FeatureImportance"),
+                _Active=pl.coalesce("ConfigurationActive", "_Active"),
+            )
+
         context = [
             c
             for c in ("Configuration", "Channel", "Direction", "ModelTechnique")
@@ -1429,7 +1441,7 @@ class Aggregates:
         ]
         group = context + (["PredictorName", "PredictorCategory"] if by == "PredictorName" else ["PredictorCategory"])
         per_model = (
-            cdh_utils._apply_query(self.last(table="combined_data"), query, allow_empty=True)
+            cdh_utils._apply_query(data, query, allow_empty=True)
             .filter(pl.col("EntryType") != "Classifier")
             .filter(pl.col("FeatureImportance").is_not_null())
             .unique(subset=["ModelID", "PredictorName"], keep="first")
@@ -1442,7 +1454,7 @@ class Aggregates:
             per_model.group_by(group)
             .agg(
                 pl.col("_Share").sum(),
-                (pl.col("EntryType") == "Active").sum().alias("_Active"),
+                pl.col("_Active").sum(),
             )
             .join(models, on=context, nulls_equal=True)
             .select(
