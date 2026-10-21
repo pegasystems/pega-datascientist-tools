@@ -740,7 +740,8 @@ class ADMDatamart:
         importance of all predictors. Its values are stored on the action rows
         as ``ConfigurationImportance`` and ``ConfigurationActive`` so that
         report caches and filtered datamarts, which never contain summary
-        models, keep them. The summary snapshot nearest in time is used.
+        models, keep them. Summary and action snapshots are matched on
+        ``SnapshotTime``.
 
         Parameters
         ----------
@@ -755,14 +756,9 @@ class ADMDatamart:
         pl.LazyFrame
             ``df`` with ``ConfigurationImportance`` and ``ConfigurationActive``.
         """
-        predictors = df.filter(pl.col("EntryType") != "Classifier").with_columns(
-            pl.col("PredictorName").cast(pl.Utf8).alias("_PredictorName"),
-        )
+        df = df.with_columns(pl.col("PredictorName").cast(pl.Utf8).alias("_PredictorName"))
         configuration_importance = (
-            predictors.join(
-                configuration_models.select(pl.col("_ConfigurationModelID").alias("ModelID")).unique(),
-                on="ModelID",
-            )
+            df.filter(pl.col("EntryType") != "Classifier")
             .select(
                 pl.col("ModelID").alias("_ConfigurationModelID"),
                 "_PredictorName",
@@ -771,38 +767,16 @@ class ADMDatamart:
                 (pl.col("EntryType") == "Active").alias("ConfigurationActive"),
             )
             .unique(subset=["_ConfigurationModelID", "_PredictorName", "SnapshotTime"], keep="first")
-            .sort("SnapshotTime")
         )
-        inherited = (
-            predictors.select("ModelID", "_PredictorName", "SnapshotTime")
-            .unique()
-            .join(configuration_models, on="ModelID")
-            .sort("SnapshotTime")
-            .join_asof(
-                configuration_importance,
-                on="SnapshotTime",
-                by=["_ConfigurationModelID", "_PredictorName"],
-                strategy="nearest",
-                check_sortedness=False,
-            )
-            .select(
-                "ModelID",
-                "_PredictorName",
-                "SnapshotTime",
-                "ConfigurationImportance",
-                "ConfigurationActive",
-            )
+        inherited = configuration_models.join(configuration_importance, on="_ConfigurationModelID").drop(
+            "_ConfigurationModelID"
         )
-        return (
-            df.with_columns(pl.col("PredictorName").cast(pl.Utf8).alias("_PredictorName"))
-            .join(
-                inherited,
-                on=["ModelID", "_PredictorName", "SnapshotTime"],
-                how="left",
-                nulls_equal=True,
-            )
-            .drop("_PredictorName")
-        )
+        return df.join(
+            inherited,
+            on=["ModelID", "_PredictorName", "SnapshotTime"],
+            how="left",
+            nulls_equal=True,
+        ).drop("_PredictorName")
 
     def _validate_predictor_data(
         self,

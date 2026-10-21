@@ -242,9 +242,8 @@ _IMPORTANCE = {
 }
 
 
-def _configuration_importance_inputs(importance=None, snapshot_times=None):
+def _configuration_importance_inputs(importance=None):
     importance = importance or _IMPORTANCE
-    snapshot_times = snapshot_times or {}
     models = _models(
         [
             ("a1", "first", 10, 100, "GradientBoost"),
@@ -261,8 +260,7 @@ def _configuration_importance_inputs(importance=None, snapshot_times=None):
     rows = []
     for model_id, values in importance.items():
         for predictor, value in zip(("pyGroup", "Customer.Age", "Customer.Income"), values, strict=True):
-            for snapshot in snapshot_times.get(model_id, [_ACTION_SNAPSHOT]):
-                rows.append((model_id, predictor, value, "Active" if value else "Inactive", snapshot))
+            rows.append((model_id, predictor, value, "Active" if value else "Inactive", _ACTION_SNAPSHOT))
         rows.append((model_id, "Classifier", 0.0, "Classifier", _ACTION_SNAPSHOT))
     # Importance repeats across bins and must be counted only once.
     rows.append(("summary_a", "pyGroup", importance["summary_a"][0], "Active", _ACTION_SNAPSHOT))
@@ -343,25 +341,6 @@ def test_agb_predictor_importance_reports_configuration_importance(configuration
         ("Customer.Age", "Customer", 1, 60.0),
         ("Customer.Income", "Customer", 1, 30.0),
         ("pyGroup", "Context Keys", 1, 10.0),
-    ]
-
-
-def test_agb_configuration_importance_uses_nearest_summary_snapshot():
-    later = _ACTION_SNAPSHOT + datetime.timedelta(seconds=1)
-    older = _ACTION_SNAPSHOT - datetime.timedelta(days=30)
-    models, predictors = _configuration_importance_inputs(snapshot_times={"summary_a": [older, later]})
-    stale = predictors.filter((pl.col("ModelID") == "summary_a") & (pl.col("SnapshotTime") == older))
-    current = predictors.filter(~((pl.col("ModelID") == "summary_a") & (pl.col("SnapshotTime") == older)))
-    stale = stale.with_columns(
-        FeatureImportance=pl.when(pl.col("PredictorName") == "pyGroup").then(50.0).otherwise(25.0),
-        EntryType=pl.when(pl.col("PredictorName") == "Classifier")
-        .then(pl.lit("Classifier"))
-        .otherwise(pl.lit("Active")),
-    )
-    dm = ADMDatamart(model_df=models, predictor_df=pl.concat([current, stale]))
-    assert _category_importance(dm, query=pl.col("Configuration") == "A")[:2] == [
-        ("A", "GradientBoost", "Context Keys", 2, 10.0, 1.0),
-        ("A", "GradientBoost", "Customer", 2, 90.0, 2.0),
     ]
 
 
