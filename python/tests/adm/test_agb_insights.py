@@ -442,7 +442,7 @@ def test_unused_agb_predictors_without_configuration_importance(configuration_im
 
 def test_poor_predictors_report_uses_primary_importance(unused_importance_dm):
     report = Path(__file__).parents[2] / "pdstools" / "reports" / "HealthCheck.qmd"
-    section = report.read_text().split("## Poor Predictors Globally", 1)[1]
+    section = report.read_text(encoding="utf-8").split("## Poor Predictors Globally", 1)[1]
     cell = section.split("```{python}", 1)[1].split("```", 1)[0]
     report_utils = MagicMock()
     display = MagicMock()
@@ -508,7 +508,7 @@ def test_nb_category_report_excludes_agb(nb_performance_dm, monkeypatch, agb_onl
     dm = nb_performance_dm
     active_filter = pl.col("ModelID") == "agb" if agb_only else pl.col("ModelID") != "old"
     report = Path(__file__).parents[2] / "pdstools" / "reports" / "HealthCheck.qmd"
-    section = report.read_text().split("## Importance of Naive Bayes Predictors by Category", 1)[1]
+    section = report.read_text(encoding="utf-8").split("## Importance of Naive Bayes Predictors by Category", 1)[1]
     cell = section.split("```{python}", 1)[1].split("```", 1)[0]
     plot = dm.plot.predictor_category_performance
     captured = []
