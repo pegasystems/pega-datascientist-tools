@@ -1396,10 +1396,12 @@ class Aggregates:
         configuration. Models without any importance (for example AGB models
         that have not built trees yet) are not counted.
 
-        When available, AGB configuration-level importance takes precedence
-        over the action-level values, which can mark context predictors as
-        inactive with zero importance. Model selection still uses the action
-        records; configuration summary records are not counted as models.
+        For Primary predictors only, available AGB configuration-level
+        importance and activity take precedence over the action-level values,
+        which can mark these predictors as inactive with zero importance.
+        Other predictors retain their action-level values. Model selection
+        still uses the action records; configuration summary records are not
+        counted as models.
 
         Parameters
         ----------

@@ -237,18 +237,18 @@ def configuration_importance_dm():
         Channel=pl.when(pl.col("Name") == "").then(pl.lit("")).otherwise(pl.col("Channel")),
     )
     rows = []
-    for model_id, primary in [
-        ("a1", 0.0),
-        ("a2", 0.0),
-        ("summary_a", 20.0),
-        ("b1", 0.0),
-        ("summary_b", 30.0),
-        ("nb", 0.0),
+    for model_id, primary, customer in [
+        ("a1", 0.0, 80.0),
+        ("a2", 0.0, 60.0),
+        ("summary_a", 20.0, 80.0),
+        ("b1", 0.0, 70.0),
+        ("summary_b", 30.0, 90.0),
+        ("nb", 0.0, 100.0),
     ]:
         rows.extend(
             [
                 (model_id, "pyGroup", primary, "Active" if primary else "Inactive"),
-                (model_id, "Customer.Age", 100.0 - primary, "Active"),
+                (model_id, "Customer.Age", customer, "Inactive" if model_id == "a2" else "Active"),
                 (model_id, "Classifier", 0.0, "Classifier"),
             ],
         )
@@ -284,6 +284,17 @@ def test_agb_configuration_importance_preserves_model_and_bin_data(configuration
         pl.col("FeatureImportance").sum(),
         (pl.col("EntryType") == "Active").sum(),
     ).collect().row(0) == (0.0, 0)
+    assert dm.combined_data.filter(pl.col("ConfigurationImportance").is_not_null()).select(
+        "ModelID", "PredictorName", "ConfigurationImportance", "ConfigurationActive"
+    ).sort("ModelID").collect().rows() == [
+        ("a1", "pyGroup", 20.0, True),
+        ("a2", "pyGroup", 20.0, True),
+        ("b1", "pyGroup", 30.0, True),
+    ]
+    assert dm.combined_data.filter(pl.col("PredictorCategory") != "Primary").select(
+        pl.col("ConfigurationImportance").is_not_null().sum(),
+        pl.col("ConfigurationActive").is_not_null().sum(),
+    ).collect().row(0) == (0, 0)
     result = dm.aggregates.predictor_importance(by="PredictorCategory").collect()
     assert result.select(
         "Configuration", "ModelTechnique", "PredictorCategory", "Models", "Importance %", "Active Predictors"
@@ -292,8 +303,8 @@ def test_agb_configuration_importance_preserves_model_and_bin_data(configuration
         "ModelTechnique",
         "PredictorCategory",
     ).rows() == [
-        ("A", "GradientBoost", "Customer", 2, 80.0, 1.0),
-        ("A", "GradientBoost", "Primary", 2, 20.0, 1.0),
+        ("A", "GradientBoost", "Customer", 2, 77.5, 0.5),
+        ("A", "GradientBoost", "Primary", 2, 22.5, 1.0),
         ("A", "NaiveBayes", "Customer", 1, 100.0, 1.0),
         ("A", "NaiveBayes", "Primary", 1, 0.0, 0.0),
         ("B", "GradientBoost", "Customer", 1, 70.0, 1.0),
@@ -301,13 +312,27 @@ def test_agb_configuration_importance_preserves_model_and_bin_data(configuration
     ]
     selected = dm.aggregates.predictor_importance(query=pl.col("Name") == "second").collect()
     assert selected.select("PredictorName", "Models", "Importance %").sort("PredictorName").rows() == [
-        ("Customer.Age", 1, 80.0),
-        ("pyGroup", 1, 20.0),
+        ("Customer.Age", 1, 75.0),
+        ("pyGroup", 1, 25.0),
     ]
 
 
-def test_agb_configuration_importance_survives_report_cache(configuration_importance_dm, tmp_path):
+@pytest.mark.parametrize("legacy_cache", [False, True])
+def test_agb_configuration_importance_survives_report_cache(configuration_importance_dm, tmp_path, legacy_cache):
     dm = configuration_importance_dm
+    if legacy_cache:
+        # Simulate a cache written before inheritance was restricted to Primary.
+        predictors = dm.predictor_data.with_columns(
+            pl.when(pl.col("PredictorCategory") == "Customer")
+            .then(999.0)
+            .otherwise(pl.col("ConfigurationImportance"))
+            .alias("ConfigurationImportance"),
+            pl.when(pl.col("PredictorCategory") == "Customer")
+            .then(False)
+            .otherwise(pl.col("ConfigurationActive"))
+            .alias("ConfigurationActive"),
+        )
+        dm = ADMDatamart(model_df=dm.model_data, predictor_df=predictors)
     model_path, predictor_path = dm.save_data(tmp_path, selected_model_ids=["a1", "b1"])
     restored = ADMDatamart.from_ds_export(model_filename=str(model_path), predictor_filename=str(predictor_path))
     # Report sections reconstruct filtered datamarts again after cache loading.
@@ -316,9 +341,11 @@ def test_agb_configuration_importance_survives_report_cache(configuration_import
         predictor_df=restored.predictor_data,
     )
     result = filtered.aggregates.predictor_importance(by="PredictorCategory").collect()
-    assert result.select("PredictorCategory", "Models", "Importance %").sort("PredictorCategory").rows() == [
-        ("Customer", 1, 70.0),
-        ("Primary", 1, 30.0),
+    assert result.select("PredictorCategory", "Models", "Importance %", "Active Predictors").sort(
+        "PredictorCategory"
+    ).rows() == [
+        ("Customer", 1, 70.0, 1.0),
+        ("Primary", 1, 30.0, 1.0),
     ]
 
 

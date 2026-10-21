@@ -733,19 +733,29 @@ class ADMDatamart:
             and "FeatureImportance" in schema
             and "ConfigurationImportance" not in schema
         ):
-            # Keep these values on the retained predictor rows so report caches
+            # Keep Primary values on the retained predictor rows so report caches
             # and filtered datamarts preserve them without retaining summary models.
             importance = self._agb_importance_models.join(
-                df.select(
+                df.filter(pl.col("PredictorCategory") == "Primary")
+                .select(
                     pl.col("ModelID").alias("_ConfigurationModelID"),
                     "PredictorName",
                     "SnapshotTime",
                     pl.col("FeatureImportance").alias("ConfigurationImportance"),
                     (pl.col("EntryType") == "Active").alias("ConfigurationActive"),
-                ).unique(subset=["_ConfigurationModelID", "PredictorName", "SnapshotTime"], keep="first"),
+                )
+                .unique(subset=["_ConfigurationModelID", "PredictorName", "SnapshotTime"], keep="first"),
                 on="_ConfigurationModelID",
             ).drop("_ConfigurationModelID")
             df = df.join(importance, on=["ModelID", "PredictorName", "SnapshotTime"], how="left", nulls_equal=True)
+
+        if "ConfigurationImportance" in df.collect_schema():
+            # Older caches may contain inherited values for non-Primary predictors.
+            df = df.with_columns(
+                pl.when(pl.col("PredictorCategory") == "Primary")
+                .then(pl.col("ConfigurationImportance", "ConfigurationActive"))
+                .otherwise(None),
+            )
 
         return self._normalize_performance_scale(df)
 
