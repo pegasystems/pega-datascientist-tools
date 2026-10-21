@@ -468,6 +468,117 @@ def test_poor_predictors_report_uses_primary_importance(unused_importance_dm):
     ]
 
 
+@pytest.fixture(params=["NaiveBayes", None], ids=["explicit_nb", "legacy_nb"])
+def nb_performance_dm(request):
+    models = _models(
+        [
+            ("agb", "boosted", 10, 100, "GradientBoost"),
+            ("nb", "bayes", 10, 100, request.param),
+            ("old", "old_bayes", 10, 100, request.param),
+        ],
+    )
+    rows = [
+        ("agb", "pyGroup", 0.5),
+        ("agb", "Customer.Age", 0.5),
+        ("agb", "AgbOnly", 0.5),
+        ("nb", "pyGroup", 0.8),
+        ("nb", "Customer.Age", 0.5),
+        ("old", "pyGroup", 0.5),
+        ("old", "Customer.Age", 0.5),
+        ("old", "OldOnly", 0.5),
+    ]
+    predictors = pl.DataFrame(rows, schema=["ModelID", "PredictorName", "Performance"], orient="row").lazy()
+    predictors = predictors.with_columns(
+        SnapshotTime=pl.lit("20250101"),
+        EntryType=pl.lit("Active"),
+        Type=pl.lit("numeric"),
+        # Positive AGB predictor response counts must not admit AGB into NB plots.
+        ResponseCount=pl.lit(100),
+        Positives=pl.lit(10),
+        BinIndex=pl.lit(1),
+        BinResponseCount=pl.lit(100),
+        BinPositives=pl.lit(10),
+        BinSymbol=pl.lit("value"),
+    )
+    return ADMDatamart(model_df=models, predictor_df=predictors)
+
+
+@pytest.mark.parametrize("agb_only", [False, True])
+def test_nb_category_report_excludes_agb(nb_performance_dm, monkeypatch, agb_only):
+    dm = nb_performance_dm
+    active_filter = pl.col("ModelID") == "agb" if agb_only else pl.col("ModelID") != "old"
+    report = Path(__file__).parents[2] / "pdstools" / "reports" / "HealthCheck.qmd"
+    section = report.read_text().split("## Importance of Naive Bayes Predictors by Category", 1)[1]
+    cell = section.split("```{python}", 1)[1].split("```", 1)[0]
+    plot = dm.plot.predictor_category_performance
+    captured = []
+
+    def capture_data(**kwargs):
+        captured.append(plot(return_df=True, **kwargs))
+
+    monkeypatch.setattr(dm.plot, "predictor_category_performance", capture_data)
+    report_utils = MagicMock()
+    exec(
+        compile(cell, str(report), "exec"),
+        {
+            "datamart": dm,
+            "active_models_filter_expr": active_filter,
+            "nb_query": pl.col("ModelTechnique").fill_null("").ne("GradientBoost"),
+            "report_utils": report_utils,
+        },
+    )
+    report_utils.quarto_plot_exception.assert_not_called()
+    assert len(captured) == 1
+    if agb_only:
+        assert captured[0].rows() == []
+    else:
+        assert captured[0].sort("PredictorCategory").select("PredictorCategory", "mean").rows() == [
+            ("Customer", 50.0),
+            ("Primary", 80.0),
+        ]
+
+
+@pytest.mark.parametrize("agb_only", [False, True])
+def test_markdown_predictor_performance_is_nb_only(nb_performance_dm, agb_only):
+    dm = nb_performance_dm
+    active_filter = pl.col("ModelID") == "agb" if agb_only else pl.col("ModelID") != "old"
+    preaggregates = dm.analysis.compute_health_check_preaggregates(active_filter=active_filter)
+    # The estate-wide count still includes AgbOnly, while OldOnly is out of scope.
+    assert preaggregates.predictor_count == 3
+    overview = preaggregates.predictor_overview.select("PredictorName", "Mean", "Active in Models").sort(
+        "PredictorName"
+    )
+    assert overview.rows() == ([] if agb_only else [("Customer.Age", 50.0, 1), ("pyGroup", 80.0, 1)])
+    categories = preaggregates.predictor_categories.sort("PredictorCategory")
+    assert categories.rows() == ([] if agb_only else [("Customer", 1, 50.0), ("Primary", 1, 80.0)])
+    findings = dm.analysis.findings(active_filter=active_filter, preaggregates=preaggregates)
+    poor = [f for f in findings if "poor_predictor_count" in f.data]
+    assert [f.data for f in poor] == (
+        [] if agb_only else [{"poor_predictor_count": 1, "total_predictors": 2, "threshold": 52.0}]
+    )
+    markdown = dm.analysis.markdown(active_filter=active_filter, preaggregates=preaggregates)
+    assert "| Predictors | 3 |" in markdown
+    if agb_only:
+        assert "Naive Bayes Predictor Categories" not in markdown
+        assert "poor performance" not in markdown
+    else:
+        assert "### Naive Bayes Predictor Categories" in markdown
+        assert "1 of 2 Naive Bayes predictors (50%) have poor performance" in markdown
+
+
+def test_predictor_findings_fallback_excludes_agb(nb_performance_dm):
+    dm = nb_performance_dm
+    # Exercise the direct path without precomputed summaries. Both NB models
+    # are in scope here; AGB must not lower pyGroup's mean AUC or add AgbOnly.
+    poor = [f for f in dm.analysis._check_predictors() if "poor_predictor_count" in f.data]
+    assert [f.data for f in poor] == [{"poor_predictor_count": 2, "total_predictors": 3, "threshold": 52.0}]
+    agb = ADMDatamart(
+        model_df=dm.model_data.filter(pl.col("ModelTechnique") == "GradientBoost"),
+        predictor_df=dm.predictor_data,
+    )
+    assert [f for f in agb.analysis._check_predictors() if "poor_predictor_count" in f.data] == []
+
+
 def test_findings_hidden_and_implausible():
     rows = [
         ("m1", f"offer{ZWSP}", 200, 210, "NaiveBayes"),

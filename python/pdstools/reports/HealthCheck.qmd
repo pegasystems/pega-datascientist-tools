@@ -1622,7 +1622,7 @@ Aggregating up to the category of the predictors, using the univariate predictor
 
 if datamart.predictor_data is not None:
     try:
-        fig = datamart.plot.predictor_category_performance(query=active_models_filter_expr)
+        fig = datamart.plot.predictor_category_performance(query=active_models_filter_expr & nb_query)
         if fig is not None:
             fig.update_layout(title=f"Univariate Predictor Performance<br><sup>models updated since {active_models_threshold_date_string}</sup>")
             fig.show()
