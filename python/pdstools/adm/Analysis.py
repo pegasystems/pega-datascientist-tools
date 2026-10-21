@@ -25,6 +25,9 @@ logger = logging.getLogger(__name__)
 IMPLAUSIBLE_SUCCESS_RATE = 0.9
 IMPLAUSIBLE_MIN_POSITIVES = 10
 
+# Univariate predictor AUC only exists for Naive Bayes (and legacy, untyped) models.
+_NAIVE_BAYES_QUERY = pl.col("ModelTechnique").fill_null("").ne("GradientBoost")
+
 RECOVERABLE_ANALYSIS_ERRORS = (
     pl.exceptions.PolarsError,
     AttributeError,
@@ -394,14 +397,12 @@ class Analysis:
 
         if self.datamart.predictor_data is not None:
             try:
-                # Count predictors across all techniques, but only NB has
-                # univariate predictor performance suitable for AUC summaries.
+                # Count predictors across all techniques; AUC summaries are NB only.
                 preaggregates.predictor_count = self.datamart.aggregates.global_predictor_overview(
                     query=active_filter
                 ).height
-                nb_query = pl.col("ModelTechnique").fill_null("").ne("GradientBoost")
                 preaggregates.predictor_overview = self.datamart.aggregates.global_predictor_overview(
-                    query=nb_query if active_filter is None else active_filter & nb_query
+                    query=_NAIVE_BAYES_QUERY if active_filter is None else active_filter & _NAIVE_BAYES_QUERY
                 )
             except RECOVERABLE_ANALYSIS_ERRORS as exc:
                 logger.debug("Could not compute health-check predictor pre-aggregates: %s", exc)
@@ -1770,11 +1771,10 @@ class Analysis:
         if min_perf is None:
             return findings
 
-        # Univariate AUC is only meaningful for Naive Bayes predictors.
         if predictor_overview is None:
             try:
                 predictor_overview = self.datamart.aggregates.predictors_global_overview(
-                    query=pl.col("ModelTechnique").fill_null("").ne("GradientBoost"),
+                    query=_NAIVE_BAYES_QUERY,
                 ).collect()
             except RECOVERABLE_ANALYSIS_ERRORS as exc:
                 logger.debug("Could not compute predictor performance overview: %s", exc)

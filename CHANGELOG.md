@@ -43,6 +43,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   now has AGB and Naive Bayes subsections; the former "Number of Active and
   Inactive Predictors" section moves under Naive Bayes and counts Naive Bayes
   models only.
+- The same applies to the remaining univariate-AUC summaries: the Health Check
+  predictor category performance plot, and the poor-predictor finding and
+  "Naive Bayes Predictor Categories" table of the Markdown summary
+  (`ADMDatamart.analysis`). The predictor count there still includes AGB.
 - Decision Analysis Tool: `--data-path` and file upload now read ZIP archives containing nested Parquet ZIP files.
 - `read_data` (and therefore `DecisionAnalyzer` constructors) now reads Pega Action Analysis ZIP exports, whose inner `.zip` chunks are gzipped NDJSON.
 
