@@ -81,7 +81,12 @@ from ._metrics import (
     z_ratio,
 )
 from ._misc import legend_color_order, safe_flatten_list
-from ._namespacing import _capitalize, default_predictor_categorization
+from ._namespacing import (
+    CONTEXT_KEY_PREDICTORS,
+    CONTEXT_KEYS_CATEGORY,
+    _capitalize,
+    default_predictor_categorization,
+)
 from ._polars import (
     POLARS_DURATION_PATTERN,
     _apply_query,
@@ -98,6 +103,8 @@ from ._polars import (
 )
 
 __all__ = [
+    "CONTEXT_KEYS_CATEGORY",
+    "CONTEXT_KEY_PREDICTORS",
     "POLARS_DURATION_PATTERN",
     "QUERY",
     # constants / shared types

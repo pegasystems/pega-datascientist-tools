@@ -1622,7 +1622,7 @@ Aggregating up to the category of the predictors, using the univariate predictor
 
 if datamart.predictor_data is not None:
     try:
-        fig = datamart.plot.predictor_category_performance(query=active_models_filter_expr)
+        fig = datamart.plot.predictor_category_performance(query=active_models_filter_expr & nb_query)
         if fig is not None:
             fig.update_layout(title=f"Univariate Predictor Performance<br><sup>models updated since {active_models_threshold_date_string}</sup>")
             fig.show()
@@ -1637,7 +1637,7 @@ else:
 
 ## Importance of Adaptive Gradient Boosting Predictors
 
-Adaptive Gradient Boosting (AGB) models do not have univariate predictor performance, so they do not show up in the Naive Bayes sections above. Instead the importance reported by the platform is shown here. For each model the importances add up to 100%; the charts show the average over the models of a configuration. Top predictors are ranked separately per Configuration, Channel and Direction. As in the Naive Bayes section, when there are too many configurations, the top-predictor charts combine configurations within each Channel/Direction and Modelling Technique. AGB models that have not built any trees yet have no importance and are left out.
+Adaptive Gradient Boosting (AGB) models do not have univariate predictor performance, so they do not show up in the Naive Bayes sections above. Instead the importance reported by the platform is shown here. The charts show the global importance the platform reports per configuration, which adds up to 100%. Context keys such as pyName and pyTreatment are constant within a single action model, so they only carry importance at this configuration level. Top predictors are ranked separately per Configuration, Channel and Direction. As in the Naive Bayes section, when there are too many configurations, the top-predictor charts combine configurations within each Channel/Direction and Modelling Technique. AGB models that have not built any trees yet have no importance and are left out.
 
 ```{python}
 # | error: true
@@ -1737,27 +1737,10 @@ Adaptive Gradient Boosting models have no univariate predictor performance. Pred
 
 ```{python}
 # | error: true
-# Trained AGB models are those with some predictor importance, i.e. that have built trees.
-agb_trained_query = pl.col("FeatureImportance").fill_null(0).sum().over("ModelID") > 0
-
 if agb_importance is not None and agb_importance.height > 0:
     try:
         unused_agb_predictors = (
-            datamart.aggregates.last(table="combined_data")
-            .filter(agb_query & active_models_filter_expr)
-            .filter(pl.col("EntryType") != "Classifier")
-            .unique(subset=["ModelID", "PredictorName"], keep="first")
-            .filter(agb_trained_query)
-            .group_by("PredictorName", "PredictorCategory")
-            .agg(
-                pl.col("Configuration").n_unique().alias("Configurations"),
-                pl.min("ResponseCount").alias("Response Count Min"),
-                pl.max("ResponseCount").alias("Response Count Max"),
-                pl.col("FeatureImportance").fill_null(0).max().alias("_MaxImportance"),
-            )
-            .filter(pl.col("_MaxImportance") == 0)
-            .drop("_MaxImportance")
-            .sort(["Configurations", "PredictorName"], descending=[True, False])
+            datamart.aggregates.unused_agb_predictors(query=active_models_filter_expr)
             .collect()
         )
         if unused_agb_predictors.height == 0:

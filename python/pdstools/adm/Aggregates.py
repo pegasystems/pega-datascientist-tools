@@ -1380,6 +1380,73 @@ class Aggregates:
             return pl.LazyFrame(schema=schema)
         return pl.concat(frames).sort("Column", "Models", descending=[False, True])
 
+    def _predictor_importance_data(self, *, query: QUERY | None = None) -> pl.LazyFrame:
+        """Return latest predictor rows with configuration-level AGB importance.
+
+        For AGB action models linked to a configuration summary model, the
+        global (configuration-level) importance and activity replace the
+        action-level values for all predictors. Other models keep their own
+        values. The requested scope is applied afterwards.
+        """
+        combined = self.datamart.combined_data
+        if combined is None or "FeatureImportance" not in combined.collect_schema().names():
+            raise ValueError("Predictor importance requires predictor data with a FeatureImportance column")
+
+        data = self.last(table="combined_data").with_columns(_Active=pl.col("EntryType") == "Active")
+        if "ConfigurationImportance" in data.collect_schema():
+            has_global = (pl.col("ConfigurationImportance").fill_null(0).sum() > 0).over("ModelID")
+            data = data.with_columns(
+                FeatureImportance=pl.when(has_global)
+                .then(pl.col("ConfigurationImportance").fill_null(0))
+                .otherwise("FeatureImportance"),
+                _Active=pl.when(has_global).then(pl.col("ConfigurationActive").fill_null(False)).otherwise("_Active"),
+            )
+        return cdh_utils._apply_query(data, query, allow_empty=True)
+
+    def unused_agb_predictors(self, *, query: QUERY | None = None) -> pl.LazyFrame:
+        """Find predictors with zero importance in every trained AGB model.
+
+        Use the same configuration-level (global) importance as
+        :meth:`predictor_importance`, including when identifying trained models.
+        Models with no positive total importance are excluded. Missing predictor
+        importance is treated as zero within trained models.
+
+        Parameters
+        ----------
+        query : QUERY, optional
+            Restrict the models in scope, for example to active models or a
+            configuration. Only GradientBoost models are included.
+
+        Returns
+        -------
+        pl.LazyFrame
+            PredictorName, PredictorCategory, Configurations, Response Count Min
+            and Response Count Max for unused predictors, sorted by configuration
+            count descending and predictor name ascending.
+
+        Raises
+        ------
+        ValueError
+            If the data has no predictor importance.
+        """
+        return (
+            self._predictor_importance_data(query=query)
+            .filter(pl.col("ModelTechnique") == "GradientBoost")
+            .filter(pl.col("EntryType") != "Classifier")
+            .unique(subset=["ModelID", "PredictorName"], keep="first")
+            .filter(pl.col("FeatureImportance").fill_null(0).sum().over("ModelID") > 0)
+            .group_by("PredictorName", "PredictorCategory")
+            .agg(
+                pl.col("Configuration").n_unique().alias("Configurations"),
+                pl.min("ResponseCount").alias("Response Count Min"),
+                pl.max("ResponseCount").alias("Response Count Max"),
+                pl.col("FeatureImportance").fill_null(0).max().alias("_MaxImportance"),
+            )
+            .filter(pl.col("_MaxImportance") == 0)
+            .drop("_MaxImportance")
+            .sort(["Configurations", "PredictorName"], descending=[True, False])
+        )
+
     def predictor_importance(
         self,
         *,
@@ -1395,6 +1462,15 @@ class Aggregates:
         rescaled to sum to 100%, then averaged over the models of each
         configuration. Models without any importance (for example AGB models
         that have not built trees yet) are not counted.
+
+        For AGB, the platform writes importance per action model and once per
+        configuration (the global importance, in a summary model with empty
+        context keys). Action models hold their context keys constant, so
+        those report zero importance there. When available, the global
+        importance and activity therefore replace the action-level values of
+        all predictors, so each configuration reports its global importance.
+        Model selection still uses the action models; summary models are not
+        counted as models.
 
         Parameters
         ----------
@@ -1418,19 +1494,13 @@ class Aggregates:
         ValueError
             If the data has no predictor importance.
         """
-        combined = self.datamart.combined_data
-        if combined is None or "FeatureImportance" not in combined.collect_schema().names():
-            raise ValueError("Predictor importance requires predictor data with a FeatureImportance column")
-
+        data = self._predictor_importance_data(query=query)
         context = [
-            c
-            for c in ("Configuration", "Channel", "Direction", "ModelTechnique")
-            if c in combined.collect_schema().names()
+            c for c in ("Configuration", "Channel", "Direction", "ModelTechnique") if c in data.collect_schema().names()
         ]
         group = context + (["PredictorName", "PredictorCategory"] if by == "PredictorName" else ["PredictorCategory"])
         per_model = (
-            cdh_utils._apply_query(self.last(table="combined_data"), query, allow_empty=True)
-            .filter(pl.col("EntryType") != "Classifier")
+            data.filter(pl.col("EntryType") != "Classifier")
             .filter(pl.col("FeatureImportance").is_not_null())
             .unique(subset=["ModelID", "PredictorName"], keep="first")
             .with_columns(pl.col("FeatureImportance").sum().over("ModelID").alias("_Total"))
@@ -1442,7 +1512,7 @@ class Aggregates:
             per_model.group_by(group)
             .agg(
                 pl.col("_Share").sum(),
-                (pl.col("EntryType") == "Active").sum().alias("_Active"),
+                pl.col("_Active").sum(),
             )
             .join(models, on=context, nulls_equal=True)
             .select(

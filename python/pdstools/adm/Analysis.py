@@ -25,6 +25,9 @@ logger = logging.getLogger(__name__)
 IMPLAUSIBLE_SUCCESS_RATE = 0.9
 IMPLAUSIBLE_MIN_POSITIVES = 10
 
+# Univariate predictor AUC only exists for Naive Bayes (and legacy, untyped) models.
+_NAIVE_BAYES_QUERY = pl.col("ModelTechnique").fill_null("").ne("GradientBoost")
+
 RECOVERABLE_ANALYSIS_ERRORS = (
     pl.exceptions.PolarsError,
     AttributeError,
@@ -99,11 +102,14 @@ class HealthCheckPreAggregates:
     overall_avg_auc: float | None = None
     active_avg_auc: float | None = None
     predictor_count: int | None = None
+    """Number of predictors in scope across all model techniques."""
     channel_overview: pl.DataFrame | None = None
     channel_summary: pl.DataFrame | None = None
     configuration_summary: pl.DataFrame | None = None
     predictor_overview: pl.DataFrame | None = None
+    """Univariate performance overview for Naive Bayes predictors in scope."""
     predictor_categories: pl.DataFrame | None = None
+    """Category-level summaries of Naive Bayes predictor performance."""
     prediction_summary: pl.DataFrame | None = None
     taxonomy_counts: dict[str, int] = field(default_factory=dict)
 
@@ -391,13 +397,16 @@ class Analysis:
 
         if self.datamart.predictor_data is not None:
             try:
-                preaggregates.predictor_overview = self.datamart.aggregates.global_predictor_overview(
+                # Count predictors across all techniques; AUC summaries are NB only.
+                preaggregates.predictor_count = self.datamart.aggregates.global_predictor_overview(
                     query=active_filter
+                ).height
+                preaggregates.predictor_overview = self.datamart.aggregates.global_predictor_overview(
+                    query=_NAIVE_BAYES_QUERY if active_filter is None else active_filter & _NAIVE_BAYES_QUERY
                 )
             except RECOVERABLE_ANALYSIS_ERRORS as exc:
                 logger.debug("Could not compute health-check predictor pre-aggregates: %s", exc)
             else:
-                preaggregates.predictor_count = preaggregates.predictor_overview.height
                 if include_markdown_sections:
                     try:
                         preaggregates.predictor_categories = (
@@ -1762,10 +1771,11 @@ class Analysis:
         if min_perf is None:
             return findings
 
-        # Poor predictors
         if predictor_overview is None:
             try:
-                predictor_overview = self.datamart.aggregates.predictors_global_overview().collect()
+                predictor_overview = self.datamart.aggregates.predictors_global_overview(
+                    query=_NAIVE_BAYES_QUERY,
+                ).collect()
             except RECOVERABLE_ANALYSIS_ERRORS as exc:
                 logger.debug("Could not compute predictor performance overview: %s", exc)
                 predictor_overview = None
@@ -1780,13 +1790,13 @@ class Analysis:
                         severity="warning" if pct > 30 else "info",
                         category="predictor",
                         title=(
-                            f"{poor_count} of {total_predictors} predictors "
+                            f"{poor_count} of {total_predictors} Naive Bayes predictors "
                             f"({pct:.0f}%) have poor performance "
                             f"(mean AUC < {min_perf * 100:.0f})"
                         ),
                         detail=(
                             "These predictors consistently perform below the "
-                            "minimum threshold across all models. They may "
+                            "minimum threshold across Naive Bayes models in scope. They may "
                             "indicate data sourcing issues. Be cautious with "
                             "removal — they may be valuable for specific actions."
                         ),
