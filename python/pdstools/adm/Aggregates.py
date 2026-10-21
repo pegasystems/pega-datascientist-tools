@@ -1381,10 +1381,12 @@ class Aggregates:
         return pl.concat(frames).sort("Column", "Models", descending=[False, True])
 
     def _predictor_importance_data(self, *, query: QUERY | None = None) -> pl.LazyFrame:
-        """Return latest predictor rows with Primary-only importance inheritance.
+        """Return latest predictor rows with configuration-level AGB importance.
 
-        Apply the requested scope after resolving configuration importance and
-        activity, without modifying the original action-level predictor data.
+        For AGB action models linked to a configuration summary model, the
+        global (configuration-level) importance and activity replace the
+        action-level values for all predictors. Other models keep their own
+        values. The requested scope is applied afterwards.
         """
         combined = self.datamart.combined_data
         if combined is None or "FeatureImportance" not in combined.collect_schema().names():
@@ -1392,16 +1394,19 @@ class Aggregates:
 
         data = self.last(table="combined_data").with_columns(_Active=pl.col("EntryType") == "Active")
         if "ConfigurationImportance" in data.collect_schema():
+            has_global = (pl.col("ConfigurationImportance").fill_null(0).sum() > 0).over("ModelID")
             data = data.with_columns(
-                FeatureImportance=pl.coalesce("ConfigurationImportance", "FeatureImportance"),
-                _Active=pl.coalesce("ConfigurationActive", "_Active"),
+                FeatureImportance=pl.when(has_global)
+                .then(pl.col("ConfigurationImportance").fill_null(0))
+                .otherwise("FeatureImportance"),
+                _Active=pl.when(has_global).then(pl.col("ConfigurationActive").fill_null(False)).otherwise("_Active"),
             )
         return cdh_utils._apply_query(data, query, allow_empty=True)
 
     def unused_agb_predictors(self, *, query: QUERY | None = None) -> pl.LazyFrame:
         """Find predictors with zero importance in every trained AGB model.
 
-        Use the same Primary-only configuration importance inheritance as
+        Use the same configuration-level (global) importance as
         :meth:`predictor_importance`, including when identifying trained models.
         Models with no positive total importance are excluded. Missing predictor
         importance is treated as zero within trained models.
@@ -1458,11 +1463,13 @@ class Aggregates:
         configuration. Models without any importance (for example AGB models
         that have not built trees yet) are not counted.
 
-        For Primary predictors only, available AGB configuration-level
-        importance and activity take precedence over the action-level values,
-        which can mark these predictors as inactive with zero importance.
-        Other predictors retain their action-level values. Model selection
-        still uses the action records; configuration summary records are not
+        For AGB, the platform writes importance per action model and once per
+        configuration (the global importance, in a summary model with empty
+        context keys). Action models hold their context keys constant, so
+        those report zero importance there. When available, the global
+        importance and activity therefore replace the action-level values of
+        all predictors, so each configuration reports its global importance.
+        Model selection still uses the action models; summary models are not
         counted as models.
 
         Parameters

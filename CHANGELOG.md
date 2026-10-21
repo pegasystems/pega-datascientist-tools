@@ -8,6 +8,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- AGB predictor importance (`ADMDatamart.aggregates.predictor_importance`,
+  `unused_agb_predictors` and the ADM Health Check) now reports the global
+  importance per configuration that the platform stores in the configuration
+  summary model. Before, it averaged the action-level importances, where the
+  context keys are constant and therefore show zero importance (#986). The
+  summary model's predictor rows are dropped from `predictor_data`, like the
+  summary model itself (#667).
+- The ADM context keys (`pyChannel`, `pyDirection`, `pyIssue`, `pyGroup`,
+  `pyName`, `pyTreatment`) get their own "Context Keys" predictor category
+  instead of "Primary" in `default_predictor_categorization`, ADM plots and
+  AGB tree plots (which called it "Model context").
 - ADM Health Check "Predictor Performance across Actions" and "Missing values"
   sections now cover Naive Bayes models only, and their headers say so. AGB
   predictors have no individual performance (the heatmap filled them in as

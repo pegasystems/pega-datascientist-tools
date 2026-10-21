@@ -1,5 +1,6 @@
 """Success rate intervals, hidden characters and predictor importance."""
 
+import datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -224,8 +225,26 @@ def test_predictor_importance_without_column():
         dm.aggregates.predictor_importance()
 
 
-@pytest.fixture
-def configuration_importance_dm():
+_ACTION_SNAPSHOT = datetime.datetime(2025, 1, 2)
+
+# Mirrors how AGB writes importance: action models hold their context keys
+# constant (zero, Inactive) and rescale the rest to 100%; the configuration
+# summary model (empty context keys) carries the global importance of all
+# predictors.
+_IMPORTANCE = {
+    # ModelID: (pyGroup, Customer.Age, Customer.Income)
+    "a1": (0.0, 75.0, 25.0),
+    "a2": (0.0, 50.0, 50.0),
+    "summary_a": (10.0, 60.0, 30.0),
+    "b1": (0.0, 100.0, 0.0),
+    "summary_b": (20.0, 80.0, 0.0),
+    "nb": (0.0, 40.0, 60.0),
+}
+
+
+def _configuration_importance_inputs(importance=None, snapshot_times=None):
+    importance = importance or _IMPORTANCE
+    snapshot_times = snapshot_times or {}
     models = _models(
         [
             ("a1", "first", 10, 100, "GradientBoost"),
@@ -240,39 +259,42 @@ def configuration_importance_dm():
         Channel=pl.when(pl.col("Name") == "").then(pl.lit("")).otherwise(pl.col("Channel")),
     )
     rows = []
-    for model_id, primary, customer in [
-        ("a1", 0.0, 80.0),
-        ("a2", 0.0, 60.0),
-        ("summary_a", 20.0, 80.0),
-        ("b1", 0.0, 70.0),
-        ("summary_b", 30.0, 90.0),
-        ("nb", 0.0, 100.0),
-    ]:
-        rows.extend(
-            [
-                (model_id, "pyGroup", primary, "Active" if primary else "Inactive"),
-                (model_id, "Customer.Age", customer, "Inactive" if model_id == "a2" else "Active"),
-                (model_id, "Classifier", 0.0, "Classifier"),
-            ],
-        )
+    for model_id, values in importance.items():
+        for predictor, value in zip(("pyGroup", "Customer.Age", "Customer.Income"), values, strict=True):
+            for snapshot in snapshot_times.get(model_id, [_ACTION_SNAPSHOT]):
+                rows.append((model_id, predictor, value, "Active" if value else "Inactive", snapshot))
+        rows.append((model_id, "Classifier", 0.0, "Classifier", _ACTION_SNAPSHOT))
     # Importance repeats across bins and must be counted only once.
-    rows.append(("summary_a", "pyGroup", 20.0, "Active"))
-    predictors = (
-        pl.DataFrame(
-            rows,
-            schema=["ModelID", "PredictorName", "FeatureImportance", "EntryType"],
-            orient="row",
-        )
-        .lazy()
-        .with_columns(
-            SnapshotTime=pl.lit("20250102"),
-            BinIndex=pl.lit(1),
-            BinPositives=pl.lit(0),
-            BinResponseCount=pl.lit(0),
-            Performance=pl.lit(0.5),
-        )
+    rows.append(("summary_a", "pyGroup", importance["summary_a"][0], "Active", _ACTION_SNAPSHOT))
+    predictors = pl.DataFrame(
+        rows,
+        schema=["ModelID", "PredictorName", "FeatureImportance", "EntryType", "SnapshotTime"],
+        orient="row",
+    ).lazy()
+    predictors = predictors.with_columns(
+        BinIndex=pl.lit(1),
+        BinPositives=pl.lit(0),
+        BinResponseCount=pl.lit(0),
+        Performance=pl.lit(0.5),
     )
+    return models, predictors
+
+
+@pytest.fixture
+def configuration_importance_dm():
+    models, predictors = _configuration_importance_inputs()
     return ADMDatamart(model_df=models, predictor_df=predictors)
+
+
+def _category_importance(dm, **kwargs):
+    result = dm.aggregates.predictor_importance(by="PredictorCategory", **kwargs).collect()
+    return (
+        result.select(
+            "Configuration", "ModelTechnique", "PredictorCategory", "Models", "Importance %", "Active Predictors"
+        )
+        .sort("Configuration", "ModelTechnique", "PredictorCategory")
+        .rows()
+    )
 
 
 def test_agb_configuration_importance_preserves_model_and_bin_data(configuration_importance_dm):
@@ -289,97 +311,118 @@ def test_agb_configuration_importance_preserves_model_and_bin_data(configuration
     ).collect().row(0) == (0.0, 0)
     assert dm.combined_data.filter(pl.col("ConfigurationImportance").is_not_null()).select(
         "ModelID", "PredictorName", "ConfigurationImportance", "ConfigurationActive"
-    ).sort("ModelID").collect().rows() == [
-        ("a1", "pyGroup", 20.0, True),
-        ("a2", "pyGroup", 20.0, True),
-        ("b1", "pyGroup", 30.0, True),
+    ).sort("ModelID", "PredictorName").collect().rows() == [
+        ("a1", "Customer.Age", 60.0, True),
+        ("a1", "Customer.Income", 30.0, True),
+        ("a1", "pyGroup", 10.0, True),
+        ("a2", "Customer.Age", 60.0, True),
+        ("a2", "Customer.Income", 30.0, True),
+        ("a2", "pyGroup", 10.0, True),
+        ("b1", "Customer.Age", 80.0, True),
+        ("b1", "Customer.Income", 0.0, False),
+        ("b1", "pyGroup", 20.0, True),
     ]
-    assert dm.combined_data.filter(pl.col("PredictorCategory") != "Primary").select(
-        pl.col("ConfigurationImportance").is_not_null().sum(),
-        pl.col("ConfigurationActive").is_not_null().sum(),
-    ).collect().row(0) == (0, 0)
-    result = dm.aggregates.predictor_importance(by="PredictorCategory").collect()
-    assert result.select(
-        "Configuration", "ModelTechnique", "PredictorCategory", "Models", "Importance %", "Active Predictors"
-    ).sort(
-        "Configuration",
-        "ModelTechnique",
-        "PredictorCategory",
-    ).rows() == [
-        ("A", "GradientBoost", "Customer", 2, 77.5, 0.5),
-        ("A", "GradientBoost", "Primary", 2, 22.5, 1.0),
-        ("A", "NaiveBayes", "Customer", 1, 100.0, 1.0),
-        ("A", "NaiveBayes", "Primary", 1, 0.0, 0.0),
-        ("B", "GradientBoost", "Customer", 1, 70.0, 1.0),
-        ("B", "GradientBoost", "Primary", 1, 30.0, 1.0),
+
+
+def test_agb_predictor_importance_reports_configuration_importance(configuration_importance_dm):
+    dm = configuration_importance_dm
+    # AGB configurations report exactly their summary (global) importance;
+    # Naive Bayes keeps its own values.
+    assert _category_importance(dm) == [
+        ("A", "GradientBoost", "Context Keys", 2, 10.0, 1.0),
+        ("A", "GradientBoost", "Customer", 2, 90.0, 2.0),
+        ("A", "NaiveBayes", "Context Keys", 1, 0.0, 0.0),
+        ("A", "NaiveBayes", "Customer", 1, 100.0, 2.0),
+        ("B", "GradientBoost", "Context Keys", 1, 20.0, 1.0),
+        ("B", "GradientBoost", "Customer", 1, 80.0, 1.0),
     ]
     selected = dm.aggregates.predictor_importance(query=pl.col("Name") == "second").collect()
-    assert selected.select("PredictorName", "Models", "Importance %").sort("PredictorName").rows() == [
-        ("Customer.Age", 1, 75.0),
-        ("pyGroup", 1, 25.0),
+    assert selected.select("PredictorName", "PredictorCategory", "Models", "Importance %").sort(
+        "PredictorName"
+    ).rows() == [
+        ("Customer.Age", "Customer", 1, 60.0),
+        ("Customer.Income", "Customer", 1, 30.0),
+        ("pyGroup", "Context Keys", 1, 10.0),
     ]
 
 
-@pytest.mark.parametrize("legacy_cache", [False, True])
-def test_agb_configuration_importance_survives_report_cache(configuration_importance_dm, tmp_path, legacy_cache):
-    dm = configuration_importance_dm
-    if legacy_cache:
-        # Simulate a cache written before inheritance was restricted to Primary.
-        predictors = dm.predictor_data.with_columns(
-            pl.when(pl.col("PredictorCategory") == "Customer")
-            .then(999.0)
-            .otherwise(pl.col("ConfigurationImportance"))
-            .alias("ConfigurationImportance"),
-            pl.when(pl.col("PredictorCategory") == "Customer")
-            .then(False)
-            .otherwise(pl.col("ConfigurationActive"))
-            .alias("ConfigurationActive"),
-        )
-        dm = ADMDatamart(model_df=dm.model_data, predictor_df=predictors)
-    model_path, predictor_path = dm.save_data(tmp_path, selected_model_ids=["a1", "b1"])
+def test_agb_configuration_importance_uses_nearest_summary_snapshot():
+    later = _ACTION_SNAPSHOT + datetime.timedelta(seconds=1)
+    older = _ACTION_SNAPSHOT - datetime.timedelta(days=30)
+    models, predictors = _configuration_importance_inputs(snapshot_times={"summary_a": [older, later]})
+    stale = predictors.filter((pl.col("ModelID") == "summary_a") & (pl.col("SnapshotTime") == older))
+    current = predictors.filter(~((pl.col("ModelID") == "summary_a") & (pl.col("SnapshotTime") == older)))
+    stale = stale.with_columns(
+        FeatureImportance=pl.when(pl.col("PredictorName") == "pyGroup").then(50.0).otherwise(25.0),
+        EntryType=pl.when(pl.col("PredictorName") == "Classifier")
+        .then(pl.lit("Classifier"))
+        .otherwise(pl.lit("Active")),
+    )
+    dm = ADMDatamart(model_df=models, predictor_df=pl.concat([current, stale]))
+    assert _category_importance(dm, query=pl.col("Configuration") == "A")[:2] == [
+        ("A", "GradientBoost", "Context Keys", 2, 10.0, 1.0),
+        ("A", "GradientBoost", "Customer", 2, 90.0, 2.0),
+    ]
+
+
+def test_agb_configuration_importance_survives_report_cache(configuration_importance_dm, tmp_path):
+    model_path, predictor_path = configuration_importance_dm.save_data(tmp_path, selected_model_ids=["a1", "b1"])
     restored = ADMDatamart.from_ds_export(model_filename=str(model_path), predictor_filename=str(predictor_path))
     # Report sections reconstruct filtered datamarts again after cache loading.
     filtered = ADMDatamart(
         model_df=restored.model_data.filter(pl.col("Configuration") == "B"),
         predictor_df=restored.predictor_data,
     )
-    result = filtered.aggregates.predictor_importance(by="PredictorCategory").collect()
-    assert result.select("PredictorCategory", "Models", "Importance %", "Active Predictors").sort(
-        "PredictorCategory"
-    ).rows() == [
-        ("Customer", 1, 70.0, 1.0),
-        ("Primary", 1, 30.0, 1.0),
+    assert _category_importance(filtered) == [
+        ("B", "GradientBoost", "Context Keys", 1, 20.0, 1.0),
+        ("B", "GradientBoost", "Customer", 1, 80.0, 1.0),
     ]
 
 
-def test_agb_configuration_importance_missing_predictor_rows(configuration_importance_dm):
-    dm = configuration_importance_dm
-    predictors = dm.predictor_data.drop("ConfigurationImportance", "ConfigurationActive")
-    # Recreate a summary model whose predictor snapshot is absent.
-    summary = dm.model_data.filter(pl.col("ModelID") == "a1").with_columns(
-        ModelID=pl.lit("missing_summary"),
-        Name=pl.lit(""),
+def test_agb_configuration_importance_missing_summary_predictors():
+    models, predictors = _configuration_importance_inputs()
+    dm = ADMDatamart(model_df=models, predictor_df=predictors.filter(pl.col("ModelID") != "summary_b"))
+    # Without summary predictor rows, configuration B keeps action-level values.
+    assert _category_importance(dm, query=pl.col("Configuration") == "B") == [
+        ("B", "GradientBoost", "Context Keys", 1, 0.0, 0.0),
+        ("B", "GradientBoost", "Customer", 1, 100.0, 1.0),
+    ]
+
+
+def test_agb_configuration_importance_ambiguous_summary(caplog):
+    models, predictors = _configuration_importance_inputs()
+    # A configuration with summary models per channel has no single global row.
+    second_summary = models.filter(pl.col("ModelID") == "summary_a").with_columns(ModelID=pl.lit("summary_a2"))
+    second_predictors = predictors.filter(pl.col("ModelID") == "summary_a").with_columns(
+        ModelID=pl.lit("summary_a2"),
     )
-    restored = ADMDatamart(model_df=pl.concat([dm.model_data, summary]), predictor_df=predictors)
-    result = restored.aggregates.predictor_importance(query=pl.col("ModelID") == "a1").collect()
-    assert result.select("PredictorName", "Importance %").sort("PredictorName").rows() == [
-        ("Customer.Age", 100.0),
+    with caplog.at_level("WARNING", logger="pdstools.adm.ADMDatamart"):
+        dm = ADMDatamart(
+            model_df=pl.concat([models, second_summary]),
+            predictor_df=pl.concat([predictors, second_predictors]),
+        )
+    assert "multiple summary models per configuration" in caplog.text
+    selected = dm.aggregates.predictor_importance(query=pl.col("ModelID") == "a1").collect()
+    assert selected.select("PredictorName", "Importance %").sort("PredictorName").rows() == [
+        ("Customer.Age", 75.0),
+        ("Customer.Income", 25.0),
         ("pyGroup", 0.0),
+    ]
+    assert _category_importance(dm, query=pl.col("Configuration") == "B") == [
+        ("B", "GradientBoost", "Context Keys", 1, 20.0, 1.0),
+        ("B", "GradientBoost", "Customer", 1, 80.0, 1.0),
     ]
 
 
 @pytest.fixture
-def unused_importance_dm(configuration_importance_dm):
-    dm = configuration_importance_dm
-    models = dm.model_data.with_columns(
+def unused_importance_dm():
+    models, predictors = _configuration_importance_inputs()
+    models = models.with_columns(
         ResponseCount=pl.when(pl.col("ModelID") == "b1").then(300.0).otherwise(pl.col("ResponseCount")),
     )
-    cold_model = models.filter(pl.col("ModelID") == "a1").with_columns(
-        ModelID=pl.lit("cold"),
-        Configuration=pl.lit("Cold"),
-        ResponseCount=pl.lit(9999.0),
-    )
-    predictors = dm.predictor_data.with_columns(
+    # Action-level values of a1/a2 are zero: the global importance still
+    # makes them trained and their predictors used.
+    predictors = predictors.with_columns(
         FeatureImportance=pl.when(pl.col("ModelID").is_in(["a1", "a2"]))
         .then(0.0)
         .otherwise(pl.col("FeatureImportance")),
@@ -387,18 +430,18 @@ def unused_importance_dm(configuration_importance_dm):
     unused_customer = predictors.filter(pl.col("PredictorName") == "Customer.Age").with_columns(
         PredictorName=pl.lit("Customer.Unused"),
         FeatureImportance=pl.when(pl.col("ModelID") == "nb").then(100.0).otherwise(0.0),
-        # Legacy caches must not lend non-Primary importance to child models.
-        ConfigurationImportance=pl.lit(90.0),
     )
-    unused_primary = predictors.filter(pl.col("PredictorName") == "pyGroup").with_columns(
-        PredictorName=pl.lit("pyUnused"),
+    unused_context_key = predictors.filter(pl.col("PredictorName") == "pyGroup").with_columns(
+        PredictorName=pl.lit("pyTreatment"),
         FeatureImportance=pl.lit(0.0),
-        ConfigurationImportance=pl.lit(0.0),
+    )
+    cold_model = models.filter(pl.col("ModelID") == "a1").with_columns(
+        ModelID=pl.lit("cold"),
+        Configuration=pl.lit("Cold"),
+        ResponseCount=pl.lit(9999.0),
     )
     cold_predictors = predictors.filter(pl.col("ModelID") == "a1").with_columns(
         ModelID=pl.lit("cold"),
-        ConfigurationImportance=pl.lit(None),
-        ConfigurationActive=pl.lit(None),
         # Classifier rows must not make an untrained model appear trained.
         FeatureImportance=pl.when(pl.col("EntryType") == "Classifier").then(100.0).otherwise(0.0),
     )
@@ -408,25 +451,25 @@ def unused_importance_dm(configuration_importance_dm):
     return ADMDatamart(
         model_df=pl.concat([models, cold_model], how="vertical_relaxed"),
         predictor_df=pl.concat(
-            [predictors, unused_customer, unused_primary, cold_predictors, cold_only],
+            [predictors, unused_customer, unused_context_key, cold_predictors, cold_only],
             how="vertical_relaxed",
         ),
     )
 
 
-def test_unused_agb_predictors_primary_inheritance(unused_importance_dm):
+_UNUSED_IN_A1 = [
+    ("Customer.Unused", "Customer", 1, 100.0, 100.0),
+    ("pyTreatment", "Context Keys", 1, 100.0, 100.0),
+]
+
+
+def test_unused_agb_predictors_configuration_importance(unused_importance_dm):
     dm = unused_importance_dm
     assert dm.aggregates.unused_agb_predictors().collect().rows() == [
         ("Customer.Unused", "Customer", 2, 100.0, 300.0),
-        ("pyUnused", "Primary", 2, 100.0, 300.0),
+        ("pyTreatment", "Context Keys", 2, 100.0, 300.0),
     ]
-    # a1 is trained solely by inherited Primary importance. Its local Customer
-    # importance must stay zero, and the inherited pyGroup must not be unused.
-    assert dm.aggregates.unused_agb_predictors(query=pl.col("ModelID") == "a1").collect().rows() == [
-        ("Customer.Age", "Customer", 1, 100.0, 100.0),
-        ("Customer.Unused", "Customer", 1, 100.0, 100.0),
-        ("pyUnused", "Primary", 1, 100.0, 100.0),
-    ]
+    assert dm.aggregates.unused_agb_predictors(query=pl.col("ModelID") == "a1").collect().rows() == _UNUSED_IN_A1
     assert dm.aggregates.unused_agb_predictors(query=pl.col("ModelID") == "cold").collect().rows() == []
     assert dm.aggregates.unused_agb_predictors(query=pl.col("ModelID") == "nb").collect().rows() == []
     assert dm.aggregates.unused_agb_predictors(query=pl.col("ModelID") == "absent").collect().rows() == []
@@ -437,10 +480,11 @@ def test_unused_agb_predictors_without_configuration_importance(configuration_im
         model_df=configuration_importance_dm.model_data,
         predictor_df=configuration_importance_dm.predictor_data.drop("ConfigurationImportance", "ConfigurationActive"),
     )
-    assert dm.aggregates.unused_agb_predictors().collect().rows() == [("pyGroup", "Primary", 2, 100.0, 100.0)]
+    # Action-level only: context keys look unused within every action model.
+    assert dm.aggregates.unused_agb_predictors().collect().rows() == [("pyGroup", "Context Keys", 2, 100.0, 100.0)]
 
 
-def test_poor_predictors_report_uses_primary_importance(unused_importance_dm):
+def test_poor_predictors_report_uses_configuration_importance(unused_importance_dm):
     report = Path(__file__).parents[2] / "pdstools" / "reports" / "HealthCheck.qmd"
     section = report.read_text(encoding="utf-8").split("## Poor Predictors Globally", 1)[1]
     cell = section.split("```{python}", 1)[1].split("```", 1)[0]
@@ -461,11 +505,7 @@ def test_poor_predictors_report_uses_primary_importance(unused_importance_dm):
     exec(compile(cell, str(report), "exec"), scope)
     report_utils.quarto_plot_exception.assert_not_called()
     display.assert_called_once()
-    assert report_utils.create_metric_gttable.call_args.args[0].rows() == [
-        ("Customer.Age", "Customer", 1, 100.0, 100.0),
-        ("Customer.Unused", "Customer", 1, 100.0, 100.0),
-        ("pyUnused", "Primary", 1, 100.0, 100.0),
-    ]
+    assert report_utils.create_metric_gttable.call_args.args[0].rows() == _UNUSED_IN_A1
 
 
 @pytest.fixture(params=["NaiveBayes", None], ids=["explicit_nb", "legacy_nb"])
@@ -533,8 +573,8 @@ def test_nb_category_report_excludes_agb(nb_performance_dm, monkeypatch, agb_onl
         assert captured[0].rows() == []
     else:
         assert captured[0].sort("PredictorCategory").select("PredictorCategory", "mean").rows() == [
+            ("Context Keys", 80.0),
             ("Customer", 50.0),
-            ("Primary", 80.0),
         ]
 
 
@@ -550,7 +590,7 @@ def test_markdown_predictor_performance_is_nb_only(nb_performance_dm, agb_only):
     )
     assert overview.rows() == ([] if agb_only else [("Customer.Age", 50.0, 1), ("pyGroup", 80.0, 1)])
     categories = preaggregates.predictor_categories.sort("PredictorCategory")
-    assert categories.rows() == ([] if agb_only else [("Customer", 1, 50.0), ("Primary", 1, 80.0)])
+    assert categories.rows() == ([] if agb_only else [("Context Keys", 1, 80.0), ("Customer", 1, 50.0)])
     findings = dm.analysis.findings(active_filter=active_filter, preaggregates=preaggregates)
     poor = [f for f in findings if "poor_predictor_count" in f.data]
     assert [f.data for f in poor] == (

@@ -38,6 +38,7 @@ _STANDARD_PREDICTOR_CATEGORY_COLORS = {
     "Customer": "#001F5F",
     "IH": "#10A5AC",
     "Primary": "#63666F",
+    cdh_utils.CONTEXT_KEYS_CATEGORY: "#2E7D32",
     "Param": "#F76923",
     "Account": "#661D34",
     "External Model": "#DE4342",
@@ -190,6 +191,7 @@ class ADMDatamart:
         self.analysis = Analysis(datamart=self)
         self.generate = Reports(datamart=self)
         self._agb_importance_models: pl.LazyFrame | None = None
+        self._agb_summary_model_ids: list[str] = []
 
         logger.info("Validating ADM model data.")
         model_data_validated = self._validate_model_data(
@@ -647,20 +649,8 @@ class ADMDatamart:
             )
             is_agb = (pl.col("ModelTechnique") == "GradientBoost").fill_null(False)
             if "Configuration" in schema and df.filter(is_agb & empty_context).select(pl.len()).collect().item():
-                # Retain the link to configuration-level predictor importance only.
-                # The summary models themselves must stay out of counts and AUCs.
-                summary_models = (
-                    df.filter(is_agb & empty_context)
-                    .sort("SnapshotTime")
-                    .unique(subset="Configuration", keep="last")
-                    .select("Configuration", pl.col("ModelID").alias("_ConfigurationModelID"))
-                )
-                self._agb_importance_models = (
-                    df.filter(is_agb & ~empty_context)
-                    .select("ModelID", "Configuration")
-                    .unique()
-                    .join(summary_models, on="Configuration")
-                    .select("ModelID", "_ConfigurationModelID")
+                self._agb_importance_models, self._agb_summary_model_ids = self._agb_configuration_models(
+                    df, is_agb, empty_context
                 )
             df = df.filter(~(is_agb & empty_context))
 
@@ -689,6 +679,130 @@ class ADMDatamart:
         df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
 
         return self._normalize_performance_scale(df)
+
+    @staticmethod
+    def _agb_configuration_models(
+        df: pl.LazyFrame,
+        is_agb: pl.Expr,
+        empty_context: pl.Expr,
+    ) -> tuple[pl.LazyFrame, list[str]]:
+        """Map AGB action models to the summary model of their configuration.
+
+        AGB writes, next to the action-level models, one configuration-level
+        summary model (empty context keys) whose predictor importance is the
+        global importance of the configuration. Only configurations with
+        exactly one summary model are mapped; otherwise the link is ambiguous.
+
+        Returns
+        -------
+        tuple[pl.LazyFrame, list[str]]
+            ``ModelID`` and ``_ConfigurationModelID`` of the mapped action
+            models, and the IDs of all summary models.
+        """
+        summary_models = (
+            df.filter(is_agb & empty_context)
+            .group_by("Configuration")
+            .agg(pl.col("ModelID").unique().alias("_ConfigurationModelID"))
+            .collect()
+        )
+        ambiguous = summary_models.filter(pl.col("_ConfigurationModelID").list.len() > 1)
+        if ambiguous.height > 0:
+            logger.warning(
+                "Not using configuration-level AGB predictor importance for %s: "
+                "multiple summary models per configuration.",
+                ", ".join(sorted(str(c) for c in ambiguous["Configuration"].to_list())),
+            )
+        unique_summary = (
+            summary_models.filter(pl.col("_ConfigurationModelID").list.len() == 1)
+            .with_columns(pl.col("_ConfigurationModelID").list.first())
+            .lazy()
+        )
+        mapping = (
+            df.filter(is_agb & ~empty_context)
+            .select("ModelID", "Configuration")
+            .unique()
+            .join(unique_summary, on="Configuration")
+            .select("ModelID", "_ConfigurationModelID")
+        )
+        summary_ids = [str(i) for ids in summary_models.get_column("_ConfigurationModelID").to_list() for i in ids]
+        return mapping, summary_ids
+
+    @staticmethod
+    def _inherit_configuration_importance(
+        df: pl.LazyFrame,
+        configuration_models: pl.LazyFrame,
+    ) -> pl.LazyFrame:
+        """Add the configuration-level AGB importance to action predictor rows.
+
+        Action-level AGB models hold their context keys constant, so those
+        report zero importance there, and the other importances are rescaled
+        without them. The configuration summary model carries the global
+        importance of all predictors. Its values are stored on the action rows
+        as ``ConfigurationImportance`` and ``ConfigurationActive`` so that
+        report caches and filtered datamarts, which never contain summary
+        models, keep them. The summary snapshot nearest in time is used.
+
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            Validated predictor binning data, including summary models.
+        configuration_models : pl.LazyFrame
+            ``ModelID`` and ``_ConfigurationModelID`` as returned by
+            :meth:`_agb_configuration_models`.
+
+        Returns
+        -------
+        pl.LazyFrame
+            ``df`` with ``ConfigurationImportance`` and ``ConfigurationActive``.
+        """
+        predictors = df.filter(pl.col("EntryType") != "Classifier").with_columns(
+            pl.col("PredictorName").cast(pl.Utf8).alias("_PredictorName"),
+        )
+        configuration_importance = (
+            predictors.join(
+                configuration_models.select(pl.col("_ConfigurationModelID").alias("ModelID")).unique(),
+                on="ModelID",
+            )
+            .select(
+                pl.col("ModelID").alias("_ConfigurationModelID"),
+                "_PredictorName",
+                "SnapshotTime",
+                pl.col("FeatureImportance").alias("ConfigurationImportance"),
+                (pl.col("EntryType") == "Active").alias("ConfigurationActive"),
+            )
+            .unique(subset=["_ConfigurationModelID", "_PredictorName", "SnapshotTime"], keep="first")
+            .sort("SnapshotTime")
+        )
+        inherited = (
+            predictors.select("ModelID", "_PredictorName", "SnapshotTime")
+            .unique()
+            .join(configuration_models, on="ModelID")
+            .sort("SnapshotTime")
+            .join_asof(
+                configuration_importance,
+                on="SnapshotTime",
+                by=["_ConfigurationModelID", "_PredictorName"],
+                strategy="nearest",
+                check_sortedness=False,
+            )
+            .select(
+                "ModelID",
+                "_PredictorName",
+                "SnapshotTime",
+                "ConfigurationImportance",
+                "ConfigurationActive",
+            )
+        )
+        return (
+            df.with_columns(pl.col("PredictorName").cast(pl.Utf8).alias("_PredictorName"))
+            .join(
+                inherited,
+                on=["ModelID", "_PredictorName", "SnapshotTime"],
+                how="left",
+                nulls_equal=True,
+            )
+            .drop("_PredictorName")
+        )
 
     def _validate_predictor_data(
         self,
@@ -720,10 +834,19 @@ class ADMDatamart:
             if df is None:
                 raise ValueError("Predictor categorization returned no data.")
         else:
+            # Caches written before context keys had their own category label
+            # them "Primary"; upgrade that stale default.
+            is_stale_context_key = (pl.col("PredictorCategory") == "Primary") & pl.col("PredictorName").cast(
+                pl.Utf8
+            ).is_in(list(cdh_utils.CONTEXT_KEY_PREDICTORS))
             df = df.with_columns(
-                PredictorCategory=pl.coalesce(
-                    "PredictorCategory",
-                    cdh_utils.default_predictor_categorization(),
+                PredictorCategory=pl.when(is_stale_context_key)
+                .then(pl.lit(cdh_utils.CONTEXT_KEYS_CATEGORY))
+                .otherwise(
+                    pl.coalesce(
+                        "PredictorCategory",
+                        cdh_utils.default_predictor_categorization(),
+                    )
                 ),
             )
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
@@ -733,29 +856,10 @@ class ADMDatamart:
             and "FeatureImportance" in schema
             and "ConfigurationImportance" not in schema
         ):
-            # Keep Primary values on the retained predictor rows so report caches
-            # and filtered datamarts preserve them without retaining summary models.
-            importance = self._agb_importance_models.join(
-                df.filter(pl.col("PredictorCategory") == "Primary")
-                .select(
-                    pl.col("ModelID").alias("_ConfigurationModelID"),
-                    "PredictorName",
-                    "SnapshotTime",
-                    pl.col("FeatureImportance").alias("ConfigurationImportance"),
-                    (pl.col("EntryType") == "Active").alias("ConfigurationActive"),
-                )
-                .unique(subset=["_ConfigurationModelID", "PredictorName", "SnapshotTime"], keep="first"),
-                on="_ConfigurationModelID",
-            ).drop("_ConfigurationModelID")
-            df = df.join(importance, on=["ModelID", "PredictorName", "SnapshotTime"], how="left", nulls_equal=True)
-
-        if "ConfigurationImportance" in df.collect_schema():
-            # Older caches may contain inherited values for non-Primary predictors.
-            df = df.with_columns(
-                pl.when(pl.col("PredictorCategory") == "Primary")
-                .then(pl.col("ConfigurationImportance", "ConfigurationActive"))
-                .otherwise(None),
-            )
+            df = self._inherit_configuration_importance(df, self._agb_importance_models)
+        if self._agb_summary_model_ids:
+            # Like the summary models themselves (#667), drop their predictor rows.
+            df = df.filter(~pl.col("ModelID").cast(pl.Utf8).is_in(self._agb_summary_model_ids))
 
         return self._normalize_performance_scale(df)
 
