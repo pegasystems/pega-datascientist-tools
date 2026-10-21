@@ -1637,7 +1637,7 @@ else:
 
 ## Importance of Adaptive Gradient Boosting Predictors
 
-Adaptive Gradient Boosting (AGB) models do not have univariate predictor performance, so they do not show up in the Naive Bayes sections above. Instead the importance reported by the platform is shown here. For each model the importances add up to 100%; the charts show the average over the models of a configuration. Top predictors are ranked separately per Configuration, Channel and Direction. As in the Naive Bayes section, when there are too many configurations, the top-predictor charts combine configurations within each Channel/Direction and Modelling Technique. AGB models that have not built any trees yet have no importance and are left out.
+Adaptive Gradient Boosting (AGB) models do not have univariate predictor performance, so they do not show up in the Naive Bayes sections above. Instead the importance reported by the platform is shown here. The charts show the global importance the platform reports per configuration, which adds up to 100%. Context keys such as pyName and pyTreatment are constant within a single action model, so they only carry importance at this configuration level. Top predictors are ranked separately per Configuration, Channel and Direction. As in the Naive Bayes section, when there are too many configurations, the top-predictor charts combine configurations within each Channel/Direction and Modelling Technique. AGB models that have not built any trees yet have no importance and are left out.
 
 ```{python}
 # | error: true
