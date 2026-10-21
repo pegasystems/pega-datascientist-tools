@@ -859,6 +859,33 @@ identical.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="pdstools.adm.Aggregates.Aggregates.unused_agb_predictors">
+<span class="sig-name descname"><span class="pre">unused_agb_predictors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.adm.Aggregates.Aggregates.unused_agb_predictors" title="Link to this definition">¶</a></dt>
+<dd><p>Find predictors with zero importance in every trained AGB model.</p>
+<p>Use the same configuration-level (global) importance as
+<a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.predictor_importance" title="pdstools.adm.Aggregates.Aggregates.predictor_importance"><code class="xref py py-meth docutils literal notranslate"><span class="pre">predictor_importance()</span></code></a>, including when identifying trained models.
+Models with no positive total importance are excluded. Missing predictor
+importance is treated as zero within trained models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>query</strong> (<a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><em>QUERY</em></a><em>, </em><em>optional</em>) – Restrict the models in scope, for example to active models or a
+configuration. Only GradientBoost models are included.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>PredictorName, PredictorCategory, Configurations, Response Count Min
+and Response Count Max for unused predictors, sorted by configuration
+count descending and predictor name ascending.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pl.LazyFrame</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If the data has no predictor importance.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="pdstools.adm.Aggregates.Aggregates.predictor_importance">
 <span class="sig-name descname"><span class="pre">predictor_importance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'PredictorName'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'PredictorCategory'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'PredictorName'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../utils/types/index.html#pdstools.utils.types.QUERY" title="pdstools.utils.types.QUERY"><span class="pre">pdstools.utils.types.QUERY</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">polars.LazyFrame</span></span></span><a class="headerlink" href="#pdstools.adm.Aggregates.Aggregates.predictor_importance" title="Link to this definition">¶</a></dt>
 <dd><p>Share of the model importance carried by predictors or categories.</p>
@@ -869,6 +896,14 @@ and hence no univariate performance. Per model the importances are
 rescaled to sum to 100%, then averaged over the models of each
 configuration. Models without any importance (for example AGB models
 that have not built trees yet) are not counted.</p>
+<p>For AGB, the platform writes importance per action model and once per
+configuration (the global importance, in a summary model with empty
+context keys). Action models hold their context keys constant, so
+those report zero importance there. When available, the global
+importance and activity therefore replace the action-level values of
+all predictors, so each configuration reports its global importance.
+Model selection still uses the action models; summary models are not
+counted as models.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1035,6 +1070,7 @@ For debug logging, use logging.basicConfig(level=logging.DEBUG).</p>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.success_rate_intervals"><code class="docutils literal notranslate"><span class="pre">success_rate_intervals()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.naming_review"><code class="docutils literal notranslate"><span class="pre">naming_review()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.hidden_character_names"><code class="docutils literal notranslate"><span class="pre">hidden_character_names()</span></code></a></li>
+<li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.unused_agb_predictors"><code class="docutils literal notranslate"><span class="pre">unused_agb_predictors()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.predictor_importance"><code class="docutils literal notranslate"><span class="pre">predictor_importance()</span></code></a></li>
 <li><a class="reference internal" href="#pdstools.adm.Aggregates.Aggregates.overall_summary"><code class="docutils literal notranslate"><span class="pre">overall_summary()</span></code></a></li>
 </ul>

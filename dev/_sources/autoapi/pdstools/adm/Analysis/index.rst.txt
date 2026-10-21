@@ -147,6 +147,8 @@ Module Contents
       :value: None
 
 
+      Number of predictors in scope across all model techniques.
+
 
    .. py:attribute:: channel_overview
       :type:  polars.DataFrame | None
@@ -171,11 +173,15 @@ Module Contents
       :value: None
 
 
+      Univariate performance overview for Naive Bayes predictors in scope.
+
 
    .. py:attribute:: predictor_categories
       :type:  polars.DataFrame | None
       :value: None
 
+
+      Category-level summaries of Naive Bayes predictor performance.
 
 
    .. py:attribute:: prediction_summary
