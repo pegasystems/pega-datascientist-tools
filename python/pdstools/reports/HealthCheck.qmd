@@ -1737,27 +1737,10 @@ Adaptive Gradient Boosting models have no univariate predictor performance. Pred
 
 ```{python}
 # | error: true
-# Trained AGB models are those with some predictor importance, i.e. that have built trees.
-agb_trained_query = pl.col("FeatureImportance").fill_null(0).sum().over("ModelID") > 0
-
 if agb_importance is not None and agb_importance.height > 0:
     try:
         unused_agb_predictors = (
-            datamart.aggregates.last(table="combined_data")
-            .filter(agb_query & active_models_filter_expr)
-            .filter(pl.col("EntryType") != "Classifier")
-            .unique(subset=["ModelID", "PredictorName"], keep="first")
-            .filter(agb_trained_query)
-            .group_by("PredictorName", "PredictorCategory")
-            .agg(
-                pl.col("Configuration").n_unique().alias("Configurations"),
-                pl.min("ResponseCount").alias("Response Count Min"),
-                pl.max("ResponseCount").alias("Response Count Max"),
-                pl.col("FeatureImportance").fill_null(0).max().alias("_MaxImportance"),
-            )
-            .filter(pl.col("_MaxImportance") == 0)
-            .drop("_MaxImportance")
-            .sort(["Configurations", "PredictorName"], descending=[True, False])
+            datamart.aggregates.unused_agb_predictors(query=active_models_filter_expr)
             .collect()
         )
         if unused_agb_predictors.height == 0:

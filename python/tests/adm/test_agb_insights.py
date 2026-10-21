@@ -1,5 +1,8 @@
 """Success rate intervals, hidden characters and predictor importance."""
 
+from pathlib import Path
+from unittest.mock import MagicMock
+
 import polars as pl
 import pytest
 from pdstools import ADMDatamart
@@ -362,6 +365,106 @@ def test_agb_configuration_importance_missing_predictor_rows(configuration_impor
     assert result.select("PredictorName", "Importance %").sort("PredictorName").rows() == [
         ("Customer.Age", 100.0),
         ("pyGroup", 0.0),
+    ]
+
+
+@pytest.fixture
+def unused_importance_dm(configuration_importance_dm):
+    dm = configuration_importance_dm
+    models = dm.model_data.with_columns(
+        ResponseCount=pl.when(pl.col("ModelID") == "b1").then(300.0).otherwise(pl.col("ResponseCount")),
+    )
+    cold_model = models.filter(pl.col("ModelID") == "a1").with_columns(
+        ModelID=pl.lit("cold"),
+        Configuration=pl.lit("Cold"),
+        ResponseCount=pl.lit(9999.0),
+    )
+    predictors = dm.predictor_data.with_columns(
+        FeatureImportance=pl.when(pl.col("ModelID").is_in(["a1", "a2"]))
+        .then(0.0)
+        .otherwise(pl.col("FeatureImportance")),
+    )
+    unused_customer = predictors.filter(pl.col("PredictorName") == "Customer.Age").with_columns(
+        PredictorName=pl.lit("Customer.Unused"),
+        FeatureImportance=pl.when(pl.col("ModelID") == "nb").then(100.0).otherwise(0.0),
+        # Legacy caches must not lend non-Primary importance to child models.
+        ConfigurationImportance=pl.lit(90.0),
+    )
+    unused_primary = predictors.filter(pl.col("PredictorName") == "pyGroup").with_columns(
+        PredictorName=pl.lit("pyUnused"),
+        FeatureImportance=pl.lit(0.0),
+        ConfigurationImportance=pl.lit(0.0),
+    )
+    cold_predictors = predictors.filter(pl.col("ModelID") == "a1").with_columns(
+        ModelID=pl.lit("cold"),
+        ConfigurationImportance=pl.lit(None),
+        ConfigurationActive=pl.lit(None),
+        # Classifier rows must not make an untrained model appear trained.
+        FeatureImportance=pl.when(pl.col("EntryType") == "Classifier").then(100.0).otherwise(0.0),
+    )
+    cold_only = cold_predictors.filter(pl.col("PredictorName") == "Customer.Age").with_columns(
+        PredictorName=pl.lit("Customer.ColdOnly"),
+    )
+    return ADMDatamart(
+        model_df=pl.concat([models, cold_model], how="vertical_relaxed"),
+        predictor_df=pl.concat(
+            [predictors, unused_customer, unused_primary, cold_predictors, cold_only],
+            how="vertical_relaxed",
+        ),
+    )
+
+
+def test_unused_agb_predictors_primary_inheritance(unused_importance_dm):
+    dm = unused_importance_dm
+    assert dm.aggregates.unused_agb_predictors().collect().rows() == [
+        ("Customer.Unused", "Customer", 2, 100.0, 300.0),
+        ("pyUnused", "Primary", 2, 100.0, 300.0),
+    ]
+    # a1 is trained solely by inherited Primary importance. Its local Customer
+    # importance must stay zero, and the inherited pyGroup must not be unused.
+    assert dm.aggregates.unused_agb_predictors(query=pl.col("ModelID") == "a1").collect().rows() == [
+        ("Customer.Age", "Customer", 1, 100.0, 100.0),
+        ("Customer.Unused", "Customer", 1, 100.0, 100.0),
+        ("pyUnused", "Primary", 1, 100.0, 100.0),
+    ]
+    assert dm.aggregates.unused_agb_predictors(query=pl.col("ModelID") == "cold").collect().rows() == []
+    assert dm.aggregates.unused_agb_predictors(query=pl.col("ModelID") == "nb").collect().rows() == []
+    assert dm.aggregates.unused_agb_predictors(query=pl.col("ModelID") == "absent").collect().rows() == []
+
+
+def test_unused_agb_predictors_without_configuration_importance(configuration_importance_dm):
+    dm = ADMDatamart(
+        model_df=configuration_importance_dm.model_data,
+        predictor_df=configuration_importance_dm.predictor_data.drop("ConfigurationImportance", "ConfigurationActive"),
+    )
+    assert dm.aggregates.unused_agb_predictors().collect().rows() == [("pyGroup", "Primary", 2, 100.0, 100.0)]
+
+
+def test_poor_predictors_report_uses_primary_importance(unused_importance_dm):
+    report = Path(__file__).parents[2] / "pdstools" / "reports" / "HealthCheck.qmd"
+    section = report.read_text().split("## Poor Predictors Globally", 1)[1]
+    cell = section.split("```{python}", 1)[1].split("```", 1)[0]
+    report_utils = MagicMock()
+    display = MagicMock()
+    scope = {
+        "datamart": unused_importance_dm,
+        "pl": pl,
+        "agb_query": pl.col("ModelTechnique") == "GradientBoost",
+        "active_models_filter_expr": pl.col("ModelID") == "a1",
+        "active_models_threshold_date_string": "2025-01-01",
+        "agb_importance": unused_importance_dm.aggregates.predictor_importance().collect(),
+        "report_utils": report_utils,
+        "display": display,
+        "style": MagicMock(),
+        "loc": MagicMock(),
+    }
+    exec(compile(cell, str(report), "exec"), scope)
+    report_utils.quarto_plot_exception.assert_not_called()
+    display.assert_called_once()
+    assert report_utils.create_metric_gttable.call_args.args[0].rows() == [
+        ("Customer.Age", "Customer", 1, 100.0, 100.0),
+        ("Customer.Unused", "Customer", 1, 100.0, 100.0),
+        ("pyUnused", "Primary", 1, 100.0, 100.0),
     ]
 
 
