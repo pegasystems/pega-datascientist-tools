@@ -624,3 +624,141 @@ class _PerformancePlotsMixin(_PlotsBase):
 
         # Apply legend color ordering
         return cdh_utils.legend_color_order(fig)
+
+    @requires({"ModelID", "Positives", "ResponseCount"})
+    def success_rate_intervals(
+        self,
+        *,
+        confidence_level: float = 0.95,
+        query: QUERY | None = None,
+        return_df: bool = False,
+    ):
+        """Positives against negatives per model, with success rate confidence intervals.
+
+        Each model is a dot at (1 + negatives, 1 + positives) on log axes,
+        so lines through the origin are constant success rates. The dashed
+        line is the average success rate of the models in the panel. The error
+        bars are the Wilson confidence interval of the success rate. There is
+        one panel per channel and direction, each with its own average, as
+        success rates differ widely between channels. Models are coloured by whether that interval is entirely below
+        (``Very low`` / ``Below average``), entirely above, or consistent
+        with the average; see
+        :meth:`pdstools.adm.Aggregates.Aggregates.success_rate_intervals`.
+
+        Parameters
+        ----------
+        confidence_level : float, default 0.95
+            Confidence level of the interval.
+        query : QUERY, optional
+            Restricts the models in scope.
+        return_df : bool, default False
+            Return the plotted data instead of the figure.
+
+        Returns
+        -------
+        Figure | pl.DataFrame | None
+            Plotly figure, the data if ``return_df``, or None if no model
+            has responses.
+
+        Examples
+        --------
+        >>> fig = dm.plot.success_rate_intervals()
+        """
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+
+        data = self.datamart.aggregates.success_rate_intervals(confidence_level=confidence_level, query=query).collect()
+        if data.height == 0:
+            return None
+        if return_df:
+            return data
+
+        colors = {
+            "Very low": "#d62728",
+            "Below average": "#ff9f43",
+            "Consistent with average": "#7f8c8d",
+            "Above average": "#2ca02c",
+        }
+        label_columns = [
+            c
+            for c in ("Configuration", "Channel", "Direction", "Issue", "Group", "Name", "Treatment")
+            if c in data.columns
+        ]
+        group_cols = [c for c in ("Channel", "Direction") if c in data.columns]
+        panels = data.select(group_cols).unique(maintain_order=True).sort(group_cols).rows() if group_cols else [()]
+        n_cols = min(3, len(panels))
+        n_rows = -(-len(panels) // n_cols)
+        titles = ["/".join(str(v) for v in key) for key in panels]
+        fig = make_subplots(
+            rows=n_rows,
+            cols=n_cols,
+            subplot_titles=titles if group_cols else None,
+            horizontal_spacing=0.08,
+            vertical_spacing=0.12 if n_rows > 1 else 0.0,
+        )
+        legend_shown: set[str] = set()
+        for i, key in enumerate(panels):
+            row, col = divmod(i, n_cols)
+            panel = data.filter(*[pl.col(c) == v for c, v in zip(group_cols, key, strict=True)])
+            for category, color in colors.items():
+                part = panel.filter(pl.col("SuccessRateCategory") == category)
+                if part.height == 0:
+                    continue
+                responses = part["ResponseCount"]
+                hover = [
+                    "<br>".join(f"{c}: {r[c]}" for c in label_columns)
+                    + f"<br>Positives: {r['Positives']:,.0f}<br>Negatives: {r['Negatives']:,.0f}"
+                    + f"<br>Success rate: {r['SuccessRate']:.2%} "
+                    + f"({r['SuccessRate_CI_Lower']:.2%} - {r['SuccessRate_CI_Upper']:.2%})"
+                    for r in part.iter_rows(named=True)
+                ]
+                fig.add_trace(
+                    go.Scatter(
+                        x=(part["Negatives"] + 1).to_list(),
+                        y=(part["Positives"] + 1).to_list(),
+                        mode="markers",
+                        name=category,
+                        legendgroup=category,
+                        showlegend=category not in legend_shown,
+                        marker=dict(color=color, size=6, opacity=0.8),
+                        error_y=dict(
+                            type="data",
+                            symmetric=False,
+                            array=((part["SuccessRate_CI_Upper"] - part["SuccessRate"]) * responses).to_list(),
+                            arrayminus=((part["SuccessRate"] - part["SuccessRate_CI_Lower"]) * responses).to_list(),
+                            color=color,
+                            thickness=1,
+                        ),
+                        hovertext=hover,
+                        hoverinfo="text",
+                    ),
+                    row=row + 1,
+                    col=col + 1,
+                )
+                legend_shown.add(category)
+
+            average = panel["AverageSuccessRate"][0]
+            x_max = max(float(panel.select(pl.col("Negatives").max().cast(pl.Float64)).item()) + 1, 10.0)
+            fig.add_trace(
+                go.Scatter(
+                    x=[1, x_max],
+                    y=[1, 1 + (x_max - 1) * average / (1 - average) if average < 1 else x_max],
+                    mode="lines",
+                    name="Average success rate",
+                    legendgroup="average",
+                    showlegend=i == 0,
+                    line=dict(color="black", dash="dash", width=1),
+                    hovertext=f"Average success rate: {average:.2%}",
+                    hoverinfo="text",
+                ),
+                row=row + 1,
+                col=col + 1,
+            )
+        fig.update_xaxes(type="log", title_text="Negatives + 1")
+        fig.update_yaxes(type="log", title_text="Positives + 1")
+        fig.update_layout(
+            template="pega",
+            title=f"Success rate per model ({confidence_level:.0%} confidence interval)",
+            height=max(450, 380 * n_rows),
+        )
+        return fig

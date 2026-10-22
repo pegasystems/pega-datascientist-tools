@@ -914,11 +914,17 @@ def test_capitalize_configuration():
 
 def test_PredictorCategorization():
     df = (
-        pl.LazyFrame({"PredictorName": ["Customer.Variable", "Variable"]})
+        pl.LazyFrame({"PredictorName": ["Customer.Variable", "Variable", "pyChannel", "pyTreatment", "pyOther"]})
         .with_columns(cdh_utils.default_predictor_categorization())
         .collect()
     )
-    assert df.get_column("PredictorCategory").to_list() == ["Customer", "Primary"]
+    assert df.get_column("PredictorCategory").to_list() == [
+        "Customer",
+        "Primary",
+        "Context Keys",
+        "Context Keys",
+        "Primary",
+    ]
 
     df = (
         pl.LazyFrame({"Predictor": ["Customer.Variable", "Variable"]})
