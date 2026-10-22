@@ -418,7 +418,7 @@ def test_from_databricks_view_transforms_data():
 
     databricks_data = _make_databricks_prediction_data(["MYCUSTOMPREDICTION"])
     result = Prediction.from_databricks_view(databricks_data).predictions.collect()
-    assert result.select(
+    actual = result.select(
         [
             "pyModelId",
             "SnapshotTime",
@@ -436,7 +436,8 @@ def test_from_databricks_view_transforms_data():
             "CTR_Lift",
             "isValidPrediction",
         ]
-    ).to_dicts() == [
+    ).to_dicts()
+    expected = [
         {
             "pyModelId": "DATA-DECISION-REQUEST-CUSTOMER!MYCUSTOMPREDICTION",
             "SnapshotTime": datetime.date(2040, 4, 1),
@@ -506,6 +507,7 @@ def test_from_databricks_view_transforms_data():
             "isValidPrediction": True,
         },
     ]
+    assert sorted(actual, key=lambda row: row["Positives"]) == sorted(expected, key=lambda row: row["Positives"])
 
 
 def test_from_databricks_view_applies_query():
@@ -625,7 +627,7 @@ def test_from_processed_data():
 
     original_df = pred.predictions.collect()
     loaded_df = loaded_pred.predictions.collect()
-    assert original_df.equals(loaded_df)
+    assert original_df.sort(original_df.columns).equals(loaded_df.sort(loaded_df.columns))
 
     shutil.rmtree(temp_path)
 
@@ -697,7 +699,7 @@ def test_performance_normalization_from_pega_scale():
     pred = Prediction(pega_scale_data)
 
     # Check that Performance values are normalized
-    performance = pred.predictions.select("Performance").collect()["Performance"].to_list()
+    performance = sorted(pred.predictions.select("Performance").collect()["Performance"].to_list())
 
     # Verify all performance values are normalised to the [0.5, 1.0] AUC range
     # and equal exactly value/100 for each Pega-scale input (65 -> 0.65 etc.).

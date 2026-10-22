@@ -926,6 +926,15 @@ def test_from_excel_query_filter():
     assert channels == ["Web/Inbound"]
 
 
+def test_from_excel_query_matching_nothing_raises():
+    """A query that removes every row raises instead of returning empty data."""
+    with pytest.raises(ValueError, match="empty dataframe"):
+        ImpactAnalyzer.from_excel(
+            EXCEL_FIXTURE,
+            query=pl.col("Channel") == "No/Such/Channel",
+        )
+
+
 def test_from_excel_outcome_labels_unused(excel_ia):
     """Excel (pre-aggregated) data has no raw outcome labels — outcome_labels_used is None."""
     assert excel_ia.outcome_labels_used is None

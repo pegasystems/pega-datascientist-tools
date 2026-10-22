@@ -36,7 +36,6 @@ from ...utils.namespaces import LazyNamespace
 from ...utils.pega_template import colorway
 from ...utils.plot_utils import simplify_facet_titles
 from ..utils import PRIO_FACTORS, apply_filter
-from ._common import DEFAULT_BOXPLOT_POINT_CAP, _boxplot_point_cap
 
 # Plot-class method implementations live in private submodules and are
 # imported under underscore-prefixed aliases so they don't leak into the
@@ -99,8 +98,6 @@ class Plot(LazyNamespace):
         super().__init__()
         self._decision_data = decision_data
 
-    _boxplot_point_cap = _boxplot_point_cap
-
     # _sensitivity
     threshold_deciles = _threshold_deciles
     sensitivity = _sensitivity
@@ -136,7 +133,6 @@ class Plot(LazyNamespace):
 
 
 __all__ = [
-    "DEFAULT_BOXPLOT_POINT_CAP",
     "PRIO_FACTORS",
     "Plot",
     "apply_filter",
