@@ -1,0 +1,1146 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Additional References" href="../reference.html"><link rel="prev" title="Global Explanations for Adaptive Gradient Boosting Models" href="agb_global_explanations.html">
+        <link rel="prefetch" href="../_static/pegasystems-inc-vector-logo.svg" as="image">
+
+    <link rel="shortcut icon" href="../_static/pegasystems-inc-vector-logo.svg"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
+        <title>Conversion Modeling - pdstools</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="../_static/version-switcher.css?v=6293ef20" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+
+</head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">pdstools</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><div class="sidebar-scroll"><a class="sidebar-brand" href="../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../_static/pegasystems-inc-vector-logo.svg" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">pdstools</span>
+  
+</a><div class="version-switcher" data-current-version="dev">
+  <label for="pdstools-version-select">Version</label>
+  <select id="pdstools-version-select" aria-label="Select documentation version">
+    <option value="">dev</option>
+  </select>
+</div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../GettingStarted.html">Getting Started for Data Scientists</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GettingStartedWithTheStandAloneApplication.html">Getting Started with the ADM Health Check Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GettingStartedWithDecisionAnalyzer.html">Getting Started with the Decision Analyzer Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logging.html">Logging and Debugging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Example_ADM_Analysis.html">Example ADM analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Example_IH_Analysis.html">Example IH (Interaction History) Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Predictions.html">Example Prediction Studio Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vf_analysis.html">Value Finder Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="explainability_extract.html">Explainability Extract Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="decision_analyzer.html">Decision Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hds_analysis.html">HDS (Historical Data Set) Analysis and Finding new Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ADMBinningInsights.html">Customer Profiles from ADM-NB Models</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Articles</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="AGBExplained.html">Adaptive Gradient Boosting (AGB) Explained</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thompsonsampling.html">Thompson Sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ADMExplained.html">ADM NB Explained</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agb_global_explanations.html">Global Explanations for Adaptive Gradient Boosting Models</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Conversion Modeling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference Information</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../reference.html">Additional References</a><input aria-label="Toggle navigation of Additional References" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools/releases">Changelog</a></li>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/pegasystems/pega-datascientist-tools">GitHub Repository</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../autoapi/index.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../autoapi/pdstools/index.html">pdstools</a><input aria-label="Toggle navigation of pdstools" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/adm/index.html">pdstools.adm</a><input aria-label="Toggle navigation of pdstools.adm" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/ADMDatamart/index.html">pdstools.adm.ADMDatamart</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/Aggregates/index.html">pdstools.adm.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/Analysis/index.html">pdstools.adm.Analysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/BinAggregator/index.html">pdstools.adm.BinAggregator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/HealthCheckImport/index.html">pdstools.adm.HealthCheckImport</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/HealthCheckMarkdown/index.html">pdstools.adm.HealthCheckMarkdown</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/Plots/index.html">pdstools.adm.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/Reports/index.html">pdstools.adm.Reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/Schema/index.html">pdstools.adm.Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/adm/trees/index.html">pdstools.adm.trees</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../autoapi/pdstools/cli/index.html">pdstools.cli</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../autoapi/pdstools/data_quality/index.html">pdstools.data_quality</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/decision_analyzer/index.html">pdstools.decision_analyzer</a><input aria-label="Toggle navigation of pdstools.decision_analyzer" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/decision_analyzer/DecisionAnalyzer/index.html">pdstools.decision_analyzer.DecisionAnalyzer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/decision_analyzer/column_schema/index.html">pdstools.decision_analyzer.column_schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/decision_analyzer/data_read_utils/index.html">pdstools.decision_analyzer.data_read_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/decision_analyzer/plots/index.html">pdstools.decision_analyzer.plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/decision_analyzer/stage_grouping/index.html">pdstools.decision_analyzer.stage_grouping</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/decision_analyzer/utils/index.html">pdstools.decision_analyzer.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/explanations/index.html">pdstools.explanations</a><input aria-label="Toggle navigation of pdstools.explanations" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/explanations/Aggregates/index.html">pdstools.explanations.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/explanations/ContextOperations/index.html">pdstools.explanations.ContextOperations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/explanations/Explanations/index.html">pdstools.explanations.Explanations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/explanations/Plots/index.html">pdstools.explanations.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/explanations/Reports/index.html">pdstools.explanations.Reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/explanations/Schema/index.html">pdstools.explanations.Schema</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/ih/index.html">pdstools.ih</a><input aria-label="Toggle navigation of pdstools.ih" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/ih/Aggregates/index.html">pdstools.ih.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/ih/IH/index.html">pdstools.ih.IH</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/ih/Plots/index.html">pdstools.ih.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/ih/Schema/index.html">pdstools.ih.Schema</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/impactanalyzer/index.html">pdstools.impactanalyzer</a><input aria-label="Toggle navigation of pdstools.impactanalyzer" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/impactanalyzer/ImpactAnalyzer/index.html">pdstools.impactanalyzer.ImpactAnalyzer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/impactanalyzer/Plots/index.html">pdstools.impactanalyzer.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/impactanalyzer/Schema/index.html">pdstools.impactanalyzer.Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/impactanalyzer/statistics/index.html">pdstools.impactanalyzer.statistics</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/infinity/index.html">pdstools.infinity</a><input aria-label="Toggle navigation of pdstools.infinity" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/infinity/client/index.html">pdstools.infinity.client</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/infinity/internal/index.html">pdstools.infinity.internal</a></li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/index.html">pdstools.infinity.resources</a><input aria-label="Toggle navigation of pdstools.infinity.resources" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy</a><input aria-label="Toggle navigation of pdstools.infinity.resources.knowledge_buddy" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/knowledge_buddy/knowledge_buddy/index.html">pdstools.infinity.resources.knowledge_buddy.knowledge_buddy</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/base/index.html">pdstools.infinity.resources.prediction_studio.base</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/local_model_utils/index.html">pdstools.infinity.resources.prediction_studio.local_model_utils</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/model_security/index.html">pdstools.infinity.resources.prediction_studio.model_security</a></li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/schemas/index.html">pdstools.infinity.resources.prediction_studio.schemas</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.schemas" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/schemas/model/index.html">pdstools.infinity.resources.prediction_studio.schemas.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/schemas/model_instance/index.html">pdstools.infinity.resources.prediction_studio.schemas.model_instance</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/schemas/notification/index.html">pdstools.infinity.resources.prediction_studio.schemas.notification</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/schemas/prediction/index.html">pdstools.infinity.resources.prediction_studio.schemas.prediction</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/types/index.html">pdstools.infinity.resources.prediction_studio.types</a></li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v24_1/index.html">pdstools.infinity.resources.prediction_studio.v24_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_1" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v24_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v24_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_1.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v24_1/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_1.repository</a></li>
+</ul>
+</li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v24_2/index.html">pdstools.infinity.resources.prediction_studio.v24_2</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v24_2" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v24_2/champion_challenger/index.html">pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v24_2/datamart_export/index.html">pdstools.infinity.resources.prediction_studio.v24_2.datamart_export</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v24_2/model/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v24_2/model_upload/index.html">pdstools.infinity.resources.prediction_studio.v24_2.model_upload</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v24_2/prediction/index.html">pdstools.infinity.resources.prediction_studio.v24_2.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v24_2/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v24_2.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v24_2/repository/index.html">pdstools.infinity.resources.prediction_studio.v24_2.repository</a></li>
+</ul>
+</li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v25_1/index.html">pdstools.infinity.resources.prediction_studio.v25_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v25_1" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v25_1/model/index.html">pdstools.infinity.resources.prediction_studio.v25_1.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v25_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v25_1.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v25_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v25_1.prediction_studio</a></li>
+</ul>
+</li>
+<li class="toctree-l6 has-children"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v26_1/index.html">pdstools.infinity.resources.prediction_studio.v26_1</a><input aria-label="Toggle navigation of pdstools.infinity.resources.prediction_studio.v26_1" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v26_1/champion_challenger/index.html">pdstools.infinity.resources.prediction_studio.v26_1.champion_challenger</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v26_1/datamart_export/index.html">pdstools.infinity.resources.prediction_studio.v26_1.datamart_export</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v26_1/model/index.html">pdstools.infinity.resources.prediction_studio.v26_1.model</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v26_1/model_upload/index.html">pdstools.infinity.resources.prediction_studio.v26_1.model_upload</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v26_1/prediction/index.html">pdstools.infinity.resources.prediction_studio.v26_1.prediction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v26_1/prediction_studio/index.html">pdstools.infinity.resources.prediction_studio.v26_1.prediction_studio</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../autoapi/pdstools/infinity/resources/prediction_studio/v26_1/repository/index.html">pdstools.infinity.resources.prediction_studio.v26_1.repository</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/pega_io/index.html">pdstools.pega_io</a><input aria-label="Toggle navigation of pdstools.pega_io" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/pega_io/API/index.html">pdstools.pega_io.API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/pega_io/Anonymization/index.html">pdstools.pega_io.Anonymization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/pega_io/File/index.html">pdstools.pega_io.File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/pega_io/S3/index.html">pdstools.pega_io.S3</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/pega_io/action_analysis/index.html">pdstools.pega_io.action_analysis</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/prediction/index.html">pdstools.prediction</a><input aria-label="Toggle navigation of pdstools.prediction" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/prediction/Plots/index.html">pdstools.prediction.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/prediction/Prediction/index.html">pdstools.prediction.Prediction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/prediction/Schema/index.html">pdstools.prediction.Schema</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/reports/index.html">pdstools.reports</a><input aria-label="Toggle navigation of pdstools.reports" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../autoapi/pdstools/reports/GlobalExplanations/index.html">pdstools.reports.GlobalExplanations</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../autoapi/pdstools/reports/GlobalExplanations/scripts/index.html">pdstools.reports.GlobalExplanations.scripts</a><input aria-label="Toggle navigation of pdstools.reports.GlobalExplanations.scripts" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../autoapi/pdstools/reports/GlobalExplanations/scripts/generate_report/index.html">pdstools.reports.GlobalExplanations.scripts.generate_report</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../autoapi/pdstools/resources/index.html">pdstools.resources</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/utils/index.html">pdstools.utils</a><input aria-label="Toggle navigation of pdstools.utils" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/cdh_utils/index.html">pdstools.utils.cdh_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/color_mapping/index.html">pdstools.utils.color_mapping</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/datasets/index.html">pdstools.utils.datasets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/errors/index.html">pdstools.utils.errors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/metric_limits/index.html">pdstools.utils.metric_limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/namespaces/index.html">pdstools.utils.namespaces</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/number_format/index.html">pdstools.utils.number_format</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/pega_outcomes/index.html">pdstools.utils.pega_outcomes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/pega_template/index.html">pdstools.utils.pega_template</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/plot_utils/index.html">pdstools.utils.plot_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/polars_ext/index.html">pdstools.utils.polars_ext</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/progress_utils/index.html">pdstools.utils.progress_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/report_utils/index.html">pdstools.utils.report_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/show_versions/index.html">pdstools.utils.show_versions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/streamlit_utils/index.html">pdstools.utils.streamlit_utils</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/table_definitions/index.html">pdstools.utils.table_definitions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/utils/types/index.html">pdstools.utils.types</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../autoapi/pdstools/valuefinder/index.html">pdstools.valuefinder</a><input aria-label="Toggle navigation of pdstools.valuefinder" class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/valuefinder/Aggregates/index.html">pdstools.valuefinder.Aggregates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/valuefinder/Plots/index.html">pdstools.valuefinder.Plots</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/valuefinder/Schema/index.html">pdstools.valuefinder.Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../autoapi/pdstools/valuefinder/ValueFinder/index.html">pdstools.valuefinder.ValueFinder</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/articles/ConversionModeling.ipynb.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="Conversion-Modeling">
+<h1>Conversion Modeling<a class="headerlink" href="#Conversion-Modeling" title="Link to this heading">¶</a></h1>
+<blockquote>
+<div><p><strong>📦 Optional dependencies</strong></p>
+<p>The plots in this article use <code class="docutils literal notranslate"><span class="pre">plotly</span></code>, which ships with the pdstools <code class="docutils literal notranslate"><span class="pre">adm</span></code> extra. Install with your favorite package manager, e.g. <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;pdstools[adm]&quot;</span></code>.</p>
+<p>The code is collapsed by default. Click <strong>Show code</strong> (or expand the cell in Jupyter) to see how the synthetic data is generated and analyzed.</p>
+</div></blockquote>
+<p>Adaptive models in Pega Customer Decision Hub (CDH) usually learn from <strong>engagement</strong>: a customer clicks on a web banner, opens an e-mail, or accepts an offer in the contact center. Engagement is fast and plentiful, but it is a proxy. What the business really cares about is often the <strong>conversion</strong>: the customer actually buys the handset, opens the savings account, or takes out the mortgage.</p>
+<p>Conversion modeling lets ADM learn from these downstream outcomes. This article takes a data science view of the approach: what a conversion is, how conversions are attributed to actions, when conversion modeling is (and is not) worth the effort, how far back to look, and how conversion and engagement propensities can be compared in one arbitration.</p>
+<p>Conversion modeling is the natural choice where engagement feedback is missing or unreliable: e-mails and SMS messages without links, direct mail, or agent-assisted channels such as the call center. For products with a long customer journey, such as a mortgage, it is a conscious choice between driving towards the sale and nurturing longer-term engagement. In CDH, conversion modeling is currently available as a Preview Release. This article complements the product documentation, <a class="reference external" href="https://docs.pega.com/bundle/customer-decision-hub/page/customer-decision-hub/cdh-portal/conversions-next-best-actions.html">Determining Next
+Best Actions by using conversions</a>, which describes how to set it up.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#What-is-a-conversion?"><span class="std std-ref">What is a conversion?</span></a></p></li>
+<li><p><a class="reference internal" href="#Attribution"><span class="std std-ref">Attribution</span></a></p></li>
+<li><p><a class="reference internal" href="#Do-you-need-conversion-modeling?"><span class="std std-ref">Do you need conversion modeling?</span></a></p></li>
+<li><p><a class="reference internal" href="#The-lookback-period"><span class="std std-ref">The lookback period</span></a></p></li>
+<li><p><a class="reference internal" href="#Mixing-conversion-and-engagement"><span class="std std-ref">Mixing conversion and engagement</span></a></p></li>
+<li><p><a class="reference internal" href="#Summary"><span class="std std-ref">Summary</span></a></p></li>
+</ul>
+<details class="nb-collapsed-input"><summary>Show code</summary><div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">plotly.express</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">px</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">plotly.graph_objects</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">go</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+
+<span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</details><section id="What-is-a-conversion?">
+<h2>What is a conversion?<a class="headerlink" href="#What-is-a-conversion?" title="Link to this heading">¶</a></h2>
+<p>Conversion modeling is mostly a <strong>business problem</strong>, not a modeling problem. Technically, a conversion is just another outcome that ADM learns from. The hard part is deciding <em>what</em> that outcome is and what to attribute it to. That choice varies a lot by industry, product, and business goal:</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Domain</p></th>
+<th class="head"><p>Possible conversion events</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Retail banking</p></td>
+<td><p>Current or savings account opened, credit card activated (not just approved), first deposit or first card transaction, salary deposit switched</p></td>
+</tr>
+<tr class="row-odd"><td><p>Lending</p></td>
+<td><p>Mortgage or loan application submitted, application approved, loan funded or disbursed</p></td>
+</tr>
+<tr class="row-even"><td><p>Insurance</p></td>
+<td><p>Quote requested, policy bound, first premium paid, additional coverage added</p></td>
+</tr>
+<tr class="row-odd"><td><p>Telecommunications</p></td>
+<td><p>Handset purchased, contract upgraded or renewed, add-on (roaming, data bundle) activated, customer not churning after a retention offer</p></td>
+</tr>
+<tr class="row-even"><td><p>Retail and e-commerce</p></td>
+<td><p>Order placed, order not returned within the return window, loyalty program sign-up</p></td>
+</tr>
+<tr class="row-odd"><td><p>Digital self-service</p></td>
+<td><p>App installed and logged in, paperless statements enabled, card added to a digital wallet</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Marketers often separate <strong>macro conversions</strong> (the actual sale, such as a funded mortgage) from <strong>micro conversions</strong>: smaller steps that signal intent, such as using the mortgage calculator on the website, starting an application, booking an appointment with an advisor, or downloading a brochure. Micro conversions occur more often and sooner, so models learn faster. But they are further removed from business value. Macro conversions are closer to value but rare and slow, so models learn
+slowly.</p>
+<p>A few questions the business needs to answer before turning on conversion modeling:</p>
+<ul class="simple">
+<li><p><strong>Which event counts?</strong> “Application started”, “application approved” and “loan disbursed” are three different conversions, with different volumes and delays.</p></li>
+<li><p><strong>Which actions promote it?</strong> Conversions are reported against a <strong>conversion event ID</strong>, usually the ID of the purchased product, not against an action. (It can also identify a journey that is not tied to a product, such as downloading an app.) Several actions, treatments, and channels can promote the same product. CDH uses a <strong>product catalog</strong> integration and a <strong>product-to-Action mapping</strong> to link a conversion to the actions that promote it.</p></li>
+<li><p><strong>Where does the signal come from?</strong> Conversions usually happen outside CDH (in a store, a fulfillment system, a policy administration system). CDH supports two ways to get them in. The recommended one is a <strong>conversion signal</strong> sent by an external conversion tracking system through the Capture Conversion API, with the subject ID and the conversion event ID. The alternative is to <strong>detect conversions from updates to the customer’s product holdings</strong> after a data import, for example a new
+product holding, a changed contract end date, or a changed price, as defined in the <em>Detect Conversion</em> decision data rule (DDR).</p></li>
+<li><p><strong>How long can it take?</strong> This sets how long decision data must be kept so that a late conversion can still be matched to the decision that caused it. See <a class="reference internal" href="#The-lookback-period"><span class="std std-ref">The lookback period</span></a>.</p></li>
+<li><p><strong>Would it have happened anyway?</strong> Many conversions are organic. Product purchases happen whether or not an action was shown, so not every conversion is evidence that an action worked.</p></li>
+</ul>
+<p>Pega’s documentation describes the configuration steps in detail: <a class="reference external" href="https://docs.pega.com/bundle/customer-decision-hub/page/customer-decision-hub/cdh-portal/conversions-next-best-actions.html">Determining Next Best Actions by using conversions</a>.</p>
+</section>
+<section id="Attribution">
+<h2>Attribution<a class="headerlink" href="#Attribution" title="Link to this heading">¶</a></h2>
+<p>Once a conversion is reported, it has to be linked to the actions that might have caused it. This is the <strong>attribution problem</strong>: given a conversion event, which of the earlier touchpoints (impressions of actions that promote the converted product) get credit, and how much?</p>
+<p>Attribution is an old and largely unsolved problem in marketing. Approaches range from simple rules to data-driven methods such as Shapley values, Markov chain removal effects, and controlled uplift experiments. Pega does <strong>not</strong> try to solve attribution in a data-driven way. It offers a set of configurable, rule-based schemes. The decisioning architect picks the one that best matches the business view in the <em>ConversionAttribution</em> DDR. Every touchpoint that receives credit is then used as a
+positive example for the conversion model of that action, weighted by its credit. The weight is stored in the <code class="docutils literal notranslate"><span class="pre">pyOutcomeWeight</span></code> property of the interaction history.</p>
+<p>The available schemes are:</p>
+<ul class="simple">
+<li><p><strong>First</strong>: all credit goes to the first related action the customer saw.</p></li>
+<li><p><strong>Last</strong>: all credit goes to the most recent related action before the conversion.</p></li>
+<li><p><strong>Linear</strong>: credit is shared equally across all related actions.</p></li>
+<li><p><strong>Decay</strong>: credit is shared across all related actions, with more weight for more recent ones. With a linear decay over <span class="math notranslate nohighlight">\(n\)</span> touchpoints, touchpoint <span class="math notranslate nohighlight">\(i\)</span> (oldest is 1) gets weight <span class="math notranslate nohighlight">\(\frac{i}{\sum_{j=1}^{n} j} = \frac{2i}{n(n+1)}\)</span>. For three touchpoints this is <span class="math notranslate nohighlight">\(\frac{1}{6}\)</span>, <span class="math notranslate nohighlight">\(\frac{2}{6}\)</span>, and <span class="math notranslate nohighlight">\(\frac{3}{6}\)</span>.</p></li>
+<li><p><strong>Custom</strong>: you can plug in your own scheme.</p></li>
+</ul>
+<p>Only touchpoints inside the <strong>lookback period</strong> (<em>Period in seconds</em> in the same DDR) are considered. The example below shows a customer who saw four actions for the same product over two weeks and then bought it.</p>
+<details class="nb-collapsed-input"><summary>Show code</summary><div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">touchpoints</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;E-mail&lt;br&gt;day 0&quot;</span><span class="p">,</span> <span class="s2">&quot;Web&lt;br&gt;day 4&quot;</span><span class="p">,</span> <span class="s2">&quot;App&lt;br&gt;day 8&quot;</span><span class="p">,</span> <span class="s2">&quot;E-mail&lt;br&gt;day 11&quot;</span><span class="p">]</span>
+<span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">touchpoints</span><span class="p">)</span>
+<span class="n">schemes</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;First&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="s2">&quot;Last&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span>
+    <span class="s2">&quot;Linear&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span> <span class="o">/</span> <span class="n">n</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span><span class="p">,</span>
+    <span class="s2">&quot;Decay&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)],</span>
+<span class="p">}</span>
+<span class="n">attribution</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;Scheme&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">schemes</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">touchpoints</span><span class="p">],</span>
+        <span class="s2">&quot;Touchpoint&quot;</span><span class="p">:</span> <span class="n">touchpoints</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">schemes</span><span class="p">),</span>
+        <span class="s2">&quot;Credit&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">credits</span> <span class="ow">in</span> <span class="n">schemes</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">credits</span><span class="p">],</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span>
+    <span class="n">attribution</span><span class="p">,</span>
+    <span class="n">x</span><span class="o">=</span><span class="s2">&quot;Touchpoint&quot;</span><span class="p">,</span>
+    <span class="n">y</span><span class="o">=</span><span class="s2">&quot;Credit&quot;</span><span class="p">,</span>
+    <span class="n">facet_col</span><span class="o">=</span><span class="s2">&quot;Scheme&quot;</span><span class="p">,</span>
+    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;Scheme&quot;</span><span class="p">,</span>
+    <span class="n">text_auto</span><span class="o">=</span><span class="s2">&quot;.0%&quot;</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Credit given to each touchpoint before a conversion on day 14&quot;</span><span class="p">,</span>
+    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;plotly_white&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">for_each_annotation</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">a</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">update_yaxes</span><span class="p">(</span><span class="n">tickformat</span><span class="o">=</span><span class="s2">&quot;.0%&quot;</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.15</span><span class="p">])</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">update_traces</span><span class="p">(</span><span class="n">textangle</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">textposition</span><span class="o">=</span><span class="s2">&quot;outside&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">update_xaxes</span><span class="p">(</span><span class="n">title_text</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">tickangle</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">tickfont_size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">showlegend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">420</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mi">90</span><span class="p">))</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</details><div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<script>
+window.PlotlyConfig = {MathJaxConfig: 'local'};
+if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}
+</script>
+<script type="module">import "https://cdn.plot.ly/plotly-3.5.0.min"</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>            <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_SVG"></script><script>if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}</script>                <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.5.0.min.js" integrity="sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=" crossorigin="anonymous"></script>                <div id="5f90ef4c-0593-41fe-8989-10281d330234" class="plotly-graph-div" style="height:420px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("5f90ef4c-0593-41fe-8989-10281d330234")) {                    Plotly.newPlot(                        "5f90ef4c-0593-41fe-8989-10281d330234",                        [{"hovertemplate":"Scheme=First\u003cbr\u003eTouchpoint=%{x}\u003cbr\u003eCredit=%{y}\u003cextra\u003e\u003c\u002fextra\u003e","legendgroup":"First","marker":{"color":"#636efa","pattern":{"shape":""}},"name":"First","orientation":"v","showlegend":true,"textposition":"outside","texttemplate":"%{y:.0%}","x":["E-mail\u003cbr\u003eday 0","Web\u003cbr\u003eday 4","App\u003cbr\u003eday 8","E-mail\u003cbr\u003eday 11"],"xaxis":"x","y":{"dtype":"f8","bdata":"AAAAAAAA8D8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},"yaxis":"y","type":"bar","textangle":0},{"hovertemplate":"Scheme=Last\u003cbr\u003eTouchpoint=%{x}\u003cbr\u003eCredit=%{y}\u003cextra\u003e\u003c\u002fextra\u003e","legendgroup":"Last","marker":{"color":"#EF553B","pattern":{"shape":""}},"name":"Last","orientation":"v","showlegend":true,"textposition":"outside","texttemplate":"%{y:.0%}","x":["E-mail\u003cbr\u003eday 0","Web\u003cbr\u003eday 4","App\u003cbr\u003eday 8","E-mail\u003cbr\u003eday 11"],"xaxis":"x2","y":{"dtype":"f8","bdata":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8D8="},"yaxis":"y2","type":"bar","textangle":0},{"hovertemplate":"Scheme=Linear\u003cbr\u003eTouchpoint=%{x}\u003cbr\u003eCredit=%{y}\u003cextra\u003e\u003c\u002fextra\u003e","legendgroup":"Linear","marker":{"color":"#00cc96","pattern":{"shape":""}},"name":"Linear","orientation":"v","showlegend":true,"textposition":"outside","texttemplate":"%{y:.0%}","x":["E-mail\u003cbr\u003eday 0","Web\u003cbr\u003eday 4","App\u003cbr\u003eday 8","E-mail\u003cbr\u003eday 11"],"xaxis":"x3","y":{"dtype":"f8","bdata":"AAAAAAAA0D8AAAAAAADQPwAAAAAAANA\u002fAAAAAAAA0D8="},"yaxis":"y3","type":"bar","textangle":0},{"hovertemplate":"Scheme=Decay\u003cbr\u003eTouchpoint=%{x}\u003cbr\u003eCredit=%{y}\u003cextra\u003e\u003c\u002fextra\u003e","legendgroup":"Decay","marker":{"color":"#ab63fa","pattern":{"shape":""}},"name":"Decay","orientation":"v","showlegend":true,"textposition":"outside","texttemplate":"%{y:.0%}","x":["E-mail\u003cbr\u003eday 0","Web\u003cbr\u003eday 4","App\u003cbr\u003eday 8","E-mail\u003cbr\u003eday 11"],"xaxis":"x4","y":{"dtype":"f8","bdata":"mpmZmZmZuT+amZmZmZnJPzMzMzMzM9M\u002fmpmZmZmZ2T8="},"yaxis":"y4","type":"bar","textangle":0}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"white","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"white","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"#C8D4E3","linecolor":"#C8D4E3","minorgridcolor":"#C8D4E3","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"#C8D4E3","linecolor":"#C8D4E3","minorgridcolor":"#C8D4E3","startlinecolor":"#2a3f5f"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"geo":{"bgcolor":"white","lakecolor":"white","landcolor":"white","showlakes":true,"showland":true,"subunitcolor":"#C8D4E3"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"light"},"paper_bgcolor":"white","plot_bgcolor":"white","polar":{"angularaxis":{"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":""},"bgcolor":"white","radialaxis":{"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"},"yaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"},"zaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"ternary":{"aaxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""},"baxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""},"bgcolor":"white","caxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""}},"title":{"x":0.05},"xaxis":{"automargin":true,"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":"","title":{"standoff":15},"zerolinecolor":"#EBF0F8","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":"","title":{"standoff":15},"zerolinecolor":"#EBF0F8","zerolinewidth":2}}},"xaxis":{"anchor":"y","domain":[0.0,0.235],"title":{"text":""},"tickfont":{"size":10},"tickangle":0},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Credit"},"tickformat":".0%","range":[0,1.15]},"xaxis2":{"anchor":"y2","domain":[0.255,0.49],"matches":"x","title":{"text":""},"tickfont":{"size":10},"tickangle":0},"yaxis2":{"anchor":"x2","domain":[0.0,1.0],"matches":"y","showticklabels":false,"tickformat":".0%","range":[0,1.15]},"xaxis3":{"anchor":"y3","domain":[0.51,0.745],"matches":"x","title":{"text":""},"tickfont":{"size":10},"tickangle":0},"yaxis3":{"anchor":"x3","domain":[0.0,1.0],"matches":"y","showticklabels":false,"tickformat":".0%","range":[0,1.15]},"xaxis4":{"anchor":"y4","domain":[0.7649999999999999,0.9999999999999999],"matches":"x","title":{"text":""},"tickfont":{"size":10},"tickangle":0},"yaxis4":{"anchor":"x4","domain":[0.0,1.0],"matches":"y","showticklabels":false,"tickformat":".0%","range":[0,1.15]},"annotations":[{"font":{},"showarrow":false,"text":"First","x":0.1175,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{},"showarrow":false,"text":"Last","x":0.3725,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{},"showarrow":false,"text":"Linear","x":0.6275,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{},"showarrow":false,"text":"Decay","x":0.8824999999999998,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"}],"legend":{"title":{"text":"Scheme"},"tracegroupgap":0},"title":{"text":"Credit given to each touchpoint before a conversion on day 14"},"barmode":"relative","margin":{"t":90},"showlegend":false,"height":420},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('5f90ef4c-0593-41fe-8989-10281d330234');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };            </script>        </div></div>
+</div>
+<p>The choice of scheme matters less than you might think when customers mostly see a single action for a product. It matters more when products are promoted through many actions and channels. In that case First and Last reward very different parts of the journey (awareness vs. closing), while Linear and Decay spread the credit.</p>
+</section>
+<section id="Do-you-need-conversion-modeling?">
+<h2>Do you need conversion modeling?<a class="headerlink" href="#Do-you-need-conversion-modeling?" title="Link to this heading">¶</a></h2>
+<p>Conversion modeling comes with real cost: an extra integration to report conversions, decision data that has to be kept for much longer, and models that learn from far fewer and much later signals. So before investing, check whether it would actually change any decisions.</p>
+<p>The key point is that <strong>CDH arbitration only cares about the ranking of actions</strong>, not the absolute propensity values. If an action’s conversion rate is roughly a fixed fraction of its engagement rate, then ranking actions by engagement already gives (almost) the same order as ranking them by conversion. In that case the engagement models already do the job, and the cheaper and faster engagement signal is the better choice.</p>
+<p>You can check this with data you probably already have: for every action, compute the engagement rate (clicks or accepts per impression) and the conversion rate (conversions per impression) over the same period, and plot one against the other. The example below uses synthetic data for 200 actions.</p>
+<details class="nb-collapsed-input"><summary>Show code</summary><div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n_actions</span> <span class="o">=</span> <span class="mi">200</span>
+<span class="n">impressions</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">20_000</span><span class="p">,</span> <span class="mi">250_000</span><span class="p">,</span> <span class="n">n_actions</span><span class="p">)</span>
+<span class="n">true_engagement</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">lognormal</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">0.02</span><span class="p">),</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.55</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_actions</span><span class="p">)</span>
+<span class="n">true_conversion</span> <span class="o">=</span> <span class="n">true_engagement</span> <span class="o">*</span> <span class="mf">0.10</span> <span class="o">*</span> <span class="n">rng</span><span class="o">.</span><span class="n">lognormal</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.22</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_actions</span><span class="p">)</span>
+<span class="n">groups</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="s2">&quot;Cards&quot;</span><span class="p">,</span> <span class="s2">&quot;Loans&quot;</span><span class="p">,</span> <span class="s2">&quot;Savings&quot;</span><span class="p">,</span> <span class="s2">&quot;Insurance&quot;</span><span class="p">],</span> <span class="n">n_actions</span><span class="p">)</span>
+
+<span class="n">actions</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Action </span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_actions</span><span class="p">)],</span>
+        <span class="s2">&quot;Group&quot;</span><span class="p">:</span> <span class="n">groups</span><span class="p">,</span>
+        <span class="s2">&quot;Impressions&quot;</span><span class="p">:</span> <span class="n">impressions</span><span class="p">,</span>
+        <span class="s2">&quot;Engagements&quot;</span><span class="p">:</span> <span class="n">rng</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="n">impressions</span><span class="p">,</span> <span class="n">true_engagement</span><span class="p">),</span>
+        <span class="s2">&quot;Conversions&quot;</span><span class="p">:</span> <span class="n">rng</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="n">impressions</span><span class="p">,</span> <span class="n">true_conversion</span><span class="p">),</span>
+    <span class="p">}</span>
+<span class="p">)</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+    <span class="n">EngagementRate</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Engagements&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Impressions&quot;</span><span class="p">),</span>
+    <span class="n">ConversionRate</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Conversions&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Impressions&quot;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Least squares fit through the origin: conversion rate = slope * engagement rate</span>
+<span class="n">slope</span> <span class="o">=</span> <span class="p">(</span><span class="n">actions</span><span class="p">[</span><span class="s2">&quot;EngagementRate&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">actions</span><span class="p">[</span><span class="s2">&quot;ConversionRate&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="n">actions</span><span class="p">[</span><span class="s2">&quot;EngagementRate&quot;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="n">stats</span> <span class="o">=</span> <span class="n">actions</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+    <span class="n">Pearson</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">corr</span><span class="p">(</span><span class="s2">&quot;EngagementRate&quot;</span><span class="p">,</span> <span class="s2">&quot;ConversionRate&quot;</span><span class="p">),</span>
+    <span class="n">Spearman</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">corr</span><span class="p">(</span><span class="s2">&quot;EngagementRate&quot;</span><span class="p">,</span> <span class="s2">&quot;ConversionRate&quot;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;spearman&quot;</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">pearson</span><span class="p">,</span> <span class="n">spearman</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">row</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+    <span class="n">actions</span><span class="p">,</span>
+    <span class="n">x</span><span class="o">=</span><span class="s2">&quot;EngagementRate&quot;</span><span class="p">,</span>
+    <span class="n">y</span><span class="o">=</span><span class="s2">&quot;ConversionRate&quot;</span><span class="p">,</span>
+    <span class="n">size</span><span class="o">=</span><span class="s2">&quot;Impressions&quot;</span><span class="p">,</span>
+    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;Group&quot;</span><span class="p">,</span>
+    <span class="n">hover_name</span><span class="o">=</span><span class="s2">&quot;Action&quot;</span><span class="p">,</span>
+    <span class="n">size_max</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+    <span class="n">opacity</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+    <span class="n">hover_data</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Impressions&quot;</span><span class="p">:</span> <span class="s2">&quot;:,&quot;</span><span class="p">,</span> <span class="s2">&quot;EngagementRate&quot;</span><span class="p">:</span> <span class="s2">&quot;:.2%&quot;</span><span class="p">,</span> <span class="s2">&quot;ConversionRate&quot;</span><span class="p">:</span> <span class="s2">&quot;:.3%&quot;</span><span class="p">},</span>
+    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;plotly_white&quot;</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">&quot;Engagement vs. conversion rate per action&lt;br&gt;&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;&lt;sup&gt;Pearson r = </span><span class="si">{</span><span class="n">pearson</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, Spearman rank correlation = </span><span class="si">{</span><span class="n">spearman</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&lt;/sup&gt;&quot;</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+<span class="n">x_max</span> <span class="o">=</span> <span class="n">actions</span><span class="p">[</span><span class="s2">&quot;EngagementRate&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">*</span> <span class="mf">1.05</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span>
+    <span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
+        <span class="n">x</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_max</span><span class="p">],</span>
+        <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">slope</span> <span class="o">*</span> <span class="n">x_max</span><span class="p">],</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;lines&quot;</span><span class="p">,</span>
+        <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">dash</span><span class="o">=</span><span class="s2">&quot;dash&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;grey&quot;</span><span class="p">),</span>
+        <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Fit: </span><span class="si">{</span><span class="n">slope</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">update_xaxes</span><span class="p">(</span><span class="n">tickformat</span><span class="o">=</span><span class="s2">&quot;.1%&quot;</span><span class="p">,</span> <span class="n">title_text</span><span class="o">=</span><span class="s2">&quot;Engagement rate (engagements / impressions)&quot;</span><span class="p">,</span> <span class="n">rangemode</span><span class="o">=</span><span class="s2">&quot;tozero&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">update_yaxes</span><span class="p">(</span><span class="n">tickformat</span><span class="o">=</span><span class="s2">&quot;.2%&quot;</span><span class="p">,</span> <span class="n">title_text</span><span class="o">=</span><span class="s2">&quot;Conversion rate (conversions / impressions)&quot;</span><span class="p">,</span> <span class="n">rangemode</span><span class="o">=</span><span class="s2">&quot;tozero&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="mi">580</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">l</span><span class="o">=</span><span class="mi">90</span><span class="p">),</span> <span class="n">legend</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">title_text</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">orientation</span><span class="o">=</span><span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=-</span><span class="mf">0.18</span><span class="p">))</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</details><div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>            <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_SVG"></script><script>if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}</script>                <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.5.0.min.js" integrity="sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=" crossorigin="anonymous"></script>                <div id="07a6734b-42a5-4e08-a3da-f6f3cc32c05b" class="plotly-graph-div" style="height:580px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("07a6734b-42a5-4e08-a3da-f6f3cc32c05b")) {                    Plotly.newPlot(                        "07a6734b-42a5-4e08-a3da-f6f3cc32c05b",                        [{"customdata":{"dtype":"i4","bdata":"T54AACnTAQCFUQMA9vkCAJZAAwCoDwIAQ5sBAFMxAwDV4gEAPlEDAJLiAABx8QEAenUAAC45AgA\u002f6wIAh5cBAF+zAwCxewMAhPkBAP0ZAQDg1gEA7YMCAFVCAwCvywAAvVQAADsLAwBzowIAVkECAGEUAgCabwAAF9kBAKSmAgBg9QEAYYgCAE0YAwDQaQAAVIYBAA3BAwDaTAMAS20AAE4gAQCThgMA5lUBADy7AQB8rQAAIcACAPfWAAB14wAAZIQCACW4AAA=","shape":"50, 1"},"hovertemplate":"\u003cb\u003e%{hovertext}\u003c\u002fb\u003e\u003cbr\u003e\u003cbr\u003eGroup=Loans\u003cbr\u003eEngagementRate=%{x:.2%}\u003cbr\u003eConversionRate=%{y:.3%}\u003cbr\u003eImpressions=%{customdata[0]:,}\u003cextra\u003e\u003c\u002fextra\u003e","hovertext":["Action 001","Action 005","Action 006","Action 014","Action 019","Action 021","Action 022","Action 028","Action 031","Action 037","Action 041","Action 054","Action 056","Action 057","Action 062","Action 063","Action 064","Action 067","Action 076","Action 078","Action 082","Action 085","Action 093","Action 100","Action 104","Action 107","Action 108","Action 113","Action 115","Action 117","Action 121","Action 122","Action 124","Action 130","Action 135","Action 138","Action 139","Action 141","Action 146","Action 147","Action 148","Action 153","Action 154","Action 164","Action 171","Action 175","Action 182","Action 187","Action 192","Action 198"],"legendgroup":"Loans","marker":{"color":"#636efa","opacity":0.7,"size":{"dtype":"i4","bdata":"T54AACnTAQCFUQMA9vkCAJZAAwCoDwIAQ5sBAFMxAwDV4gEAPlEDAJLiAABx8QEAenUAAC45AgA\u002f6wIAh5cBAF+zAwCxewMAhPkBAP0ZAQDg1gEA7YMCAFVCAwCvywAAvVQAADsLAwBzowIAVkECAGEUAgCabwAAF9kBAKSmAgBg9QEAYYgCAE0YAwDQaQAAVIYBAA3BAwDaTAMAS20AAE4gAQCThgMA5lUBADy7AQB8rQAAIcACAPfWAAB14wAAZIQCACW4AAA="},"sizemode":"area","sizeref":1270.938775510204,"symbol":"circle"},"mode":"markers","name":"Loans","orientation":"v","showlegend":true,"x":{"dtype":"f8","bdata":"XslmkAxVmD+aJve1iXuQP2rATHYWfp4\u002fEqns16tZlz\u002fSYE0EY3SXP\u002fFhNN26j6g\u002fdLGkJDYXkj\u002fmIHLgiTqZPywWdijw3Iw\u002fKF6sRyJcgj\u002fcq1v3OqiuP2ddohF8G4g\u002f9EE2EZGDkD9Wq7iTeFOTP3pYgc2bh4U\u002fbnivvSYMiD87hzLdFHaLP1ifyec1TaA\u002fYYKDlA+vhD8ruluuBRaWP0GrGBNRYZg\u002fjjnHKj4FkD97\u002fJFbUK+qP13dIEYMhJA\u002fV2pRkd7kpj9EYmzI0Jp5PzTB1P0iX5Q\u002f0utCnqFGoT\u002fbNDWar3GUP6TwvBVPz5A\u002fmHpeMdyzkj8w8egH8nGMPyzbwjllapc\u002f6bbdlS7jrD8eWGhQORaYP4OXjkXERow\u002fn9vlWnKFej8cLb6L9P+GP8a164YWpIE\u002foqftXstnsD+fPWubJGWEPwXpaynyTZA\u002fuysErW3xmD9cd8oTYRWRP\u002fG18wr7iJU\u002fFWdZ+eo0kz803maZUL6XP7oY6KiZdYc\u002fqN0k1bf5kz\u002fPhmiQoC2WPw=="},"xaxis":"x","y":{"dtype":"f8","bdata":"K12txZ7fWT8uVKvKAUNhP4WkNrzJtmY\u002fm2sHz9LyYz9lAJR8YctiPxND2ChSYXk\u002fqdZN\u002fE\u002frUz9LmS2Js19nP+YRw75eFlM\u002fpgR2YaiKTT9VrewkYet\u002fP9SiOhBnfFU\u002fLSD2k5ENXz+ILe6vdPhkP6EmAVwOalI\u002fZx2+jcTNUD9NgOujfXRYPz+xoMiOeWg\u002f281g9r+8Uj\u002f\u002fecu2HkdtPy\u002fx9Qswq18\u002fkAs3VyBjUj\u002f5Ag04B5VpP0IcvDtX6Fw\u002fzPqslqC4bz+4Hf5z3fdIP9BpZtNeels\u002fzIYAOI7mYj\u002fuN1G5vVNaP2QOUal4f1M\u002fy4ldfLT6Xj9qzK9OSllbPwUNnFmMO2E\u002fCqwGWh1Jgj9Jhnl0GRhiP7VFD5etVFA\u002f3Br302QNQT8+B9UZnh1QP0wh6y\u002fm91U\u002f5Ea0e5BTeT9uJkRgvdtMP1rUC2lMPlk\u002fCV43nezFZz9ia2uvTj9XP3u92q\u002frLmM\u002f1dcay9wVXj8Z2ssFbgtxP7Gd1Ns2+lM\u002f+PXPcsCtYT9ie0DGQfBmPw=="},"yaxis":"y","type":"scatter"},{"customdata":{"dtype":"i4","bdata":"eQUDAG7YAQBaEAMAOsEAAMTiAQAi8gAAq7cBACg4AgDWawMAOPcCAIDDAgCkjAEAJYsAAIlwAwAxrwIAdAkDAFwNAgAA6gIAzbMCAD+\u002fAQD98wEA\u002fhgDAEpJAgB6pQAAxGYBAPz\u002fAgAAdQMAK1EBAEYhAwAJGgMAIBEDAKzHAgCPCwMAGk0CAAW1AABcTgMAE0oCAHs\u002fAgApvQEAaA4DABDNAwDAvQEAosUBAHgpAwAj5AAAB58AAB7XAgAX7QEA55gDAGkLAgBypAEAA10BAKdvAgBZrAMA","shape":"54, 1"},"hovertemplate":"\u003cb\u003e%{hovertext}\u003c\u002fb\u003e\u003cbr\u003e\u003cbr\u003eGroup=Insurance\u003cbr\u003eEngagementRate=%{x:.2%}\u003cbr\u003eConversionRate=%{y:.3%}\u003cbr\u003eImpressions=%{customdata[0]:,}\u003cextra\u003e\u003c\u002fextra\u003e","hovertext":["Action 002","Action 004","Action 016","Action 018","Action 020","Action 023","Action 027","Action 029","Action 035","Action 042","Action 043","Action 044","Action 045","Action 048","Action 049","Action 050","Action 055","Action 059","Action 060","Action 065","Action 070","Action 071","Action 079","Action 087","Action 088","Action 089","Action 095","Action 096","Action 103","Action 105","Action 106","Action 110","Action 112","Action 116","Action 120","Action 125","Action 131","Action 132","Action 144","Action 160","Action 161","Action 163","Action 165","Action 166","Action 168","Action 172","Action 174","Action 176","Action 181","Action 185","Action 188","Action 190","Action 193","Action 195"],"legendgroup":"Insurance","marker":{"color":"#EF553B","opacity":0.7,"size":{"dtype":"i4","bdata":"eQUDAG7YAQBaEAMAOsEAAMTiAQAi8gAAq7cBACg4AgDWawMAOPcCAIDDAgCkjAEAJYsAAIlwAwAxrwIAdAkDAFwNAgAA6gIAzbMCAD+\u002fAQD98wEA\u002fhgDAEpJAgB6pQAAxGYBAPz\u002fAgAAdQMAK1EBAEYhAwAJGgMAIBEDAKzHAgCPCwMAGk0CAAW1AABcTgMAE0oCAHs\u002fAgApvQEAaA4DABDNAwDAvQEAosUBAHgpAwAj5AAAB58AAB7XAgAX7QEA55gDAGkLAgBypAEAA10BAKdvAgBZrAMA"},"sizemode":"area","sizeref":1270.938775510204,"symbol":"circle"},"mode":"markers","name":"Insurance","orientation":"v","showlegend":true,"x":{"dtype":"f8","bdata":"9ZYoBTqLiD+L9hUk7MSkP5keRbGLAII\u002f3cbPDj05jj9wlJXrnwuVPx+KziMBFog\u002f2ZQXgAaCoD+A3zPs5QunP8yVxuQ1rZw\u002fxaWUU1xKuT\u002fW17HPXMmZP2CbaVjZUIc\u002fj\u002fXojQawdz\u002f+MJykl+GOP5jnlGrGAo0\u002fIRbPfg21kj+p+NvjD0+AP6wuTC0GO5Y\u002fB1yLAxx8oT9cGc5Rq86wP1ou2GiXPZk\u002faldk6fsqkz9aW6qaysGoP6oH\u002ft6GHZk\u002f+rtkRbCepz+mXHxFHfSVP5Qj0dnzQZA\u002fn\u002f1lBB9ypj+KjKUZf\u002f2YP+eRm7jvDZY\u002fP6p3SB4RnD\u002fYTTKeqkSFP5LtcALfKZE\u002fmWgDZOEXjj+\u002fovysVr6lP3alcnLY9pY\u002fYeuxWur5iT+qhbIQNUKRP2YOH+eKhpM\u002f86UC8aGqkD\u002fNCexdsPqSP8IkADll+ZE\u002fbuLCRWEBlz+MBAzAaLeOPzeMhCtoWaE\u002f96yC1TI0lT9HaAdVURGYPw7pRANsLLA\u002fuohv+FmWoz9lkjAJxgqhP\u002feJXbCMOJA\u002fj0E1dykolT+rxnPsSP+RP\u002fgUisMF9KY\u002f"},"xaxis":"x","y":{"dtype":"f8","bdata":"XKaXhyuTWD+CEwCCVCpnP6YKcEzj104\u002fggBbyP\u002fYVz+mqkxLgMRcP4aUk+WOrFU\u002f5QyOGwdhdD\u002f9l15alkJrP5wg5eezwGQ\u002fBpJyYSAphz9pv7K86w9YPxXIgO5uyFU\u002fP6t8OW16QT+o80X9GKxOP2zy4ozQjlM\u002fYk6hKFOBYD8TcIDdBOdGP3FsmsP3W2I\u002fKE73eoT2bz+TlBL2p3CBPwZQbtEDJ2E\u002f9HKLe9lXYD9LNgPE1iZyP+rg+3jejV4\u002fECJheMPEcD\u002fRvVyOxSpkP6B4A6SFKlk\u002fMBbVDuVzdD9\u002f6jdqd0piP7pXb\u002fYSd2M\u002fzFM4SgvTZj9IQaMe3w1UP4XETpwrHVQ\u002fmWgDZOEXXj9QdZxGapJ4P8XYmpzwB2A\u002fOkdQzQ3dSj+06LmvG1lgP9Yd7nCgMl8\u002f8n+b+B7XVT+uq4e14D5gP1gLlzz221w\u002fXVdJ9R1lWT\u002f+06p14uJNP07X6xx+P2k\u002fr1uUsdDEWz9H4KK\u002fF1piP0cozUEOBno\u002fG3Q6Ngudbj8XIh7EFlRrP76Cuy0C5lc\u002fAjr5E5dYYz9LI4r2E3JhP3eLvZJF2XE\u002f"},"yaxis":"y","type":"scatter"},{"customdata":{"dtype":"i4","bdata":"N5oCAFebAAC8ogAAIicCACfjAgC70gIAw44DAJiQAgCB3AEA56AAAHWHAADGRgEAPLYDANj4AgASlQEADO4BAOmnAgDumgMA2zkDACPVAQAnIQMAQKoBAFolAQA3igIASToDALoBAQDM9QEAGUcBAG7qAQC5ywAAFpoCAPRJAgBHlQAAfp8AAIlEAgCWRgEA+ckDAIGCAADkTgMA0KACAJS\u002fAACVQgIA2RMCAPiiAgC3bgEAd3oBAIdiAABRAwMARncDAEgQAgDxDAIAub8CAPfeAQAwkwEA35wAAOuBAQA=","shape":"56, 1"},"hovertemplate":"\u003cb\u003e%{hovertext}\u003c\u002fb\u003e\u003cbr\u003e\u003cbr\u003eGroup=Savings\u003cbr\u003eEngagementRate=%{x:.2%}\u003cbr\u003eConversionRate=%{y:.3%}\u003cbr\u003eImpressions=%{customdata[0]:,}\u003cextra\u003e\u003c\u002fextra\u003e","hovertext":["Action 003","Action 007","Action 010","Action 011","Action 013","Action 015","Action 024","Action 026","Action 030","Action 033","Action 036","Action 039","Action 046","Action 051","Action 053","Action 073","Action 080","Action 081","Action 090","Action 091","Action 092","Action 094","Action 097","Action 099","Action 101","Action 102","Action 109","Action 111","Action 114","Action 118","Action 123","Action 126","Action 127","Action 133","Action 134","Action 143","Action 145","Action 150","Action 151","Action 156","Action 157","Action 158","Action 159","Action 162","Action 167","Action 169","Action 170","Action 173","Action 179","Action 180","Action 183","Action 184","Action 186","Action 194","Action 196","Action 197"],"legendgroup":"Savings","marker":{"color":"#00cc96","opacity":0.7,"size":{"dtype":"i4","bdata":"N5oCAFebAAC8ogAAIicCACfjAgC70gIAw44DAJiQAgCB3AEA56AAAHWHAADGRgEAPLYDANj4AgASlQEADO4BAOmnAgDumgMA2zkDACPVAQAnIQMAQKoBAFolAQA3igIASToDALoBAQDM9QEAGUcBAG7qAQC5ywAAFpoCAPRJAgBHlQAAfp8AAIlEAgCWRgEA+ckDAIGCAADkTgMA0KACAJS\u002fAACVQgIA2RMCAPiiAgC3bgEAd3oBAIdiAABRAwMARncDAEgQAgDxDAIAub8CAPfeAQAwkwEA35wAAOuBAQA="},"sizemode":"area","sizeref":1270.938775510204,"symbol":"circle"},"mode":"markers","name":"Savings","orientation":"v","showlegend":true,"x":{"dtype":"f8","bdata":"6reuMKllkD+INOAsQ4uJPwcg50sQZ5E\u002ff68nyMwBoD\u002fOpAFXjw6aP4kO9d7KGY0\u002flRSYEXhylj\u002f975Ua3mmlPyNDiYKHRYU\u002fuZVT8d4gkT+R5PPHBxqSP0xHNbUTpJg\u002fTcsoC4v3lj\u002fKNzKIpZOiP3jflHhKLZM\u002fKQozIP2gjD9Ezz2\u002fTYuWP36r2afJOZM\u002fuU8W8kWBhT\u002fOH+jKQ2yDP+VHxQSejak\u002fnKK9Kdqbkj8JRXr6Ed+FP+43F7HzVJ0\u002fMkEC8Uo1lT\u002f2oU3cV36TP5kqYKCznok\u002fj1uk1zg3iT92xxcPTVCDPzipBstnH6I\u002fmzqGIBAvkj+I27WwCgqFP1LYRM1ClJQ\u002ftNGTDCspgz9dB15d3XKNPy0MNEef1Yc\u002fJ2JqA0cnfj+gu1o\u002ftJ2rPz856PlZRrk\u002f++jniM9NiD9P2Oiw2+6QP3JtFEHCGJ8\u002f4aMxd\u002feymT\u002fdshO+hZSDP\u002fZ2IXCgO5o\u002fBcHDtiJClj9wp7kUStuWP83TuklrD4s\u002fHT\u002fgTI12ij\u002fnSCLo5z6GPzgpK2+7KJo\u002fVteQmHz3fj9MVg1Usr2aPx0usrLz8ZU\u002fcU\u002fuCFmvcz+mmCYzrPuRPw=="},"xaxis":"x","y":{"dtype":"f8","bdata":"6x8JR3WUYT840dTrimxVP3PFEeM26WA\u002foxeu+hn5bD8SOiOmmXJrP4qpOnlAwWE\u002fE+VYak3HYT+ZRDY+etV1P00H6cGRsk8\u002f1lAnJjMWZD+RY+1U0DRWP5RnF7D\u002f8GA\u002fCuvckYvEYz+B9gT4VD1lPzcsna+QSF8\u002fRTohqPbVVz9jS+EEer5VP\u002f7AxJPu12U\u002fKpc1uv7AUj8Im1eHvkhLPygwa8KHPG4\u002fVB5G5WFUXj+2DVki2rlUP7w95UA0+Go\u002f27QrfquqYj\u002fexZ4kRdpVP\u002fS+n2iZIVM\u002fg79V8KPISz\u002favD2LYKo7P8bJ3t3w4m8\u002fm+Zd5bFTWj+guWjPZRZLP\u002fNthT6duVw\u002flWQVKhxGRz8JBtBrqyRYP5O5Q0fBxVQ\u002ftEOBQb5pSD8zV4z1U7N1P1ae9UVEUYo\u002f2IFchiZcYT\u002fFxpCi3mVdPyP+IPP6QW0\u002fHrDluUMsaj8fc1HYa6tPPzUl7BYmEGI\u002fGMUZEQhFXj\u002fU27PBtZRsP1HFz08IZVg\u002fM6t7kMqdWj\u002fkdFFVjkFPP6gIUTaPtmc\u002fYyJK5pQwVD9lpZvN99lnP1gRiXZXDGM\u002fbEVKI6ABPz+kKDRdvVtcPw=="},"yaxis":"y","type":"scatter"},{"customdata":{"dtype":"i4","bdata":"qsACACEDAQCpugMAOhsCAFAMAwBIGgEAYkACALM1AwCihQIAjN4BAP78AAC+2AAA9YoDANtyAQD1mgEAtpIAAFr4AADZwgAA4bYCAMl2AQB+3gAAOzoDAETDAgBNswIArCoBAG39AgBeUgIANF8BALxrAgB81gEA6g4BAFkwAwDuSgEAVNQBAFvSAgAE3wAApCQBAGO0AgClfgEAVK4DAA==","shape":"40, 1"},"hovertemplate":"\u003cb\u003e%{hovertext}\u003c\u002fb\u003e\u003cbr\u003e\u003cbr\u003eGroup=Cards\u003cbr\u003eEngagementRate=%{x:.2%}\u003cbr\u003eConversionRate=%{y:.3%}\u003cbr\u003eImpressions=%{customdata[0]:,}\u003cextra\u003e\u003c\u002fextra\u003e","hovertext":["Action 008","Action 009","Action 012","Action 017","Action 025","Action 032","Action 034","Action 038","Action 040","Action 047","Action 052","Action 058","Action 061","Action 066","Action 068","Action 069","Action 072","Action 074","Action 075","Action 077","Action 083","Action 084","Action 086","Action 098","Action 119","Action 128","Action 129","Action 136","Action 137","Action 140","Action 142","Action 149","Action 152","Action 155","Action 177","Action 178","Action 189","Action 191","Action 199","Action 200"],"legendgroup":"Cards","marker":{"color":"#ab63fa","opacity":0.7,"size":{"dtype":"i4","bdata":"qsACACEDAQCpugMAOhsCAFAMAwBIGgEAYkACALM1AwCihQIAjN4BAP78AAC+2AAA9YoDANtyAQD1mgEAtpIAAFr4AADZwgAA4bYCAMl2AQB+3gAAOzoDAETDAgBNswIArCoBAG39AgBeUgIANF8BALxrAgB81gEA6g4BAFkwAwDuSgEAVNQBAFvSAgAE3wAApCQBAGO0AgClfgEAVK4DAA=="},"sizemode":"area","sizeref":1270.938775510204,"symbol":"circle"},"mode":"markers","name":"Cards","orientation":"v","showlegend":true,"x":{"dtype":"f8","bdata":"s07wNJTukT8BbWqG0aqIP8xnpX74NH8\u002f04xwI1H8lD8dP7KPIFyXP76ydY9q0IY\u002fDlKglb\u002fDgz8s9T9yE5eHP86rOsQuV6A\u002fgwvV0Hjuij99V7uSAUeWPyYDNdGQjqo\u002fkD\u002ftUkEKjz8jGaKX4u2JPzqXzArC3Yc\u002f9fdJymvnoD+SAD2t2D6UP\u002fYiBGpnWpk\u002fxWD1dIj7jz8jwceX89mDP4jGxqGNjKQ\u002fhx7bl2w\u002flz8hS1xxdCOjPxUeWT2ubIk\u002fcR5dhU5Lmz+wuUYNxm6XP5LvXHMserQ\u002flnDvZTKTpD9gfrzUwHSJPyXOF\u002fBQMJM\u002f6354hlXjjj9SJS6BkIKGP5zmHvHRooU\u002fGRH2Hjueqj+8xnTaz4CoPwGPm9+Nmpc\u002f5InY7o7Plz\u002fn4Sy025iRP\u002fJa0KrDFZg\u002fY0gXhzMBkT8="},"xaxis":"x","y":{"dtype":"f8","bdata":"5jEHtXKdVj9OetPw239UP7gUw+TaX1M\u002fL8IWqA22ZD9Dz7Q2hJBoP6n\u002fq\u002fMaAVE\u002fSMCqd5n8Uz8Au6fg8\u002fJKP4QACcaXDWw\u002fjGGOEpywXT9SFQn9CPFqPwSHKCgAcXY\u002flJnrbWcKVD8xOVKZ7MBPP4l6PxXUf1w\u002fjsOVIvXmZj+nfnVKqr5kP2zhtXklCm8\u002foaedMbPaXj8asXEe\u002fjhQP4HzEQ0uw3E\u002fkCjVfoUSaz9UqmszvJNmP6BPZ5nAiFM\u002fLFRZ1nFkbD8MY2fFHptfPwJz4hFTP4M\u002fOy8B+LXzYj\u002fuHjiHdvxbP7X2mhNC3FM\u002fmI9ReD7qVj+Me18N01xXPzLqp0jGoVA\u002ft5dpIdhLgD90ZSGMSNF1PxYLFvPPNmA\u002fzl+H0ChmXj\u002f2OObnxBtXP+AGhWJma1g\u002fyTDvl7MPWT8="},"yaxis":"y","type":"scatter"},{"line":{"color":"grey","dash":"dash"},"mode":"lines","name":"Fit: 10.7%","x":[0,0.10373044865198601],"y":[0,0.011116227438214093],"type":"scatter"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"white","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"white","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"#C8D4E3","linecolor":"#C8D4E3","minorgridcolor":"#C8D4E3","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"#C8D4E3","linecolor":"#C8D4E3","minorgridcolor":"#C8D4E3","startlinecolor":"#2a3f5f"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"geo":{"bgcolor":"white","lakecolor":"white","landcolor":"white","showlakes":true,"showland":true,"subunitcolor":"#C8D4E3"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"light"},"paper_bgcolor":"white","plot_bgcolor":"white","polar":{"angularaxis":{"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":""},"bgcolor":"white","radialaxis":{"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"},"yaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"},"zaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"ternary":{"aaxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""},"baxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""},"bgcolor":"white","caxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""}},"title":{"x":0.05},"xaxis":{"automargin":true,"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":"","title":{"standoff":15},"zerolinecolor":"#EBF0F8","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":"","title":{"standoff":15},"zerolinecolor":"#EBF0F8","zerolinewidth":2}}},"xaxis":{"anchor":"y","domain":[0.0,1.0],"title":{"text":"Engagement rate (engagements \u002f impressions)"},"tickformat":".1%","rangemode":"tozero"},"yaxis":{"anchor":"x","domain":[0.0,1.0],"title":{"text":"Conversion rate (conversions \u002f impressions)"},"tickformat":".2%","rangemode":"tozero"},"legend":{"title":{"text":""},"tracegroupgap":0,"itemsizing":"constant","orientation":"h","y":-0.18},"title":{"text":"Engagement vs. conversion rate per action\u003cbr\u003e\u003csup\u003ePearson r = 0.93, Spearman rank correlation = 0.90\u003c\u002fsup\u003e"},"margin":{"l":90},"height":580},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('07a6734b-42a5-4e08-a3da-f6f3cc32c05b');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };            </script>        </div></div>
+</div>
+<p>Each dot is an action, sized by its number of impressions. Here the dots lie close to a straight line through the origin: conversions are about one tenth of engagements, for every action. The rank correlation is high. Ranking actions by engagement propensity therefore gives almost the same order as ranking by conversion propensity, and conversion modeling would add little.</p>
+<p>How to read such a plot for your own data:</p>
+<ul class="simple">
+<li><p><strong>Points close to a line through the origin</strong>: engagement is a good proxy for conversion. Stick with engagement models. They learn faster and need no extra integration.</p></li>
+<li><p><strong>A wide spread, or clear clusters with different slopes</strong>: some actions get a lot of clicks that do not turn into sales (think clickbait, or curiosity about a new product), while others convert well from few clicks. This is where conversion modeling can change the ranking and add business value.</p></li>
+<li><p><strong>Actions with engagement but no conversions</strong> (on the x-axis): check first whether the conversions are reported and mapped to these actions before drawing conclusions.</p></li>
+</ul>
+<p>This is an action-level view. A strong correlation across actions does not guarantee that the same holds within an action across customers. A natural next step is to bin the engagement propensities that ADM produced and check that the conversion rate also increases across the bins.</p>
+</section>
+<section id="The-lookback-period">
+<h2>The lookback period<a class="headerlink" href="#The-lookback-period" title="Link to this heading">¶</a></h2>
+<p>Engagement usually arrives within seconds (a click) or days (an e-mail open). Conversions take longer: customers think about it, compare offers, visit a store, or wait for the next paycheck. To attribute a conversion to an action, CDH must keep the decision data (the customer’s predictor values at decision time) until the conversion arrives. The <strong>lookback period</strong>, also called the attribution window, is how long CDH waits. It is a trade-off:</p>
+<ul class="simple">
+<li><p><strong>Too short</strong>: genuine conversions arrive after the decision data is gone. The model never learns about them and the conversion rate is underestimated, especially for slower products.</p></li>
+<li><p><strong>Too long</strong>: storage grows, models learn later, and more <em>organic</em> conversions (purchases that would have happened anyway, unrelated to the action) are credited to whatever action happened to be shown.</p></li>
+</ul>
+<p>Choose the period from data: for every conversion, look up the most recent impression of an action that promotes the same product, and compute the delay between the two. All you need is the interaction history, with the impressions and the conversions. The example below simulates such a history for eight products over four months. Most conversions are driven by an impression and follow it within days. On top of that there is a small background of organic conversions.</p>
+<details class="nb-collapsed-input"><summary>Show code</summary><div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sim_rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+<span class="n">start</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">(</span><span class="s2">&quot;2026-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;ms&quot;</span><span class="p">)</span>
+<span class="n">horizon_days</span> <span class="o">=</span> <span class="mi">120</span>
+<span class="n">n_customers</span> <span class="o">=</span> <span class="mi">50_000</span>
+<span class="n">products</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;Credit Card&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Personal Loan&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Savings Account&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Mortgage&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Car Insurance&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Home Insurance&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Travel Insurance&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Pension Plan&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+<span class="n">channels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Web&quot;</span><span class="p">,</span> <span class="s2">&quot;E-mail&quot;</span><span class="p">,</span> <span class="s2">&quot;Mobile&quot;</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">to_timestamps</span><span class="p">(</span><span class="n">days</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">start</span> <span class="o">+</span> <span class="p">(</span><span class="n">days</span> <span class="o">*</span> <span class="mi">86_400_000</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;timedelta64[ms]&quot;</span><span class="p">)</span>
+
+
+<span class="n">frames</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">product</span> <span class="ow">in</span> <span class="n">products</span><span class="p">:</span>
+    <span class="n">actions</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">product</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">variant</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;Promo&quot;</span><span class="p">,</span> <span class="s2">&quot;Reminder&quot;</span><span class="p">,</span> <span class="s2">&quot;CrossSell&quot;</span><span class="p">)]</span>
+
+    <span class="c1"># Impressions: a subset of the customers sees one or more actions for this product</span>
+    <span class="n">reached</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">sim_rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">n_customers</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">sim_rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">))</span>
+    <span class="n">impression_customers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">reached</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">sim_rng</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">reached</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>
+    <span class="n">impression_days</span> <span class="o">=</span> <span class="n">sim_rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">horizon_days</span><span class="p">,</span> <span class="n">impression_customers</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">frames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;CustomerID&quot;</span><span class="p">:</span> <span class="n">impression_customers</span><span class="p">,</span>
+                <span class="s2">&quot;Action&quot;</span><span class="p">:</span> <span class="n">sim_rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">actions</span><span class="p">,</span> <span class="n">impression_customers</span><span class="o">.</span><span class="n">size</span><span class="p">),</span>
+                <span class="s2">&quot;Channel&quot;</span><span class="p">:</span> <span class="n">sim_rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="n">impression_customers</span><span class="o">.</span><span class="n">size</span><span class="p">),</span>
+                <span class="s2">&quot;OutcomeTime&quot;</span><span class="p">:</span> <span class="n">to_timestamps</span><span class="p">(</span><span class="n">impression_days</span><span class="p">),</span>
+            <span class="p">}</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">Product</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">product</span><span class="p">),</span> <span class="n">Outcome</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;Impression&quot;</span><span class="p">))</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Some impressions lead to a conversion, after a gamma distributed delay with a mean of about 5 days</span>
+    <span class="n">driven</span> <span class="o">=</span> <span class="n">sim_rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">impression_customers</span><span class="o">.</span><span class="n">size</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.03</span>
+    <span class="n">driven_days</span> <span class="o">=</span> <span class="n">impression_days</span><span class="p">[</span><span class="n">driven</span><span class="p">]</span> <span class="o">+</span> <span class="n">sim_rng</span><span class="o">.</span><span class="n">gamma</span><span class="p">(</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">sim_rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">),</span> <span class="n">driven</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+    <span class="c1"># Organic conversions happen anyway, at random moments, regardless of any impression</span>
+    <span class="n">organic_customers</span> <span class="o">=</span> <span class="n">sim_rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_customers</span><span class="p">,</span> <span class="n">n_customers</span> <span class="o">//</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="n">organic_days</span> <span class="o">=</span> <span class="n">sim_rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">horizon_days</span><span class="p">,</span> <span class="n">organic_customers</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">frames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;CustomerID&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">impression_customers</span><span class="p">[</span><span class="n">driven</span><span class="p">],</span> <span class="n">organic_customers</span><span class="p">]),</span>
+                <span class="s2">&quot;OutcomeTime&quot;</span><span class="p">:</span> <span class="n">to_timestamps</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">driven_days</span><span class="p">,</span> <span class="n">organic_days</span><span class="p">])),</span>
+            <span class="p">}</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">Product</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">product</span><span class="p">),</span> <span class="n">Outcome</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;Conversion&quot;</span><span class="p">))</span>
+    <span class="p">)</span>
+
+<span class="c1"># Conversions have no action or channel: they are reported against the product</span>
+<span class="n">ih</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">frames</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;diagonal&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;OutcomeTime&quot;</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">to_timestamps</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">horizon_days</span><span class="p">]))[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+        <span class="n">CustomerID</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;CustomerID&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1_000_000</span><span class="p">,</span>
+        <span class="n">OutcomeTime</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;OutcomeTime&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">truncate</span><span class="p">(</span><span class="s2">&quot;1s&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;CustomerID&quot;</span><span class="p">,</span> <span class="s2">&quot;Action&quot;</span><span class="p">,</span> <span class="s2">&quot;Product&quot;</span><span class="p">,</span> <span class="s2">&quot;Channel&quot;</span><span class="p">,</span> <span class="s2">&quot;OutcomeTime&quot;</span><span class="p">,</span> <span class="s2">&quot;Outcome&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">&quot;OutcomeTime&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="c1"># Show the journey of one customer who converted after seeing several actions for the same product</span>
+<span class="n">example</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">ih</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s2">&quot;CustomerID&quot;</span><span class="p">,</span> <span class="s2">&quot;Product&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+        <span class="n">Impressions</span><span class="o">=</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Outcome&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;Impression&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+        <span class="n">Conversions</span><span class="o">=</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Outcome&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;Conversion&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+        <span class="n">LastImpression</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;OutcomeTime&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Outcome&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;Impression&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span>
+        <span class="n">ConversionTime</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;OutcomeTime&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Outcome&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;Conversion&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Impressions&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Conversions&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;LastImpression&quot;</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ConversionTime&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">&quot;CustomerID&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">row</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">named</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">ih</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;CustomerID&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">example</span><span class="p">[</span><span class="s2">&quot;CustomerID&quot;</span><span class="p">],</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Product&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">example</span><span class="p">[</span><span class="s2">&quot;Product&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+</details><div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (4, 6)</small><table border="1" class="dataframe"><thead><tr><th>CustomerID</th><th>Action</th><th>Product</th><th>Channel</th><th>OutcomeTime</th><th>Outcome</th></tr><tr><td>i64</td><td>str</td><td>str</td><td>str</td><td>datetime[ms]</td><td>str</td></tr></thead><tbody><tr><td>1000064</td><td>&quot;HomeInsurance_Reminder&quot;</td><td>&quot;Home Insurance&quot;</td><td>&quot;Mobile&quot;</td><td>2026-01-17 19:56:14</td><td>&quot;Impression&quot;</td></tr><tr><td>1000064</td><td>&quot;HomeInsurance_Promo&quot;</td><td>&quot;Home Insurance&quot;</td><td>&quot;Mobile&quot;</td><td>2026-02-17 19:27:50</td><td>&quot;Impression&quot;</td></tr><tr><td>1000064</td><td>&quot;HomeInsurance_Reminder&quot;</td><td>&quot;Home Insurance&quot;</td><td>&quot;Web&quot;</td><td>2026-03-20 09:31:17</td><td>&quot;Impression&quot;</td></tr><tr><td>1000064</td><td>null</td><td>&quot;Home Insurance&quot;</td><td>null</td><td>2026-03-22 17:36:17</td><td>&quot;Conversion&quot;</td></tr></tbody></table></div></div>
+</div>
+<p>Above is a small piece of the simulated interaction history: one customer’s impressions of the actions that promote a product, followed by a conversion of that product. Conversions are reported against the product (the conversion event ID), not against an action. That’s why the <code class="docutils literal notranslate"><span class="pre">Action</span></code> and <code class="docutils literal notranslate"><span class="pre">Channel</span></code> columns are empty for them, just like the raw conversion records that CDH writes to the interaction history.</p>
+<p>To measure the delays, take the first conversion per customer and product, and look up the most recent impression of the same product before it. An as-of join does exactly that. Conversions without any earlier impression are organic by definition and are left out.</p>
+<details class="nb-collapsed-input"><summary>Show code</summary><div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">max_days</span> <span class="o">=</span> <span class="mi">45</span>
+
+<span class="n">impressions</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">ih</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Outcome&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;Impression&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;CustomerID&quot;</span><span class="p">,</span> <span class="s2">&quot;Product&quot;</span><span class="p">,</span> <span class="n">ImpressionTime</span><span class="o">=</span><span class="s2">&quot;OutcomeTime&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">&quot;ImpressionTime&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">conversions</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">ih</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Outcome&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;Conversion&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s2">&quot;CustomerID&quot;</span><span class="p">,</span> <span class="s2">&quot;Product&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">ConversionTime</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;OutcomeTime&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+    <span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">&quot;ConversionTime&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">delays</span> <span class="o">=</span> <span class="n">conversions</span><span class="o">.</span><span class="n">join_asof</span><span class="p">(</span>
+    <span class="n">impressions</span><span class="p">,</span>
+    <span class="n">left_on</span><span class="o">=</span><span class="s2">&quot;ConversionTime&quot;</span><span class="p">,</span>
+    <span class="n">right_on</span><span class="o">=</span><span class="s2">&quot;ImpressionTime&quot;</span><span class="p">,</span>
+    <span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;CustomerID&quot;</span><span class="p">,</span> <span class="s2">&quot;Product&quot;</span><span class="p">],</span>
+    <span class="n">strategy</span><span class="o">=</span><span class="s2">&quot;backward&quot;</span><span class="p">,</span>
+    <span class="n">check_sortedness</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># sorted on time; the per-customer groups are therefore sorted too</span>
+<span class="p">)</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">Days</span><span class="o">=</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ConversionTime&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ImpressionTime&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">total_days</span><span class="p">())</span>
+<span class="n">without_impression</span> <span class="o">=</span> <span class="n">delays</span><span class="p">[</span><span class="s2">&quot;ImpressionTime&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">null_count</span><span class="p">()</span> <span class="o">/</span> <span class="n">delays</span><span class="o">.</span><span class="n">height</span>
+
+<span class="n">conversion_delays</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">delays</span><span class="o">.</span><span class="n">drop_nulls</span><span class="p">(</span><span class="s2">&quot;Days&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Days&quot;</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">max_days</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s2">&quot;Product&quot;</span><span class="p">,</span> <span class="s2">&quot;Days&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">Conversions</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">len</span><span class="p">())</span>
+    <span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">&quot;Product&quot;</span><span class="p">,</span> <span class="s2">&quot;Days&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">Share</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Conversions&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Conversions&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">over</span><span class="p">(</span><span class="s2">&quot;Product&quot;</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">Cumulative</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Share&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cum_sum</span><span class="p">()</span><span class="o">.</span><span class="n">over</span><span class="p">(</span><span class="s2">&quot;Product&quot;</span><span class="p">))</span>
+<span class="p">)</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">conversion_delays</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="s2">&quot;Days&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Share&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Share&quot;</span><span class="p">),</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Share&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ShareStd&quot;</span><span class="p">),</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Cumulative&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;Cumulative&quot;</span><span class="p">),</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Cumulative&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;CumulativeStd&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">&quot;Days&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">within_10</span> <span class="o">=</span> <span class="n">summary</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;Days&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">9</span><span class="p">)[</span><span class="s2">&quot;Cumulative&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Figure</span><span class="p">()</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span>
+    <span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">summary</span><span class="p">[</span><span class="s2">&quot;Days&quot;</span><span class="p">],</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">summary</span><span class="p">[</span><span class="s2">&quot;Share&quot;</span><span class="p">],</span>
+        <span class="n">error_y</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="n">array</span><span class="o">=</span><span class="n">summary</span><span class="p">[</span><span class="s2">&quot;ShareStd&quot;</span><span class="p">],</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">3</span><span class="p">),</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;lines+markers&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Conversions on that day&quot;</span><span class="p">,</span>
+        <span class="n">marker_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span>
+    <span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">summary</span><span class="p">[</span><span class="s2">&quot;Days&quot;</span><span class="p">],</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">summary</span><span class="p">[</span><span class="s2">&quot;Cumulative&quot;</span><span class="p">],</span>
+        <span class="n">error_y</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="n">array</span><span class="o">=</span><span class="n">summary</span><span class="p">[</span><span class="s2">&quot;CumulativeStd&quot;</span><span class="p">],</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">3</span><span class="p">),</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;lines+markers&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Cumulative&quot;</span><span class="p">,</span>
+        <span class="n">yaxis</span><span class="o">=</span><span class="s2">&quot;y2&quot;</span><span class="p">,</span>
+        <span class="n">marker_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">add_vline</span><span class="p">(</span>
+    <span class="n">x</span><span class="o">=</span><span class="mf">9.5</span><span class="p">,</span>
+    <span class="n">line_dash</span><span class="o">=</span><span class="s2">&quot;dash&quot;</span><span class="p">,</span>
+    <span class="n">line_color</span><span class="o">=</span><span class="s2">&quot;grey&quot;</span><span class="p">,</span>
+    <span class="n">annotation_text</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;10 days: </span><span class="si">{</span><span class="n">within_10</span><span class="si">:</span><span class="s2">.0%</span><span class="si">}</span><span class="s2"> of conversions&quot;</span><span class="p">,</span>
+    <span class="n">annotation_position</span><span class="o">=</span><span class="s2">&quot;top right&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span>
+    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;plotly_white&quot;</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">&quot;Days between last impression and conversion&lt;br&gt;&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;&lt;sup&gt;Mean and standard deviation across </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">products</span><span class="p">)</span><span class="si">}</span><span class="s2"> products. &quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;&lt;br&gt;</span><span class="si">{</span><span class="n">without_impression</span><span class="si">:</span><span class="s2">.0%</span><span class="si">}</span><span class="s2"> of the conversions had no earlier impression and are left out.&lt;/sup&gt;&quot;</span>
+    <span class="p">),</span>
+    <span class="n">xaxis</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Days since last impression of a related action&quot;</span><span class="p">),</span>
+    <span class="n">yaxis</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Share of conversions per day&quot;</span><span class="p">,</span> <span class="n">tickformat</span><span class="o">=</span><span class="s2">&quot;.0%&quot;</span><span class="p">,</span> <span class="n">rangemode</span><span class="o">=</span><span class="s2">&quot;tozero&quot;</span><span class="p">),</span>
+    <span class="n">yaxis2</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Cumulative share&quot;</span><span class="p">,</span> <span class="n">tickformat</span><span class="o">=</span><span class="s2">&quot;.0%&quot;</span><span class="p">,</span> <span class="n">overlaying</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">]),</span>
+    <span class="n">legend</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">orientation</span><span class="o">=</span><span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=-</span><span class="mf">0.2</span><span class="p">),</span>
+    <span class="n">height</span><span class="o">=</span><span class="mi">570</span><span class="p">,</span>
+    <span class="n">margin</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">l</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="mi">120</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</details><div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>            <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_SVG"></script><script>if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}</script>                <script>window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.5.0.min.js" integrity="sha256-fHbNLP+GlIXN+efbQec78UkemUz3NJp7UmfGxC1tNxs=" crossorigin="anonymous"></script>                <div id="14f0f96e-4e17-4d1b-b94e-7ca2a754dfaa" class="plotly-graph-div" style="height:570px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("14f0f96e-4e17-4d1b-b94e-7ca2a754dfaa")) {                    Plotly.newPlot(                        "14f0f96e-4e17-4d1b-b94e-7ca2a754dfaa",                        [{"error_y":{"array":{"dtype":"f8","bdata":"wyZpCN6dkT+eMul3VsyZP7d1xuR4XJU\u002fntoT147aij\u002fGLu4ICax+P\u002flGWYIyRH4\u002fdu\u002fB7og5gz8y22jvegd8P077O63YU4I\u002fVjQ3RcJzhj8ynRAxkFeCPypt7NUG1HI\u002fIHhAtr3Wdj9gzrlKdY1oP+STwRxwwXY\u002fRtEabB8EZz8TtbLssJtjP1vEDjbAOGw\u002fLZSbdYsEVz9U7lkSES5YP\u002fP6ljmc1l4\u002fY9i3XyOQWj\u002f4wolHdiBUP\u002fgKhLE3\u002fFE\u002fzY9Yq+KHQj8ZSKLKOWhNP67yiS6EkV4\u002fH\u002fGuZoiQUT9rS1ovv11BPxzUfns0DTc\u002fVQXafr5EOz\u002fwYg6wq31QP7dfFwNMKEI\u002fFR\u002fxY1TgRD8J+cJHqusjPz1gtbiJVVU\u002fqsQRIWNVST\u002fWpD\u002fFbeZGP+9hkJ4F00E\u002fVKRbAFzfOz8ZpD\u002frq8E\u002fP4VGYTPx21U\u002fN0sYIfEnPz8R8913W4VGP4STL4w40kI\u002f"},"thickness":1,"type":"data","width":3},"marker":{"size":5},"mode":"lines+markers","name":"Conversions on that day","x":{"dtype":"i1","bdata":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKiss"},"y":{"dtype":"f8","bdata":"ceHo6Yl0sj838RsBkJDAPwx8Hhs4a8I\u002fLDvaSzIAwT+QyyP+k5C7P0s8q\u002fij67U\u002fheveP9uysT+Hj9WUByysPygAQCUMPac\u002fXNpfdFB0oT\u002f\u002fTse34cuXP\u002f4yj0crjJE\u002fILWaYLhyjD+SwMRCbw+FPwF5wCls74Q\u002fM2Otd8GVeD+LqsNsUxxwP8ED++Z4CnU\u002f3XbmNEh5Zj+ub8NvLFZmPwAOpp+MTWg\u002fXkZnTc1MXz8r3tqHx8JeP8eBSDboOl4\u002ft+yPbth2WD\u002feDDikEiBkP2Ei4VcSgWI\u002f8dXwEWTPXj\u002fDWhVgIPhTP5mfcRccJFU\u002fPaoCGDf2Tj\u002fHBXBtl1VbP7DTakyV7lQ\u002fIKJBFjGfXj8gB59NJttLPxV\u002fHVu2dFk\u002fYa6+BBZBWD+dPaQm8kVUPx7rWoR87lg\u002f\u002fCimP70xTj9CIFgmjQtTPy+Y3ZcRgFo\u002ftlwRtVAIVD+HqS8mRMhXP5cqoxlxcVQ\u002f"},"type":"scatter"},{"error_y":{"array":{"dtype":"f8","bdata":"wyZpCN6dkT+0lxaA\u002f9ukP10nuGwbyaw\u002f\u002fs9gBgI9sT+4oQQihUawPz5yl1H3wa4\u002fkFgNX8MErD+Uxvk4RfCpPyR8\u002fP+e8aU\u002fdW3ynrF0oT+Xte8BcTeaP93N+qw7ZpY\u002fyKQIKRCckT+UG77JLU6OP9djWSdw4Yc\u002fdJRtBfJMgz9RpEHEiqCAP\u002fGdmn9WlHg\u002fu8lVCHEBdT\u002fXc2UECKJxP55UNswc83I\u002fEPOJ3Ti5cD+VU5ddm2tsP9ofTs1Ppm8\u002fqkIqRCPfbT\u002fPyzOSyiloPz0a2zgbAmE\u002fd4byjcRLWD\u002f+BH+MVFNXP1G7cSPk6l0\u002fvGXdZQpbWj+tFKEv8epdPwpOuMOfb2Q\u002fNHbWYdRrYT+J5iULBTBkP+NuK92FRWA\u002fuQIM8ZyoYz+0KnHywqlbP5OcMl3PBl0\u002f2Huk5c6DVD8nAn+IcSdXP1AJkLOtaEA\u002fRIqmZk7aIz97rE5wKlBCP620iIxZu6c8"},"thickness":1,"type":"data","width":3},"marker":{"size":5},"mode":"lines+markers","name":"Cumulative","x":{"dtype":"i1","bdata":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKiss"},"y":{"dtype":"f8","bdata":"ceHo6Yl0sj\u002fvYRD21MrJP\u002f1ul4gGG9Y\u002fk4yErh+b3j+7vwZXor\u002fiP0UnHNYWfeU\u002ftgQYPnKz5z+uXWW3MnbpP7BduXkD6uo\u002fVlv\u002fgEgB7D\u002fOlb2Op7\u002fsP2YP+ugITO0\u002fOnp8ytO97T89jYeHERLuPyGPLjjPZe4\u002f5+kdu\u002fqW7j88cfdhM7fuP0RnxVNI4e4\u002fuk36m8H37j8qEWrIFw7vP5pcCrvtKu8\u002fGnYcCgIz7z8fOLivrTnvPxwKg7WUT+8\u002fw+sOK1xX7z+AAk29U2vvP9gtgRCzee8\u002fe5ZRpweB7z80F4AJlo\u002fvP389m53mlO8\u002fmk4HsvGa7z9\u002frdgRC6bvP+OfuRdws+8\u002fnVnNbZ+57z94nZ6OzMLvP8H5iJcevO8\u002fyWz9zHXO7z\u002f9rv4raM7vP1Kz0VoY4e8\u002fdrAx32jj7z8i5nN2Eu3vP+wxXURB7O8\u002feonzQFry7z+QPhrizvnvPwAAAAAAAPA\u002f"},"yaxis":"y2","type":"scatter"}],                        {"template":{"data":{"barpolar":[{"marker":{"line":{"color":"white","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"white","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"#C8D4E3","linecolor":"#C8D4E3","minorgridcolor":"#C8D4E3","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"#C8D4E3","linecolor":"#C8D4E3","minorgridcolor":"#C8D4E3","startlinecolor":"#2a3f5f"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scattermap":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermap"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"geo":{"bgcolor":"white","lakecolor":"white","landcolor":"white","showlakes":true,"showland":true,"subunitcolor":"#C8D4E3"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"light"},"paper_bgcolor":"white","plot_bgcolor":"white","polar":{"angularaxis":{"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":""},"bgcolor":"white","radialaxis":{"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"},"yaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"},"zaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"ternary":{"aaxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""},"baxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""},"bgcolor":"white","caxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""}},"title":{"x":0.05},"xaxis":{"automargin":true,"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":"","title":{"standoff":15},"zerolinecolor":"#EBF0F8","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":"","title":{"standoff":15},"zerolinecolor":"#EBF0F8","zerolinewidth":2}}},"shapes":[{"line":{"color":"grey","dash":"dash"},"type":"line","x0":9.5,"x1":9.5,"xref":"x","y0":0,"y1":1,"yref":"y domain"}],"annotations":[{"showarrow":false,"text":"10 days: 88% of conversions","x":9.5,"xanchor":"left","xref":"x","y":1,"yanchor":"top","yref":"y domain"}],"yaxis":{"title":{"text":"Share of conversions per day"},"tickformat":".0%","rangemode":"tozero"},"yaxis2":{"title":{"text":"Cumulative share"},"tickformat":".0%","overlaying":"y","side":"right","range":[0,1.05]},"legend":{"orientation":"h","y":-0.2},"margin":{"l":90,"r":120,"t":120},"title":{"text":"Days between last impression and conversion\u003cbr\u003e\u003csup\u003eMean and standard deviation across 8 products. \u003cbr\u003e23% of the conversions had no earlier impression and are left out.\u003c\u002fsup\u003e"},"xaxis":{"title":{"text":"Days since last impression of a related action"}},"height":570},                        {"responsive": true}                    ).then(function(){
+
+var gd = document.getElementById('14f0f96e-4e17-4d1b-b94e-7ca2a754dfaa');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };            </script>        </div></div>
+</div>
+<p>In this example, most conversions happen within about 10 days of the last impression. After that, the daily share drops to a low, flat level. That flat tail is what you would expect from organic conversions that have nothing to do with the action. Extending the lookback period well beyond the point where the curve flattens mostly adds noise (and storage cost), not signal. In this example a lookback period of about 10 to 14 days is a sensible choice.</p>
+<p>Some practical notes for running this analysis on your own data:</p>
+<ul class="simple">
+<li><p>Compare the delay curve against a <strong>baseline</strong>: conversions of customers who did <em>not</em> see a related action. The flat tail should match that baseline. Delays where the curve is clearly above the baseline are where the actions have an effect.</p></li>
+<li><p>Look at the curves <strong>per product or product group</strong>. A credit card and a mortgage can have very different delays, and the lookback period has to cover the slowest product you want to model.</p></li>
+<li><p>Dates without a time component make same-day ordering ambiguous. If the impression and the conversion are on the same day, you may not know which came first.</p></li>
+</ul>
+</section>
+<section id="Mixing-conversion-and-engagement">
+<h2>Mixing conversion and engagement<a class="headerlink" href="#Mixing-conversion-and-engagement" title="Link to this heading">¶</a></h2>
+<p>In practice, not every action has a conversion model that can be used. Some actions have no conversion at all (a “happy birthday” message, a service notification). Others are new, and their conversion model has not seen enough positives yet. These actions keep using their engagement model. The pre-arbitration set of actions therefore contains a mix: some actions have a conversion propensity, others an engagement propensity. Since conversion rates are typically an order of magnitude lower than
+engagement rates, these numbers cannot be compared directly.</p>
+<section id="Two-propensities-per-action">
+<h3>Two propensities per action<a class="headerlink" href="#Two-propensities-per-action" title="Link to this heading">¶</a></h3>
+<p>For every action <span class="math notranslate nohighlight">\(a\)</span> and customer <span class="math notranslate nohighlight">\(x\)</span>, CDH runs two adaptive models side by side:</p>
+<ul class="simple">
+<li><p>the <strong>engagement model</strong>, which estimates <span class="math notranslate nohighlight">\(p^{E}_{a}(x) = P(\text{engage} \mid \text{impression}, x)\)</span> and is trained on clicks or accepts, as usual;</p></li>
+<li><p>the <strong>conversion model</strong>, which estimates <span class="math notranslate nohighlight">\(p^{C}_{a}(x) = P(\text{convert} \mid \text{impression}, x)\)</span> and is trained on the attributed conversions, where each impression gets a weight between 0 and 1 from the attribution scheme.</p></li>
+</ul>
+<p>The conversion model is a copy of the engagement model with the outcome labels <em>Conversion</em> and <em>No conversion</em>. Both are combined in an engagement and conversion strategy (based on the <em>EngagementAndConversionTemplate</em> strategy). For customers in the conversion group (see below), it uses the conversion propensity when the conversion model is mature enough. Otherwise it uses the engagement propensity.</p>
+</section>
+<section id="Scaling">
+<h3>Scaling<a class="headerlink" href="#Scaling" title="Link to this heading">¶</a></h3>
+<p>To make a conversion propensity comparable to engagement propensities, CDH multiplies it by a per-action scaling factor: the ratio between the action’s overall engagement rate and its overall conversion rate:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[s_a = \frac{\bar{p}^{E}_{a}}{\bar{p}^{C}_{a}} = \frac{\text{engagements}_a / \text{impressions}_a}{\text{conversions}_a / \text{impressions}_a} = \frac{\text{engagements}_a}{\text{conversions}_a}
+\qquad\qquad
+\tilde{p}^{C}_{a}(x) = s_a \cdot p^{C}_{a}(x)\]</div>
+</div>
+<p>Example: an action for a handset has an overall engagement rate of 1.6% and an overall conversion rate of 0.2%, so <span class="math notranslate nohighlight">\(s_a = 8\)</span>. For a particular customer the conversion model gives 0.15%, which scales to <span class="math notranslate nohighlight">\(8 \times 0.15\% = 1.2\%\)</span>. That can now be compared with the 1.1% engagement propensity of another action, for which no conversion model is available yet.</p>
+<p>The scaling factor is the same for all customers. So it does not change the ranking of customers <em>within</em> an action. It only puts the action on the same scale as the others. If engagement and conversion are as closely related as in the scatter plot above, <span class="math notranslate nohighlight">\(s_a\)</span> is about 10 for every action, and the scaled conversion propensity is close to the engagement propensity. That is another way of seeing that conversion modeling then changes little.</p>
+</section>
+<section id="It-is-really-the-value-that-is-scaled">
+<h3>It is really the value that is scaled<a class="headerlink" href="#It-is-really-the-value-that-is-scaled" title="Link to this heading">¶</a></h3>
+<p>The CDH priority multiplies the propensity with the action’s value (along with context weights and business levers, which we leave out here):</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\text{Priority}_a(x) = p_a(x) \cdot V_a\]</div>
+</div>
+<p>Arbitration compares actions on the expected value <strong>per impression</strong>. For an engagement-driven action, <span class="math notranslate nohighlight">\(V_a\)</span> is effectively the value of an engagement. For a conversion-driven action, the natural value is the value of a conversion, <span class="math notranslate nohighlight">\(V^{C}_{a}\)</span>, for example the margin on the product, and the expected value of an impression is <span class="math notranslate nohighlight">\(p^{C}_{a}(x) \cdot V^{C}_{a}\)</span>.</p>
+<p>Reorder the scaled priority and the scaling factor ends up on the value instead of on the propensity:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\underbrace{\left(s_a \cdot p^{C}_{a}(x)\right)}_{\text{scaled propensity}} \cdot V_a
+\;=\;
+p^{C}_{a}(x) \cdot \underbrace{\left(s_a \cdot V_a\right)}_{V^{C}_{a}}
+\qquad\Longleftrightarrow\qquad
+V_a = V^{C}_{a} \cdot \frac{\text{conversions}_a}{\text{engagements}_a}\]</div>
+</div>
+<p>So the scaling does not really “inflate” the conversion propensity. It translates the value of a conversion (large: a product sale) into the value of a single engagement (much smaller: only about one in <span class="math notranslate nohighlight">\(s_a\)</span> engagements turns into a sale). Everything in the arbitration is then expressed in the same unit, the value of an engagement, and conversion-driven and engagement-driven actions compete fairly.</p>
+</section>
+<section id="Test-and-learn">
+<h3>Test and learn<a class="headerlink" href="#Test-and-learn" title="Link to this heading">¶</a></h3>
+<p>Optimizing for conversion does not always produce a better business result than optimizing for engagement. The engagement models learn much faster, and the conversion signal can be sparse, delayed, or noisy. CDH therefore splits customers into a <strong>conversion group</strong> and an <strong>engagement group</strong>, based on a hash of the customer ID. By default 25% of the customers get the conversion models and 75% stay on engagement models; the split can be changed in the <em>SetSubjectHashExt</em> extension strategy.
+Comparing conversions and other KPIs in both groups shows whether conversion modeling actually pays off. The lookback period and attribution scheme can be tuned based on these results.</p>
+</section>
+</section>
+<section id="Summary">
+<h2>Summary<a class="headerlink" href="#Summary" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>What a conversion is depends on the business.</strong> It can be a purchase, an activation, an application, or a micro conversion such as using a mortgage calculator. Decide this first, together with how conversions are reported and which actions promote which products.</p></li>
+<li><p><strong>Attribution</strong> links a conversion to earlier impressions. CDH offers First, Last, Linear, Decay, and Custom schemes. It does not try to solve attribution in a data-driven way.</p></li>
+<li><p><strong>Check whether you need it.</strong> If conversion rates are roughly proportional to engagement rates across actions, the ranking hardly changes and engagement models are the cheaper, faster choice.</p></li>
+<li><p><strong>Pick the lookback period from data</strong>: long enough to capture most of the impression-driven conversions, but not so long that organic conversions and storage costs dominate.</p></li>
+<li><p><strong>Scaling</strong> puts conversion and engagement propensities on the same scale. You can also read it as converting the value of a conversion into the value of an engagement, so all actions are compared in the same unit.</p></li>
+</ul>
+</section>
+<section id="Further-reading">
+<h2>Further reading<a class="headerlink" href="#Further-reading" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://docs.pega.com/bundle/customer-decision-hub/page/customer-decision-hub/cdh-portal/conversions-next-best-actions.html">Determining Next Best Actions by using conversions</a>: overview, use cases, and implementation approaches in the Pega documentation.</p></li>
+<li><p><a class="reference external" href="https://docs.pega.com/bundle/customer-decision-hub/page/customer-decision-hub/cdh-portal/configuring-conversion-attribution.html">Configuring the Conversion Attribution Decision Data Rule</a>: lookback period and attribution schemes.</p></li>
+<li><p><a class="reference external" href="https://docs.pega.com/bundle/customer-decision-hub/page/customer-decision-hub/cdh-portal/enabling-conversion-modeling.html">Enabling conversion modeling for Next Best Actions</a>: conversion models, the engagement and conversion strategy, and the conversion/engagement groups.</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="../reference.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Additional References</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="agb_global_explanations.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Global Explanations for Adaptive Gradient Boosting Models</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Pegasystems
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/pegasystems/pega-datascientist-tools" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Conversion Modeling</a><ul>
+<li><a class="reference internal" href="#What-is-a-conversion?">What is a conversion?</a></li>
+<li><a class="reference internal" href="#Attribution">Attribution</a></li>
+<li><a class="reference internal" href="#Do-you-need-conversion-modeling?">Do you need conversion modeling?</a></li>
+<li><a class="reference internal" href="#The-lookback-period">The lookback period</a></li>
+<li><a class="reference internal" href="#Mixing-conversion-and-engagement">Mixing conversion and engagement</a><ul>
+<li><a class="reference internal" href="#Two-propensities-per-action">Two propensities per action</a></li>
+<li><a class="reference internal" href="#Scaling">Scaling</a></li>
+<li><a class="reference internal" href="#It-is-really-the-value-that-is-scaled">It is really the value that is scaled</a></li>
+<li><a class="reference internal" href="#Test-and-learn">Test and learn</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#Summary">Summary</a></li>
+<li><a class="reference internal" href="#Further-reading">Further reading</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=bfa18cfb"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/version-switcher.js?v=108131f4"></script>
+    </body>
+</html>
