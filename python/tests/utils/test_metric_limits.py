@@ -87,6 +87,8 @@ class TestNBADConfigurationsRAG:
             ("Web_Click_Through_Rate,InvalidConfig", "AMBER"),
             ("Web_Click_Through_Rate,Mobile_Click_Through_Rate", "GREEN"),
             ("Web_Click_Through_Rate,OmniAdaptiveModel", "AMBER"),  # Mixed
+            ("Web_Click_Through_Rate (*), Mobile_Click_Through_Rate", "GREEN"),  # AGB marker
+            ("Web_Click_Through_Rate, OmniAdaptiveModel (*)", "AMBER"),
         ],
     )
     def test_configuration_rag_status(self, value, expected):

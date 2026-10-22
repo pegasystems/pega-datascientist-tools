@@ -159,7 +159,7 @@ with health_check:
         if "health_check_error_download" not in st.session_state:
             st.error(f"An error occurred: {e}")
             log_file_path = f"pdstools_error_log_{datetime.now().isoformat().replace(':', '_')}.txt"
-            with open(log_file_path, "w") as log_file:
+            with open(log_file_path, "w", encoding="utf-8") as log_file:
                 log_file.write(st.session_state.log_buffer.getvalue())
                 log_file.write(show_versions(print_output=False))
             with open(log_file_path, "rb") as f:
@@ -258,7 +258,7 @@ if st.session_state["dm"].predictor_data is not None:
             if "model_report_error_download" not in st.session_state:
                 st.error(f"An error occurred: {e}")
                 log_file_path = f"pdstools_error_log_{datetime.now().isoformat().replace(':', '_')}.txt"
-                with open(log_file_path, "w") as log_file:
+                with open(log_file_path, "w", encoding="utf-8") as log_file:
                     log_file.write(st.session_state.log_buffer.getvalue())
                     log_file.write(show_versions(print_output=False))
                 with open(log_file_path, "rb") as f:

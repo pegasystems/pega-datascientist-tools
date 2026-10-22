@@ -211,6 +211,31 @@ RST_TEMPLATE = remove_block_on_tag(
     ["remove_cell", "remove_output"],
     RST_TEMPLATE,
 )
+
+
+# Collapse the code cell behind a "Show code" toggle, keep output visible
+def collapse_block_on_tag(block, tag, template):
+    content = search(block, template)
+    content1 = f"""\
+{{%- if {tag!r} in cell.metadata.tags %}}
+.. raw:: html
+
+    <details class="nb-collapsed-input"><summary>Show code</summary>
+
+{{% endif -%}}
+{content}
+{{%- if {tag!r} in cell.metadata.tags %}}
+
+.. raw:: html
+
+    </details>
+
+{{% endif -%}}
+"""
+    return patch(block, template, content1)
+
+
+RST_TEMPLATE = collapse_block_on_tag("input", "hide_input", RST_TEMPLATE)
 nbsphinx.RST_TEMPLATE = RST_TEMPLATE
 
 

@@ -7,8 +7,8 @@ import plotly.graph_objects as go
 import polars as pl
 from plotly.subplots import make_subplots
 
+from ...utils.plot_utils import DEFAULT_PLOT_POINTS_PER_GROUP, downsample_distribution
 from ..utils import PRIO_FACTORS, apply_filter
-from ._common import _boxplot_point_cap
 
 
 def threshold_deciles(self, thresholding_on, thresholding_name, return_df=False):
@@ -141,8 +141,31 @@ def prio_factor_boxplots(
     return_df=False,
     additional_filters=None,
     others_filter: pl.Expr | list[pl.Expr] | None = None,
+    *,
+    max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP,
 ) -> pl.DataFrame | tuple[go.Figure | None, str | None]:
-    point_cap = _boxplot_point_cap(self)
+    """Compare prioritization-factor distributions for selected and other actions.
+
+    Parameters
+    ----------
+    reference : pl.Expr or list of pl.Expr, optional
+        Expression identifying the comparison group.
+    return_df : bool, default False
+        Return the full, unsampled segmented source data instead of a figure.
+        ``max_points_per_group`` only affects the figure.
+    additional_filters : pl.Expr or list of pl.Expr, optional
+        Filters applied to the arbitration-stage data.
+    others_filter : pl.Expr or list of pl.Expr, optional
+        Optional filter for rows outside the comparison group.
+    max_points_per_group : int or None, default 250
+        Maximum number of plotted values per comparison segment and factor.
+        ``None`` plots all values.
+
+    Returns
+    -------
+    pl.DataFrame or tuple of go.Figure or None, str or None
+        Segmented source data, or the figure and an optional sampling warning.
+    """
     df = apply_filter(self._decision_data.arbitration_stage, additional_filters)
     prio_factors = PRIO_FACTORS
     reference_expr = reference if isinstance(reference, pl.Expr) else pl.all_horizontal(reference or [pl.lit(False)])
@@ -154,13 +177,10 @@ def prio_factor_boxplots(
         others_match = others_filter if isinstance(others_filter, pl.Expr) else pl.all_horizontal(others_filter)
         tagged = tagged.filter(keep_selected | others_match)
     segmented_df = tagged.select([*prio_factors, "segment"]).collect()
-    warning_message = None
-    if segmented_df.height > point_cap:
-        segmented_df = segmented_df.sample(n=point_cap, shuffle=True, seed=1)
-        warning_message = f"Showing a representative sample of {point_cap:,} rows to keep the chart responsive."
     if return_df:
         return segmented_df
 
+    warning_message = None
     if segmented_df.select(pl.col("segment").n_unique()).row(0)[0] == 1:
         warning_message = "Comparison group never survives to Arbitration"
         return None, warning_message
@@ -171,10 +191,18 @@ def prio_factor_boxplots(
     }
 
     fig = make_subplots(rows=len(prio_factors), cols=1, subplot_titles=prio_factors)
+    downsampled = False
 
     for i, metric in enumerate(prio_factors, start=1):
         for _, segment in enumerate(["Comparison Group", "Other Offers"]):
-            prio_factor_values = segmented_df.filter(segment=segment).get_column(metric).to_list()
+            segment_data = segmented_df.filter(segment=segment).select(metric)
+            plot_data = downsample_distribution(
+                segment_data,
+                value_column=metric,
+                max_points_per_group=max_points_per_group,
+            )
+            downsampled = downsampled or plot_data.height < segment_data.height
+            prio_factor_values = plot_data.get_column(metric).to_list()
             fig.add_trace(
                 go.Box(
                     x=prio_factor_values,
@@ -192,5 +220,11 @@ def prio_factor_boxplots(
                 fig.update_xaxes(tickformat=",.0%", row=i, col=1)
 
     fig.update_layout(height=800, width=600, showlegend=False)
+
+    if downsampled and warning_message is None:
+        warning_message = (
+            f"Showing a quantile-stratified sample of up to {max_points_per_group:,} values per segment "
+            "to keep the chart compact."
+        )
 
     return fig, warning_message

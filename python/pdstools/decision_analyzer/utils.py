@@ -17,6 +17,7 @@ from .column_schema import (
 )
 
 logger = logging.getLogger(__name__)
+_UINT64_MAX = (1 << 64) - 1
 
 
 @dataclass
@@ -686,13 +687,14 @@ def sample_interactions(
     if fraction is not None:
         if not 0.0 < fraction <= 1.0:
             raise ValueError(f"fraction must be in (0, 1], got {fraction}")
-        threshold = int(fraction * 10_000)
+        if fraction == 1.0:
+            return df
+        threshold = int(_UINT64_MAX * fraction)
         logger.info(
-            "sample_interactions: LAZY hash filter, fraction=%.2f, threshold=%d",
+            "sample_interactions: LAZY hash filter, fraction=%.2f",
             fraction,
-            threshold,
         )
-        return df.filter(pl.col(id_column).hash() % 10_000 < threshold)
+        return df.filter(pl.col(id_column).hash() < threshold)
 
     # n-based hash sampling
     if n is None:  # pragma: no cover - guarded by the "Exactly one" check above
@@ -704,19 +706,18 @@ def sample_interactions(
         if total_interactions <= n:
             logger.info("Data has %d interactions (≤ requested %d), skipping.", total_interactions, n)
             return df
-        threshold = int((n / total_interactions) * 10_000)
+        threshold = int(_UINT64_MAX * n / total_interactions)
         logger.info(
-            "sample_interactions: LAZY hash filter, n=%d of %d, threshold=%d",
+            "sample_interactions: LAZY hash filter, n=%d of %d",
             n,
             total_interactions,
-            threshold,
         )
-        return df.filter(pl.col(id_column).hash() % 10_000 < threshold)
+        return df.filter(pl.col(id_column).hash() < threshold)
 
     # No total known — estimate unique interactions from a small sample of data.
     # Reading a 1% hash slice is much cheaper than scanning all rows for unique IDs.
     logger.info("Estimating interaction count from 1%% sample...")
-    sample_slice = df.filter(pl.col(id_column).hash() % 100 < 1)
+    sample_slice = df.filter(pl.col(id_column).hash() < int(_UINT64_MAX * 0.01))
     sample_unique = sample_slice.select(pl.n_unique(id_column)).collect().item()
     estimated_total = sample_unique * 100  # Scale up from 1% sample
 
@@ -724,16 +725,14 @@ def sample_interactions(
         logger.info("Estimated %d interactions (≤ requested %d), skipping sampling.", estimated_total, n)
         return df
 
-    # Add 10% buffer to threshold to compensate for estimation variance
-    raw_threshold = int((n / estimated_total) * 10_000)
-    threshold = max(1, min(int(raw_threshold * 1.1), 10_000))
+    # Add 10% buffer to threshold to compensate for estimation variance.
+    threshold = max(1, min(int((_UINT64_MAX * n / estimated_total) * 1.1), _UINT64_MAX))
     logger.info(
-        "sample_interactions: LAZY hash filter (estimated), n=%d, est_total=%d, threshold=%d",
+        "sample_interactions: LAZY hash filter (estimated), n=%d, est_total=%d",
         n,
         estimated_total,
-        threshold,
     )
-    return df.filter(pl.col(id_column).hash() % 10_000 < threshold)
+    return df.filter(pl.col(id_column).hash() < threshold)
 
 
 def prepare_and_save(
@@ -904,7 +903,7 @@ def prepare_and_save(
         elif n is not None:
             # Estimate the total using 1% hash sample (same method as sample_interactions)
             logger.info("Estimating total interaction count from 1%% sample for metadata...")
-            sample_slice = df.filter(pl.col(id_column).hash() % 100 < 1)
+            sample_slice = df.filter(pl.col(id_column).hash() < int(_UINT64_MAX * 0.01))
             sample_unique = sample_slice.select(pl.n_unique(id_column)).collect().item()
             estimated_total = sample_unique * 100
 

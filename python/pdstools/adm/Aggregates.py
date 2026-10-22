@@ -3,6 +3,8 @@ from __future__ import annotations
 __all__ = ["Aggregates"]
 import datetime
 import logging
+import re
+import unicodedata
 from typing import TYPE_CHECKING, Literal
 
 import polars as pl
@@ -14,6 +16,24 @@ from ..utils.metric_limits import (
     is_standard_NBAD_configuration,
 )
 
+MIN_CHANNEL_POSITIVES = 200
+"""Minimum total positives for a channel to have sufficient feedback."""
+
+MIN_CHANNEL_RESPONSES = 1_000
+"""Minimum total responses for a channel to have sufficient feedback."""
+
+VERY_LOW_SUCCESS_RATE_FRACTION = 0.1
+"""A model is "very low" when its whole success rate interval is below this
+fraction of the average success rate."""
+
+NAMING_COLUMNS = ("Configuration", "Channel", "Direction", "Issue", "Group", "Name", "Treatment")
+"""Model identifier columns covered by the naming review."""
+
+HIDDEN_CHARACTERS_PATTERN = (
+    r"[\x00-\x1f\x7f-\x9f\u00a0\u00ad\u1680\u180e\u2000-\u200f\u2028-\u202f\u205f-\u2064\u3000\ufeff]"
+)
+"""Control, zero-width, directional and non-standard space characters."""
+
 if TYPE_CHECKING:
     import datetime
 
@@ -21,6 +41,34 @@ if TYPE_CHECKING:
     from .ADMDatamart import ADMDatamart
 
 logger = logging.getLogger(__name__)
+
+_HIDDEN_CHARACTERS = re.compile(HIDDEN_CHARACTERS_PATTERN)
+
+
+def _spell_out_hidden_characters(value: str) -> str:
+    """Quote a value and replace each hidden character by ``[U+XXXX]``.
+
+    Square brackets are used because angle brackets are swallowed as HTML tags
+    when the value is shown in a report.
+    """
+    return '"' + _HIDDEN_CHARACTERS.sub(lambda m: f"[U+{ord(m.group()):04X}]", value) + '"'
+
+
+def _describe_hidden_characters(value: str) -> str:
+    """Name the hidden characters in a value, e.g. ``U+200B zero width space``."""
+    found = dict.fromkeys(_HIDDEN_CHARACTERS.findall(value))
+    parts = [f"U+{ord(c):04X} {unicodedata.name(c, 'control character').lower()}" for c in found]
+    if value != value.strip():
+        parts.append("leading or trailing whitespace")
+    return ", ".join(parts)
+
+
+def channel_is_valid_expr() -> pl.Expr:
+    """Expression flagging channels with sufficient feedback.
+
+    Expects ``TotalPositives`` and ``TotalResponseCount`` columns.
+    """
+    return (pl.col("TotalPositives") >= MIN_CHANNEL_POSITIVES) & (pl.col("TotalResponseCount") >= MIN_CHANNEL_RESPONSES)
 
 
 class Aggregates:
@@ -213,34 +261,35 @@ class Aggregates:
 
         return q.select(by_name, *column_order)
 
-    # TODO: how is this used, where? Overlap with other summary function?
-    # should it also have Performance?
-
     def model_summary(
         self,
         by: str = "Name",
         query: QUERY | None = None,
     ) -> pl.LazyFrame:
-        """Generate a summary of statistic for each model (based on model ID)
+        """Summarize the latest model snapshot along the context hierarchy.
 
-        If you want to generate statistics at a model name or treatment level,
-        specify this in the 'by' column.
+        This aggregation backs :meth:`pdstools.adm.Plots.Plots.tree_map` and can
+        also be used directly to compare model counts, response volumes, success
+        rates, and performance across context groups. Grouping includes each
+        context key up to and including ``by``.
 
         Parameters
         ----------
         by : str, optional
-            The column to define the 'counts' for, by default "ModelID"
-            Must be part of the context keys in the ADMDatamart class
+            Last context key to include in the grouping, by default "Name".
+            Must be part of the context keys in the ADMDatamart class.
         query : Optional[QUERY], optional
             A query to apply to the data before summarization, by default None
 
         Returns
         -------
         pl.LazyFrame
-            A LazyFrame, with one row for each context key combination
+            A LazyFrame with one row per context-key combination. Includes model
+            counts, response and positive totals/means/maxima, weighted success
+            rate and performance, and percentage of models without responses.
 
         """
-        df = cdh_utils._apply_query(self.datamart.aggregates.last(), query)
+        df = cdh_utils._apply_query(self.datamart.aggregates.last(), query, allow_empty=True)
         aggregate_columns = ["ResponseCount", "Performance", "SuccessRate", "Positives"]
 
         if by != "ModelID" and by not in self.datamart.context_keys:
@@ -504,7 +553,7 @@ class Aggregates:
             )
             .with_columns(
                 # applies to totals not delta
-                isValid=(pl.col("TotalPositives") >= 200) & (pl.col("TotalResponseCount") >= 1000),
+                isValid=channel_is_valid_expr(),
             )
             .drop([] if debug else ["ResponseCount", "Positives"])
         )
@@ -589,12 +638,22 @@ class Aggregates:
         model_data: pl.LazyFrame,
         debug: bool,
     ) -> pl.LazyFrame:
-        result = model_data.group_by(grouping).agg(
-            is_standard_NBAD_configuration().any(ignore_nulls=False).alias("usesNBAD"),
-            (pl.col("ModelTechnique") == "GradientBoost").any(ignore_nulls=False).alias("usesAGB"),
-            # For debugging:
-            pl.col("ModelTechnique").unique().sort(),
-            pl.col("Configuration").unique().sort().alias("Configurations"),
+        result = (
+            model_data.group_by(grouping)
+            .agg(
+                is_standard_NBAD_configuration().any(ignore_nulls=False).alias("usesNBAD"),
+                (pl.col("ModelTechnique") == "GradientBoost").any(ignore_nulls=False).alias("usesAGB"),
+                pl.col("Configuration")
+                .cast(pl.Utf8)
+                .filter(pl.col("ModelTechnique") == "GradientBoost")
+                .unique()
+                .sort()
+                .alias("AGB Configurations"),
+                # For debugging:
+                pl.col("ModelTechnique").unique().sort(),
+                pl.col("Configuration").unique().sort().alias("Configurations"),
+            )
+            .with_columns(pl.col("AGB Configurations").list.join(", "))
         )
 
         if debug:
@@ -680,6 +739,7 @@ class Aggregates:
             Technology Usage Indicators:
             - usesNBAD - Boolean indicating whether any standard NBAD configurations are used
             - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
+            - AGB Configurations - Comma-separated names of the configurations that contain AGB models (empty if none)
 
         """
         start_date, end_date = cdh_utils._get_start_end_date_args(
@@ -858,7 +918,7 @@ class Aggregates:
         group_by_cols = ["Configuration"] + [c for c in ["Channel", "Direction"] if c in self.datamart.context_keys]
 
         configuration_summary = (
-            cdh_utils._apply_query(self.last(table="model_data"), query)
+            cdh_utils._apply_query(self.last(table="model_data"), query, allow_empty=True)
             .group_by(group_by_cols)
             .agg(
                 is_standard_NBAD_configuration().any(ignore_nulls=False).alias("usesNBAD"),
@@ -1106,6 +1166,362 @@ class Aggregates:
             ["GroupIndex", "isActive", "Univariate Performance"],
             descending=[False, True, True],
             nulls_last=True,
+        )
+
+    def success_rate_intervals(
+        self,
+        *,
+        confidence_level: float = 0.95,
+        query: QUERY | None = None,
+    ) -> pl.LazyFrame:
+        """Success rate of each model with a Wilson confidence interval.
+
+        Every model (last snapshot) is compared to the average success rate
+        of the models in its own channel and direction (total positives over
+        total responses), as base rates differ widely between channels. It
+        is classified by its confidence interval, without any assumption on
+        the model names. Without ``Channel`` and ``Direction`` columns all
+        models in scope are compared to one average.
+
+        Parameters
+        ----------
+        confidence_level : float, default 0.95
+            Two-sided confidence level of the Wilson interval.
+        query : QUERY, optional
+            Restricts the models in scope. The averages are computed over
+            the models that remain.
+
+        Returns
+        -------
+        pl.LazyFrame
+            One row per model with, next to the descriptive columns that
+            exist in the data, ``Positives``, ``Negatives``,
+            ``ResponseCount``, ``SuccessRate``, ``SuccessRate_CI_Lower``,
+            ``SuccessRate_CI_Upper``, ``AverageSuccessRate`` and
+            ``SuccessRateCategory``. The category is one of:
+
+            - ``Very low``: the whole interval is below a tenth of the average
+            - ``Below average``: the whole interval is below the average
+            - ``Above average``: the whole interval is above the average
+            - ``Consistent with average``: the interval contains the average
+
+            Models without responses are left out.
+        """
+        model_data = cdh_utils._apply_query(self.last(table="model_data"), query, allow_empty=True)
+        lower, upper = cdh_utils.wilson_interval(
+            pl.col("Positives"),
+            pl.col("ResponseCount"),
+            confidence_level,
+        )
+        names = model_data.collect_schema().names()
+        descriptive = [
+            c
+            for c in ("ModelID", "Configuration", "Channel", "Direction", "Issue", "Group", "Name", "Treatment")
+            if c in names
+        ]
+        group = [c for c in ("Channel", "Direction") if c in names]
+        return (
+            model_data.filter(pl.col("ResponseCount") > 0)
+            .select(
+                *descriptive,
+                pl.col("Positives").cast(pl.Float64),
+                (pl.col("ResponseCount") - pl.col("Positives")).cast(pl.Float64).alias("Negatives"),
+                pl.col("ResponseCount").cast(pl.Float64),
+            )
+            .with_columns(
+                (pl.col("Positives") / pl.col("ResponseCount")).alias("SuccessRate"),
+                lower.alias("SuccessRate_CI_Lower"),
+                upper.alias("SuccessRate_CI_Upper"),
+                (pl.col("Positives").sum().over(group) / pl.col("ResponseCount").sum().over(group)).alias(
+                    "AverageSuccessRate"
+                ),
+            )
+            .with_columns(
+                pl.when(pl.col("SuccessRate_CI_Upper") < pl.col("AverageSuccessRate") * VERY_LOW_SUCCESS_RATE_FRACTION)
+                .then(pl.lit("Very low"))
+                .when(pl.col("SuccessRate_CI_Upper") < pl.col("AverageSuccessRate"))
+                .then(pl.lit("Below average"))
+                .when(pl.col("SuccessRate_CI_Lower") > pl.col("AverageSuccessRate"))
+                .then(pl.lit("Above average"))
+                .otherwise(pl.lit("Consistent with average"))
+                .alias("SuccessRateCategory")
+            )
+        )
+
+    def naming_review(
+        self,
+        *,
+        columns: tuple[str, ...] = NAMING_COLUMNS,
+        query: QUERY | None = None,
+    ) -> pl.LazyFrame:
+        """Completeness and cleanliness of the model identifier columns.
+
+        Parameters
+        ----------
+        columns : tuple[str, ...]
+            The model columns to review. Columns absent from the data are
+            skipped.
+        query : QUERY, optional
+            Restricts the models in scope.
+
+        Returns
+        -------
+        pl.LazyFrame
+            One row per reviewed column with ``Column``, ``Distinct Values``
+            (non-empty values), ``Models with Empty Value`` (null, empty or
+            whitespace only), ``Values with Hidden Characters`` and
+            ``Models with Hidden Characters``. Hidden characters are
+            invisible characters such as zero-width or non-breaking spaces
+            and leading or trailing whitespace; see :meth:`hidden_character_names`
+            for the values themselves.
+        """
+        model_data = cdh_utils._apply_query(self.last(table="model_data"), query, allow_empty=True)
+        names = model_data.collect_schema().names()
+        schema = {
+            "Column": pl.Utf8,
+            "Distinct Values": pl.UInt32,
+            "Models with Empty Value": pl.UInt32,
+            "Values with Hidden Characters": pl.UInt32,
+            "Models with Hidden Characters": pl.UInt32,
+        }
+        frames = []
+        for column in (c for c in columns if c in names):
+            raw = pl.col("Raw")
+            cleaned = raw.str.replace_all(HIDDEN_CHARACTERS_PATTERN, "").str.strip_chars()
+            empty = raw.is_null() | (cleaned == "")
+            hidden = ~empty & (raw != cleaned)
+            frames.append(
+                model_data.select(pl.col(column).cast(pl.Utf8).alias("Raw"), "ModelID").select(
+                    pl.lit(column).alias("Column"),
+                    raw.filter(~empty).n_unique().cast(pl.UInt32).alias("Distinct Values"),
+                    pl.col("ModelID").filter(empty).n_unique().cast(pl.UInt32).alias("Models with Empty Value"),
+                    raw.filter(hidden).n_unique().cast(pl.UInt32).alias("Values with Hidden Characters"),
+                    pl.col("ModelID").filter(hidden).n_unique().cast(pl.UInt32).alias("Models with Hidden Characters"),
+                )
+            )
+        if not frames:
+            return pl.LazyFrame(schema=schema)
+        return pl.concat(frames)
+
+    def hidden_character_names(
+        self,
+        *,
+        columns: tuple[str, ...] = NAMING_COLUMNS,
+        query: QUERY | None = None,
+    ) -> pl.LazyFrame:
+        """Model identifiers that contain invisible or control characters.
+
+        Zero-width spaces, non-breaking spaces, control characters and
+        leading or trailing whitespace are invisible in most tools, so two
+        names that look identical can be different values. When
+        presentations and responses are recorded under such lookalikes they
+        end up on different models.
+
+        Parameters
+        ----------
+        columns : tuple[str, ...]
+            The model columns to inspect. Columns absent from the data are
+            skipped.
+        query : QUERY, optional
+            Restricts the models in scope.
+
+        Returns
+        -------
+        pl.LazyFrame
+            One row per affected value with ``Column``, ``Value`` (shown
+            quoted with the hidden characters spelled out as ``[U+XXXX]``),
+            ``Hidden Characters`` (what is hidden in the value),
+            ``Cleaned`` (the value without hidden characters, also quoted), ``Models``
+            (number of models with this value) and ``Name Clashes``
+            (number of models that have the cleaned value). A non-zero
+            clash count means the data holds two values that appear
+            identical.
+        """
+        model_data = cdh_utils._apply_query(self.last(table="model_data"), query, allow_empty=True)
+        names = model_data.collect_schema().names()
+        schema = {
+            "Column": pl.Utf8,
+            "Value": pl.Utf8,
+            "Hidden Characters": pl.Utf8,
+            "Cleaned": pl.Utf8,
+            "Models": pl.UInt32,
+            "Name Clashes": pl.UInt32,
+        }
+        frames = []
+        for column in (c for c in columns if c in names):
+            values = (
+                model_data.select(pl.col(column).cast(pl.Utf8).alias("Raw"), "ModelID")
+                .drop_nulls("Raw")
+                .group_by("Raw")
+                .agg(pl.col("ModelID").n_unique().alias("Models"))
+            )
+            cleaned = values.with_columns(
+                pl.col("Raw").str.replace_all(HIDDEN_CHARACTERS_PATTERN, "").str.strip_chars().alias("Cleaned")
+            )
+            frames.append(
+                cleaned.filter(pl.col("Raw") != pl.col("Cleaned"))
+                .join(
+                    values.select(pl.col("Raw").alias("Cleaned"), pl.col("Models").alias("Name Clashes")),
+                    on="Cleaned",
+                    how="left",
+                )
+                .select(
+                    pl.lit(column).alias("Column"),
+                    pl.col("Raw").map_elements(_spell_out_hidden_characters, return_dtype=pl.Utf8).alias("Value"),
+                    pl.col("Raw")
+                    .map_elements(_describe_hidden_characters, return_dtype=pl.Utf8)
+                    .alias("Hidden Characters"),
+                    pl.format('"{}"', pl.col("Cleaned")).alias("Cleaned"),
+                    "Models",
+                    pl.col("Name Clashes").fill_null(0),
+                )
+            )
+        if not frames:
+            return pl.LazyFrame(schema=schema)
+        return pl.concat(frames).sort("Column", "Models", descending=[False, True])
+
+    def _predictor_importance_data(self, *, query: QUERY | None = None) -> pl.LazyFrame:
+        """Return latest predictor rows with configuration-level AGB importance.
+
+        For AGB action models linked to a configuration summary model, the
+        global (configuration-level) importance and activity replace the
+        action-level values for all predictors. Other models keep their own
+        values. The requested scope is applied afterwards.
+        """
+        combined = self.datamart.combined_data
+        if combined is None or "FeatureImportance" not in combined.collect_schema().names():
+            raise ValueError("Predictor importance requires predictor data with a FeatureImportance column")
+
+        data = self.last(table="combined_data").with_columns(_Active=pl.col("EntryType") == "Active")
+        if "ConfigurationImportance" in data.collect_schema():
+            has_global = (pl.col("ConfigurationImportance").fill_null(0).sum() > 0).over("ModelID")
+            data = data.with_columns(
+                FeatureImportance=pl.when(has_global)
+                .then(pl.col("ConfigurationImportance").fill_null(0))
+                .otherwise("FeatureImportance"),
+                _Active=pl.when(has_global).then(pl.col("ConfigurationActive").fill_null(False)).otherwise("_Active"),
+            )
+        return cdh_utils._apply_query(data, query, allow_empty=True)
+
+    def unused_agb_predictors(self, *, query: QUERY | None = None) -> pl.LazyFrame:
+        """Find predictors with zero importance in every trained AGB model.
+
+        Use the same configuration-level (global) importance as
+        :meth:`predictor_importance`, including when identifying trained models.
+        Models with no positive total importance are excluded. Missing predictor
+        importance is treated as zero within trained models.
+
+        Parameters
+        ----------
+        query : QUERY, optional
+            Restrict the models in scope, for example to active models or a
+            configuration. Only GradientBoost models are included.
+
+        Returns
+        -------
+        pl.LazyFrame
+            PredictorName, PredictorCategory, Configurations, Response Count Min
+            and Response Count Max for unused predictors, sorted by configuration
+            count descending and predictor name ascending.
+
+        Raises
+        ------
+        ValueError
+            If the data has no predictor importance.
+        """
+        return (
+            self._predictor_importance_data(query=query)
+            .filter(pl.col("ModelTechnique") == "GradientBoost")
+            .filter(pl.col("EntryType") != "Classifier")
+            .unique(subset=["ModelID", "PredictorName"], keep="first")
+            .filter(pl.col("FeatureImportance").fill_null(0).sum().over("ModelID") > 0)
+            .group_by("PredictorName", "PredictorCategory")
+            .agg(
+                pl.col("Configuration").n_unique().alias("Configurations"),
+                pl.min("ResponseCount").alias("Response Count Min"),
+                pl.max("ResponseCount").alias("Response Count Max"),
+                pl.col("FeatureImportance").fill_null(0).max().alias("_MaxImportance"),
+            )
+            .filter(pl.col("_MaxImportance") == 0)
+            .drop("_MaxImportance")
+            .sort(["Configurations", "PredictorName"], descending=[True, False])
+        )
+
+    def predictor_importance(
+        self,
+        *,
+        by: Literal["PredictorName", "PredictorCategory"] = "PredictorName",
+        query: QUERY | None = None,
+    ) -> pl.LazyFrame:
+        """Share of the model importance carried by predictors or categories.
+
+        Uses the ``FeatureImportance`` the platform stores for the
+        predictors. For Adaptive Gradient Boosting (AGB) models this is the
+        only per-predictor measure: their predictors have no bin statistics
+        and hence no univariate performance. Per model the importances are
+        rescaled to sum to 100%, then averaged over the models of each
+        configuration. Models without any importance (for example AGB models
+        that have not built trees yet) are not counted.
+
+        For AGB, the platform writes importance per action model and once per
+        configuration (the global importance, in a summary model with empty
+        context keys). Action models hold their context keys constant, so
+        those report zero importance there. When available, the global
+        importance and activity therefore replace the action-level values of
+        all predictors, so each configuration reports its global importance.
+        Model selection still uses the action models; summary models are not
+        counted as models.
+
+        Parameters
+        ----------
+        by : {"PredictorName", "PredictorCategory"}, default "PredictorName"
+            Whether to report each predictor or each predictor category.
+        query : QUERY, optional
+            Restricts the models in scope, for example
+            ``pl.col("ModelTechnique") == "GradientBoost"``.
+
+        Returns
+        -------
+        pl.LazyFrame
+            Per Configuration, Channel, Direction and ModelTechnique (those
+            present in the data) and predictor (or category): ``Models``
+            (models in the group), ``Importance %`` (average share of the
+            model importance) and ``Active Predictors`` (average number of
+            active predictors per model).
+
+        Raises
+        ------
+        ValueError
+            If the data has no predictor importance.
+        """
+        data = self._predictor_importance_data(query=query)
+        context = [
+            c for c in ("Configuration", "Channel", "Direction", "ModelTechnique") if c in data.collect_schema().names()
+        ]
+        group = context + (["PredictorName", "PredictorCategory"] if by == "PredictorName" else ["PredictorCategory"])
+        per_model = (
+            data.filter(pl.col("EntryType") != "Classifier")
+            .filter(pl.col("FeatureImportance").is_not_null())
+            .unique(subset=["ModelID", "PredictorName"], keep="first")
+            .with_columns(pl.col("FeatureImportance").sum().over("ModelID").alias("_Total"))
+            .filter(pl.col("_Total") > 0)
+            .with_columns((pl.col("FeatureImportance") / pl.col("_Total") * 100).alias("_Share"))
+        )
+        models = per_model.group_by(context).agg(pl.col("ModelID").n_unique().alias("Models"))
+        return (
+            per_model.group_by(group)
+            .agg(
+                pl.col("_Share").sum(),
+                pl.col("_Active").sum(),
+            )
+            .join(models, on=context, nulls_equal=True)
+            .select(
+                *group,
+                "Models",
+                (pl.col("_Share") / pl.col("Models")).alias("Importance %"),
+                (pl.col("_Active") / pl.col("Models")).alias("Active Predictors"),
+            )
+            .sort([*context, "Importance %"], descending=[False] * len(context) + [True])
         )
 
     def overall_summary(

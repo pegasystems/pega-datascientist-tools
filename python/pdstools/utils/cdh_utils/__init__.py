@@ -77,10 +77,16 @@ from ._metrics import (
     safe_range_interval,
     validate_confidence_level,
     weighted_auc_ci_from_estimates,
+    wilson_interval,
     z_ratio,
 )
 from ._misc import legend_color_order, safe_flatten_list
-from ._namespacing import _capitalize, default_predictor_categorization
+from ._namespacing import (
+    CONTEXT_KEY_PREDICTORS,
+    CONTEXT_KEYS_CATEGORY,
+    _capitalize,
+    default_predictor_categorization,
+)
 from ._polars import (
     POLARS_DURATION_PATTERN,
     _apply_query,
@@ -97,6 +103,8 @@ from ._polars import (
 )
 
 __all__ = [
+    "CONTEXT_KEYS_CATEGORY",
+    "CONTEXT_KEY_PREDICTORS",
     "POLARS_DURATION_PATTERN",
     "QUERY",
     # constants / shared types
@@ -139,5 +147,6 @@ __all__ = [
     "weighted_auc_ci_from_estimates",
     "weighted_average_polars",
     "weighted_performance_polars",
+    "wilson_interval",
     "z_ratio",
 ]

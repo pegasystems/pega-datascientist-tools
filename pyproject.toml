@@ -39,7 +39,7 @@ requires-python = ">=3.10,<3.15"
 # Bounds are added to deps that ship breaking majors regularly. Stable single-
 # major deps (requests, pyyaml, ipywidgets, etc.) can stay loose.
 dependencies = [
-    "polars>=1.37,!=1.35.1,<2",
+    "polars>=1.37,!=1.35.1,<3",
     "pre-commit>=4.6.1",
     'typing_extensions',
 ]
@@ -71,7 +71,7 @@ nlp = [
 app = [
     'pdstools[healthcheck]',
     'streamlit>=1.45,<2',
-    "polars[rt64]>=1.37,!=1.35.1,<2",
+    "polars[rt64]>=1.37,!=1.35.1,<3",
     'humanize>=4.0.0,<5',
     'fastexcel>=0.19,<1',
     'questionary>=2.0,<3',
