@@ -6,7 +6,66 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- AGB predictor importance (`ADMDatamart.aggregates.predictor_importance`,
+  `unused_agb_predictors` and the ADM Health Check) now reports the global
+  importance per configuration that the platform stores in the configuration
+  summary model. Before, it averaged the action-level importances, where the
+  context keys are constant and therefore show zero importance (#986). The
+  summary model's predictor rows are dropped from `predictor_data`, like the
+  summary model itself (#667).
+- The ADM context keys (`pyChannel`, `pyDirection`, `pyIssue`, `pyGroup`,
+  `pyName`, `pyTreatment`) get their own "Context Keys" predictor category
+  instead of "Primary" in `default_predictor_categorization`, ADM plots and
+  AGB tree plots (which called it "Model context").
+- ADM Health Check "Predictor Performance across Actions" and "Missing values"
+  sections now cover Naive Bayes models only, and their headers say so. AGB
+  predictors have no individual performance (the heatmap filled them in as
+  0.5) and no missing-value bins.
+- `ADMDatamart.plot.predictor_performance_heatmap` now shows AUC on the Pega
+  50-100 scale (`return_df` still returns 0-1 values), and the Health Check
+  heatmap title no longer overlaps the plot.
+- ADM Health Check ranks AGB predictors separately per model configuration,
+  channel and direction instead of pooling all configurations. Reports with
+  more than ten configuration groups fall back to channel/direction and
+  modelling technique, matching the Naive Bayes section. Both techniques use
+  consistent chart titles naming the actual configuration or identifying
+  configurations combined within the displayed channel/direction and technique.
+  The Naive Bayes importance section now ignores AGB-only configurations, so
+  they no longer trigger its fallback or appear as empty facets.
+- The ADM Health Check "Global Predictor Overview" section is renamed to
+  "Poor Predictors Globally". Its poor-predictor table now covers Naive Bayes
+  models only, because AGB predictors report a performance of 0 (they have no
+  univariate AUC), which pulled averages below 50. A new table lists AGB
+  predictors that have zero importance in every trained AGB model, with the
+  min/max response counts of those models. The section
+  now has AGB and Naive Bayes subsections; the former "Number of Active and
+  Inactive Predictors" section moves under Naive Bayes and counts Naive Bayes
+  models only.
+- The same applies to the remaining univariate-AUC summaries: the Health Check
+  predictor category performance plot, and the poor-predictor finding and
+  "Naive Bayes Predictor Categories" table of the Markdown summary
+  (`ADMDatamart.analysis`). The predictor count there still includes AGB.
+- Decision Analysis Tool: `--data-path` and file upload now read ZIP archives containing nested Parquet ZIP files.
+- `read_data` (and therefore `DecisionAnalyzer` constructors) now reads Pega Action Analysis ZIP exports, whose inner `.zip` chunks are gzipped NDJSON.
+
+## [5.1.0] — 2026-10-09
+
 ### Added
+
+- Polars 2 is now supported; the dependency cap is `polars<3`
+  ([#961](https://github.com/pegasystems/pega-datascientist-tools/pull/961)).
+- Distribution plots in the Decision Analysis Tool and Value Finder take a
+  `max_points_per_group` argument (default 250, `None` for no cap). It
+  draws a quantile-stratified sample per group so charts and exported HTML
+  stay small; the underlying data and all calculations stay complete. This
+  applies to `prio_factor_boxplots`, `plot_priority_component_distribution`,
+  `plot_component_overview`, `rank_boxplot`,
+  `create_parameter_distribution_boxplots` and the Value Finder
+  `propensity_distribution` and `propensity_threshold`. The reusable
+  helper is public as `pdstools.utils.plot_utils.downsample_distribution`
+  ([#966](https://github.com/pegasystems/pega-datascientist-tools/pull/966)).
 
 - ADM Model Reports now show AUC confidence intervals (DeLong-style,
   grouped by bin) for the model and for each predictor's univariate AUC,
@@ -49,13 +108,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Polars expressions instead of grouped Python UDFs, which was 2× faster or
   more in benchmarks
   ([#934](https://github.com/pegasystems/pega-datascientist-tools/pull/934)).
-- Metric limits renamed to follow naming conventions:
-  `AverageGroupsPerIssue` is now `GroupsPerIssueAverage` and
+- **Breaking:** metric limits renamed to follow naming conventions, so
+  code that looks them up by name (for example
+  `MetricLimits.best_practice_min("AverageGroupsPerIssue")`) must use the
+  new names. `AverageGroupsPerIssue` is now `GroupsPerIssueAverage` and
   `AverageTreatmentsPerChannelPerAction` is now
   `TreatmentsPerChannelPerActionAverage`. Treatment-count limits now match
   the documented Pega Cloud service limits
   ([#860](https://github.com/pegasystems/pega-datascientist-tools/pull/860),
   [#944](https://github.com/pegasystems/pega-datascientist-tools/pull/944)).
+- Decision Analysis Tool plots no longer use a point cap derived from the
+  loaded sample size; sampling is controlled by `max_points_per_group`
+  (see above). The Win/Loss page only shows blocking warnings, not
+  sampling notices
+  ([#966](https://github.com/pegasystems/pega-datascientist-tools/pull/966)).
 - Requires `plotly>=6.7`; the `healthcheck` extra now also installs
   `packaging`
   ([#921](https://github.com/pegasystems/pega-datascientist-tools/pull/921),
@@ -63,6 +129,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Health Check retains all channels when excluding those with insufficient
+  feedback would remove every channel, and shows a prominent insufficient-feedback
+  finding before the first chart.
 - AGB active ranges no longer double-count malformed classifier-bin rows
   that differ only by `BinIndex`, which skewed AGB AUC and its confidence
   interval

@@ -23,6 +23,7 @@ from typing import (
 
 import polars as pl
 
+from ...utils import cdh_utils
 from ._nodes import (
     _BOOSTER_PATHS,
     _iter_nodes,
@@ -1313,15 +1314,18 @@ class ADMTreesModel:
         return 1 / (1 + exp(-total))
 
     def predictor_categorization(self, x: str, context_keys: list | None = None) -> str:
-        """Default predictor categorisation function."""
+        """Default predictor categorisation function.
+
+        Context keys (from ``context_keys``, the model's configured context
+        keys, or the standard ADM context keys) map to "Context Keys"; dotted
+        names map to their prefix; anything else is "Primary".
+        """
         context_keys = context_keys if context_keys is not None else self.context_keys
-        if context_keys is None:
-            context_keys = []  # pragma: no cover
+        if x in cdh_utils.CONTEXT_KEY_PREDICTORS or x in (context_keys or []):
+            return cdh_utils.CONTEXT_KEYS_CATEGORY
         if len(x.split(".")) > 1:
             return x.split(".")[0]
-        if x.startswith("py"):
-            return "Context Keys"
-        return "Primary"  # pragma: no cover
+        return "Primary"
 
     def compute_categorization_over_time(
         self,
