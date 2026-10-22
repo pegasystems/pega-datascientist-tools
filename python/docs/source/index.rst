@@ -36,6 +36,7 @@ Welcome to the PDS Tools Python documentation
    articles/thompsonsampling
    articles/ADMExplained
    articles/agb_global_explanations
+   articles/ConversionModeling
 
 .. toctree::
    :maxdepth: 1
