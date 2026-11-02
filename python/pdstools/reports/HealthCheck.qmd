@@ -1045,7 +1045,23 @@ else:
 
         fig.show()
     except ValueError as e:
-        print(f"Error {str(e)}")
+        if any(
+            message in str(e)
+            for message in (
+                "Period SuccessRate requires observations",
+                "Cannot infer a trend interval without valid SnapshotTime values",
+            )
+        ):
+            display(
+                Markdown(
+                    "::: {.callout-note title='Trend unavailable'}\n"
+                    "There is insufficient valid snapshot history for a period-to-period CTR trend. "
+                    "At least two snapshots per model with valid cumulative positive and response-count changes are needed.\n"
+                    ":::"
+                )
+            )
+        else:
+            report_utils.quarto_plot_exception("Success Rates over Time", e)
     except Exception as e:
         report_utils.quarto_plot_exception("Success Rates over Time", e)
 ```
