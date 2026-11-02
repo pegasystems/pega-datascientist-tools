@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import plotly.express as px
@@ -8,6 +8,10 @@ from pdstools import ADMDatamart
 from plotly.graph_objs import Figure
 
 basePath = Path(__file__).parent.parent.parent.parent
+
+
+def _utc_datetime(year: int, month: int, day: int) -> datetime:
+    return datetime(year, month, day, tzinfo=timezone.utc)
 
 
 @pytest.fixture
@@ -148,15 +152,21 @@ def test_over_time(sample2: ADMDatamart):
     fig = sample2.plot.over_time(metric="Performance", by="ModelID")
     assert isinstance(fig, Figure)
     assert fig.layout.xaxis.title.text == "SnapshotTime"
+    assert fig.layout.xaxis.hoverformat == "%b %d, %Y"
     assert fig.layout.yaxis.title.text == "Performance"
+    assert fig.layout.yaxis.range == (50, 100)
     # One trace per ModelID; values are pyValue * 100 (Pega-scale display).
     by_name = {t.name: list(t.y) for t in fig.data}
     assert by_name == {"1": [75.0, 78.0, 77.0], "2": [80.0, 82.0, 85.0]}
 
     fig = sample2.plot.over_time(metric="ResponseCount", by="ModelID")
     assert isinstance(fig, Figure)
+    assert fig.layout.yaxis.rangemode == "tozero"
     by_name = {t.name: [float(v) for v in t.y] for t in fig.data}
     assert by_name == {"1": [100.0, 120.0, 110.0], "2": [150.0, 160.0, 170.0]}
+
+    fig_performance_changes = sample2.plot.over_time(metric="Performance", cumulative=False)
+    assert fig_performance_changes.layout.yaxis.rangemode == "tozero"
 
     performance_changes = (
         sample2.plot.over_time(metric="Performance", cumulative=False, return_df=True)
@@ -190,8 +200,10 @@ def test_over_time(sample2: ADMDatamart):
         facet="Group",
         facet_col_spacing=0.08,
     )
-    assert fig_success_rate.layout.yaxis.rangemode == "nonnegative"
-    assert fig_success_rate.layout.yaxis2.rangemode == "nonnegative"
+    assert fig_success_rate.layout.yaxis.rangemode == "tozero"
+    assert fig_success_rate.layout.yaxis2.rangemode == "tozero"
+    assert fig_success_rate.layout.xaxis.hoverformat == "%b %d, %Y"
+    assert fig_success_rate.layout.xaxis2.hoverformat == "%b %d, %Y"
     assert fig_success_rate.layout.yaxis2.matches == "y"
     assert fig_success_rate.layout.xaxis2.domain[0] - fig_success_rate.layout.xaxis.domain[1] == pytest.approx(0.08)
 
@@ -255,6 +267,277 @@ def test_over_time_response_count_change_normalizes_missing_periods():
     ).collect()
 
     assert weekly.get_column("ResponseCount_change").to_list() == [None, 100.0]
+
+
+def test_over_time_period_success_rate_uses_latest_counts_and_normalizes_gaps():
+    data = pl.DataFrame(
+        {
+            "SnapshotTime": [
+                _utc_datetime(2024, 1, 1),
+                _utc_datetime(2024, 1, 1),
+                _utc_datetime(2024, 1, 8),
+                _utc_datetime(2024, 1, 8),
+                _utc_datetime(2024, 1, 14),
+                _utc_datetime(2024, 1, 14),
+                _utc_datetime(2024, 1, 22),
+                _utc_datetime(2024, 1, 22),
+                _utc_datetime(2024, 1, 22),
+                _utc_datetime(2024, 1, 29),
+                _utc_datetime(2024, 1, 29),
+                _utc_datetime(2024, 1, 29),
+            ],
+            "ModelID": ["a", "b", "a", "b", "a", "b", "a", "b", "c", "a", "b", "c"],
+            "Channel": ["Email"] * 12,
+            "ModelTechnique": ["NaiveBayes"] * 12,
+            "Performance": [0.7] * 12,
+            "ResponseCount": [100, 100, 115, 110, 120, 120, 160, 140, 200, 170, 150, 210],
+            "Positives": [10, 20, 14, 22, 16, 24, 22, 30, 100, 25, 32, 105],
+        },
+    ).lazy()
+    datamart = ADMDatamart(model_df=data)
+
+    trend = (
+        datamart.plot.over_time(
+            metric="SuccessRate",
+            by="Channel",
+            every="1w",
+            cumulative=False,
+            facet="ModelTechnique",
+            return_df=True,
+        )
+        .collect()
+        .sort("SnapshotTime")
+    )
+
+    assert trend.get_column("SnapshotTime").dt.strftime("%Y-%m-%d").to_list() == [
+        "2024-01-08",
+        "2024-01-22",
+        "2024-01-29",
+    ]
+    assert trend.get_column("Positives").to_list() == [10.0, 6.0, 10.0]
+    assert trend.get_column("ResponseCount").to_list() == [40.0, 30.0, 30.0]
+    assert trend.get_column("SuccessRate").to_list() == pytest.approx([0.25, 0.2, 1 / 3])
+    assert trend.get_column("PositivesInInterval").to_list() == [10.0, 12.0, 10.0]
+    assert trend.get_column("ResponsesInInterval").to_list() == [40.0, 60.0, 30.0]
+    assert trend.get_column("TotalResponses").to_list() == [240.0, 500.0, 530.0]
+    assert trend.get_column("PeriodsCovered").to_list() == [1, 2, 1]
+
+
+def test_over_time_period_success_rate_skips_counter_resets():
+    data = pl.DataFrame(
+        {
+            "SnapshotTime": [
+                _utc_datetime(2024, 1, 1),
+                _utc_datetime(2024, 1, 8),
+                _utc_datetime(2024, 1, 15),
+                _utc_datetime(2024, 1, 22),
+            ],
+            "ModelID": ["a"] * 4,
+            "Channel": ["Email"] * 4,
+            "Performance": [0.7] * 4,
+            "ResponseCount": [100, 200, 50, 100],
+            "Positives": [10, 20, 5, 10],
+        },
+    ).lazy()
+    datamart = ADMDatamart(model_df=data)
+
+    trend = (
+        datamart.plot.over_time(
+            metric="SuccessRate",
+            by="Channel",
+            every="1w",
+            cumulative=False,
+            return_df=True,
+        )
+        .collect()
+        .sort("SnapshotTime")
+    )
+
+    assert trend.get_column("SnapshotTime").dt.strftime("%Y-%m-%d").to_list() == [
+        "2024-01-08",
+        "2024-01-22",
+    ]
+    assert trend.get_column("SuccessRate").to_list() == [0.1, 0.1]
+
+
+def test_over_time_period_success_rate_marks_100_percent_outliers():
+    datamart = ADMDatamart(
+        model_df=pl.DataFrame(
+            {
+                "SnapshotTime": [
+                    _utc_datetime(2024, 1, 1),
+                    _utc_datetime(2024, 1, 8),
+                    _utc_datetime(2024, 1, 15),
+                    _utc_datetime(2024, 1, 22),
+                    _utc_datetime(2024, 1, 29),
+                ],
+                "ModelID": ["a"] * 5,
+                "Channel": ["Email"] * 5,
+                "Performance": [0.7] * 5,
+                "ResponseCount": [100, 200, 300, 400, 500],
+                "Positives": [20, 40, 140, 170, 220],
+            },
+        ).lazy(),
+    )
+
+    fig = datamart.plot.over_time(
+        metric="SuccessRate",
+        by="Channel",
+        every="1w",
+        cumulative=False,
+    )
+
+    trend_line = next(trace for trace in fig.data if trace.mode == "lines+markers")
+    spike_markers = next(trace for trace in fig.data if trace.name == "CTR 100%")
+    assert fig.layout.yaxis.title.text == "Weekly CTR"
+    assert fig.layout.yaxis.range == (0, 0.525)
+    assert list(trend_line.y) == pytest.approx([0.2, 1.0, 0.3, 0.5])
+    assert [str(value)[:10] for value in spike_markers.x] == ["2024-01-15"]
+    assert list(spike_markers.y) == pytest.approx([0.504])
+    assert spike_markers.marker.color == "#d62728"
+    assert spike_markers.marker.symbol == "x"
+    assert spike_markers.showlegend is True
+    assert not any(trace.marker.symbol == "circle-open" for trace in fig.data if hasattr(trace, "marker"))
+    assert not any(getattr(trace.line, "dash", None) == "dash" for trace in fig.data if hasattr(trace, "line"))
+    assert "100% period" in spike_markers.hovertemplate
+    assert "CTR in flagged period" in spike_markers.hovertemplate
+    assert "Total Responses (cumulative)" in spike_markers.hovertemplate
+    assert "Positives in interval" in spike_markers.hovertemplate
+    assert "Responses in interval" in spike_markers.hovertemplate
+    assert "Max periods between snapshots" in spike_markers.hovertemplate
+
+    returned_data = datamart.plot.over_time(
+        metric="SuccessRate",
+        by="Channel",
+        every="1w",
+        cumulative=False,
+        return_df=True,
+    ).collect()
+    assert returned_data.get_column("SuccessRate").to_list() == pytest.approx([0.2, 1.0, 0.3, 0.5])
+
+
+@pytest.mark.parametrize(
+    ("every", "timestamps", "expected_label"),
+    [
+        ("1d", [(2024, 1, 1), (2024, 1, 2)], "Daily CTR"),
+        ("1w", [(2024, 1, 1), (2024, 1, 15)], "Weekly CTR"),
+        ("1mo", [(2024, 1, 1), (2024, 3, 1)], "Monthly CTR"),
+    ],
+)
+def test_over_time_period_success_rate_labels_interval(every, timestamps, expected_label):
+    datamart = ADMDatamart(
+        model_df=pl.DataFrame(
+            {
+                "SnapshotTime": [_utc_datetime(*timestamp) for timestamp in timestamps],
+                "ModelID": ["a", "a"],
+                "Channel": ["Email", "Email"],
+                "Performance": [0.7, 0.7],
+                "ResponseCount": [100, 200],
+                "Positives": [10, 20],
+            },
+        ).lazy(),
+    )
+
+    fig = datamart.plot.over_time(
+        metric="SuccessRate",
+        by="Channel",
+        every=every,
+        cumulative=False,
+    )
+
+    assert fig.layout.yaxis.title.text == expected_label
+
+
+def test_over_time_period_success_rate_allows_all_spikes_to_define_scale():
+    datamart = ADMDatamart(
+        model_df=pl.DataFrame(
+            {
+                "SnapshotTime": [_utc_datetime(2024, 1, day) for day in (1, 8, 15, 22)],
+                "ModelID": ["a"] * 4,
+                "Channel": ["Email"] * 4,
+                "Performance": [0.7] * 4,
+                "ResponseCount": [100, 200, 300, 400],
+                "Positives": [10, 110, 210, 310],
+            },
+        ).lazy(),
+    )
+
+    fig = datamart.plot.over_time(
+        metric="SuccessRate",
+        by="Channel",
+        every="1w",
+        cumulative=False,
+    )
+
+    trend_line = next(trace for trace in fig.data if trace.mode == "lines+markers")
+    spike_markers = next(trace for trace in fig.data if trace.name == "CTR 100%")
+    assert list(trend_line.y) == [1.0, 1.0, 1.0]
+    assert fig.layout.yaxis.range == (0, 1.0)
+    assert list(spike_markers.y) == pytest.approx([0.96, 0.96, 0.96])
+
+
+def test_over_time_period_success_rate_keeps_facet_axes_stable_for_all_spike_facet():
+    timestamps = [_utc_datetime(2024, 1, day) for day in (1, 8, 15, 22, 29)]
+    datamart = ADMDatamart(
+        model_df=pl.DataFrame(
+            {
+                "SnapshotTime": timestamps * 2,
+                "ModelID": ["all-spikes"] * 5 + ["mixed"] * 5,
+                "Channel": ["Email"] * 10,
+                "ModelTechnique": ["A"] * 5 + ["B"] * 5,
+                "Performance": [0.7] * 10,
+                "ResponseCount": [100, 200, 300, 400, 500] * 2,
+                "Positives": [10, 110, 210, 310, 410, 10, 30, 50, 150, 180],
+            },
+        ).lazy(),
+    )
+
+    fig = datamart.plot.over_time(
+        metric="SuccessRate",
+        by="Channel",
+        facet="ModelTechnique",
+        every="1w",
+        cumulative=False,
+    )
+
+    spike_markers = [trace for trace in fig.data if trace.name == "CTR 100%"]
+    line_traces = [trace for trace in fig.data if trace.mode == "lines+markers"]
+    assert {trace.xaxis for trace in spike_markers} == {"x", "x2"}
+    assert {trace.xaxis for trace in line_traces} == {"x", "x2"}
+    assert not any(getattr(trace.line, "dash", None) == "dash" for trace in fig.data if hasattr(trace, "line"))
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "expected_bucket"),
+    [
+        (_utc_datetime(2024, 1, 1), _utc_datetime(2024, 1, 2), "2024-01-02"),
+        (_utc_datetime(2024, 1, 1), _utc_datetime(2024, 2, 2), "2024-01-29"),
+        (_utc_datetime(2010, 1, 1), _utc_datetime(2016, 1, 2), "2016-01-01"),
+    ],
+)
+def test_over_time_auto_interval_selects_daily_weekly_or_monthly(start, end, expected_bucket):
+    datamart = ADMDatamart(
+        model_df=pl.DataFrame(
+            {
+                "SnapshotTime": [start, end],
+                "ModelID": ["a", "a"],
+                "Channel": ["Email", "Email"],
+                "Performance": [0.7, 0.7],
+                "ResponseCount": [100, 200],
+                "Positives": [10, 20],
+            },
+        ).lazy(),
+    )
+
+    trend = datamart.plot.over_time(
+        metric="SuccessRate",
+        by="Channel",
+        every="auto",
+        cumulative=False,
+        return_df=True,
+    ).collect()
+
+    assert trend.get_column("SnapshotTime").dt.strftime("%Y-%m-%d").to_list() == [expected_bucket]
 
 
 def test_proposition_success_rates(sample: ADMDatamart):

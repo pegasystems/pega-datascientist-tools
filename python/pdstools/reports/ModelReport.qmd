@@ -495,6 +495,8 @@ except Exception as e:
 
 # Trend charts
 
+The success-rate chart shows period CTR, calculated from changes in cumulative response and positive counts. Exact 100% period values remain in the plotted data, while the y-axis is scaled using non-100% values; red X markers identify clipped spikes. Hover details distinguish cumulative Total Responses from positive and response changes between snapshots; Max periods between snapshots is the largest bucket gap among contributing models. The performance chart remains a snapshot AUC trend over each model's accumulated training history; AUC cannot be differenced into a per-period value.
+
 ::: {layout-ncol="2"}
 ```{python}
 # TODO see if we can put the various trend charts in tabs - although this seems to require go not express, then gain .data[0] probably gives the go objects
@@ -530,10 +532,13 @@ if datamart.has_single_snapshot:
 else:
     try:
         fig = (
-            datamart.plot.over_time("SuccessRate")
+            datamart.plot.over_time(
+                "SuccessRate",
+                every="auto",
+                cumulative=False,
+            )
             .update_layout(
-                title="Success Rate Trend",
-                yaxis_title="Success Rate",
+                title="CTR Trend",
                 xaxis_title="",
                 showlegend=False,
                 autosize=False,

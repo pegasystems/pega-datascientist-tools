@@ -1013,7 +1013,7 @@ except Exception as e:
 
 ## Success Rates over Time
 
-Showing how the overall success rates evolved over the time that the data export covers. Lines are colored by channel and direction, and the plot is split into one facet per model technique.
+Showing the click-through rate (CTR) achieved during each period, calculated from changes in cumulative positive outcomes and responses. The interval is selected from the available history: daily for ranges up to 28 days, weekly for ranges up to five years, and monthly for longer ranges. Lines are colored by channel and direction, and the plot is split into one facet per model technique. Exact 100% period values remain in the plotted data, while the y-axis is scaled using non-100% values; red X markers identify clipped spikes. Hover details distinguish cumulative Total Responses at the current snapshot from positive and response changes between snapshots. Max periods between snapshots is the largest bucket gap among models contributing to a point; count changes are normalized across each model's gap when calculating CTR.
 
 ```{python}
 if trend_datamart.has_single_snapshot:
@@ -1028,30 +1028,31 @@ else:
             "by": by,
             "facet": "ModelTechnique",
             "facet_col_spacing": 0.08,
+            "every": "auto",
+            "cumulative": False,
         }
 
         fig = trend_datamart.plot.over_time(**plot_kwargs)
         fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
         fig = (
-            fig.update_yaxes(title="", showticklabels=True, tickformat=".2%")
+            fig.update_yaxes(showticklabels=True, tickformat=".2%")
             .update_xaxes(showticklabels=True, title="")
             .update_layout(
-                title="Trend of Success Rates by Channel/Direction and Model Technique",
+                title="CTR by Channel/Direction and Model Technique",
                 margin=dict(t=70),
             )
         )
 
         fig.show()
     except ValueError as e:
-        print(
-            f"Error {str(e)}\nPossibly too many ModelTechnique facets for {facet_col_wrap} columns."
-        )
+        print(f"Error {str(e)}")
     except Exception as e:
         report_utils.quarto_plot_exception("Success Rates over Time", e)
 ```
 
 ::: {.callout-tip title="Guidance"}
 -   There shouldn’t be too sudden changes over time
+-   Sudden CTR spikes can also result from low response volume or missing/delayed non-positive outcomes in the snapshots. Check the period response count and outcome ingestion before interpreting a spike as a genuine performance change.
 :::
 
 # Overview of the Adaptive Models {#overview-of-the-adaptive-models}
@@ -1341,7 +1342,7 @@ On the x-axis Model Performance measured in AUC-ROC, on the y-axis the Success R
 
 ### Model Performance over Time
 
-The trend chart shows how model performance evolves over time. Lines are colored by channel and direction, and the plot is split into one facet per model technique. Note that ADM is by default configured to track performance over *all* time. You can configure a window for monitoring but this is not commonly done. In Pega Prediction Studio you can monitor models per month, year etc.
+The trend chart shows how model performance evolves over time. Lines are colored by channel and direction, and the plot is split into one facet per model technique. Note that ADM is by default configured to track performance over *all* time. You can configure a window for monitoring but this is not commonly done. In Pega Prediction Studio you can monitor models per month, year etc. Unlike CTR, AUC is not an additive count, so a period-specific AUC cannot be recovered by subtracting snapshots; this chart therefore shows the cumulative-history AUC recorded at each snapshot.
 
 ```{python}
 if trend_datamart.has_single_snapshot:
