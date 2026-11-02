@@ -397,7 +397,7 @@ def test_toPRPCDateTime():
                 41,
                 27,
                 847000,
-                tzinfo=timezone("US/Eastern"),
+                tzinfo=timezone("America/New_York"),
             ),
         )
         == "20180316T134127.847 GMT-0400"
