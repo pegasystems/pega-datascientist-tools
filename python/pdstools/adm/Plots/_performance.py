@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from itertools import pairwise
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import polars as pl
 
@@ -370,7 +370,10 @@ class _PerformancePlotsMixin(_PlotsBase):
         if is_period_success_rate:
             outlier_df = final_df.filter(pl.col(plot_metric) == 1.0)
             valid_line_df = final_df.filter(pl.col(plot_metric) != 1.0)
-            valid_max = valid_line_df.get_column(plot_metric).max() if valid_line_df.height else None
+            valid_max = cast(
+                float | None,
+                valid_line_df.get_column(plot_metric).max() if valid_line_df.height else None,
+            )
             if valid_max is not None:
                 period_y_max = min(1.0, valid_max * 1.05) if valid_max > 0 else 0.01
             spike_marker_y = period_y_max * 0.96
