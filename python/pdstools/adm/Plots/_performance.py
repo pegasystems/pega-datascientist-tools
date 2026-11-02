@@ -468,6 +468,7 @@ class _PerformancePlotsMixin(_PlotsBase):
             spike_marker_fig = px.scatter(spike_marker_data, **spike_marker_kwargs)
             for index, trace in enumerate(spike_marker_fig.data):
                 trace.name = "CTR 100%"
+                trace.legendgroup = "CTR 100%"
                 trace.showlegend = index == 0
                 trace.marker = {"color": "#d62728", "size": 9, "symbol": "x"}
                 trace.mode = "markers"

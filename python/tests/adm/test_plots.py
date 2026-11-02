@@ -503,6 +503,8 @@ def test_over_time_period_success_rate_keeps_facet_axes_stable_for_all_spike_fac
     spike_markers = [trace for trace in fig.data if trace.name == "CTR 100%"]
     line_traces = [trace for trace in fig.data if trace.mode == "lines+markers"]
     assert {trace.xaxis for trace in spike_markers} == {"x", "x2"}
+    assert {trace.legendgroup for trace in spike_markers} == {"CTR 100%"}
+    assert sum(trace.showlegend is True for trace in spike_markers) == 1
     assert {trace.xaxis for trace in line_traces} == {"x", "x2"}
     assert not any(getattr(trace.line, "dash", None) == "dash" for trace in fig.data if hasattr(trace, "line"))
 
