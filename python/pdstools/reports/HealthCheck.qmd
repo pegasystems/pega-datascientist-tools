@@ -1013,32 +1013,37 @@ except Exception as e:
 
 ## Success Rates over Time
 
-Showing the click-through rate (CTR) achieved during each period, calculated from changes in cumulative positive outcomes and responses. The interval is selected from the available history: daily for ranges up to 28 days, weekly for ranges up to five years, and monthly for longer ranges. Lines are colored by channel and direction, and the plot is split into one facet per model technique. Exact 100% period values remain in the plotted data, while the y-axis is scaled using non-100% values; red X markers identify clipped spikes. Hover details distinguish cumulative Total Responses at the current snapshot from positive and response changes between snapshots. Max periods between snapshots is the largest bucket gap among models contributing to a point; count changes are normalized across each model's gap when calculating CTR.
+Showing the click-through rate (CTR) achieved during each period, calculated from changes in cumulative positive outcomes and responses. The interval is selected from the available history: daily for ranges up to 28 days, weekly for ranges up to five years, and monthly for longer ranges. Lines are colored by channel and direction; when model technique metadata is available, the plot is split into one facet per technique. Exact 100% period values remain in the plotted data, while the y-axis is scaled using non-100% values; red X markers identify clipped spikes. Hover details distinguish cumulative Total Responses at the current snapshot from positive and response changes between snapshots. Max periods between snapshots is the largest bucket gap among models contributing to a point; count changes are normalized across each model's gap when calculating CTR.
 
 ```{python}
 if trend_datamart.has_single_snapshot:
     display(Markdown("::: {.callout-note title='Trend unavailable'}\nThis dataset contains only one snapshot. Trend plots require multiple snapshots captured over time.\n:::"))
 else:
-    n_model_techniques = trend_datamart.model_data.select(pl.col("ModelTechnique").n_unique()).collect().item()
-    facet_col_wrap = safe_facet_col_wrap(n_model_techniques, max_rows=15)
+    n_model_techniques = (
+        trend_datamart.model_data.select(pl.col("ModelTechnique").drop_nulls().n_unique()).collect().item()
+    )
+    facet_col_wrap = safe_facet_col_wrap(n_model_techniques, max_rows=15) if n_model_techniques else None
     by = pl.concat_str(["Channel", "Direction"], separator="/").alias("Channel/Direction")
     try:
         plot_kwargs = {
             "metric": "SuccessRate",
             "by": by,
-            "facet": "ModelTechnique",
-            "facet_col_spacing": 0.08,
             "every": "auto",
             "cumulative": False,
         }
+        if facet_col_wrap is not None:
+            plot_kwargs["facet"] = "ModelTechnique"
+            plot_kwargs["facet_col_spacing"] = 0.08
 
         fig = trend_datamart.plot.over_time(**plot_kwargs)
-        fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
+        if facet_col_wrap is not None:
+            fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
         fig = (
             fig.update_yaxes(showticklabels=True, tickformat=".2%")
             .update_xaxes(showticklabels=True, title="")
             .update_layout(
-                title="CTR by Channel/Direction and Model Technique",
+                title="CTR by Channel/Direction"
+                + (" and Model Technique" if facet_col_wrap is not None else ""),
                 margin=dict(t=70),
             )
         )
@@ -1358,7 +1363,7 @@ On the x-axis Model Performance measured in AUC-ROC, on the y-axis the Success R
 
 ### Model Performance over Time
 
-The trend chart shows how model performance evolves over time. Lines are colored by channel and direction, and the plot is split into one facet per model technique. Note that ADM is by default configured to track performance over *all* time. You can configure a window for monitoring but this is not commonly done. In Pega Prediction Studio you can monitor models per month, year etc. Unlike CTR, AUC is not an additive count, so a period-specific AUC cannot be recovered by subtracting snapshots; this chart therefore shows the cumulative-history AUC recorded at each snapshot.
+The trend chart shows how model performance evolves over time. Lines are colored by channel and direction; when model technique metadata is available, the plot is split into one facet per technique. Note that ADM is by default configured to track performance over *all* time. You can configure a window for monitoring but this is not commonly done. In Pega Prediction Studio you can monitor models per month, year etc. Unlike CTR, AUC is not an additive count, so a period-specific AUC cannot be recovered by subtracting snapshots; this chart therefore shows the cumulative-history AUC recorded at each snapshot.
 
 ```{python}
 if trend_datamart.has_single_snapshot:
@@ -1367,16 +1372,23 @@ else:
     by = pl.concat_str(pl.col("Channel"), pl.col("Direction"), separator="/").alias(
         "Channel/Direction"
     )
-    n_model_techniques = trend_datamart.model_data.select(pl.col("ModelTechnique").n_unique()).collect().item()
-    facet_col_wrap = safe_facet_col_wrap(n_model_techniques, max_rows=15)
+    n_model_techniques = (
+        trend_datamart.model_data.select(pl.col("ModelTechnique").drop_nulls().n_unique()).collect().item()
+    )
+    facet_col_wrap = safe_facet_col_wrap(n_model_techniques, max_rows=15) if n_model_techniques else None
     try:
         fig = trend_datamart.plot.over_time(
-            metric="Performance", facet="ModelTechnique", by=by, show_metric_limits=True
+            metric="Performance",
+            facet="ModelTechnique" if facet_col_wrap is not None else None,
+            by=by,
+            show_metric_limits=True,
         )
-        fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
+        if facet_col_wrap is not None:
+            fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
         fig = (
             fig.update_layout(
-                title="Trend of Model Performance by Channel/Direction and Model Technique",
+                title="Trend of Model Performance by Channel/Direction"
+                + (" and Model Technique" if facet_col_wrap is not None else ""),
                 margin=dict(t=70),
             )
             .update_yaxes(showticklabels=True, title="", range=[50, 100])

@@ -323,6 +323,53 @@ def test_over_time_period_success_rate_uses_latest_counts_and_normalizes_gaps():
     assert trend.get_column("PeriodsCovered").to_list() == [1, 2, 1]
 
 
+def test_over_time_trends_without_model_technique_facet():
+    datamart = ADMDatamart(
+        model_df=pl.DataFrame(
+            {
+                "SnapshotTime": [datetime(2024, 1, day) for day in (1, 2, 3)],
+                "ModelID": ["model-1"] * 3,
+                "Channel": ["Web"] * 3,
+                "Direction": ["Inbound"] * 3,
+                "ModelTechnique": [None] * 3,
+                "Performance": [0.7, 0.75, 0.8],
+                "ResponseCount": [100, 200, 300],
+                "Positives": [10, 30, 45],
+            }
+        ).lazy()
+    )
+    by = pl.concat_str(["Channel", "Direction"], separator="/").alias("Channel/Direction")
+
+    trend = (
+        datamart.plot.over_time(
+            metric="SuccessRate",
+            by=by,
+            every="auto",
+            cumulative=False,
+            return_df=True,
+        )
+        .collect()
+        .sort("SnapshotTime")
+    )
+
+    assert trend.get_column("SuccessRate").to_list() == pytest.approx([0.2, 0.15])
+    assert trend.get_column("Channel/Direction").unique().to_list() == ["Web/Inbound"]
+
+    performance_trend = (
+        datamart.plot.over_time(
+            metric="Performance",
+            by=by,
+            every="1d",
+            show_metric_limits=True,
+            return_df=True,
+        )
+        .collect()
+        .sort("SnapshotTime")
+    )
+
+    assert performance_trend.get_column("Performance").to_list() == pytest.approx([70.0, 75.0, 80.0])
+
+
 def test_over_time_period_success_rate_skips_counter_resets():
     data = pl.DataFrame(
         {
