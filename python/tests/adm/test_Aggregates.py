@@ -97,7 +97,7 @@ def test_init(dm_aggregates):
 
 
 def test_model_summary(dm_aggregates):
-    assert dm_aggregates.model_summary().collect().shape[0] == 68
+    assert dm_aggregates.model_summary().collect().shape[0] == 98
     assert dm_aggregates.model_summary().collect().shape[1] == 20
 
 
@@ -132,17 +132,17 @@ def test_summary_by_channel(dm_aggregates):
         "SMS/Outbound",
         "Web/Inbound",
     ]
-    assert summary_by_channel["Actions"].to_list() == [24, 27, 19]
-    assert summary_by_channel["Positives"].to_list() == [1181, 6367, 4638]
-    assert summary_by_channel["Responses"].to_list() == [48603, 74054, 47177]
-    assert summary_by_channel["Used Actions"].to_list() == [24, 27, 19]
+    assert summary_by_channel["Actions"].to_list() == [37, 34, 29]
+    assert summary_by_channel["Positives"].to_list() == [1283, 6512, 5869]
+    assert summary_by_channel["Responses"].to_list() == [55972, 76644, 57529]
+    assert summary_by_channel["Used Actions"].to_list() == [37, 34, 29]
     assert summary_by_channel["Treatments"].to_list() == [0] * 3
     assert summary_by_channel["Used Treatments"].to_list() == [0] * 3
-    assert summary_by_channel["Duration"].to_list() == [18000] * 3
+    assert summary_by_channel["Duration"].to_list() == [1486800] * 3
     assert [round(x, 6) for x in summary_by_channel["OmniChannel"].to_list()] == [
-        0.604167,
-        0.592593,
-        0.763158,
+        0.391892,
+        0.470588,
+        0.5,
     ]
     assert summary_by_channel["isValid"].to_list() == [True, True, True]
 
@@ -276,10 +276,10 @@ def test_aggregate_overall_summary(dm_aggregates):
     assert overall_summary.height == 1
     assert overall_summary.width == 22
     assert overall_summary["Number of Valid Channels"].item() == 3
-    assert overall_summary["Actions"].item() == 35
+    assert overall_summary["Actions"].item() == 65
     assert overall_summary["Treatments"].item() == 0
 
-    assert round(overall_summary["OmniChannel"].item(), 5) == 0.65331
+    assert round(overall_summary["OmniChannel"].item(), 5) == 0.45416
 
     # Force only one channel to be valid
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
@@ -294,24 +294,30 @@ def test_aggregate_overall_summary(dm_aggregates):
 
 
 def test_aggregate_summary_by_channel_and_time(dm_aggregates):
-    summary_by_channel = dm_aggregates.summary_by_channel(every="4h").collect()
-    assert summary_by_channel.height == 6
+    summary_by_channel = dm_aggregates.summary_by_channel(every="1w").collect()
+    assert summary_by_channel.height == 9
     assert summary_by_channel.width == 24
-    assert set(summary_by_channel["Responses"].to_list()) == {
-        27322.0,
-        13062.0,
-        45786.0,
-        19557.0,
-        28230.0,
-        10890.0,
-    }
+    assert sorted(summary_by_channel["Responses"].to_list()) == [
+        11949.0,
+        13867.0,
+        14000.0,
+        14657.0,
+        15078.0,
+        16288.0,
+        16615.0,
+        19211.0,
+        19841.0,
+    ]
     assert [round(x, 6) for x in summary_by_channel["OmniChannel"].to_list()] == [
-        0.604167,
-        0.604167,
-        0.592593,
-        0.592593,
-        0.763158,
-        0.763158,
+        0.414286,
+        0.402778,
+        0.391892,
+        0.484848,
+        0.470588,
+        0.470588,
+        0.537037,
+        0.517857,
+        0.5,
     ]
 
 
@@ -394,22 +400,22 @@ def test_omnichannel():
 
 
 def test_aggregate_overall_summary_by_time(dm_aggregates):
-    overall_summary = dm_aggregates.overall_summary(every="1h").collect()
+    overall_summary = dm_aggregates.overall_summary(every="3d").collect()
     assert overall_summary.height == 6
     assert overall_summary.width == 22
 
-    # print(dm_aggregates.summary_by_channel(every="1h",debug=True).collect().select("Channel","Direction","Period","Positives","TotalPositives","isValid").to_pandas())
+    # print(dm_aggregates.summary_by_channel(every="3d",debug=True).collect().select("Channel","Direction","Period","Positives","TotalPositives","isValid").to_pandas())
 
-    assert overall_summary["Number of Valid Channels"].to_list() == [2, 3, 3, 3, 3, 3]
-    assert overall_summary["Actions"].to_list() == [34, 35, 34, 31, 33, 34]
+    assert overall_summary["Number of Valid Channels"].to_list() == [3] * 6
+    assert overall_summary["Actions"].to_list() == [59, 60, 62, 61, 62, 65]
     assert overall_summary["Treatments"].to_list() == [0] * 6
     assert [round(x, 6) for x in overall_summary["OmniChannel"].to_list()] == [
-        0.728745,
-        0.635802,
-        0.660903,
-        0.559028,
-        0.646232,
-        0.662062,
+        0.470661,
+        0.462976,
+        0.452862,
+        0.425943,
+        0.411743,
+        0.45416,
     ]
 
 

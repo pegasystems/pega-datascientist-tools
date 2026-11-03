@@ -83,7 +83,7 @@ def test_direct_upload_populates_dm(hc_app_dir: Path) -> None:
     )
 
     model_count = dm.aggregates.last().select("ModelID").unique().collect().height
-    assert model_count == 68
+    assert model_count == 98
     categories = (
         dm.predictor_data.select("PredictorCategory").filter(pl.col("PredictorCategory") == "Uploaded").collect()
     )

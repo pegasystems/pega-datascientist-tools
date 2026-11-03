@@ -46,6 +46,7 @@ from polars._typing import PolarsTemporalType
 from ..types import QUERY
 from ._common import F, logger
 from ._dates import (
+    InsufficientTrendHistoryError,
     _get_start_end_date_args,
     from_prpc_date_time,
     parse_pega_date_time_formats,
@@ -111,6 +112,7 @@ __all__ = [
     "QUERY",
     # constants / shared types
     "F",
+    "InsufficientTrendHistoryError",
     "auc_ci_from_bincounts",
     # metrics
     "auc_from_bincounts",

@@ -17,6 +17,10 @@ def test_import_CDHSample():
     assert len(snapshot_times) == 18
     assert (snapshot_times[-1] - snapshot_times[0]).days == 17
     assert snapshot_times[0].year == snapshot_times[-1].year == 2026
+    predictor_snapshot_times = (
+        sample.predictor_data.select("SnapshotTime").unique().sort("SnapshotTime").collect().get_column("SnapshotTime")
+    )
+    assert predictor_snapshot_times.to_list() == snapshot_times.to_list()
 
     period_ctr = sample.plot.over_time(
         metric="SuccessRate",
@@ -36,7 +40,7 @@ def test_import_CDHSample():
         every="auto",
         cumulative=False,
     )
-    assert trend.layout.yaxis.title.text == "Daily CTR"
+    assert trend.layout.yaxis.title.text == "Daily Success Rate"
 
 
 def test_cdh_sample_action_trend():

@@ -42,7 +42,7 @@ from typing import Union, Optional, Literal
 
 # from pdstools.adm.CDH_Guidelines import CDHGuidelines
 # from pdstools.utils import pega_template
-from pdstools.utils import report_utils
+from pdstools.utils import cdh_utils, report_utils
 
 ```
 
@@ -495,7 +495,7 @@ except Exception as e:
 
 # Trend charts
 
-The success-rate chart shows period CTR, calculated from changes in cumulative response and positive counts. Exact 100% period values remain in the plotted data, while the y-axis is scaled using non-100% values; red X markers identify clipped spikes. Hover details distinguish cumulative Total Responses from positive and response changes between snapshots; Max periods between snapshots is the largest bucket gap among contributing models. The performance chart remains a snapshot AUC trend over each model's accumulated training history; AUC cannot be differenced into a per-period value.
+The success rate chart shows the success rate within each time interval, from the changes in the cumulative positives and responses; intervals with a 100% success rate are marked with a red X. The performance chart shows the latest performance (AUC) in each interval, which reflects all responses the model has learned from so far.
 
 ::: {layout-ncol="2"}
 ```{python}
@@ -507,12 +507,10 @@ if datamart.has_single_snapshot:
 else:
     try:
         fig = (
-            datamart.plot.over_time("Performance")
+            datamart.plot.over_time("Performance", every="auto")
             .update_layout(
-                title="Model Performance Trend",
-                yaxis_title="ROC-AUC",
+                title="Model Performance over Time",
                 xaxis_title="",
-                yaxis=dict(range=[50, 100]),
                 showlegend=False,
                 autosize=False,
                 width=400,
@@ -522,7 +520,7 @@ else:
 
         fig.show()
     except Exception as e:
-        report_utils.quarto_plot_exception("Model Performance Trend", e)
+        report_utils.quarto_plot_exception("Model Performance over Time", e)
 
 ```
 
@@ -538,37 +536,27 @@ else:
                 cumulative=False,
             )
             .update_layout(
-                title="CTR Trend",
+                title="Success Rate over Time",
                 xaxis_title="",
                 showlegend=False,
                 autosize=False,
                 width=400,
                 height=300,
             )
-            .update_yaxes(rangemode="tozero")
         )
 
         fig.show()
-    except ValueError as e:
-        if any(
-            message in str(e)
-            for message in (
-                "Period SuccessRate requires observations",
-                "Cannot infer a trend interval without valid SnapshotTime values",
+    except cdh_utils.InsufficientTrendHistoryError:
+        display(
+            Markdown(
+                "::: {.callout-note title='Trend unavailable'}\n"
+                "There is not enough snapshot history for a success rate trend. "
+                "At least two snapshots with an increase in responses are needed.\n"
+                ":::"
             )
-        ):
-            display(
-                Markdown(
-                    "::: {.callout-note title='Trend unavailable'}\n"
-                    "This model has insufficient valid snapshot history for a period-to-period CTR trend. "
-                    "At least two snapshots with valid cumulative positive and response-count changes are needed.\n"
-                    ":::"
-                )
-            )
-        else:
-            report_utils.quarto_plot_exception("Success Rate Trend", e)
+        )
     except Exception as e:
-        report_utils.quarto_plot_exception("Success Rate Trend", e)
+        report_utils.quarto_plot_exception("Success Rate over Time", e)
 ```
 :::
 

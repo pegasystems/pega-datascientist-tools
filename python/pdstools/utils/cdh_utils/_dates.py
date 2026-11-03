@@ -16,6 +16,10 @@ _AUTO_MONTHLY_MIN_SPAN = datetime.timedelta(days=365 * 5)
 _TREND_INTERVAL_LABELS = {"1d": "Daily", "1w": "Weekly", "1mo": "Monthly"}
 
 
+class InsufficientTrendHistoryError(ValueError):
+    """Raised when the snapshot history is too short for the requested trend."""
+
+
 def resolve_trend_interval(
     df: pl.LazyFrame,
     every: str | datetime.timedelta,
@@ -38,7 +42,7 @@ def resolve_trend_interval(
 
     Raises
     ------
-    ValueError
+    InsufficientTrendHistoryError
         If automatic selection is requested without valid snapshot times.
     """
     if every != "auto":
@@ -53,7 +57,7 @@ def resolve_trend_interval(
         .row(0)
     )
     if start is None or end is None:
-        raise ValueError("Cannot infer a trend interval without valid SnapshotTime values")
+        raise InsufficientTrendHistoryError("Cannot infer a trend interval without valid SnapshotTime values")
 
     span = end - start
     if span <= _AUTO_DAILY_MAX_SPAN:

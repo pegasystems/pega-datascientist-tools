@@ -824,7 +824,7 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
 
 ## Action Trends
 
-In a healthy implementation, new actions are introduced regularly. This trend chart shows the number of new actions per time interval, selected from the available history just like the CTR and AUC trends. It also shows the number of "used" actions, where used means they have been used in Pega decisions and AI processing has been applied (ADM Models used). The total number of actions reflects all the actions in the system that are modeled by ADM models. This is typically a much larger number, as we currently have no way to pull in the "active"/"inactive" status of actions into this ADM-based analysis.
+In a healthy implementation, new actions are introduced regularly. This trend chart shows the number of new actions per time interval; like the other trends in this report, the interval is daily, weekly or monthly depending on the length of the available history. It also shows the number of "used" actions, where used means they have been used in Pega decisions and AI processing has been applied (ADM Models used). The total number of actions reflects all the actions in the system that are modeled by ADM models. This is typically a much larger number, as we currently have no way to pull in the "active"/"inactive" status of actions into this ADM-based analysis.
 
 ```{python}
 if datamart.has_single_snapshot:
@@ -1016,7 +1016,7 @@ except Exception as e:
 
 ## Success Rates over Time
 
-Showing the click-through rate (CTR) achieved during each period, calculated from changes in cumulative positive outcomes and responses. The interval is selected from the available history: daily for ranges up to 28 days, weekly up to five years, and monthly for longer ranges. Actions first appearing after an earlier snapshot contribute their first cumulative counts to that period; actions already present in the earliest available snapshot need a subsequent snapshot to establish their changes. Lines are colored by channel and direction; when model technique metadata is available, the plot is split into one facet per technique. Exact 100% period values remain in the plotted data, while the y-axis is scaled using non-100% values; red X markers identify clipped spikes. Hover details distinguish cumulative Total Responses at the current snapshot from positive and response changes between snapshots. Max periods between snapshots is the largest bucket gap among models contributing to a point; count changes are normalized across each model's gap when calculating CTR.
+Showing the success rate achieved within each time interval: the positives over the responses received in that interval, from the changes in the cumulative counts of each model. The interval is daily, weekly or monthly depending on the length of the available history. Lines are colored by channel and direction; when model technique metadata is available, the plot is split into one facet per technique. Intervals with a 100% success rate are marked with a red X; the y-axis is scaled to the other values.
 
 ```{python}
 if trend_datamart.has_single_snapshot:
@@ -1045,38 +1045,29 @@ else:
             fig.update_yaxes(showticklabels=True, tickformat=".2%")
             .update_xaxes(showticklabels=True, title="")
             .update_layout(
-                title="CTR by Channel/Direction"
+                title="Success Rate over Time by Channel/Direction"
                 + (" and Model Technique" if facet_col_wrap is not None else ""),
                 margin=dict(t=70),
             )
         )
 
         fig.show()
-    except ValueError as e:
-        if any(
-            message in str(e)
-            for message in (
-                "Period SuccessRate requires observations",
-                "Cannot infer a trend interval without valid SnapshotTime values",
+    except cdh_utils.InsufficientTrendHistoryError:
+        display(
+            Markdown(
+                "::: {.callout-note title='Trend unavailable'}\n"
+                "There is not enough snapshot history for a success rate trend. "
+                "At least two snapshots per model with an increase in responses are needed.\n"
+                ":::"
             )
-        ):
-            display(
-                Markdown(
-                    "::: {.callout-note title='Trend unavailable'}\n"
-                    "There is insufficient valid snapshot history for a period-to-period CTR trend. "
-                    "At least two snapshots per model with valid cumulative positive and response-count changes are needed.\n"
-                    ":::"
-                )
-            )
-        else:
-            report_utils.quarto_plot_exception("Success Rates over Time", e)
+        )
     except Exception as e:
         report_utils.quarto_plot_exception("Success Rates over Time", e)
 ```
 
 ::: {.callout-tip title="Guidance"}
 -   There shouldn’t be too sudden changes over time
--   Sudden CTR spikes can also result from low response volume or missing/delayed non-positive outcomes in the snapshots. Check the period response count and outcome ingestion before interpreting a spike as a genuine performance change.
+-   Sudden success rate spikes can also result from low response volume or missing/delayed non-positive outcomes in the snapshots. Check the responses in the interval and the outcome ingestion before interpreting a spike as a genuine performance change.
 :::
 
 # Overview of the Adaptive Models {#overview-of-the-adaptive-models}
@@ -1366,7 +1357,7 @@ The x-axis shows model performance measured in AUC-ROC; the y-axis shows success
 
 ### Model Performance over Time
 
-The trend chart shows how model performance evolves over time using the same daily, weekly, or monthly interval selected for CTR. Each point is the latest cumulative AUC value in that interval; unlike CTR, AUC is not additive and is not calculated from snapshot deltas. The soft green band marks the best-practice range; soft orange bands mark the intervals between the minimum and best-practice minimum, and between the best-practice maximum and maximum. Lines are colored by channel and direction; when model technique metadata is available, the plot is split into one facet per technique. Note that ADM is by default configured to track performance over *all* time. You can configure a window for monitoring but this is not commonly done. In Pega Prediction Studio you can monitor models per month, year etc.
+The trend chart shows how model performance evolves over time, using the same daily, weekly or monthly interval as the success rate trend. Each point is the latest performance (AUC) of the models in that interval; unlike the success rate, performance is not calculated from changes between snapshots. The soft green band marks the best-practice range; soft orange bands mark the intervals between the minimum and best-practice minimum, and between the best-practice maximum and maximum. Lines are colored by channel and direction; when model technique metadata is available, the plot is split into one facet per technique. Note that ADM is by default configured to track performance over *all* time. You can configure a window for monitoring but this is not commonly done. In Pega Prediction Studio you can monitor models per month, year etc.
 
 ```{python}
 if trend_datamart.has_single_snapshot:
@@ -1392,11 +1383,11 @@ else:
             fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
         fig = (
             fig.update_layout(
-                title="Trend of Model Performance by Channel/Direction"
+                title="Model Performance over Time by Channel/Direction"
                 + (" and Model Technique" if facet_col_wrap is not None else ""),
                 margin=dict(t=70),
             )
-            .update_yaxes(showticklabels=True, range=[50, 100])
+            .update_yaxes(showticklabels=True)
             .update_xaxes(title="")
         )
         hide_metric_annotations_on_non_rightmost(fig)
@@ -2147,7 +2138,7 @@ else:
 
 ## Number of Responses over Time
 
-This chart shows response counts per interval, calculated by differencing each model's cumulative response counter before grouping by channel and direction. It uses the same range-based interval as the CTR and AUC trends: daily for ranges up to 28 days, weekly up to five years, and monthly for longer ranges. When a model has a gap between snapshots, its change is averaged across the elapsed intervals.
+This chart shows response counts per interval, calculated by differencing each model's cumulative response counter before grouping by channel and direction. It uses the same daily, weekly or monthly interval as the success rate and performance trends. When a model has a gap between snapshots, its change is averaged across the elapsed intervals.
 
 ```{python}
 if trend_datamart.has_single_snapshot:

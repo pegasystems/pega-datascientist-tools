@@ -71,6 +71,103 @@ def channel_is_valid_expr() -> pl.Expr:
     return (pl.col("TotalPositives") >= MIN_CHANNEL_POSITIVES) & (pl.col("TotalResponseCount") >= MIN_CHANNEL_RESPONSES)
 
 
+TREND_WEIGHTED_METRICS = ("Performance", "SuccessRate")
+"""Trend metrics combined across models as response-weighted averages; others are summed."""
+
+
+def trend_by_expression(by: pl.Expr | str | list[str]) -> pl.Expr:
+    """Normalize a trend ``by`` argument to one expression.
+
+    Several column names are combined with " / " into a single dimension.
+    """
+    if isinstance(by, pl.Expr):
+        return by
+    if isinstance(by, str):
+        return pl.col(by)
+    if len(by) == 0:
+        raise ValueError("`by` must contain at least one column name")
+    if len(by) == 1:
+        return pl.col(by[0])
+    return pl.concat_str(
+        [pl.col(c).cast(pl.Utf8).fill_null("<null>") for c in by],
+        separator=" / ",
+    ).alias(" / ".join(by))
+
+
+def _last_per_bucket(
+    df: pl.LazyFrame,
+    *,
+    every: str | datetime.timedelta,
+    keys: list[str],
+    columns: list[str],
+) -> pl.LazyFrame:
+    """Last value of each column per ``every`` bucket and series."""
+    return (
+        df.group_by_dynamic("SnapshotTime", every=every, group_by=keys)
+        .agg([pl.col(c).last() for c in columns])
+        .sort(*keys, "SnapshotTime")
+    )
+
+
+def _with_periods_elapsed(
+    df: pl.LazyFrame,
+    *,
+    every: str | datetime.timedelta,
+    keys: list[str],
+) -> pl.LazyFrame:
+    """Add ``__period_index`` and ``__periods_elapsed`` (buckets since the previous observed bucket)."""
+    period_index = (
+        df.select("SnapshotTime", *keys)
+        .collect()
+        .upsample("SnapshotTime", every=every, group_by=keys)
+        .sort(*keys, "SnapshotTime")
+        .with_columns(pl.int_range(pl.len()).over(keys).alias("__period_index"))
+    )
+    return (
+        df.join(period_index.lazy(), on=["SnapshotTime", *keys])
+        .sort(*keys, "SnapshotTime")
+        .with_columns(
+            pl.col("__period_index").diff().over(keys).fill_null(1).clip(lower_bound=1).alias("__periods_elapsed"),
+        )
+    )
+
+
+def _counter_changes_per_bucket(
+    df: pl.LazyFrame,
+    *,
+    every: str | datetime.timedelta,
+    model_keys: list[str],
+    counters: list[str],
+) -> pl.LazyFrame:
+    """Per-model change of cumulative counters per bucket.
+
+    Adds ``__{counter}_change`` (change since the previous observed bucket)
+    and ``__{counter}_per_period`` (that change averaged over the elapsed
+    buckets). A model first seen after the start of the history starts from
+    zero, so its first counts are a change; a model in the first snapshot
+    needs a later bucket to establish one. This relies on all models of a
+    datamart snapshot sharing the same ``SnapshotTime``.
+    """
+    first_seen = df.group_by(model_keys).agg(pl.col("SnapshotTime").min().alias("__first_seen"))
+    is_new_model = (pl.col("__period_index") == 0) & (pl.col("__first_seen") > pl.col("__first_seen").min())
+    return (
+        _with_periods_elapsed(
+            _last_per_bucket(df, every=every, keys=model_keys, columns=counters),
+            every=every,
+            keys=model_keys,
+        )
+        .join(first_seen, on=model_keys)
+        .sort(*model_keys, "SnapshotTime")
+        .with_columns(
+            pl.when(is_new_model).then(pl.col(c)).otherwise(pl.col(c).diff().over(model_keys)).alias(f"__{c}_change")
+            for c in counters
+        )
+        .with_columns(
+            (pl.col(f"__{c}_change") / pl.col("__periods_elapsed")).alias(f"__{c}_per_period") for c in counters
+        )
+    )
+
+
 class Aggregates:
     """Aggregates."""
 
@@ -1522,6 +1619,154 @@ class Aggregates:
                 (pl.col("_Active") / pl.col("Models")).alias("Active Predictors"),
             )
             .sort([*context, "Importance %"], descending=[False] * len(context) + [True])
+        )
+
+    def metric_over_time(
+        self,
+        metric: str = "Performance",
+        by: pl.Expr | str | list[str] = "ModelID",
+        *,
+        every: str | datetime.timedelta = "1d",
+        cumulative: bool = True,
+        query: QUERY | None = None,
+        facet: str | None = None,
+    ) -> pl.LazyFrame:
+        """Model metric per time interval, the data behind ``plot.over_time``.
+
+        The snapshots are grouped into ``every`` intervals as in Polars
+        ``group_by_dynamic``, keeping the last snapshot of each model per
+        interval. The models are then combined per ``by`` (and ``facet``)
+        group: ``Performance`` and ``SuccessRate`` as response-weighted
+        averages, other metrics as sums.
+
+        Parameters
+        ----------
+        metric : str, default "Performance"
+            Model data column to trend.
+        by : pl.Expr, str or list of str, default "ModelID"
+            Grouping of the models. Several column names are combined with
+            " / " into a single dimension.
+        every : str or datetime.timedelta, default "1d"
+            Interval as in Polars ``group_by_dynamic``, for example "1d",
+            "1w" or "1mo". ``"auto"`` picks daily, weekly or monthly from the
+            snapshot date range, see
+            :func:`~pdstools.utils.cdh_utils.resolve_trend_interval`.
+        cumulative : bool, default True
+            If True, return the (cumulative) metric value per interval. If
+            False, return the change per interval:
+
+            - ``SuccessRate``: positives over responses gained in the
+              interval, from the per-model changes of the cumulative
+              ``Positives`` and ``ResponseCount`` counters.
+            - ``Performance``: the change of the group value.
+            - Other metrics are treated as cumulative counters: the
+              per-model changes are summed into ``{metric}_change``.
+
+            Changes across missing intervals are averaged over the elapsed
+            intervals. A model that first appears after the start of the
+            history counts from zero.
+        query : QUERY, optional
+            Restricts the models in scope.
+        facet : str, optional
+            Additional grouping column.
+
+        Returns
+        -------
+        pl.LazyFrame
+            One row per interval (``SnapshotTime`` is the interval start) and
+            group. A change other than ``SuccessRate`` is in
+            ``{metric}_change``. The change in ``SuccessRate`` also has
+            ``Positives`` and ``ResponseCount`` (per interval),
+            ``PositivesInInterval``, ``ResponsesInInterval``,
+            ``PeriodsCovered`` (the largest gap, in intervals, of the
+            contributing models) and ``TotalResponses`` (cumulative).
+
+        Raises
+        ------
+        InsufficientTrendHistoryError
+            If ``every="auto"`` and there are no valid snapshot times.
+        """
+        model_data = self.datamart.model_data
+        if model_data is None:
+            raise ValueError("Trends require model_data")
+
+        by = trend_by_expression(by)
+        group_keys = [by.meta.output_name(), *([facet] if facet else [])]
+        model_id = ["ModelID"] if "ModelID" in model_data.collect_schema().names() else []
+        model_keys = list(dict.fromkeys([*model_id, *group_keys]))
+        is_weighted = metric in TREND_WEIGHTED_METRICS
+        is_success_rate_change = metric == "SuccessRate" and not cumulative
+        counters = ["Positives", "ResponseCount"] if is_success_rate_change else [metric]
+        columns = {"SnapshotTime", "ResponseCount", metric, *counters, *model_id, *by.meta.root_names()}
+        if facet:
+            columns.add(facet)
+        df = (
+            cdh_utils._apply_query(model_data, query)
+            .select(list(columns))
+            .with_columns(by)
+            .filter(pl.col("SnapshotTime").is_not_null(), *[pl.col(c).is_not_null() for c in group_keys])
+            .sort("SnapshotTime")
+        )
+        every = cdh_utils.resolve_trend_interval(df, every)
+
+        if is_success_rate_change:
+            changes = _counter_changes_per_bucket(df, every=every, model_keys=model_keys, counters=counters)
+            total_responses = changes.group_by(["SnapshotTime", *group_keys]).agg(
+                pl.sum("ResponseCount").alias("TotalResponses"),
+            )
+            return (
+                changes.filter((pl.col("__Positives_per_period") >= 0) & (pl.col("__ResponseCount_per_period") > 0))
+                .group_by(["SnapshotTime", *group_keys])
+                .agg(
+                    pl.sum("__Positives_per_period").alias("Positives"),
+                    pl.sum("__ResponseCount_per_period").alias("ResponseCount"),
+                    pl.sum("__Positives_change").alias("PositivesInInterval"),
+                    pl.sum("__ResponseCount_change").alias("ResponsesInInterval"),
+                    pl.max("__periods_elapsed").alias("PeriodsCovered"),
+                )
+                .join(total_responses, on=["SnapshotTime", *group_keys])
+                .with_columns((pl.col("Positives") / pl.col("ResponseCount")).alias("SuccessRate"))
+                .sort("SnapshotTime", *group_keys)
+            )
+
+        value = (
+            pl.lit(100.0 if metric == "Performance" else 1.0)
+            * cdh_utils.weighted_average_polars(metric, "ResponseCount")
+            if is_weighted
+            else pl.sum(metric)
+        )
+        grouped = (
+            _last_per_bucket(df, every=every, keys=model_keys, columns=list(dict.fromkeys([metric, "ResponseCount"])))
+            .group_by(["SnapshotTime", *group_keys])
+            .agg(value.alias(metric), *([pl.sum("ResponseCount")] if is_weighted else []))
+            .sort("SnapshotTime", *group_keys)
+        )
+        if cumulative:
+            return grouped
+
+        if grouped.select(pl.col("SnapshotTime").n_unique()).collect().item() <= 1:
+            logger.warning(
+                f"Only one {every} interval of data found. Cannot calculate interval-to-interval differences. "
+                "Automatically switching to cumulative mode to show values instead.",
+            )
+            return grouped
+
+        change = f"{metric}_change"
+        if is_weighted:
+            return (
+                _with_periods_elapsed(grouped, every=every, keys=group_keys)
+                .with_columns((pl.col(metric).diff().over(group_keys) / pl.col("__periods_elapsed")).alias(change))
+                .drop("__period_index", "__periods_elapsed")
+            )
+        per_period = f"__{metric}_per_period"
+        return (
+            _counter_changes_per_bucket(df, every=every, model_keys=model_keys, counters=[metric])
+            .group_by(["SnapshotTime", *group_keys])
+            .agg(
+                pl.sum(metric),
+                pl.when(pl.col(per_period).count() > 0).then(pl.sum(per_period)).otherwise(None).alias(change),
+            )
+            .sort("SnapshotTime", *group_keys)
         )
 
     def overall_summary(
