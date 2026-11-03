@@ -37,7 +37,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the threshold ranges.
 - The CDH sample data now spans 18 days (October 13–30, 2026), with model
   and predictor snapshots sharing the same snapshot times, and includes
-  more actions.
+  more actions. Most actions now receive responses every day, so the daily
+  number of used actions stays above the Health Check minimum.
 - **Breaking:** `Analysis.health_check_maturity_overview()` now returns
   `"Number of Action/Treatment Records"` instead of `"Number of Models"`,
   and its category labels describe action/treatment records. Update callers

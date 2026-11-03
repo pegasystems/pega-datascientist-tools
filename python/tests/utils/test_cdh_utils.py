@@ -927,7 +927,7 @@ def test_feature_importance_with_sample_datamart():
     assert result.height == 1780
     assert result["FeatureImportance"].null_count() == 0
     assert result["FeatureImportance"].min() == pytest.approx(0.011369702282117651, rel=1e-6)
-    assert result["FeatureImportance"].max() == pytest.approx(2.6500638337812847, rel=1e-6)
+    assert result["FeatureImportance"].max() == pytest.approx(2.6622881702249597, rel=1e-6)
 
 
 # Test _capitalize function

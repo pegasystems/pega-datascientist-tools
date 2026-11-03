@@ -134,7 +134,7 @@ def test_summary_by_channel(dm_aggregates):
     ]
     assert summary_by_channel["Actions"].to_list() == [37, 34, 29]
     assert summary_by_channel["Positives"].to_list() == [1283, 6512, 5869]
-    assert summary_by_channel["Responses"].to_list() == [55972, 76644, 57529]
+    assert summary_by_channel["Responses"].to_list() == [56867, 77364, 58299]
     assert summary_by_channel["Used Actions"].to_list() == [37, 34, 29]
     assert summary_by_channel["Treatments"].to_list() == [0] * 3
     assert summary_by_channel["Used Treatments"].to_list() == [0] * 3
@@ -298,15 +298,15 @@ def test_aggregate_summary_by_channel_and_time(dm_aggregates):
     assert summary_by_channel.height == 9
     assert summary_by_channel.width == 24
     assert sorted(summary_by_channel["Responses"].to_list()) == [
-        11949.0,
-        13867.0,
-        14000.0,
-        14657.0,
-        15078.0,
-        16288.0,
-        16615.0,
-        19211.0,
-        19841.0,
+        12126.0,
+        13992.0,
+        14239.0,
+        14985.0,
+        15296.0,
+        16417.0,
+        16921.0,
+        19482.0,
+        20081.0,
     ]
     assert [round(x, 6) for x in summary_by_channel["OmniChannel"].to_list()] == [
         0.414286,

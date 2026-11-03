@@ -62,8 +62,29 @@ def test_cdh_sample_action_trend():
 
     auto_interval = cdh_utils.resolve_trend_interval(sample.model_data, "auto")
     assert auto_interval == "1d"
-    daily_trend = sample.aggregates.overall_summary(every=auto_interval).select("New Actions").collect()
+    daily_trend = sample.aggregates.overall_summary(every=auto_interval).select("New Actions", "Used Actions").collect()
     assert daily_trend.filter(pl.col("New Actions") > 0)["New Actions"].to_list() == [59, 1, 3, 2]
+    # Above the Health Check minimum of 50 used actions, except for a single dip.
+    assert daily_trend["Used Actions"].to_list() == [
+        59,
+        54,
+        56,
+        53,
+        51,
+        51,
+        48,
+        53,
+        52,
+        53,
+        52,
+        53,
+        51,
+        55,
+        51,
+        55,
+        55,
+        55,
+    ]
 
 
 def test_import_SampleTrees():

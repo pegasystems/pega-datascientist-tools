@@ -54,7 +54,7 @@ def test_bubble_chart(sample: ADMDatamart):
     assert round(df.select(pl.col("SuccessRate").top_k(1)).collect().item(), 2) == 0.28
     assert df.select(
         pl.col("ResponseCount").top_k(1),
-    ).collect().item() == pytest.approx(8174, abs=1e-6)
+    ).collect().item() == pytest.approx(8201, abs=1e-6)
     plot = sample.plot.bubble_chart()
     assert isinstance(plot, Figure)
     assert plot.layout.xaxis.title.text == "Performance"
@@ -1093,7 +1093,7 @@ def test_predictor_category_performance(sample: ADMDatamart):
     assert df.shape == (3, 10)
     assert "PredictorCategory" in df.columns
     assert "mean" in df.columns
-    assert round(df.select(pl.col("mean").top_k(1)).item(), 2) == 56.98
+    assert round(df.select(pl.col("mean").top_k(1)).item(), 2) == 56.56
 
     plot = sample.plot.predictor_category_performance()
     assert isinstance(plot, Figure)
@@ -1122,7 +1122,7 @@ def test_predictor_contribution(sample: ADMDatamart):
             df.filter(pl.col("PredictorCategory") == "Customer").select("Contribution").item(),
             2,
         )
-        == 39.02
+        == 38.96
     )
 
     plot = sample.plot.predictor_contribution()
@@ -1342,7 +1342,7 @@ def test_performance_volume_distribution_return_df(sample: ADMDatamart):
     assert collected.filter(pl.col("PerformanceBinned").is_null())["ResponseCount"].item() == 0.0
     # Proportions across all bins must sum to 1.0
     assert collected["Proportion"].sum() == pytest.approx(1.0, abs=1e-5)
-    assert collected["ResponseCount"].sum() == pytest.approx(1800258.0, rel=1e-6)
+    assert collected["ResponseCount"].sum() == pytest.approx(1821299.0, rel=1e-6)
 
 
 def test_performance_volume_distribution_with_grouping(sample: ADMDatamart):
@@ -1368,8 +1368,8 @@ def test_performance_volume_distribution_with_query(sample: ADMDatamart):
     collected = df.collect()
     # Same Performance range -> same 10 bins, but lower total response count after the query.
     assert collected.height == 10
-    assert collected["ResponseCount"].sum() == pytest.approx(1796336.0, rel=1e-6)
-    assert collected["ResponseCount"].sum() < 1800258.0  # query genuinely filtered rows
+    assert collected["ResponseCount"].sum() == pytest.approx(1814772.0, rel=1e-6)
+    assert collected["ResponseCount"].sum() < 1821299.0  # query genuinely filtered rows
 
 
 # ---------------------------------------------------------------------------
