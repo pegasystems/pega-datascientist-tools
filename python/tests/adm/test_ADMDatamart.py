@@ -366,7 +366,7 @@ def test_get_last_data_for_report(sample: ADMDatamart):
     """Test get_last_data_for_report formatting."""
     report_data = sample.get_last_data_for_report()
 
-    assert report_data.shape == (68, 31)
+    assert report_data.shape == (98, 31)
 
     # Check that nulls are filled with "NA" for string columns
     string_cols = [col for col in report_data.columns if report_data[col].dtype == pl.Utf8]
@@ -473,7 +473,7 @@ def test_from_s3_downloads_and_delegates(monkeypatch, tmp_path):
             boto3_client=client,
         )
 
-    assert dm.model_data.collect().height == 1047
+    assert dm.model_data.collect().height == 1535
     assert dm.predictor_data.collect().height == 70735
 
 
@@ -496,7 +496,7 @@ def test_from_s3_model_only(monkeypatch):
             boto3_client=client,
         )
 
-    assert dm.model_data.collect().height == 1047
+    assert dm.model_data.collect().height == 1535
     assert dm.predictor_data is None
 
 

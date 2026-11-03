@@ -79,7 +79,7 @@ class TestCachingFunctions:
         """Test loading sample data."""
         result = streamlit_utils.cached_sample()
 
-        assert result.model_data.collect().height == 1047
+        assert result.model_data.collect().height == 1535
         assert result.predictor_data.collect().height == 70735
         assert result.model_data.collect().columns[:5] == [
             "ModelID",

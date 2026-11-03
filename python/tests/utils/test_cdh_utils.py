@@ -23,6 +23,48 @@ def test_safe_range_auc():
     assert cdh_utils.safe_range_auc(np.nan) == 0.5
 
 
+@pytest.mark.parametrize(
+    ("span", "expected"),
+    [
+        (datetime.timedelta(days=28), "1d"),
+        (datetime.timedelta(days=29), "1w"),
+        (datetime.timedelta(days=365 * 5), "1w"),
+        (datetime.timedelta(days=365 * 5 + 1), "1mo"),
+    ],
+)
+def test_resolve_trend_interval(span, expected):
+    start = datetime.datetime(2024, 1, 1)
+    data = pl.DataFrame({"SnapshotTime": [start, start + span]}).lazy()
+
+    assert cdh_utils.resolve_trend_interval(data, "auto") == expected
+
+
+def test_resolve_trend_interval_preserves_explicit_interval():
+    data = pl.DataFrame({"SnapshotTime": [datetime.datetime(2024, 1, 1)]}).lazy()
+
+    assert cdh_utils.resolve_trend_interval(data, "2w") == "2w"
+
+
+def test_resolve_trend_interval_requires_valid_snapshot_times():
+    data = pl.DataFrame({"SnapshotTime": [None]}, schema={"SnapshotTime": pl.Datetime}).lazy()
+
+    with pytest.raises(ValueError, match="valid SnapshotTime"):
+        cdh_utils.resolve_trend_interval(data, "auto")
+
+
+@pytest.mark.parametrize(
+    ("interval", "expected"),
+    [("1d", "Daily"), ("1w", "Weekly"), ("1mo", "Monthly")],
+)
+def test_trend_interval_label(interval, expected):
+    assert cdh_utils.trend_interval_label(interval) == expected
+
+
+def test_trend_interval_label_rejects_unknown_interval():
+    with pytest.raises(ValueError, match="Unsupported trend interval"):
+        cdh_utils.trend_interval_label("2w")
+
+
 def test_auc_from_probs():
     assert cdh_utils.auc_from_probs([1, 1, 0], [0.6, 0.2, 0.2]) == 0.75
     assert cdh_utils.auc_from_probs([1, 1, 1], [0.6, 0.2, 0.2]) == 0.5

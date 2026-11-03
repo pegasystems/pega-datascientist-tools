@@ -20,14 +20,14 @@ def sample():
 
 
 def test_end_to_end(sample: ADMDatamart):
-    assert sample.model_data.shape == (1047, 30)
+    assert sample.model_data.collect().shape == (1535, 30)
 
-    assert sample.predictor_data.shape == (70735, 39)
+    assert sample.predictor_data.collect().shape == (70735, 39)
 
-    assert sample.combined_data.shape == (4576, 68)
+    assert sample.combined_data.collect().shape == (4576, 68)
 
-    assert sample.aggregates.last().shape == (68, 30)
-    assert sample.aggregates.last(table="predictor_data").shape == (4576, 39)
+    assert sample.aggregates.last().collect().shape == (98, 30)
+    assert sample.aggregates.last(table="predictor_data").collect().shape == (4576, 39)
     assert sample.model_data.collect_schema()["SnapshotTime"] == pl.Datetime
 
     assert sample.context_keys == [
@@ -40,9 +40,9 @@ def test_end_to_end(sample: ADMDatamart):
     ]
 
     assert isinstance(sample.plot.bubble_chart(), Figure)
-    assert len(sample.plot.bubble_chart().data[0].x) == sample.aggregates.last().shape[0]
+    assert len(sample.plot.bubble_chart().data[0].x) == sample.aggregates.last().collect().height
 
     query = (pl.col("ResponseCount") > 500) & (pl.col("Group") == "CreditCards")
     queried = len(sample.aggregates.last().filter(query).collect())
-    assert queried == 19
+    assert queried == 24
     assert len(sample.plot.bubble_chart(query=query).data[0].x) == queried

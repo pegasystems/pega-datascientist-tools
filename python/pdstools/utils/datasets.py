@@ -11,7 +11,7 @@ from ..adm.ADMDatamart import ADMDatamart
 from ..valuefinder.ValueFinder import ValueFinder
 
 _RAW_GITHUB_DATA_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data"
-_REPO_DATA_DIR = pathlib.Path(__file__).parent.parent.parent.parent / "data" / "agb"
+_REPO_DATA_DIR = pathlib.Path(__file__).parent.parent.parent.parent / "data"
 _SAMPLE_TREES_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/agb/ModelExportWithSampleCount.json"
 
 if TYPE_CHECKING:
@@ -60,6 +60,10 @@ def _space_cdh_sample_snapshot_times(df: pl.LazyFrame | None) -> pl.LazyFrame | 
 def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
     """Import a sample dataset from the CDH Sample application
 
+    In a source checkout, the repository data files are preferred so examples
+    and tests use the versioned sample data. Installed packages fall back to
+    the canonical GitHub data URL.
+
     When the bundled export's snapshots span less than a week despite changing
     cumulative counts, this loader preserves their order and count data while
     spacing them one day apart. These illustrative dates are not from a real
@@ -77,9 +81,10 @@ def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
         The ADM Datamart class populated with CDH Sample data
 
     """
-    path = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data"
     models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip"
     predictors = "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip"
+    has_local_sample = all((_REPO_DATA_DIR / filename).is_file() for filename in (models, predictors))
+    path = _REPO_DATA_DIR if has_local_sample else _RAW_GITHUB_DATA_URL
     with warnings.catch_warnings(record=True) as w:
         try:
             datamart = ADMDatamart.from_ds_export(
@@ -109,7 +114,7 @@ def sample_trees():
         environment) or from the canonical GitHub raw URL (installed
         package).
     """
-    local = _REPO_DATA_DIR / "ModelExportWithSampleCount.json"
+    local = _REPO_DATA_DIR / "agb" / "ModelExportWithSampleCount.json"
     source = local if local.exists() else _SAMPLE_TREES_URL
     with warnings.catch_warnings(record=True) as w:
         try:

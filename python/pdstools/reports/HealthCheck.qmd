@@ -242,7 +242,7 @@ The first plot below is a global view of all the ADM models, with the overall su
 # | echo: false
 report_utils.quarto_print(
     f"""
-Most current-state analyses in this report are filtered to **active models only**: model instances whose counts have been updated in the last **{threshold_updated_days} days** (i.e. since **{active_models_threshold_date_string}**). This excludes models for actions or treatments that are no longer in use.
+Most current-state analyses in this report are filtered to **active models only**: model instances whose counts have been updated in the last **{threshold_updated_days} days** (i.e. since **{active_models_threshold_date_string}**). Model scope varies by technique: Naive Bayes models are typically per treatment (or per action when treatments are not distinguished), while AGB models are typically per channel.
 
 The filter is applied to summary tables, treemaps, predictor analyses, and bubble charts. Trend plots over time and cumulative gains charts intentionally use the **full history** so that long-term changes remain visible. Section titles indicate the cut-off date where applicable.
 
@@ -683,9 +683,9 @@ if prediction_file_path:
 
 # Overview of the Actions
 
-In a standard setup, the offers/conversations are presented as treatments for actions in a hierarchical structure setup in NBA Designer. Treatments are often channel specific and typically there are more unique treatments than there are actions.
+In a standard setup, offers or conversations are presented as treatments for actions in a hierarchy in NBA Designer. Treatments are often channel-specific, and there are typically more unique treatments than actions.
 
-Adaptive Models are created per treatment (at least in the default setup) and the recommendation is to stick the default context keys of the models.
+In the default Naive Bayes setup, Adaptive Models are usually created per treatment (or per action when treatments are not distinguished). AGB models are typically per channel. The recommendation is to keep the default model context keys.
 
 The recommended [Service and data health limits for Pega Customer Decision Hub on Pega Cloud](https://docs.pega.com/bundle/customer-decision-hub-241/page/customer-decision-hub/cdh-portal/cloud-service-health-limits.html) are used here to highlight whether metrics are within limits. These limits may not apply for on-prem, non-CDH installs or for other reasons.
 
@@ -824,18 +824,21 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
 
 ## Action Trends
 
-In a healthy implementation, new actions are introduced regularly. This trend chart shows the number of new actions per week. It also shows the number of "used" actions, where used means they have been used in Pega decisions and AI processing has been applied (ADM Models used). The total number of actions reflects all the actions in the system that are modeled by ADM models. This is typically a much larger number, as we currently have no way to pull in the "active"/"inactive" status of actions into this ADM-based analysis.
+In a healthy implementation, new actions are introduced regularly. This trend chart shows the number of new actions per time interval, selected from the available history just like the CTR and AUC trends. It also shows the number of "used" actions, where used means they have been used in Pega decisions and AI processing has been applied (ADM Models used). The total number of actions reflects all the actions in the system that are modeled by ADM models. This is typically a much larger number, as we currently have no way to pull in the "active"/"inactive" status of actions into this ADM-based analysis.
 
 ```{python}
 if datamart.has_single_snapshot:
     display(Markdown("::: {.callout-note title='Trend unavailable'}\nThis dataset contains only one snapshot. Trend plots require multiple snapshots captured over time.\n:::"))
 else:
-    action_trend_data = datamart.aggregates.overall_summary(every="1w").collect()
+    action_trend_interval = cdh_utils.resolve_trend_interval(datamart.model_data, "auto")
+    action_trend_period = cdh_utils.trend_interval_label(action_trend_interval)
+    action_trend_count_label = f"{action_trend_period} Count"
+    action_trend_data = datamart.aggregates.overall_summary(every=action_trend_interval).collect()
     plot_data = action_trend_data.unpivot(
         on=["Actions", "New Actions", "Used Actions"],
         index="DateRange Min",
         variable_name="Action Type",
-        value_name="Weekly Count",
+        value_name=action_trend_count_label,
     )
 
     # Drop the first data point if there are multiple,
@@ -847,11 +850,11 @@ else:
     fig = px.line(
         plot_data,
         x="DateRange Min",
-        y="Weekly Count",
+        y=action_trend_count_label,
         color="Action Type",
         markers=True,
         template="pega",
-        title="Number of Actions Used and New (weekly)",
+        title=f"Number of Actions Used and New ({action_trend_period.lower()})",
     )
     fig.update_xaxes(title="")
     fig.update_layout(hovermode="x")
@@ -902,7 +905,7 @@ trend_datamart = datamart
 ```{python}
 report_utils.quarto_print(
     f"""
-Just showing the top {barchart_max_bars} actions here and limiting to the propositions that have received at least {responsecount_analysis_threshold} responses (the rates reported by the models are unreliable otherwise).
+Just showing the top {barchart_max_bars} actions or treatments here and limiting the chart to entries that have received at least {responsecount_analysis_threshold} responses (the rates reported by the models are unreliable otherwise).
 """
 )
 ```
@@ -1088,7 +1091,7 @@ There are **{last_data.filter(active_models_filter_expr).select(pl.col("ModelID"
 )
 ```
 
-In the standard configuration there is one Adaptive model per treatment/action for a configuration.
+In a standard Naive Bayes configuration, there is typically one Adaptive Model per treatment (or per action when treatments are not distinguished).
 
 ```{python}
 model_overview = datamart.aggregates.configuration_overview(
@@ -1238,9 +1241,9 @@ if naming_review is not None and naming_review.height > 0:
 
 ## Model Performance {#model-performance}
 
-### Model Performance vs Action Success Rates (the Bubble Charts)
+### Model Performance vs Success Rate (the Bubble Charts)
 
-This “Bubble Chart” - similar to the standard ADM models overview in Pega Prediction Studio - shows the relation between model performance and proposition success rates. The size of the bubbles indicates the number of responses.
+This “Bubble Chart” - similar to the standard ADM models overview in Pega Prediction Studio - plots model performance against success rate; bubble size indicates the number of responses. Model granularity varies by technique: Naive Bayes models are generally per treatment (or action when treatments are not distinguished), while AGB models are typically per channel. A bubble should therefore not be interpreted as representing one action or treatment in every case.
 
 ```{python}
 try:
@@ -1339,26 +1342,26 @@ The data contains many ({n_configs}) model configurations. To limit the size of 
     fig.show()
 
 except Exception as e:
-    report_utils.quarto_plot_exception("Model Performance vs Action Success Rates", e)
+    report_utils.quarto_plot_exception("Model Performance vs Success Rate", e)
 
 ```
 
-On the x-axis Model Performance measured in AUC-ROC, on the y-axis the Success Rate of the models (#positives / #responses).
+The x-axis shows model performance measured in AUC-ROC; the y-axis shows success rate (#positives / #responses).
 
 ::: {.callout-tip title="Guidance"}
--   Bubbles stacked up against the left-hand vertical axis represent actions/treatments for which the models are not predictive. These models may be still be ramping up, or they may not have enough features to work with: consider if new/better predictors can be added.
+-   Bubbles near the left-hand vertical axis indicate low model performance. The model may still be ramping up or may not have enough useful features: consider whether better predictors can be added.
 
 -   Charts should not be empty or contain only a few bubbles. Such charts may represent channels or configurations not (or no longer) used.
 
--   Bubbles at the bottom of the charts represent propositions with very low success rates - they may not be compelling enough.
+-   Bubbles near the bottom of the charts indicate low success rates for the plotted model data. For AGB, interpret this at the channel-level model scope rather than as the result for one treatment.
 
--   In an ideal scenario you will see the larger bubbles more on the top-right, so more volume for propositions with higher success rates and better models.
+-   Ideally, larger bubbles appear toward the top-right: higher response volume, higher success rates, and higher model performance.
 
 -   There should - very roughly - be a positive correlation between success rate and performance and between response counts and performance.
 
 -   There should be variation in response counts (not all dots of equal size)
 
--   For small volumes of good models, see if the engagement rules in the Decision Strategy are overly restrictive or reconsider the arbitration of the propositions so they get more (or less) exposure.
+-   For small volumes of good models, check whether engagement rules in the Decision Strategy are overly restrictive or reconsider how actions or treatments are arbitrated so they receive more (or less) exposure.
 :::
 
 ### Model Performance over Time
@@ -1411,7 +1414,7 @@ else:
 -   No abrupt changes but gradual upward trend is good
 :::
 
-### Model performance of all the actions
+### Model performance across action and treatment contexts
 
 Using an interactive treemap to visualize the performance. Red is lower performance, green is higher (better) performance.
 
@@ -1668,7 +1671,7 @@ else:
 
 ## Importance of Adaptive Gradient Boosting Predictors
 
-Adaptive Gradient Boosting (AGB) models do not have univariate predictor performance, so they do not show up in the Naive Bayes sections above. Instead the importance reported by the platform is shown here. The charts show the global importance the platform reports per configuration, which adds up to 100%. Context keys such as pyName and pyTreatment are constant within a single action model, so they only carry importance at this configuration level. Top predictors are ranked separately per Configuration, Channel and Direction. As in the Naive Bayes section, when there are too many configurations, the top-predictor charts combine configurations within each Channel/Direction and Modelling Technique. AGB models that have not built any trees yet have no importance and are left out.
+Adaptive Gradient Boosting (AGB) models do not have univariate predictor performance, so they do not appear in the Naive Bayes sections above. Instead, the platform's reported feature importance is shown here. AGB models are typically per channel; these charts show global importance per configuration, which adds up to 100%, not a separate importance profile for each action or treatment. Top predictors are ranked separately per Configuration, Channel, and Direction. As in the Naive Bayes section, when there are too many configurations, the top-predictor charts combine configurations within each Channel/Direction and Modelling Technique. AGB models that have not built any trees yet have no importance and are left out.
 
 ```{python}
 # | error: true
@@ -1807,7 +1810,7 @@ else:
 ::: {.callout-tip title="Guidance"}
 -   AGB predictors that no model uses add data sourcing cost without contributing to the models.
 -   Be sure to check for data problems.
--   Be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well.
+-   Be careful with predictor removal. Only remove a predictor if it has no clear future value to other actions or treatments.
 :::
 
 ### Naive Bayes
@@ -1882,17 +1885,17 @@ else:
 ::: {.callout-tip title="Guidance"}
 -   Predictors that consistently perform poorly could potentially be removed.
 -   Be sure to check for data problems.
--   Note we advise to be careful with predictor removal. Only remove if there is clearly no future value to other propositions as well or if there is always a related predictor that performs better.
+-   Note we advise caution when removing predictors. Only remove one if it has no clear future value to other actions or treatments, or if a related predictor consistently performs better.
 -   We expect a few dozen active predictors for every model instance.
 :::
 
 ## Naive Bayes Predictor Performance across Actions
 
-A view of Naive Bayes predictor performance (AUC) across all propositions, ordered so that the best performing predictors are at the top and the best performing action/treatments are on the left. Green indicates good performance, red means more problematic - either too low or too good to be true.
+A view of Naive Bayes predictor performance (AUC) across action/treatment contexts, ordered so that the best-performing predictors are at the top and the best-performing action or treatment contexts are on the left. Green indicates good performance; red indicates performance that may be too low or too good to be true.
 
 Note that this view is really only useful when there is a limited number of actions. Also, we do not split by configuration here, to avoid having too many plots. It is often useful to zoom in into specific channels or configurations.
 
-Only Naive Bayes models are included. Adaptive Gradient Boosting predictors have no individual performance, and the AGB models for the different actions of a configuration share practically the same predictor importance; see the Adaptive Gradient Boosting predictor importance per configuration instead.
+Only Naive Bayes models are included. Adaptive Gradient Boosting predictors have no individual performance; AGB feature importance is reported globally per configuration rather than separately for each action or treatment. See the Adaptive Gradient Boosting predictor importance per configuration instead.
 
 ```{python}
 index_cols = report_utils.polars_subset_to_existing_cols(
@@ -2027,13 +2030,13 @@ else:
 ```
 :::::::
 
-# Responses
+# Response Analysis
 
-In the sections below we check how many models have reached certain reliability (or “maturity”) thresholds. This is based on heuristics on both the number of positives (\> 200 considered mature) and performance.
+The table and trend below group action/treatment records by response and performance thresholds. Counts are row-based, not counts of distinct action names; an action can have separate records for different treatments or configurations. Naive Bayes records typically correspond to a treatment or action, while AGB model performance is typically channel-level, not a separate model per action. The maturity thresholds are heuristics based on positive counts (\> 200 considered mature) and associated performance.
 
-For the full list of models, export the data into an Excel sheet from Pega or from the PDS Tools app.
+For the full list of action/treatment records, export the data into an Excel sheet from Pega or from the PDS Tools app.
 
-All below lists are guidance. With new treatments/actions being introduced regularly, you would expect a small percentage of the models to be at their initial stages, but that percentage should be small.
+All lists below are guidance. With new treatments and actions introduced regularly, a small percentage of records may have fewer responses or positives than the maturity thresholds.
 
 ```{python}
 maturity_criteria = datamart.analysis.health_check_maturity_criteria()
@@ -2045,8 +2048,8 @@ maturity_overview = datamart.analysis.health_check_maturity_overview(
 display(
     report_utils.create_metric_gttable(
         maturity_overview,
-        title="Model Maturity Overview",
-        subtitle=f"models updated since {active_models_threshold_date_string}",
+        title="Action/Treatment Maturity Overview",
+        subtitle=f"records updated since {active_models_threshold_date_string}",
     ).fmt_number(
         decimals=2,
         columns=["Average Performance"],
@@ -2054,39 +2057,33 @@ display(
 )
 ```
 
-### Models that have never been used
+### Action/treatment records with no responses
 
-These models have no responses at all: no positives but also no negatives. The models for these actions/treatments exist, so they must have been created during decisioning, but they were never selected to show to the customer, so never received any responses.
+These records have no responses at all: no positives and no negatives. Some correspond to actions or treatments that never reached production or were only used for testing. Others may indicate that the response mechanism is broken, for example because outcome labels returned by the channel application do not match the adaptive model configuration.
 
-Often these represent actions that never made it into production and were only used to test out logic. But it could also be that the response mechanism is broken. It could for example be caused by outcome labels that are returned by the channel application not matching the configuration of the adaptive models.
+### Action/treatment records with responses but no positive responses
 
-### Models that have have been used but never received a positive response
+These records have responses but no “positive” responses. This could mean that customers did not find the associated action or treatment compelling, but it could also mean the response loop is not working correctly. For example, Pega decisions may automatically be counted as “negatives” even when the channel application did not show the action or treatment to the user.
 
-These models have been used but never received a “positive” response. This means the action/treatments that these models represent have been selected, so an “impression” has been made to the customer, but they never received a “positive” response.
+### Action/treatment records with fewer than 200 positives
 
-This could be because no customer ever found the proposition attractive, but it could also be because the response loop is not working correctly. Possibly the response loop is set up so that Pega decisions automatically are counted as “negatives“ even if the channel application did never show it to the user.
+These records have received positive responses but remain below the maturity threshold. This matters especially for outbound channels, where Outbound Maturity Capping limits the reach of actions with insufficient response history.
 
-### Models that are still in an immature phase of learning
+### Action/treatment records with sufficient positives but minimum performance
 
-These models have received at least one positive response but not enough yet to be qualified to be fully “mature” - a concept that matters especially for outbound channels: the Outbound Maturity Capping feature caps the reach of immature actions.
-
-These actions are typically new and still in early phases of learning.
-
-### Models that have received sufficient responses but are still at their minimum performance
-
-These models have received over 200 positives but still show the minimum model performance.
+These records have sufficient positive responses but an associated performance value at the minimum (AUC = 50).
 
 This could be an indication of data problems, or not having the right predictors but may also be caused by technical aspects like the order of the responses to the model.
 
-### Models that have received sufficient responses but still have a low performance
+### Action/treatment records with sufficient positives but low performance
 
-These models have received over 200 positives and do have a performance above the minimum but it still is really low.
+These records have sufficient positive responses, but their associated performance remains below the recommended minimum.
 
 This could be because of lack of good predictors in the model.
 
-## Number of Empty/Immature Models over time
+## Number of Empty/Immature Action/Treatment Records over time
 
-In the analysis below we count the number of models in each of the groups analysed before and show how that \ncount changes over time. The expectation is that the number of “non-empty” models increases steadily and the other lines are more or less stable.\n Empty is defined as having no responses at all. Immature is defined as having \< 200 positives, and no performance means model performance is still the initial 0.5 value while having matured already according to the definition.
+The analysis below counts action/treatment records in the same groups over time. The number of records with responses is expected to increase steadily, while the other groups should remain relatively stable. Empty means no responses; immature means fewer than 200 positives; minimum performance means the associated performance remains at the initial 0.5 value despite sufficient positives. For AGB, interpret performance at the channel-level model scope.
 
 ```{python}
 if datamart.has_single_snapshot:
@@ -2100,7 +2097,7 @@ else:
             [
                 datamart.model_data.group_by(by).agg(
                     pl.lit(label).alias("Category"),
-                    pl.col("Name").filter(filter_expression).len().alias("Number of Models"),
+                    pl.col("Name").filter(filter_expression).len().alias("Number of Action/Treatment Records"),
                     (
                         cdh_utils.weighted_average_polars(
                             pl.col("Performance").filter(filter_expression),
@@ -2121,7 +2118,7 @@ else:
         fig = px.line(
             maturity_trend,
             x="SnapshotTime",
-            y="Number of Models",
+            y="Number of Action/Treatment Records",
             color="Category",
             facet_col=facet,
             template="pega",
@@ -2130,8 +2127,8 @@ else:
 
         fig.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
         fig.update_layout(
-            title="Number of Empty/Immature Models over Time by Channel/Direction",
-            legend_title_text="Model Maturity",
+            title="Number of Empty/Immature Action/Treatment Records over Time by Channel/Direction",
+            legend_title_text="Action/Treatment Record Status",
         )
         fig = fig_update_facet(fig, 3, 200, 250)
 
@@ -2139,34 +2136,39 @@ else:
 
         fig.show()
     except Exception as e:
-        report_utils.quarto_plot_exception("Number of Empty/Immature Models over time", e)
+        report_utils.quarto_plot_exception("Number of Empty/Immature Action/Treatment Records over time", e)
 ```
 
 ::: {.callout-tip title="Guidance"}
-- Empty models shouldn't be increasing too much
-- Good models (AUC 55-80) should increase or at least not decrease
-- Good models should be much higher than problem kids
+- Empty action/treatment records should not increase excessively.
+- Records associated with good performance (AUC 55–80) should increase or at least remain stable.
+- Good-performance records should substantially outnumber low-performance records.
 :::
 
 ## Number of Responses over Time
 
+This chart shows response counts per interval, calculated by differencing each model's cumulative response counter before grouping by channel and direction. It uses the same range-based interval as the CTR and AUC trends: daily for ranges up to 28 days, weekly up to five years, and monthly for longer ranges. When a model has a gap between snapshots, its change is averaged across the elapsed intervals.
+
 ```{python}
-if datamart.has_single_snapshot:
+if trend_datamart.has_single_snapshot:
     display(Markdown("::: {.callout-note title='Trend unavailable'}\nThis dataset contains only one snapshot. Trend plots require multiple snapshots captured over time.\n:::"))
 else:
     try:
-        response_counts = datamart.plot.over_time(
+        response_interval = cdh_utils.resolve_trend_interval(trend_datamart.model_data, "auto")
+        response_period = cdh_utils.trend_interval_label(response_interval)
+        response_counts = trend_datamart.plot.over_time(
             "ResponseCount",
             by=["Channel", "Direction"],
+            every=response_interval,
             cumulative=False,
             # facet="Configuration",
         )
 
         response_counts = fig_update_facet(response_counts, facet_cols, 200, 250)
         response_counts.for_each_xaxis(lambda xaxis: xaxis.update(title=""))
-        response_counts.update_layout(yaxis_title="Responses")
-        response_counts.for_each_yaxis(lambda yaxis: yaxis.update(title="Responses"))
-        response_counts.update_layout(title="Responses over Time by Channel/Direction")
+        response_counts.update_layout(yaxis_title=f"{response_period} Responses")
+        response_counts.for_each_yaxis(lambda yaxis: yaxis.update(title=f"{response_period} Responses"))
+        response_counts.update_layout(title=f"{response_period} Responses over Time by Channel/Direction")
 
         response_counts.show()
     except Exception as e:
@@ -2175,21 +2177,17 @@ else:
 ```
 
 ::: {.callout-tip title="Guidance"}
-- Look out for consecutive days without any responses
-- Response counts should be cumulative, so negative spikes in the delta view may indicate that models have been 'reset'
+- Watch for intervals with 0 responses; this may mean no actions were shown or response feedback was not captured.
+- The chart shows responses added in each interval, not a running total. Negative values are not expected; if one appears, check the source data.
 :::
 
-# Which Models drive most of the Volume
+# Response Volume by Action/Treatment
 
-## Analysis of skewness of the Responses
+## Response Concentration by Action/Treatment
 
-Showing the cumulative response count vs the number of models. Is there a larger percentage of models that take the vast majority of the responses?
+These charts compare the cumulative response or positive count with the cumulative share of action/treatment records in the latest snapshot. Counts are row-based, not counts of distinct action names. Naive Bayes records typically correspond to a treatment or action; for AGB, the underlying model is typically channel-level, not a separate model per action.
 
-If this line strongly deviates from the diagonal it means that relatively few models drive the majority of the responses.
-
-In the left-hand plot we look at all responses, which really means that we are looking at “impressions” mostly. The right-hand plot looks at just the positives. Typically, the positives are driven more strongly by the models so often you see more skewness in that one.
-
-Very skewed results may be caused by prioritization elements like levers and weights and can be a reason to check in with business and verify that this is expected.
+The left plot shows all responses, which mostly represent “impressions.” The right plot shows positive responses, which are often more concentrated among a smaller share of action/treatment records.
 
 ::: {layout-ncol="2"}
 ```{python}
@@ -2201,8 +2199,9 @@ try:
     )
     fig = (
         fig.update_yaxes(title="% of Responses")
-        .update_xaxes(title="Percentage of Models")
+        .update_xaxes(title="% of Action/Treatment Records")
     )
+    fig.update_layout(legend=dict(x=0.98, y=0.02, xanchor="right", yanchor="bottom"))
     fig.show()
 except Exception as e:
     report_utils.quarto_plot_exception("Cumulative Responses", e)
@@ -2217,8 +2216,9 @@ try:
     )
     fig = (
         fig.update_yaxes(title="% of Positives")
-        .update_xaxes(title="Percentage of Models")
+        .update_xaxes(title="% of Action/Treatment Records")
     )
+    fig.update_layout(legend=dict(x=0.98, y=0.02, xanchor="right", yanchor="bottom"))
     fig.show()
 except Exception as e:
     report_utils.quarto_plot_exception("Cumulative Positives", e)
@@ -2227,27 +2227,28 @@ except Exception as e:
 :::
 
 ::: {.callout-tip title="Guidance"}
-- Area under this curve should be > 0.5 but not too close to 1, which means that most of the responses are driven by relatively few actions, but not too extreme
+- If a curve strongly deviates from the diagonal, a relatively small share of action/treatment records accounts for most of the responses.
+- Very skewed results may be caused by prioritization elements like levers and weights and can be a reason to check in with business and verify that this is expected.
 :::
 
-## Analysis of Performance vs Volume
+## Performance Associated with Response Volume
 
-Is most volume driven by models that have a good predictive performance? Ideally yes, so the targeting of the customers is optimal. If a lot of volume is driven by models that are not very predictive, this could be a reason to look into the available predictor data.
+Is most response volume associated with records whose model performance is good? Ideally yes. If a lot of volume is associated with low performance, investigate the available predictor data. For AGB, interpret performance at the channel-level model scope; it is not an action-level model metric.
 
-The plot below shows this relation. Horizontally the model performance (the AUC, ranging from 50 to 100 as Pega usually scales this), descretized into a number of ranges, and vertically the percentage of responses.
+The plot below groups response volume by model performance. The horizontal axis shows AUC (50–100, as typically scaled by Pega) divided into ranges; the vertical axis shows the percentage of responses.
 
-A lot of volume on the first bins, where the performance is minimal, means that a lot of immature models are used. This is sub-optimal in terms of targeting. Ideally there is a smooth curve with a peak in the 60-80 range of AUC. Much higher AUC’s are possibly indicative of immature models or even outcome leakers (although that is effectively prevented by the standard delayed learning pattern). AUC’s below 60 are not uncommon but should be investigated - consider different predictors or outcomes.
+High volume in the lowest performance bins indicates that many responses are associated with low-performing model scopes, which may be suboptimal for targeting. Ideally, the curve is smooth, with a peak in the 60–80 AUC range. Much higher AUC values may indicate immature models or outcome leakage (although the standard delayed-learning pattern is designed to prevent this). AUC values below 60 are not uncommon but should be investigated; consider different predictors or outcomes.
 
 ```{python}
 try:
     fig = datamart.plot.performance_volume_distribution(
         by=["Channel", "Direction"],
         query=active_models_filter_expr,
-        title=f"Performance vs Volume<br><sup>models updated since {active_models_threshold_date_string}</sup>"
+        title=f"Performance vs Response Volume<br><sup>records updated since {active_models_threshold_date_string}</sup>"
     )
     fig.show()
 except Exception as e:
-    report_utils.quarto_plot_exception("Performance vs Volume", e)
+    report_utils.quarto_plot_exception("Performance vs Response Volume", e)
 ```
 
 # Credits

@@ -19,45 +19,17 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_AUTO_DAILY_MAX_SPAN = timedelta(days=28)
-_AUTO_MONTHLY_MIN_SPAN = timedelta(days=365 * 5)
 
-
-def _resolve_trend_interval(
-    df: pl.LazyFrame,
-    every: str | timedelta,
-) -> str | timedelta:
-    if every != "auto":
-        return every
-
-    start, end = (
-        df.select(
-            pl.col("SnapshotTime").min().alias("__start"),
-            pl.col("SnapshotTime").max().alias("__end"),
-        )
-        .collect()
-        .row(0)
-    )
-    if start is None or end is None:
-        raise ValueError("Cannot infer a trend interval without valid SnapshotTime values")
-
-    span = end - start
-    if span <= _AUTO_DAILY_MAX_SPAN:
-        return "1d"
-    if span > _AUTO_MONTHLY_MIN_SPAN:
-        return "1mo"
-    return "1w"
-
-
-def _period_success_rate(
+def _period_metric_changes(
     df: pl.LazyFrame,
     *,
     every: str | timedelta,
     grouping_columns: list[str],
+    metrics: list[str],
 ) -> pl.LazyFrame:
     model_grouping_columns = list(dict.fromkeys(["ModelID", *grouping_columns]))
     history_start = df.select(pl.col("SnapshotTime").min()).collect().item()
-    model_first_seen = df.group_by("ModelID").agg(
+    model_first_seen = df.group_by(model_grouping_columns).agg(
         pl.col("SnapshotTime").min().alias("__model_first_seen"),
     )
     period_data = (
@@ -66,11 +38,8 @@ def _period_success_rate(
             every=every,
             group_by=model_grouping_columns,
         )
-        .agg(
-            pl.col("Positives").last(),
-            pl.col("ResponseCount").last(),
-        )
-        .join(model_first_seen, on="ModelID")
+        .agg([pl.col(metric).last() for metric in metrics])
+        .join(model_first_seen, on=model_grouping_columns)
         .sort(*model_grouping_columns, "SnapshotTime")
     )
     period_index = (
@@ -84,10 +53,6 @@ def _period_success_rate(
         .select(["SnapshotTime", *model_grouping_columns, "__period_index"])
     )
     periods_elapsed = pl.col("__period_index").diff().over(model_grouping_columns).fill_null(1).clip(lower_bound=1)
-    total_responses = period_data.group_by(["SnapshotTime", *grouping_columns]).agg(
-        pl.sum("ResponseCount").alias("TotalResponses"),
-    )
-
     return (
         period_data.join(
             period_index.lazy(),
@@ -95,37 +60,81 @@ def _period_success_rate(
         )
         .sort(*model_grouping_columns, "SnapshotTime")
         .with_columns(
-            pl.when(
-                (pl.col("__period_index") == 0) & (pl.col("__model_first_seen") > history_start),
-            )
-            .then(pl.col("Positives"))
-            .otherwise(pl.col("Positives").diff().over(model_grouping_columns))
-            .alias("__positive_change"),
-            pl.when(
-                (pl.col("__period_index") == 0) & (pl.col("__model_first_seen") > history_start),
-            )
-            .then(pl.col("ResponseCount"))
-            .otherwise(pl.col("ResponseCount").diff().over(model_grouping_columns))
-            .alias("__response_change"),
+            *[
+                pl.when(
+                    (pl.col("__period_index") == 0) & (pl.col("__model_first_seen") > history_start),
+                )
+                .then(pl.col(metric))
+                .otherwise(pl.col(metric).diff().over(model_grouping_columns))
+                .alias(f"__{metric}_change")
+                for metric in metrics
+            ],
             periods_elapsed.alias("__periods_elapsed"),
         )
         .with_columns(
-            (pl.col("__positive_change") / pl.col("__periods_elapsed")).alias("__positives_per_period"),
-            (pl.col("__response_change") / pl.col("__periods_elapsed")).alias("__responses_per_period"),
+            *[
+                (pl.col(f"__{metric}_change") / pl.col("__periods_elapsed")).alias(f"__{metric}_per_period")
+                for metric in metrics
+            ],
         )
-        .filter(
-            (pl.col("__positives_per_period") >= 0) & (pl.col("__responses_per_period") > 0),
+    )
+
+
+def _period_success_rate(
+    df: pl.LazyFrame,
+    *,
+    every: str | timedelta,
+    grouping_columns: list[str],
+) -> pl.LazyFrame:
+    period_data = _period_metric_changes(
+        df,
+        every=every,
+        grouping_columns=grouping_columns,
+        metrics=["Positives", "ResponseCount"],
+    )
+    total_responses = period_data.group_by(["SnapshotTime", *grouping_columns]).agg(
+        pl.sum("ResponseCount").alias("TotalResponses"),
+    )
+
+    return (
+        period_data.filter(
+            (pl.col("__Positives_per_period") >= 0) & (pl.col("__ResponseCount_per_period") > 0),
         )
         .group_by(["SnapshotTime", *grouping_columns])
         .agg(
-            pl.sum("__positives_per_period").alias("Positives"),
-            pl.sum("__responses_per_period").alias("ResponseCount"),
-            pl.sum("__positive_change").alias("PositivesInInterval"),
-            pl.sum("__response_change").alias("ResponsesInInterval"),
+            pl.sum("__Positives_per_period").alias("Positives"),
+            pl.sum("__ResponseCount_per_period").alias("ResponseCount"),
+            pl.sum("__Positives_change").alias("PositivesInInterval"),
+            pl.sum("__ResponseCount_change").alias("ResponsesInInterval"),
             pl.max("__periods_elapsed").alias("PeriodsCovered"),
         )
         .join(total_responses, on=["SnapshotTime", *grouping_columns])
         .with_columns((pl.col("Positives") / pl.col("ResponseCount")).alias("SuccessRate"))
+        .sort("SnapshotTime", *grouping_columns)
+    )
+
+
+def _period_response_count(
+    df: pl.LazyFrame,
+    *,
+    every: str | timedelta,
+    grouping_columns: list[str],
+) -> pl.LazyFrame:
+    return (
+        _period_metric_changes(
+            df,
+            every=every,
+            grouping_columns=grouping_columns,
+            metrics=["ResponseCount"],
+        )
+        .group_by(["SnapshotTime", *grouping_columns])
+        .agg(
+            pl.sum("ResponseCount"),
+            pl.when(pl.col("__ResponseCount_per_period").count() > 0)
+            .then(pl.sum("__ResponseCount_per_period"))
+            .otherwise(None)
+            .alias("ResponseCount_change"),
+        )
         .sort("SnapshotTime", *grouping_columns)
     )
 
@@ -172,7 +181,9 @@ class _PerformancePlotsMixin(_PlotsBase):
             subsequent snapshot to establish their changes. For other metrics,
             it differences consecutive bucket values. Changes are divided by
             the number of elapsed buckets when observations are separated by a
-            gap; missing buckets are not plotted.
+            gap; missing buckets are not plotted. When False for
+            "ResponseCount", cumulative counts are differenced per model before
+            being summed into the requested groups.
             When "Performance" is cumulative and ``every="auto"``, the latest
             snapshot for each model in each selected interval is used instead.
             Exact 100% period SuccessRate values remain in the line data, but
@@ -260,6 +271,7 @@ class _PerformancePlotsMixin(_PlotsBase):
         if facet:
             columns_to_select.add(facet)
         is_period_success_rate = metric == "SuccessRate" and not cumulative
+        is_period_response_count = metric == "ResponseCount" and not cumulative
         if is_period_success_rate:
             missing_columns = {"ModelID", "Positives", "ResponseCount"} - set(
                 self.datamart.model_data.collect_schema().names(),
@@ -269,6 +281,10 @@ class _PerformancePlotsMixin(_PlotsBase):
                     f"Period SuccessRate requires model-level cumulative columns: {', '.join(sorted(missing_columns))}",
                 )
             columns_to_select.update({"ModelID", "Positives"})
+        if is_period_response_count:
+            if "ModelID" not in self.datamart.model_data.collect_schema().names():
+                raise ValueError("Period ResponseCount requires ModelID to difference cumulative counts per model.")
+            columns_to_select.add("ModelID")
         is_auto_bucketed_auc = metric == "Performance" and cumulative and every == "auto"
         if is_auto_bucketed_auc:
             if "ModelID" not in self.datamart.model_data.collect_schema().names():
@@ -290,8 +306,9 @@ class _PerformancePlotsMixin(_PlotsBase):
         # Filter out null values in SnapshotTime and grouping columns to avoid issues with group_by_dynamic
         null_filters = [pl.col("SnapshotTime").is_not_null()] + [pl.col(col).is_not_null() for col in grouping_columns]
         df = df.filter(pl.all_horizontal(null_filters))
+        model_level_df = df
 
-        every = _resolve_trend_interval(df, every)
+        every = cdh_utils.resolve_trend_interval(df, every)
         if is_period_success_rate:
             df = _period_success_rate(
                 df,
@@ -351,33 +368,40 @@ class _PerformancePlotsMixin(_PlotsBase):
             plot_metric = metric
             if not cumulative:
                 plot_metric = f"{metric}_change"
-                df = (
-                    df.group_by_dynamic(
-                        "SnapshotTime",
+                if is_period_response_count:
+                    df = _period_response_count(
+                        model_level_df,
                         every=every,
-                        group_by=grouping_columns,
+                        grouping_columns=grouping_columns,
                     )
-                    .agg(pl.last(metric))
-                    .sort(*grouping_columns, "SnapshotTime")
-                )
-                period_index = (
-                    df.collect()
-                    .upsample("SnapshotTime", every=every, group_by=grouping_columns)
-                    .sort(*grouping_columns, "SnapshotTime")
-                    .with_columns(
-                        pl.int_range(pl.len()).over(grouping_columns).alias("__period_index"),
+                else:
+                    df = (
+                        df.group_by_dynamic(
+                            "SnapshotTime",
+                            every=every,
+                            group_by=grouping_columns,
+                        )
+                        .agg(pl.last(metric))
+                        .sort(*grouping_columns, "SnapshotTime")
                     )
-                    .select([*grouping_columns, "SnapshotTime", "__period_index"])
-                )
-                periods_elapsed = pl.col("__period_index").diff().over(grouping_columns).clip(lower_bound=1)
-                df = (
-                    df.join(period_index.lazy(), on=[*grouping_columns, "SnapshotTime"])
-                    .sort(*grouping_columns, "SnapshotTime")
-                    .with_columns(
-                        (pl.col(metric).diff().over(grouping_columns) / periods_elapsed).alias(plot_metric),
+                    period_index = (
+                        df.collect()
+                        .upsample("SnapshotTime", every=every, group_by=grouping_columns)
+                        .sort(*grouping_columns, "SnapshotTime")
+                        .with_columns(
+                            pl.int_range(pl.len()).over(grouping_columns).alias("__period_index"),
+                        )
+                        .select([*grouping_columns, "SnapshotTime", "__period_index"])
                     )
-                    .drop("__period_index")
-                )
+                    periods_elapsed = pl.col("__period_index").diff().over(grouping_columns).clip(lower_bound=1)
+                    df = (
+                        df.join(period_index.lazy(), on=[*grouping_columns, "SnapshotTime"])
+                        .sort(*grouping_columns, "SnapshotTime")
+                        .with_columns(
+                            (pl.col(metric).diff().over(grouping_columns) / periods_elapsed).alias(plot_metric),
+                        )
+                        .drop("__period_index")
+                    )
 
         if return_df:
             return df

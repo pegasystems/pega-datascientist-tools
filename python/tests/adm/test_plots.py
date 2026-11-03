@@ -322,6 +322,43 @@ def test_over_time_response_count_change_normalizes_missing_periods():
     assert weekly.get_column("ResponseCount_change").to_list() == [None, 100.0]
 
 
+def test_over_time_response_count_change_differences_per_model_before_grouping():
+    data = pl.DataFrame(
+        {
+            "SnapshotTime": [
+                datetime(2024, 1, 1),
+                datetime(2024, 1, 1),
+                datetime(2024, 1, 2),
+                datetime(2024, 1, 2),
+                datetime(2024, 1, 3),
+                datetime(2024, 1, 3),
+            ],
+            "ModelID": ["model-1", "model-2", "model-1", "model-3", "model-1", "model-3"],
+            "Channel": ["Email"] * 6,
+            "Direction": ["Outbound"] * 6,
+            "Performance": [0.75] * 6,
+            "ResponseCount": [100, 200, 110, 40, 130, 50],
+            "Positives": [10, 20, 11, 4, 13, 5],
+        },
+    ).lazy()
+    datamart = ADMDatamart(model_df=data)
+
+    daily = (
+        datamart.plot.over_time(
+            metric="ResponseCount",
+            by=["Channel", "Direction"],
+            every="auto",
+            cumulative=False,
+            return_df=True,
+        )
+        .collect()
+        .sort("SnapshotTime")
+    )
+
+    assert daily.get_column("ResponseCount_change").to_list() == [None, 50.0, 30.0]
+    assert daily.get_column("Channel / Direction").to_list() == ["Email / Outbound"] * 3
+
+
 def test_over_time_period_success_rate_uses_latest_counts_and_normalizes_gaps():
     data = pl.DataFrame(
         {
@@ -751,7 +788,7 @@ def test_proposition_success_rates(sample: ADMDatamart):
     df = sample.plot.proposition_success_rates(return_df=True)
 
     assert round(df.select(pl.col("SuccessRate").top_k(1)).collect().item(), 3) == 0.295
-    assert df.select(pl.col("Name").top_k(1)).collect().item() == "VisaGold"
+    assert df.select(pl.col("Name").top_k(1)).collect().item() == "VisaSignature"
 
     plot = sample.plot.proposition_success_rates()
     assert isinstance(plot, Figure)
@@ -1107,8 +1144,8 @@ def test_predictor_performance_heatmap_empty_query(sample: ADMDatamart):
 
 def test_tree_map(sample: ADMDatamart):
     df = sample.plot.tree_map(return_df=True).collect()
-    assert df.shape == (68, 10)
-    assert df.sort("Total number of positives").row(0)[-1] == 2.0
+    assert df.shape == (98, 10)
+    assert df.sort("Total number of positives").row(0)[-1] == 0.0
     plot = sample.plot.tree_map()
     assert isinstance(plot, Figure)
 
@@ -1194,8 +1231,8 @@ def test_gains_chart_return_df(sample: ADMDatamart):
 
     # Verify data makes sense
     collected = df.collect()
-    # 68 models in fixture + a leading (0, 0) anchor point => 69 rows.
-    assert collected.height == 69
+    # 98 models in fixture + a leading (0, 0) anchor point => 99 rows.
+    assert collected.height == 99
     assert collected["cum_x"][0] == 0.0
     assert collected["cum_y"][0] == 0.0
     assert collected["cum_x"][-1] == pytest.approx(1.0, abs=0.01)
@@ -1216,7 +1253,7 @@ def test_gains_chart_with_index(sample: ADMDatamart):
     df = sample.plot.gains_chart(value="Positives", index="ResponseCount", return_df=True)
     # Verify index column is used for sorting
     collected = df.collect()
-    assert collected.height == 69
+    assert collected.height == 99
     assert collected["cum_x"].is_sorted()
     assert collected["cum_y"][-1] == pytest.approx(1.0, abs=0.01)
 
@@ -1225,9 +1262,9 @@ def test_gains_chart_with_query(sample: ADMDatamart):
     """Test gains chart with query filter."""
     # Use a filter that keeps some but not all data
     df = sample.plot.gains_chart(value="ResponseCount", query=pl.col("Channel") == "Email", return_df=True)
-    # Should still return data for filtered subset (Email channel: 22 models + anchor)
+    # Should still return data for filtered subset (Email channel: 35 models + anchor)
     collected = df.collect()
-    assert collected.height == 23
+    assert collected.height == 36
     assert collected["cum_x"][0] == 0.0
     assert collected["cum_y"][-1] == pytest.approx(1.0, abs=0.01)
 
@@ -1245,10 +1282,10 @@ def test_performance_volume_distribution_return_df(sample: ADMDatamart):
     assert "PerformanceBinned" in schema
     assert "ResponseCount" in schema
 
-    # Verify binning worked: Performance range 50-80 with default bin_width=3 = 10 bins
+    # The null-performance row is retained alongside the ten performance bins.
     collected = df.collect()
-    assert collected.height == 10
-    assert collected["PerformanceBinned"].to_list() == [
+    assert collected.height == 11
+    assert collected["PerformanceBinned"].drop_nulls().to_list() == [
         "[50, 53)",
         "[53, 56)",
         "[56, 59)",
@@ -1260,9 +1297,10 @@ def test_performance_volume_distribution_return_df(sample: ADMDatamart):
         "[74, 77)",
         "[77, 80)",
     ]
+    assert collected.filter(pl.col("PerformanceBinned").is_null())["ResponseCount"].item() == 0.0
     # Proportions across all bins must sum to 1.0
     assert collected["Proportion"].sum() == pytest.approx(1.0, abs=1e-5)
-    assert collected["ResponseCount"].sum() == pytest.approx(1560249.0, rel=1e-6)
+    assert collected["ResponseCount"].sum() == pytest.approx(1800258.0, rel=1e-6)
 
 
 def test_performance_volume_distribution_with_grouping(sample: ADMDatamart):
@@ -1278,7 +1316,7 @@ def test_performance_volume_distribution_bin_width(sample: ADMDatamart):
     df = sample.plot.performance_volume_distribution(bin_width=5, return_df=True)
     collected = df.collect()
     # Verify binning created expected number of bins
-    num_bins = collected["PerformanceBinned"].n_unique()
+    num_bins = collected["PerformanceBinned"].drop_nulls().n_unique()
     assert num_bins == 6  # Performance range 50-80 with bin_width=5 produces 6 bins
 
 
@@ -1288,8 +1326,8 @@ def test_performance_volume_distribution_with_query(sample: ADMDatamart):
     collected = df.collect()
     # Same Performance range -> same 10 bins, but lower total response count after the query.
     assert collected.height == 10
-    assert collected["ResponseCount"].sum() == pytest.approx(1557707.0, rel=1e-6)
-    assert collected["ResponseCount"].sum() < 1560249.0  # query genuinely filtered rows
+    assert collected["ResponseCount"].sum() == pytest.approx(1796336.0, rel=1e-6)
+    assert collected["ResponseCount"].sum() < 1800258.0  # query genuinely filtered rows
 
 
 # ---------------------------------------------------------------------------

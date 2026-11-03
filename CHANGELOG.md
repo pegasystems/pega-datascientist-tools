@@ -6,6 +6,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `pdstools.utils.cdh_utils.resolve_trend_interval()` and
+  `trend_interval_label()` provide shared date-range-based trend cadence
+  selection and display labels.
+
+### Changed
+
+- ADM Health Check trend plots now use date-range-based daily, weekly, or
+  monthly intervals. CTR and response counts show per-interval changes, while
+  AUC uses the latest cumulative value in each interval. `cdh_sample()` uses
+  repository data in source checkouts and falls back to the canonical URL
+  when those files are unavailable.
+- **Breaking:** `Analysis.health_check_maturity_overview()` now returns
+  `"Number of Action/Treatment Records"` instead of `"Number of Models"`,
+  and its category labels describe action/treatment records. Update callers
+  that select the previous column name.
+
 ### Fixed
 
 - AGB predictor importance (`ADMDatamart.aggregates.predictor_importance`,
