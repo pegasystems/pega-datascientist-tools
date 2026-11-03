@@ -189,9 +189,9 @@ class _PerformancePlotsMixin(_PlotsBase):
             ``facet_col_spacing`` scale from 0 to 1. By default, Plotly's
             standard spacing is used.
         show_metric_limits : bool, optional
-            Whether to show dashed horizontal lines at the metric limit
-            thresholds (from MetricLimits.csv), by default False.
-            Only applies when metric is "Performance".
+            Whether to show dashed horizontal lines and subtle background
+            bands at the metric limit thresholds (from MetricLimits.csv), by
+            default False. Only applies when metric is "Performance".
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
 

@@ -64,8 +64,9 @@ class _OverviewPlotsMixin(_PlotsBase):
         color : str, optional
             Column name used to colour the bubbles, by default "Performance"
         show_metric_limits : bool, optional
-            Whether to show dashed vertical lines at the ModelPerformance
-            metric limit thresholds (from MetricLimits.csv), by default False
+            Whether to show dashed vertical lines and subtle background bands
+            at the ModelPerformance metric limits (from MetricLimits.csv), by
+            default False
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
 

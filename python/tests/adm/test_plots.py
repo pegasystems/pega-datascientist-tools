@@ -73,7 +73,7 @@ def test_bubble_chart_with_empty_query_returns_annotated_figure(sample: ADMDatam
 
 
 def test_bubble_chart_with_metric_limits(sample: ADMDatamart):
-    """Test bubble chart with metric limit lines enabled."""
+    """Test bubble chart with metric limit lines and threshold bands enabled."""
     fig = sample.plot.bubble_chart(show_metric_limits=True)
     assert isinstance(fig, Figure)
 
@@ -86,6 +86,15 @@ def test_bubble_chart_with_metric_limits(sample: ADMDatamart):
 
     for shape in shapes:
         assert shape.line.dash == "dash"
+
+    bands = [s for s in fig.layout.shapes if s.type == "rect"]
+    assert [band.x0 for band in bands] == pytest.approx([52.0, 55.0, 80.0])
+    assert [band.x1 for band in bands] == pytest.approx([55.0, 80.0, 90.0])
+    assert [band.fillcolor for band in bands] == [
+        "rgba(255, 165, 0, 0.08)",
+        "rgba(0, 128, 0, 0.08)",
+        "rgba(255, 165, 0, 0.08)",
+    ]
 
 
 def test_bubble_chart_metric_limits_off_by_default(sample: ADMDatamart):
@@ -107,6 +116,14 @@ def test_add_metric_limit_lines_standalone():
 
     x_values = sorted(s.x0 for s in shapes)
     assert x_values == pytest.approx([52.0, 55.0, 80.0, 90.0])
+    bands = [s for s in fig.layout.shapes if s.type == "rect"]
+    assert [band.x0 for band in bands] == pytest.approx([52.0, 55.0, 80.0])
+    assert [band.x1 for band in bands] == pytest.approx([55.0, 80.0, 90.0])
+    assert [band.fillcolor for band in bands] == [
+        "rgba(255, 165, 0, 0.08)",
+        "rgba(0, 128, 0, 0.08)",
+        "rgba(255, 165, 0, 0.08)",
+    ]
 
     # Hard limits (52, 90) should use red, best practice (55, 80) should use green
     for shape in shapes:
@@ -114,6 +131,29 @@ def test_add_metric_limit_lines_standalone():
             assert "255, 69, 0" in shape.line.color  # red rgba
         else:
             assert "0, 128, 0" in shape.line.color  # green rgba
+
+
+@pytest.mark.parametrize(
+    ("orientation", "reference_attr", "expected_references"),
+    [
+        ("vertical", "xref", {"x", "x2"}),
+        ("horizontal", "yref", {"y", "y2"}),
+    ],
+)
+def test_add_metric_limit_bands_to_all_facets(orientation, reference_attr, expected_references):
+    from pdstools.adm.Plots import add_metric_limit_lines
+
+    fig = px.scatter(
+        {"Performance": [52, 80], "SuccessRate": [0.1, 0.2], "Facet": ["A", "B"]},
+        x="Performance",
+        y="SuccessRate",
+        facet_col="Facet",
+    )
+    fig = add_metric_limit_lines(fig, orientation=orientation)
+
+    bands = [shape for shape in fig.layout.shapes if shape.type == "rect"]
+    assert len(bands) == 6
+    assert {getattr(band, reference_attr) for band in bands} == expected_references
 
 
 def test_add_metric_limit_lines_horizontal():
@@ -131,10 +171,14 @@ def test_add_metric_limit_lines_horizontal():
     assert y_values == pytest.approx([52.0, 55.0, 80.0, 90.0])
 
     bands = [s for s in fig.layout.shapes if s.type == "rect"]
-    assert len(bands) == 1
-    assert (bands[0].y0, bands[0].y1) == pytest.approx((55.0, 80.0))
-    assert bands[0].fillcolor == "rgba(0, 128, 0, 0.08)"
-    assert bands[0].layer == "below"
+    assert [band.y0 for band in bands] == pytest.approx([52.0, 55.0, 80.0])
+    assert [band.y1 for band in bands] == pytest.approx([55.0, 80.0, 90.0])
+    assert [band.fillcolor for band in bands] == [
+        "rgba(255, 165, 0, 0.08)",
+        "rgba(0, 128, 0, 0.08)",
+        "rgba(255, 165, 0, 0.08)",
+    ]
+    assert all(band.layer == "below" for band in bands)
 
 
 def test_over_time_with_metric_limits(sample2: ADMDatamart):
@@ -145,7 +189,9 @@ def test_over_time_with_metric_limits(sample2: ADMDatamart):
     # Should have 4 horizontal lines
     shapes = [s for s in fig.layout.shapes if s.type == "line" and s.y0 == s.y1]
     assert len(shapes) == 4
-    assert any(s.type == "rect" and (s.y0, s.y1) == pytest.approx((55.0, 80.0)) for s in fig.layout.shapes)
+    bands = [s for s in fig.layout.shapes if s.type == "rect"]
+    assert [band.y0 for band in bands] == pytest.approx([52.0, 55.0, 80.0])
+    assert [band.y1 for band in bands] == pytest.approx([55.0, 80.0, 90.0])
 
 
 def test_over_time_metric_limits_only_for_performance(sample2: ADMDatamart):

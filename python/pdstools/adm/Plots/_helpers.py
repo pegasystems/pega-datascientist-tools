@@ -116,23 +116,34 @@ def add_metric_limit_lines(
     scale: float = 100.0,
     orientation: str = "vertical",
 ) -> Figure:
-    """Add dashed MetricLimits lines and a horizontal best-practice band."""
+    """Add dashed MetricLimits lines and subtle threshold bands."""
     limits = MetricLimits.get_limit_for_metric(metric_id)
     if not limits:
         return fig
 
     add_line = fig.add_vline if orientation == "vertical" else fig.add_hline
     pos_key = "x" if orientation == "vertical" else "y"
-    if orientation == "horizontal":
-        band_min = limits.get("best_practice_min")
-        band_max = limits.get("best_practice_max")
-        if band_min is not None and band_max is not None:
-            fig.add_hrect(
-                y0=band_min * scale,
-                y1=band_max * scale,
-                fillcolor="rgba(0, 128, 0, 0.08)",
+    add_band = fig.add_vrect if orientation == "vertical" else fig.add_hrect
+    band_pos_key = "x" if orientation == "vertical" else "y"
+    threshold_bands = [
+        ("minimum", "best_practice_min", "rgba(255, 165, 0, 0.08)"),
+        ("best_practice_min", "best_practice_max", "rgba(0, 128, 0, 0.08)"),
+        ("best_practice_max", "maximum", "rgba(255, 165, 0, 0.08)"),
+    ]
+    for lower_key, upper_key, fillcolor in threshold_bands:
+        lower = limits.get(lower_key)
+        upper = limits.get(upper_key)
+        if lower is not None and upper is not None:
+            add_band(
+                **{
+                    f"{band_pos_key}0": lower * scale,
+                    f"{band_pos_key}1": upper * scale,
+                },
+                fillcolor=fillcolor,
                 line_width=0,
                 layer="below",
+                row="all",
+                col="all",
             )
 
     line_specs = [
