@@ -1,11 +1,38 @@
 """Testing the functionality of the built-in datasets"""
 
+import polars as pl
 from pdstools import datasets
 
 
 def test_import_CDHSample():
-    Sample = datasets.cdh_sample()
-    assert Sample.model_data.shape == (1047, 30)
+    sample = datasets.cdh_sample()
+    assert sample.model_data.shape == (1047, 30)
+
+    snapshot_times = (
+        sample.model_data.select("SnapshotTime").unique().sort("SnapshotTime").collect().get_column("SnapshotTime")
+    )
+    assert len(snapshot_times) == 18
+    assert (snapshot_times[-1] - snapshot_times[0]).days == 17
+
+    period_ctr = sample.plot.over_time(
+        metric="SuccessRate",
+        by="ModelID",
+        query=pl.col("Channel") == "Web",
+        every="auto",
+        cumulative=False,
+        return_df=True,
+    ).collect()
+    assert period_ctr.height > 0
+    assert period_ctr.get_column("SnapshotTime").n_unique() > 1
+
+    trend = sample.plot.over_time(
+        metric="SuccessRate",
+        by="ModelID",
+        query=pl.col("Channel") == "Web",
+        every="auto",
+        cumulative=False,
+    )
+    assert trend.layout.yaxis.title.text == "Daily CTR"
 
 
 def test_import_SampleTrees():

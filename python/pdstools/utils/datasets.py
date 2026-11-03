@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import pathlib
 import warnings
+from datetime import timedelta
 from typing import TYPE_CHECKING
+
+import polars as pl
 
 from ..adm.ADMDatamart import ADMDatamart
 from ..valuefinder.ValueFinder import ValueFinder
@@ -22,8 +25,46 @@ else:
     ADMTreesModel = None
 
 
+def _space_cdh_sample_snapshot_times(df: pl.LazyFrame | None) -> pl.LazyFrame | None:
+    """Space sub-week CDH sample timestamps by one day for trend examples."""
+    if df is None:
+        return None
+
+    start, end = (
+        df.select(
+            pl.col("SnapshotTime").min().alias("__start"),
+            pl.col("SnapshotTime").max().alias("__end"),
+        )
+        .collect()
+        .row(0)
+    )
+    if start is None or end is None or end - start >= timedelta(days=7):
+        return df
+
+    timestamp_mapping = (
+        df.select("SnapshotTime")
+        .unique()
+        .sort("SnapshotTime")
+        .with_row_index("__snapshot_index")
+        .with_columns(
+            (pl.col("SnapshotTime") + pl.duration(days=pl.col("__snapshot_index"))).alias("__sample_snapshot_time"),
+        )
+    )
+    return (
+        df.join(timestamp_mapping, on="SnapshotTime")
+        .with_columns(pl.col("__sample_snapshot_time").alias("SnapshotTime"))
+        .drop("__snapshot_index", "__sample_snapshot_time")
+    )
+
+
 def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
     """Import a sample dataset from the CDH Sample application
+
+    When the bundled export's snapshots span less than a week despite changing
+    cumulative counts, this loader preserves their order and count data while
+    spacing them one day apart. These illustrative dates are not from a real
+    production history. A sample export already spanning a week or more keeps
+    its original timestamps.
 
     Parameters
     ----------
@@ -41,10 +82,14 @@ def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
     predictors = "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip"
     with warnings.catch_warnings(record=True) as w:
         try:
-            return ADMDatamart.from_ds_export(
+            datamart = ADMDatamart.from_ds_export(
                 model_filename=models,
                 predictor_filename=predictors,
                 base_path=path,
+            )
+            return ADMDatamart(
+                model_df=_space_cdh_sample_snapshot_times(datamart.model_data),
+                predictor_df=_space_cdh_sample_snapshot_times(datamart.predictor_data),
                 query=query,
             )
         except Exception as e:
