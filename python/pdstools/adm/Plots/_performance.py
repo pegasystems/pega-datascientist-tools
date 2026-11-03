@@ -56,6 +56,10 @@ def _period_success_rate(
     grouping_columns: list[str],
 ) -> pl.LazyFrame:
     model_grouping_columns = list(dict.fromkeys(["ModelID", *grouping_columns]))
+    history_start = df.select(pl.col("SnapshotTime").min()).collect().item()
+    model_first_seen = df.group_by("ModelID").agg(
+        pl.col("SnapshotTime").min().alias("__model_first_seen"),
+    )
     period_data = (
         df.group_by_dynamic(
             "SnapshotTime",
@@ -66,6 +70,7 @@ def _period_success_rate(
             pl.col("Positives").last(),
             pl.col("ResponseCount").last(),
         )
+        .join(model_first_seen, on="ModelID")
         .sort(*model_grouping_columns, "SnapshotTime")
     )
     period_index = (
@@ -78,7 +83,7 @@ def _period_success_rate(
         )
         .select(["SnapshotTime", *model_grouping_columns, "__period_index"])
     )
-    periods_elapsed = pl.col("__period_index").diff().over(model_grouping_columns).clip(lower_bound=1)
+    periods_elapsed = pl.col("__period_index").diff().over(model_grouping_columns).fill_null(1).clip(lower_bound=1)
     total_responses = period_data.group_by(["SnapshotTime", *grouping_columns]).agg(
         pl.sum("ResponseCount").alias("TotalResponses"),
     )
@@ -90,8 +95,18 @@ def _period_success_rate(
         )
         .sort(*model_grouping_columns, "SnapshotTime")
         .with_columns(
-            pl.col("Positives").diff().over(model_grouping_columns).alias("__positive_change"),
-            pl.col("ResponseCount").diff().over(model_grouping_columns).alias("__response_change"),
+            pl.when(
+                (pl.col("__period_index") == 0) & (pl.col("__model_first_seen") > history_start),
+            )
+            .then(pl.col("Positives"))
+            .otherwise(pl.col("Positives").diff().over(model_grouping_columns))
+            .alias("__positive_change"),
+            pl.when(
+                (pl.col("__period_index") == 0) & (pl.col("__model_first_seen") > history_start),
+            )
+            .then(pl.col("ResponseCount"))
+            .otherwise(pl.col("ResponseCount").diff().over(model_grouping_columns))
+            .alias("__response_change"),
             periods_elapsed.alias("__periods_elapsed"),
         )
         .with_columns(
@@ -151,9 +166,13 @@ class _PerformancePlotsMixin(_PlotsBase):
             bucket or the period-over-period change, by default True. When
             False for "SuccessRate", the method calculates period CTR from the
             changes in cumulative Positives and ResponseCount per model. For
-            other metrics, it differences consecutive bucket values. Changes
-            are divided by the number of elapsed buckets when observations are
-            separated by a gap; missing buckets are not plotted.
+            newly appearing models, the first observed cumulative counts are
+            included when the model first appears after the start of available
+            history. Models present in the earliest snapshot still require a
+            subsequent snapshot to establish their changes. For other metrics,
+            it differences consecutive bucket values. Changes are divided by
+            the number of elapsed buckets when observations are separated by a
+            gap; missing buckets are not plotted.
             When "Performance" is cumulative and ``every="auto"``, the latest
             snapshot for each model in each selected interval is used instead.
             Exact 100% period SuccessRate values remain in the line data, but

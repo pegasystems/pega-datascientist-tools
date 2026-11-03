@@ -321,13 +321,55 @@ def test_over_time_period_success_rate_uses_latest_counts_and_normalizes_gaps():
         "2024-01-22",
         "2024-01-29",
     ]
-    assert trend.get_column("Positives").to_list() == [10.0, 6.0, 10.0]
-    assert trend.get_column("ResponseCount").to_list() == [40.0, 30.0, 30.0]
-    assert trend.get_column("SuccessRate").to_list() == pytest.approx([0.25, 0.2, 1 / 3])
-    assert trend.get_column("PositivesInInterval").to_list() == [10.0, 12.0, 10.0]
-    assert trend.get_column("ResponsesInInterval").to_list() == [40.0, 60.0, 30.0]
+    assert trend.get_column("Positives").to_list() == [10.0, 106.0, 10.0]
+    assert trend.get_column("ResponseCount").to_list() == [40.0, 230.0, 30.0]
+    assert trend.get_column("SuccessRate").to_list() == pytest.approx([0.25, 106 / 230, 1 / 3])
+    assert trend.get_column("PositivesInInterval").to_list() == [10.0, 112.0, 10.0]
+    assert trend.get_column("ResponsesInInterval").to_list() == [40.0, 260.0, 30.0]
     assert trend.get_column("TotalResponses").to_list() == [240.0, 500.0, 530.0]
     assert trend.get_column("PeriodsCovered").to_list() == [1, 2, 1]
+
+
+def test_over_time_period_success_rate_includes_new_model_in_first_bucket():
+    data = pl.DataFrame(
+        {
+            "SnapshotTime": [
+                _utc_datetime(2024, 1, 1),
+                _utc_datetime(2024, 1, 3),
+                _utc_datetime(2024, 1, 3),
+                _utc_datetime(2024, 1, 8),
+                _utc_datetime(2024, 1, 8),
+            ],
+            "ModelID": ["existing", "existing", "new", "existing", "new"],
+            "Channel": ["Email"] * 5,
+            "Performance": [0.7] * 5,
+            "ResponseCount": [100, 110, 20, 120, 25],
+            "Positives": [10, 12, 4, 13, 5],
+        },
+    ).lazy()
+    datamart = ADMDatamart(model_df=data)
+
+    trend = (
+        datamart.plot.over_time(
+            metric="SuccessRate",
+            by="Channel",
+            every="1w",
+            cumulative=False,
+            return_df=True,
+        )
+        .collect()
+        .sort("SnapshotTime")
+    )
+
+    assert trend.get_column("SnapshotTime").dt.strftime("%Y-%m-%d").to_list() == [
+        "2024-01-01",
+        "2024-01-08",
+    ]
+    assert trend.get_column("Positives").to_list() == [4.0, 2.0]
+    assert trend.get_column("ResponseCount").to_list() == [20.0, 15.0]
+    assert trend.get_column("SuccessRate").to_list() == pytest.approx([0.2, 2 / 15])
+    assert trend.get_column("PositivesInInterval").to_list() == [4.0, 2.0]
+    assert trend.get_column("ResponsesInInterval").to_list() == [20.0, 15.0]
 
 
 def test_over_time_trends_without_model_technique_facet():
