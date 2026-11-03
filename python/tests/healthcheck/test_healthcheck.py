@@ -137,6 +137,8 @@ def test_GenerateHealthCheck(sample: ADMDatamart, tmp_path):
     html = _read_report_html(hc)
     assert "CTR by Channel/Direction" in html
     assert "Trend of Model Performance by Channel/Direction" in html
+    assert "Daily CTR" in html
+    assert "Daily AUC" in html
 
 
 def test_GenerateHealthCheck_default_cdn_is_djs_copy_safe(sample: ADMDatamart, tmp_path, monkeypatch):

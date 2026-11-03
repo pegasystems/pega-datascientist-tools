@@ -1363,7 +1363,7 @@ On the x-axis Model Performance measured in AUC-ROC, on the y-axis the Success R
 
 ### Model Performance over Time
 
-The trend chart shows how model performance evolves over time. Lines are colored by channel and direction; when model technique metadata is available, the plot is split into one facet per technique. Note that ADM is by default configured to track performance over *all* time. You can configure a window for monitoring but this is not commonly done. In Pega Prediction Studio you can monitor models per month, year etc. Unlike CTR, AUC is not an additive count, so a period-specific AUC cannot be recovered by subtracting snapshots; this chart therefore shows the cumulative-history AUC recorded at each snapshot.
+The trend chart shows how model performance evolves over time using the same daily, weekly, or monthly interval selected for CTR. Each point is the latest cumulative AUC value in that interval; unlike CTR, AUC is not additive and is not calculated from snapshot deltas. Lines are colored by channel and direction; when model technique metadata is available, the plot is split into one facet per technique. Note that ADM is by default configured to track performance over *all* time. You can configure a window for monitoring but this is not commonly done. In Pega Prediction Studio you can monitor models per month, year etc.
 
 ```{python}
 if trend_datamart.has_single_snapshot:
@@ -1381,6 +1381,8 @@ else:
             metric="Performance",
             facet="ModelTechnique" if facet_col_wrap is not None else None,
             by=by,
+            every="auto",
+            cumulative=True,
             show_metric_limits=True,
         )
         if facet_col_wrap is not None:
@@ -1391,7 +1393,7 @@ else:
                 + (" and Model Technique" if facet_col_wrap is not None else ""),
                 margin=dict(t=70),
             )
-            .update_yaxes(showticklabels=True, title="", range=[50, 100])
+            .update_yaxes(showticklabels=True, range=[50, 100])
             .update_xaxes(title="")
         )
         hide_metric_annotations_on_non_rightmost(fig)

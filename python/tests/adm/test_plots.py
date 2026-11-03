@@ -130,6 +130,12 @@ def test_add_metric_limit_lines_horizontal():
     y_values = sorted(s.y0 for s in shapes)
     assert y_values == pytest.approx([52.0, 55.0, 80.0, 90.0])
 
+    bands = [s for s in fig.layout.shapes if s.type == "rect"]
+    assert len(bands) == 1
+    assert (bands[0].y0, bands[0].y1) == pytest.approx((55.0, 80.0))
+    assert bands[0].fillcolor == "rgba(0, 128, 0, 0.08)"
+    assert bands[0].layer == "below"
+
 
 def test_over_time_with_metric_limits(sample2: ADMDatamart):
     """Test over_time with metric limit lines for Performance."""
@@ -139,6 +145,7 @@ def test_over_time_with_metric_limits(sample2: ADMDatamart):
     # Should have 4 horizontal lines
     shapes = [s for s in fig.layout.shapes if s.type == "line" and s.y0 == s.y1]
     assert len(shapes) == 4
+    assert any(s.type == "rect" and (s.y0, s.y1) == pytest.approx((55.0, 80.0)) for s in fig.layout.shapes)
 
 
 def test_over_time_metric_limits_only_for_performance(sample2: ADMDatamart):
@@ -587,6 +594,69 @@ def test_over_time_auto_interval_selects_daily_weekly_or_monthly(start, end, exp
     ).collect()
 
     assert trend.get_column("SnapshotTime").dt.strftime("%Y-%m-%d").to_list() == [expected_bucket]
+
+
+def test_over_time_auto_bucketed_performance_uses_last_value_per_model():
+    datamart = ADMDatamart(
+        model_df=pl.DataFrame(
+            {
+                "SnapshotTime": [
+                    datetime(2024, 1, 1, 8),
+                    datetime(2024, 1, 1, 20),
+                    datetime(2024, 1, 2, 8),
+                    datetime(2024, 1, 1, 9),
+                    datetime(2024, 1, 2, 9),
+                ],
+                "ModelID": ["a", "a", "a", "b", "b"],
+                "Channel": ["Email"] * 5,
+                "Performance": [0.6, 0.7, 0.8, 0.8, 0.9],
+                "ResponseCount": [100, 200, 300, 100, 200],
+                "Positives": [10, 20, 30, 40, 50],
+            }
+        ).lazy()
+    )
+
+    trend = (
+        datamart.plot.over_time(
+            metric="Performance",
+            by="Channel",
+            every="auto",
+            show_metric_limits=True,
+            return_df=True,
+        )
+        .collect()
+        .sort("SnapshotTime")
+    )
+
+    assert trend.get_column("Performance").to_list() == pytest.approx([73.3333333333, 84.0])
+    assert trend.get_column("ResponseCount").to_list() == [300, 500]
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "expected_label"),
+    [
+        (_utc_datetime(2024, 1, 1), _utc_datetime(2024, 1, 2), "Daily AUC"),
+        (_utc_datetime(2024, 1, 1), _utc_datetime(2024, 2, 2), "Weekly AUC"),
+        (_utc_datetime(2010, 1, 1), _utc_datetime(2016, 1, 2), "Monthly AUC"),
+    ],
+)
+def test_over_time_auto_bucketed_performance_labels_interval(start, end, expected_label):
+    datamart = ADMDatamart(
+        model_df=pl.DataFrame(
+            {
+                "SnapshotTime": [start, end],
+                "ModelID": ["a", "a"],
+                "Channel": ["Email", "Email"],
+                "Performance": [0.7, 0.8],
+                "ResponseCount": [100, 200],
+                "Positives": [10, 20],
+            }
+        ).lazy()
+    )
+
+    fig = datamart.plot.over_time(metric="Performance", by="Channel", every="auto")
+
+    assert fig.layout.yaxis.title.text == expected_label
 
 
 def test_proposition_success_rates(sample: ADMDatamart):

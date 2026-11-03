@@ -154,6 +154,8 @@ class _PerformancePlotsMixin(_PlotsBase):
             other metrics, it differences consecutive bucket values. Changes
             are divided by the number of elapsed buckets when observations are
             separated by a gap; missing buckets are not plotted.
+            When "Performance" is cumulative and ``every="auto"``, the latest
+            snapshot for each model in each selected interval is used instead.
             Exact 100% period SuccessRate values remain in the line data, but
             the y-axis range is based on non-100% values. Red X markers identify
             the clipped spikes.
@@ -248,6 +250,11 @@ class _PerformancePlotsMixin(_PlotsBase):
                     f"Period SuccessRate requires model-level cumulative columns: {', '.join(sorted(missing_columns))}",
                 )
             columns_to_select.update({"ModelID", "Positives"})
+        is_auto_bucketed_auc = metric == "Performance" and cumulative and every == "auto"
+        if is_auto_bucketed_auc:
+            if "ModelID" not in self.datamart.model_data.collect_schema().names():
+                raise ValueError("Auto-bucketed Performance requires ModelID to select the latest snapshot per model.")
+            columns_to_select.add("ModelID")
 
         is_percentage = metric in percentage_metrics
         metric_scaling = pl.lit(100.0 if metric == "Performance" else 1.0)
@@ -286,12 +293,32 @@ class _PerformancePlotsMixin(_PlotsBase):
             if is_percentage:
                 agg_expr.append(pl.sum("ResponseCount"))
 
-            df = (
-                df.with_columns(pl.col("SnapshotTime"))
-                .group_by([*grouping_columns, "SnapshotTime"])
-                .agg(agg_expr)
-                .sort("SnapshotTime", by_col)
-            )
+            if is_auto_bucketed_auc:
+                model_grouping_columns = list(dict.fromkeys(["ModelID", *grouping_columns]))
+                df = (
+                    df.group_by_dynamic(
+                        "SnapshotTime",
+                        every=every,
+                        group_by=model_grouping_columns,
+                    )
+                    .agg(
+                        pl.col(metric).last(),
+                        pl.col("ResponseCount").last(),
+                    )
+                    .group_by(["SnapshotTime", *grouping_columns])
+                    .agg(
+                        (metric_scaling * cdh_utils.weighted_average_polars(metric, "ResponseCount")).alias(metric),
+                        pl.sum("ResponseCount"),
+                    )
+                    .sort("SnapshotTime", by_col)
+                )
+            else:
+                df = (
+                    df.with_columns(pl.col("SnapshotTime"))
+                    .group_by([*grouping_columns, "SnapshotTime"])
+                    .agg(agg_expr)
+                    .sort("SnapshotTime", by_col)
+                )
 
             unique_intervals = df.select(pl.col("SnapshotTime").unique()).collect().height
 
@@ -392,6 +419,7 @@ class _PerformancePlotsMixin(_PlotsBase):
             timedelta(days=7): "Weekly",
         }.get(every)
         period_ctr_label = f"{period_name} CTR" if period_name else f"CTR per {every}"
+        period_auc_label = f"{period_name} AUC" if period_name and is_auto_bucketed_auc else "Performance"
         period_hover_labels = {
             "SuccessRate": period_ctr_label,
             "TotalResponses": "Total Responses (cumulative)",
@@ -425,6 +453,8 @@ class _PerformancePlotsMixin(_PlotsBase):
                 },
             )
             line_kwargs["labels"] = period_hover_labels
+        elif is_auto_bucketed_auc:
+            line_kwargs["labels"] = {"Performance": period_auc_label}
         if facet_col_wrap is not None:
             line_kwargs["facet_col_wrap"] = facet_col_wrap
         if facet_col_spacing is not None:

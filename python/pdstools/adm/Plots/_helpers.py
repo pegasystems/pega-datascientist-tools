@@ -116,13 +116,24 @@ def add_metric_limit_lines(
     scale: float = 100.0,
     orientation: str = "vertical",
 ) -> Figure:
-    """Add dashed lines at MetricLimits thresholds (red=hard, green=best practice)."""
+    """Add dashed MetricLimits lines and a horizontal best-practice band."""
     limits = MetricLimits.get_limit_for_metric(metric_id)
     if not limits:
         return fig
 
     add_line = fig.add_vline if orientation == "vertical" else fig.add_hline
     pos_key = "x" if orientation == "vertical" else "y"
+    if orientation == "horizontal":
+        band_min = limits.get("best_practice_min")
+        band_max = limits.get("best_practice_max")
+        if band_min is not None and band_max is not None:
+            fig.add_hrect(
+                y0=band_min * scale,
+                y1=band_max * scale,
+                fillcolor="rgba(0, 128, 0, 0.08)",
+                line_width=0,
+                layer="below",
+            )
 
     line_specs = [
         ("minimum", "rgba(255, 69, 0, 0.5)", "Min"),
