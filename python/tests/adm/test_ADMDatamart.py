@@ -610,8 +610,8 @@ def test_validate_model_data_adds_missing_channel_direction():
     dm = ADMDatamart(model_df=df)
     out = dm._require_model_data().collect()
 
-    assert out["Channel"].to_list() == [None, None]
-    assert out["Direction"].to_list() == [None, None]
+    assert out["Channel"].to_list() == ["Unknown", "Unknown"]
+    assert out["Direction"].to_list() == ["Unknown", "Unknown"]
     assert "Channel" in dm.context_keys
     assert "Direction" in dm.context_keys
 
@@ -871,6 +871,26 @@ def test_agb_empty_context_row_is_dropped():
     model_ids = dm.model_data.select("ModelID").collect().get_column("ModelID").to_list()
     assert "m_agb_empty" not in model_ids
     assert set(model_ids) == {"m_agb_real", "m_nb_empty"}
+
+
+def test_agb_null_context_row_is_dropped_from_ds_export(tmp_path):
+    """Issue #667 via read_ds_export: the reader must not fill the null
+    context keys before validation, or the AGB "totals" row slips through.
+    Null context keys of the rows that are kept still become "Unknown"."""
+    df = _agb_mixed_modeldata().with_columns(
+        pl.when(pl.col("ModelID") == "m_agb_empty").then(None).otherwise(pl.col(c)).alias(c)
+        for c in ("Issue", "Group", "Name", "Treatment")
+    )
+    df.collect().write_parquet(tmp_path / "models.parquet")
+
+    for dm in (
+        ADMDatamart.from_ds_export(model_filename="models.parquet", base_path=tmp_path),
+        ADMDatamart(model_df=pl.scan_parquet(tmp_path / "models.parquet")),
+    ):
+        model_data = dm.model_data.sort("ModelID").collect()
+        assert model_data["ModelID"].to_list() == ["m_agb_real", "m_nb_empty"]
+        assert model_data["Issue"].to_list() == ["Sales", "Unknown"]
+        assert model_data["Name"].to_list() == ["GoldCard", "Unknown"]
 
 
 def test_agb_filter_skipped_when_modeltechnique_unknown():
