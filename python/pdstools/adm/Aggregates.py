@@ -116,12 +116,11 @@ def _with_periods_elapsed(
     keys: list[str],
 ) -> pl.LazyFrame:
     """Add ``__period_index`` and ``__periods_elapsed`` (buckets since the previous observed bucket)."""
-    period_index = (
-        df.select("SnapshotTime", *keys)
-        .collect()
-        .upsample("SnapshotTime", every=every, group_by=keys)
-        .sort(*keys, "SnapshotTime")
-        .with_columns(pl.int_range(pl.len()).over(keys).alias("__period_index"))
+    observed = df.select("SnapshotTime", *keys).collect()
+    # Polars cannot upsample an empty frame, e.g. when every row has a null grouping value.
+    filled = observed if observed.is_empty() else observed.upsample("SnapshotTime", every=every, group_by=keys)
+    period_index = filled.sort(*keys, "SnapshotTime").with_columns(
+        pl.int_range(pl.len()).over(keys).alias("__period_index"),
     )
     return (
         df.join(period_index.lazy(), on=["SnapshotTime", *keys])

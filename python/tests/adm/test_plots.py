@@ -808,6 +808,26 @@ def test_over_time_success_rate_marks_rates_above_100_percent():
     assert fig.layout.yaxis.range == pytest.approx((0, 0.105))
 
 
+@pytest.mark.parametrize(("metric", "cumulative"), [("SuccessRate", False), ("ResponseCount", False)])
+def test_over_time_changes_without_valid_groups(metric, cumulative):
+    """All rows drop out when the grouping column is null, e.g. data without channels."""
+    datamart = ADMDatamart(
+        model_df=pl.DataFrame(
+            {
+                "SnapshotTime": [_utc_datetime(2024, 1, d) for d in (1, 2, 3)],
+                "ModelID": ["a", "a", "a"],
+                "Channel": pl.Series([None, None, None], dtype=pl.Utf8),
+                "Performance": [0.7, 0.7, 0.7],
+                "ResponseCount": [100, 200, 300],
+                "Positives": [10, 20, 30],
+            }
+        ).lazy()
+    )
+
+    trend = datamart.plot.over_time(metric=metric, by="Channel", every="1d", cumulative=cumulative, return_df=True)
+    assert trend.collect().is_empty()
+
+
 def test_over_time_success_rate_without_history_raises():
     datamart = ADMDatamart(
         model_df=pl.DataFrame(
