@@ -433,37 +433,37 @@ def run(args, unknown):
     print(f"Running {display_name} app...")
 
     app_path = APPS[app_name]["path"]
-    with resources.path(app_path, "Home.py") as filepath:
+    with resources.as_file(resources.files(app_path) / "Home.py") as filepath:
         filename = str(filepath)
 
-    if args.app == "decision_analyzer":
-        sys.argv = [
-            "streamlit",
-            "run",
-            filename,
-            "--server.enableXsrfProtection",
-            "false",
-        ]
-    elif args.app == "launcher":
-        # The launcher hosts the DA pages, so it inherits DA's XSRF
-        # exemption (DA uses the file-uploader workaround that breaks
-        # under XSRF). Standalone HC / IA launches keep XSRF on.
-        os.environ["PDSTOOLS_LAUNCHER_MODE"] = "1"
-        sys.argv = [
-            "streamlit",
-            "run",
-            filename,
-            "--server.enableXsrfProtection",
-            "false",
-        ]
-    else:  # health_check, impact_analyzer
-        sys.argv = ["streamlit", "run", filename]
+        if args.app == "decision_analyzer":
+            sys.argv = [
+                "streamlit",
+                "run",
+                filename,
+                "--server.enableXsrfProtection",
+                "false",
+            ]
+        elif args.app == "launcher":
+            # The launcher hosts the DA pages, so it inherits DA's XSRF
+            # exemption (DA uses the file-uploader workaround that breaks
+            # under XSRF). Standalone HC / IA launches keep XSRF on.
+            os.environ["PDSTOOLS_LAUNCHER_MODE"] = "1"
+            sys.argv = [
+                "streamlit",
+                "run",
+                filename,
+                "--server.enableXsrfProtection",
+                "false",
+            ]
+        else:  # health_check, impact_analyzer
+            sys.argv = ["streamlit", "run", filename]
 
-    if unknown:
-        sys.argv.extend(unknown)
-    if "--server.maxUploadSize" not in sys.argv:
-        sys.argv.extend(["--server.maxUploadSize", "2000"])
-    sys.exit(stcli.main())
+        if unknown:
+            sys.argv.extend(unknown)
+        if "--server.maxUploadSize" not in sys.argv:
+            sys.argv.extend(["--server.maxUploadSize", "2000"])
+        sys.exit(stcli.main())
 
 
 if __name__ == "__main__":

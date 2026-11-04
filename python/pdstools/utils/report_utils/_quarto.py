@@ -10,8 +10,33 @@ import subprocess
 import traceback
 from pathlib import Path
 
+from packaging.version import InvalidVersion, Version
+
 from ._common import logger
 from ._html import drop_inlined_resources, inline_local_assets
+
+
+def docs_version_for_links(package_version: str) -> str:
+    """Return the docs-version segment to use in public documentation links.
+
+    Pre-release/dev package versions are often ahead of published docs, so
+    they intentionally resolve to the ``latest`` docs path.
+    """
+    try:
+        parsed = Version(package_version)
+    except InvalidVersion:
+        return "latest"
+
+    if parsed.is_prerelease or parsed.is_devrelease:
+        return "latest"
+
+    return parsed.base_version
+
+
+def docs_article_url(article_slug: str, package_version: str) -> str:
+    """Build a docs URL for an article using stable/latest version routing."""
+    docs_version = docs_version_for_links(package_version)
+    return f"https://pegasystems.github.io/pega-datascientist-tools/{docs_version}/articles/{article_slug}.html"
 
 
 def _write_params_files(

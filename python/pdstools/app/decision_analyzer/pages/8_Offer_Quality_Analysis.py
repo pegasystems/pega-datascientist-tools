@@ -61,6 +61,7 @@ if propensity_th is None or priority_th is None:
         "Please check your data or filters."
     )
     st.stop()
+    raise RuntimeError("Offer quality thresholds are unavailable.")
 
 with st.session_state["sidebar"]:
     stage_level_selector()

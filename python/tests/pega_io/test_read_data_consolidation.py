@@ -120,13 +120,13 @@ class TestReadDataConsolidation:
         """Streamlit utils should import from the new locations."""
         from pdstools.app.decision_analyzer.da_streamlit_utils import (
             _clean_artifacts,
+            _extract_nested_zip_archives,
             read_data,
-            read_nested_zip_files,
         )
 
         assert callable(_clean_artifacts)
+        assert callable(_extract_nested_zip_archives)
         assert callable(read_data)
-        assert callable(read_nested_zip_files)
 
     def test_tar_archive_support(self, tmp_path):
         """read_data should handle TAR archives."""
@@ -354,3 +354,94 @@ class TestReadDataGlobs:
 
         result = read_data(str(tmp_path / "*"))
         assert result.collect().to_dict(as_series=False) == {"a": [1]}
+
+
+def _parquet_bytes(values: list[int]) -> bytes:
+    buffer = BytesIO()
+    pl.DataFrame({"value": values}).write_parquet(buffer)
+    return buffer.getvalue()
+
+
+def _zip_bytes(entries: dict[str, bytes]) -> bytes:
+    import zipfile
+
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        for name, content in entries.items():
+            archive.writestr(name, content)
+    return buffer.getvalue()
+
+
+class TestReadDataNestedZip:
+    """read_data on ZIP archives whose entries are themselves .zip files."""
+
+    def test_nested_parquet_zips_skip_invalid_entries(self, tmp_path, caplog):
+        from pdstools.pega_io import read_data
+
+        archive = tmp_path / "export.zip"
+        archive.write_bytes(
+            _zip_bytes(
+                {
+                    "chunks/part-1.zip": _zip_bytes({"nested/part.parquet": _parquet_bytes([1, 2])}),
+                    "chunks/part-2.zip": _zip_bytes({"nested/part.parquet": _parquet_bytes([3])}),
+                    "chunks/invalid.zip": b"not a ZIP archive",
+                },
+            ),
+        )
+
+        result = read_data(archive)
+
+        assert result.collect().sort("value").to_dict(as_series=False) == {"value": [1, 2, 3]}
+        assert "Skipping a non-ZIP file" in caplog.text
+
+    def test_action_analysis_gzip_chunks(self, tmp_path):
+        import gzip
+
+        from pdstools.pega_io import read_data
+
+        archive = tmp_path / "action-analysis.zip"
+        archive.write_bytes(
+            _zip_bytes(
+                {
+                    "part-1.zip": gzip.compress(b'{"value": 1, "b": "x"}\n{"value": 2, "b": "y"}\n'),
+                    "part-2.zip": gzip.compress(b'{"b": "z", "value": 3}\n'),
+                },
+            ),
+        )
+
+        result = read_data(archive)
+
+        assert result.collect().sort("value").to_dict(as_series=False) == {
+            "value": [1, 2, 3],
+            "b": ["x", "y", "z"],
+        }
+
+    def test_nested_zip_does_not_merge_into_existing_folder(self, tmp_path):
+        from pdstools.pega_io import read_data
+
+        archive = tmp_path / "export.zip"
+        archive.write_bytes(
+            _zip_bytes(
+                {
+                    "part/existing.parquet": _parquet_bytes([1]),
+                    "part.zip": _zip_bytes({"existing.parquet": _parquet_bytes([2])}),
+                },
+            ),
+        )
+
+        result = read_data(archive)
+
+        assert result.collect().sort("value").to_dict(as_series=False) == {"value": [1, 2]}
+
+    def test_excessive_nesting_raises(self, tmp_path):
+        import pytest
+        from pdstools.pega_io import read_data
+
+        content = _zip_bytes({"data.parquet": _parquet_bytes([1])})
+        for _ in range(7):
+            content = _zip_bytes({"inner.zip": content})
+        archive = tmp_path / "deep.zip"
+        archive.write_bytes(content)
+
+        with pytest.raises(ValueError, match="nested more than"):
+            read_data(archive)

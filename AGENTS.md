@@ -428,6 +428,15 @@ them.
 ### Tests
 - Use pytest fixtures for shared setup.
 - Keep tests deterministic and data-driven.
+- **Do not download or execute third-party ML models in unit or UI smoke
+  tests.** Tests should use deterministic synthetic arrays and mocks to
+  verify pdstools' orchestration, caching, input/output handling, and error
+  paths; they must not validate vendor model quality, algorithm internals,
+  network access, or model-cache availability.
+- Real model or external-algorithm integration tests are opt-in only:
+  isolate them in explicitly marked slow/integration tests, keep them out of
+  the default test path, and never make ordinary CI depend on remote model
+  downloads.
 - Mark slow tests with `@pytest.mark.slow`.
 - Use `pytest.skip` for missing external tools (Quarto, Pandoc).
 - **Minimum coverage: 80 %** for new and overall code (CI-enforced).

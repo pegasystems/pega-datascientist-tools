@@ -69,6 +69,49 @@ with st.container(border=True):
         "as it is calculated only for the actions that AI prioritizes at that point."
     )
 
+if st.session_state.decision_data.extract_type == "decision_analyzer":
+    with st.container(border=True):
+        "## Exclusion Rate"
+
+        st.caption(
+            "The share of each customer's actions that were excluded between a "
+            "baseline stage and the measurement stage selected above. 0% means every "
+            "action survived; 100% means all were filtered out before the measurement "
+            "stage. This is the attrition counterpart of the optionality distribution."
+        )
+
+        stage_selectbox(
+            label="Baseline (from) stage",
+            key="exclusion_from_stage",
+            default="Engagement Policies",
+        )
+
+        da = st.session_state.decision_data
+        stages = list(da.AvailableNBADStages)
+        from_stage = st.session_state.get("exclusion_from_stage", stages[0])
+        to_stage = st.session_state.get("optionality_stage", "Arbitration")
+
+        if from_stage not in stages or to_stage not in stages:
+            st.warning("The selected stages are not available in this dataset.")
+        elif stages.index(from_stage) > stages.index(to_stage):
+            st.warning(
+                f"The baseline stage '{from_stage}' comes after the measurement stage "
+                f"'{to_stage}'. Choose a baseline at or before the measurement stage "
+                "(set in the Optionality section above)."
+            )
+        else:
+            st.plotly_chart(
+                da.plot.exclusion_rate_distribution(
+                    from_stage=from_stage,
+                    to_stage=to_stage,
+                    df=filtered_data,
+                ),
+            )
+            st.caption(
+                f"Measured from '{from_stage}' to '{to_stage}'. Change the measurement "
+                "stage with the selector in the Optionality section above."
+            )
+
 if st.session_state.decision_data.extract_type != "explainability_extract":
     with st.container(border=True):
         "## Optionality Funnel"

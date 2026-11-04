@@ -42,9 +42,8 @@ def _git_output(args: list[str], allow_fail: bool = False) -> str:
 
 
 def _iter_target_files(argv: list[str]) -> list[Path]:
-    if argv:
-        return [Path(arg) for arg in argv if arg.endswith(".py")]
-    return _tracked_changed_files()
+    paths = [Path(arg) for arg in argv] if argv else _tracked_changed_files()
+    return [path for path in paths if path.suffix == ".py"]
 
 
 def _check_weak_asserts(path: Path) -> list[str]:

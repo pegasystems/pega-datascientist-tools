@@ -90,6 +90,8 @@ from ._quarto import (
     _get_version_only,
     _set_command_options,
     _write_params_files,
+    docs_article_url,
+    docs_version_for_links,
     get_pandoc_with_version,
     get_quarto_with_version,
     is_esbuild_available,
@@ -106,31 +108,25 @@ from ._query import deserialize_query, serialize_query
 from ._tables import create_metric_gttable, create_metric_itable
 
 __all__ = [
-    # shared types / state
     "QUERY",
-    # re-exports from sibling modules
     "MetricFormats",
     "MetricLimits",
     "NumberFormat",
-    # polars helpers / aggregations
     "avg_by_hierarchy",
-    # html post-processing
     "bundle_quarto_resources",
     "check_report_for_errors",
-    # filenames / resource copying
     "copy_quarto_file",
     "copy_report_resources",
-    # rag-coloured metric tables
     "create_metric_gttable",
     "create_metric_itable",
-    # query serialisation
     "deserialize_query",
+    "docs_article_url",
+    "docs_version_for_links",
     "drop_inlined_resources",
     "exclusive_0_1_range_rag",
     "gains_table",
     "generate_zipped_report",
     "get_output_filename",
-    # quarto execution / callouts / credits
     "get_pandoc_with_version",
     "get_quarto_with_version",
     "inline_local_assets",

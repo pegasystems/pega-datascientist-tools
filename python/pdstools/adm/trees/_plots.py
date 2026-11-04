@@ -734,11 +734,12 @@ class Plots(LazyNamespace):
     ) -> "go.Figure | pl.DataFrame":
         """Plot total information gain broken down by predictor category.
 
-        The predictor category follows ADM's default categorisation: dotted
-        names use their first segment (for example, ``IH``, ``Customer``,
-        ``Param``), while undotted names such as ``pyGroup`` are ``Primary``.
-        Override ``AGBModel.plot.predictor_category_expr`` to define custom
-        categories.
+        The predictor category follows ADM's default categorisation, with AGB
+        model-context fields such as ``pyIssue``, ``pyGroup``, and
+        ``pyTreatment`` called out separately. Dotted names use their first
+        segment (for example, ``IH``, ``Customer``, ``Param``), while other
+        undotted names are ``Primary``. Override
+        ``AGBModel.plot.predictor_category_expr`` to define custom categories.
 
         Parameters
         ----------

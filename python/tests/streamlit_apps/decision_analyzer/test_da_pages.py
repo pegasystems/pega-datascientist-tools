@@ -51,7 +51,7 @@ DA_PAGES: list[tuple[str, str, dict[str, int]]] = [
     ("4_Action_Funnel.py", "# Action Funnel", {"dataframe": 2, "tabs": 3}),
     ("5_Global_Sensitivity.py", "# Global Sensitivity Analysis", {"selectbox": 2}),
     ("6_Win_Loss_Analysis.py", "# Win/Loss Analysis", {"multiselect": 1, "selectbox": 2}),
-    ("7_Optionality_Analysis.py", "# Optionality Analysis", {"selectbox": 2}),
+    ("7_Optionality_Analysis.py", "# Optionality Analysis", {"selectbox": 3}),
     ("8_Offer_Quality_Analysis.py", "# Offer Quality Analysis", {"slider": 2}),
     ("9_Thresholding_Analysis.py", "# Thresholding Analysis", {"metric": 4, "slider": 2}),
     ("10_Arbitration_Distribution.py", "# Arbitration Distribution", {"selectbox": 4, "tabs": 3}),

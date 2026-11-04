@@ -54,7 +54,7 @@ TEMPLATE_PLACEHOLDERS: dict[str, set[str]] = {
 TEMPLATES_WITH_YAML_FRONTMATTER: dict[str, str] = {
     "getting-started.qmd": '"Getting Started"',
     "overview.qmd": '"Model Overview"',
-    "context.qmd": '"{CONTEXT_STR}"',
+    "context.qmd": "{CONTEXT_STR}",
 }
 
 

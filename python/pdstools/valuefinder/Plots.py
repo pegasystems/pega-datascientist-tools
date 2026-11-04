@@ -15,6 +15,7 @@ from typing_extensions import ParamSpec
 
 from ..utils.cdh_utils import _apply_query, lazy_sample
 from ..utils.namespaces import LazyNamespace
+from ..utils.plot_utils import DEFAULT_PLOT_POINTS_PER_GROUP, downsample_distribution
 
 logger = logging.getLogger(__name__)
 
@@ -91,8 +92,27 @@ class Plots(LazyNamespace):
         fig.update_layout(legend_title_text=by)
         return fig
 
-    def propensity_distribution(self, sample_size: int = 10_000) -> Figure:
-        """Propensity distribution."""
+    def propensity_distribution(
+        self,
+        sample_size: int = 10_000,
+        *,
+        max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP,
+    ) -> Figure:
+        """Plot the propensity distribution for each stage.
+
+        Parameters
+        ----------
+        sample_size : int, default 10000
+            Number of rows per stage used to estimate the density.
+        max_points_per_group : int or None, default 250
+            Maximum number of box-plot values per stage. ``None`` plots all
+            sampled values.
+
+        Returns
+        -------
+        Figure
+            Propensity density and box plots.
+        """
         import plotly.figure_factory as ff
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
@@ -117,6 +137,11 @@ class Plots(LazyNamespace):
             tempdf = pl.DataFrame(
                 {"x": temp["data"][0]["x"], "y": temp["data"][0]["y"]},
             )
+            plot_data = downsample_distribution(
+                sample,
+                value_column="ModelPropensity",
+                max_points_per_group=max_points_per_group,
+            )
             fig = go.Scatter(
                 x=tempdf["x"],
                 y=tempdf["y"],
@@ -126,7 +151,7 @@ class Plots(LazyNamespace):
             )
             # TODO mind the size of plotly express boxes, see solution in ADM Datamart Plots
             boxy = go.Box(
-                x=sample["ModelPropensity"],
+                x=plot_data["ModelPropensity"],
                 name=stage,
                 y0=0,
                 boxpoints="outliers",
@@ -147,9 +172,27 @@ class Plots(LazyNamespace):
     def propensity_threshold(
         self,
         sample_size: int = 10_000,
-        stage="Eligibility",
+        stage: str = "Eligibility",
+        *,
+        max_points_per_group: int | None = DEFAULT_PLOT_POINTS_PER_GROUP,
     ) -> Figure:
-        """Propensity threshold."""
+        """Plot propensity distributions against the configured threshold.
+
+        Parameters
+        ----------
+        sample_size : int, default 10000
+            Number of rows used to estimate the density.
+        stage : str, default "Eligibility"
+            Stage whose propensity values are plotted.
+        max_points_per_group : int or None, default 250
+            Maximum number of histogram values per propensity type. ``None``
+            plots all sampled values.
+
+        Returns
+        -------
+        Figure
+            Propensity density and histogram plots.
+        """
         import plotly.figure_factory as ff
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
@@ -165,7 +208,7 @@ class Plots(LazyNamespace):
         ).collect()
 
         for ptype in propensities:
-            plotdf = data[ptype].to_list()
+            plotdf = data[ptype].drop_nulls().to_list()
             temp = ff.create_distplot(
                 [plotdf],
                 ["value"],
@@ -174,6 +217,11 @@ class Plots(LazyNamespace):
             )
             tempdf = pl.DataFrame(
                 {"x": temp["data"][0]["x"], "y": temp["data"][0]["y"]},
+            )
+            plot_data = downsample_distribution(
+                data.select(ptype),
+                value_column=ptype,
+                max_points_per_group=max_points_per_group,
             )
             figs.add_trace(
                 go.Scatter(
@@ -189,7 +237,7 @@ class Plots(LazyNamespace):
             )
             figs.add_trace(
                 go.Histogram(
-                    x=plotdf,
+                    x=plot_data[ptype].drop_nulls(),
                     name=ptype,
                     histnorm="probability density",
                     marker_color=colors[i],

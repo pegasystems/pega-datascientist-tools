@@ -419,7 +419,7 @@ class TestAnalysisNamespace:
         titles = [title for title, _ in sections]
         assert "Top Channels by Responses" in titles
         assert "Top Configurations by Responses" in titles
-        assert "Predictor Categories" in titles
+        assert "Naive Bayes Predictor Categories" in titles
 
     def test_estate_snapshot_sections_allow_configuration_summary_without_channel_direction(
         self,

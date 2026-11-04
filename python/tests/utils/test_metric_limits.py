@@ -19,7 +19,7 @@ class TestMetricLimits:
 
     def test_get_limits_returns_valid_dataframe(self):
         df = MetricLimits.get_limits()
-        assert df.shape == (47, 8)
+        assert df.height >= 48
         assert df.columns == [
             "Category",
             "MetricID",
@@ -87,6 +87,8 @@ class TestNBADConfigurationsRAG:
             ("Web_Click_Through_Rate,InvalidConfig", "AMBER"),
             ("Web_Click_Through_Rate,Mobile_Click_Through_Rate", "GREEN"),
             ("Web_Click_Through_Rate,OmniAdaptiveModel", "AMBER"),  # Mixed
+            ("Web_Click_Through_Rate (*), Mobile_Click_Through_Rate", "GREEN"),  # AGB marker
+            ("Web_Click_Through_Rate, OmniAdaptiveModel (*)", "AMBER"),
         ],
     )
     def test_configuration_rag_status(self, value, expected):

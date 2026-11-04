@@ -217,7 +217,10 @@ class Compute(LazyNamespace):
 
         # Out-of-sample predicted probabilities via cross-validation
         model = LogisticRegression(max_iter=400)
-        pred_probs = cross_val_predict(model, embeddings, labels, cv=cv, method="predict_proba")
+        pred_probs = cast(
+            "np.ndarray[Any, Any]",
+            cross_val_predict(model, embeddings, labels, cv=cv, method="predict_proba"),
+        )
 
         # Cleanlab Datalab audit
         data_dict = {"texts": texts, "labels": labels}

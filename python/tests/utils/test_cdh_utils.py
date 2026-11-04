@@ -2,6 +2,7 @@
 
 import datetime
 import math
+from unittest.mock import patch
 from zoneinfo import ZoneInfo as timezone
 
 import numpy as np
@@ -9,6 +10,7 @@ import polars as pl
 import pytest
 from pdstools import datasets
 from pdstools.utils import cdh_utils
+from pdstools.utils.cdh_utils import _metrics
 from pdstools.utils.cdh_utils._io import (
     _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS,
     _DATABRICKS_PREDICTION_COLUMNS,
@@ -71,6 +73,277 @@ def test_auc_from_bincounts():
     assert abs(cdh_utils.auc_from_bincounts(positives, negatives) - 0.6871) < 1e-6
 
 
+def test_auc_variance_delong_grouped_returns_positive_value():
+    positives = [50, 70, 75, 80, 85, 90, 110, 130, 150, 160]
+    negatives = [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450]
+    variance = cdh_utils.auc_variance_delong_grouped(positives, negatives)
+
+    assert abs(variance - 7.62652860183219e-05) < 1e-12
+
+
+def test_auc_ci_from_bincounts_includes_auc_and_bounds():
+    positives = [50, 70, 75, 80, 85, 90, 110, 130, 150, 160]
+    negatives = [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450]
+
+    payload = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert payload["ci_available"] is True
+    assert abs(payload["auc"] - 0.6871) < 1e-12
+    assert abs(payload["variance"] - 7.62652860183219e-05) < 1e-12
+    assert abs(payload["ci_lower"] - 0.6699836348576035) < 1e-12
+    assert abs(payload["ci_upper"] - 0.7042163651423964) < 1e-12
+    assert abs(payload["safe_ci_lower"] - 0.6699836348576035) < 1e-12
+    assert abs(payload["safe_ci_upper"] - 0.7042163651423964) < 1e-12
+
+
+def test_safe_range_interval_reflects_bounds_around_chance_auc():
+    assert cdh_utils.safe_range_interval(0.55, 0.70) == pytest.approx((0.55, 0.70))
+    assert cdh_utils.safe_range_interval(0.30, 0.45) == pytest.approx((0.55, 0.70))
+    assert cdh_utils.safe_range_interval(0.48, 0.62) == pytest.approx((0.50, 0.62))
+    assert cdh_utils.safe_range_interval(-0.10, 1.10) == pytest.approx((0.50, 1.00))
+
+
+def test_safe_range_interval_rejects_invalid_endpoints():
+    with pytest.raises(ValueError, match="finite"):
+        cdh_utils.safe_range_interval(float("nan"), 0.7)
+    with pytest.raises(ValueError, match="finite"):
+        cdh_utils.safe_range_interval(0.4, float("inf"))
+    with pytest.raises(ValueError, match="less than or equal"):
+        cdh_utils.safe_range_interval(0.7, 0.4)
+
+
+def test_native_auc_ci_expressions_match_series_calculation():
+    positives = [50, 70, 75, 80, 85, 90, 110, 130, 150, 160]
+    negatives = [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450]
+    bins = pl.DataFrame(
+        {
+            "ModelID": ["model"] * len(positives),
+            "Positives": positives,
+            "Negatives": negatives,
+        },
+    ).lazy()
+
+    result = _metrics._auc_ci_from_binned_rows(
+        bins,
+        group_col="ModelID",
+        positive_col="Positives",
+        negative_col="Negatives",
+        confidence_level=0.95,
+    ).collect()
+    expected = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert result["AUC"].item() == pytest.approx(expected["auc"], abs=1e-12)
+    assert result["AUC_CI_Variance"].item() == pytest.approx(
+        expected["variance"],
+        abs=1e-12,
+    )
+    assert result["AUC_CI_Lower"].item() == pytest.approx(
+        expected["ci_lower"],
+        abs=1e-12,
+    )
+    assert result["AUC_CI_Upper"].item() == pytest.approx(
+        expected["ci_upper"],
+        abs=1e-12,
+    )
+    assert result["AUC_CI_Safe_Lower"].item() == pytest.approx(
+        expected["safe_ci_lower"],
+        abs=1e-12,
+    )
+    assert result["AUC_CI_Safe_Upper"].item() == pytest.approx(
+        expected["safe_ci_upper"],
+        abs=1e-12,
+    )
+
+
+def test_native_auc_ci_expressions_fold_intervals_crossing_chance_auc():
+    positives = [11, 10]
+    negatives = [10, 11]
+    bins = pl.DataFrame(
+        {
+            "ModelID": ["model"] * len(positives),
+            "Positives": positives,
+            "Negatives": negatives,
+        },
+    ).lazy()
+
+    result = _metrics._auc_ci_from_binned_rows(
+        bins,
+        group_col="ModelID",
+        positive_col="Positives",
+        negative_col="Negatives",
+        confidence_level=0.95,
+    ).collect()
+    expected = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert result["AUC_CI_Lower"].item() < 0.5
+    assert result["AUC_CI_Upper"].item() > 0.5
+    assert result["AUC_CI_Safe_Lower"].item() == pytest.approx(0.5)
+    assert result["AUC_CI_Safe_Upper"].item() == pytest.approx(
+        expected["safe_ci_upper"],
+        abs=1e-12,
+    )
+
+
+def test_weighted_auc_ci_from_estimates_propagates_variance():
+    payload = cdh_utils.weighted_auc_ci_from_estimates(
+        [0.6, 0.8],
+        [0.01, 0.04],
+        [1, 3],
+    )
+
+    assert payload["auc"] == pytest.approx(0.75)
+    assert payload["variance"] == pytest.approx(0.023125)
+    assert payload["ci_lower"] == pytest.approx(0.4519501, abs=1e-6)
+    assert payload["ci_upper"] == pytest.approx(1.0)
+    assert payload["safe_ci_lower"] == pytest.approx(0.5)
+    assert payload["safe_ci_upper"] == pytest.approx(1.0)
+    assert payload["ci_available"] is True
+
+
+def test_weighted_auc_ci_from_estimates_returns_unavailable_for_no_estimates():
+    payload = cdh_utils.weighted_auc_ci_from_estimates([], [], [])
+
+    assert payload == {
+        "auc": None,
+        "variance": None,
+        "ci_lower": None,
+        "ci_upper": None,
+        "safe_ci_lower": None,
+        "safe_ci_upper": None,
+        "ci_available": False,
+        "ci_reason": "no_estimates",
+    }
+
+
+def test_auc_ci_from_bincounts_insufficient_data_returns_unavailable():
+    payload = cdh_utils.auc_ci_from_bincounts([0, 0, 1], [0, 0, 0])
+
+    assert payload["ci_available"] is False
+    assert payload["ci_reason"] == "insufficient_class_volume"
+    assert payload["ci_lower"] is None
+    assert payload["ci_upper"] is None
+    assert payload["safe_ci_lower"] is None
+    assert payload["safe_ci_upper"] is None
+
+
+def test_auc_ci_from_bincounts_confidence_level_changes_width_not_auc():
+    positives = [50, 70, 75, 80, 85, 90, 110, 130, 150, 160]
+    negatives = [1440, 1350, 1170, 990, 810, 765, 720, 675, 630, 450]
+
+    ci_90 = cdh_utils.auc_ci_from_bincounts(positives, negatives, confidence_level=0.90)
+    ci_99 = cdh_utils.auc_ci_from_bincounts(positives, negatives, confidence_level=0.99)
+
+    assert abs(ci_90["auc"] - ci_99["auc"]) < 1e-12
+    width_90 = ci_90["ci_upper"] - ci_90["ci_lower"]
+    width_99 = ci_99["ci_upper"] - ci_99["ci_lower"]
+    assert width_99 >= width_90
+
+
+def test_auc_ci_from_bincounts_is_deterministic():
+    positives = [10, 15, 22, 30, 44]
+    negatives = [90, 80, 70, 50, 30]
+
+    first = cdh_utils.auc_ci_from_bincounts(positives, negatives, confidence_level=0.95)
+    second = cdh_utils.auc_ci_from_bincounts(positives, negatives, confidence_level=0.95)
+
+    assert first == second
+
+
+def test_auc_ci_from_bincounts_handles_variance_unavailable():
+    positives = [10, 15, 22, 30, 44]
+    negatives = [90, 80, 70, 50, 30]
+
+    with patch("pdstools.utils.cdh_utils._metrics.auc_variance_delong_grouped", return_value=None):
+        payload = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert payload["ci_available"] is False
+    assert payload["ci_reason"] == "variance_unavailable"
+    assert payload["ci_lower"] is None
+    assert payload["ci_upper"] is None
+    assert payload["safe_ci_lower"] is None
+    assert payload["safe_ci_upper"] is None
+
+
+def test_auc_ci_from_bincounts_zero_variance_collapses_interval():
+    positives = [10, 15, 22, 30, 44]
+    negatives = [90, 80, 70, 50, 30]
+
+    with patch("pdstools.utils.cdh_utils._metrics.auc_variance_delong_grouped", return_value=0.0):
+        payload = cdh_utils.auc_ci_from_bincounts(positives, negatives)
+
+    assert payload["ci_available"] is True
+    assert payload["ci_reason"] is None
+    assert payload["variance"] == 0.0
+    assert payload["ci_lower"] == payload["ci_upper"]
+    assert payload["ci_lower"] == payload["auc"]
+    assert payload["safe_ci_lower"] == payload["safe_ci_upper"]
+    assert payload["safe_ci_lower"] == payload["auc"]
+
+
+def test_validate_confidence_level_rejects_out_of_range_values():
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(0.0)
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(1.0)
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(-0.1)
+
+
+def test_validate_confidence_level_rejects_non_finite_values():
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(float("nan"))
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        cdh_utils.validate_confidence_level(float("inf"))
+
+
+def test_auc_ci_from_bincounts_rejects_empty_counts():
+    with pytest.raises(ValueError, match="non-empty"):
+        cdh_utils.auc_ci_from_bincounts([], [])
+
+
+def test_auc_ci_from_bincounts_rejects_mismatched_count_lengths():
+    with pytest.raises(ValueError, match="same length"):
+        cdh_utils.auc_ci_from_bincounts([1, 2], [3])
+
+
+def test_auc_ci_from_bincounts_rejects_negative_counts():
+    with pytest.raises(ValueError, match="non-negative"):
+        cdh_utils.auc_ci_from_bincounts([1, -1], [2, 3])
+
+
+def test_auc_ci_from_bincounts_rejects_mismatched_probs_length():
+    with pytest.raises(ValueError, match="same length"):
+        cdh_utils.auc_ci_from_bincounts([1, 2], [3, 4], probs=[0.9])
+
+
+def test_weighted_sample_variance_returns_none_for_small_total_weight():
+    variance = _metrics._weighted_sample_variance(
+        values=pl.Series([0.25], dtype=pl.Float64),
+        weights=pl.Series([1.0], dtype=pl.Float64),
+    )
+
+    assert variance is None
+
+
+def test_auc_variance_delong_grouped_returns_none_for_insufficient_class_volume():
+    variance = cdh_utils.auc_variance_delong_grouped(pos=[1, 0], neg=[3, 2])
+
+    assert variance is None
+
+
+def test_auc_variance_delong_grouped_handles_weighted_variance_unavailable():
+    with patch(
+        "pdstools.utils.cdh_utils._metrics._weighted_sample_variance",
+        side_effect=[0.01, None],
+    ):
+        variance = cdh_utils.auc_variance_delong_grouped(
+            pos=[10, 15, 22, 30, 44],
+            neg=[90, 80, 70, 50, 30],
+        )
+
+    assert variance is None
+
+
 def test_aucpr_from_probs():
     assert abs(cdh_utils.aucpr_from_probs([1, 1, 0], [0.6, 0.2, 0.2]) - 0.4166667) < 1e-6
     assert cdh_utils.aucpr_from_probs([1, 1, 1], [0.6, 0.2, 0.2]) == 0.0
@@ -124,7 +397,7 @@ def test_toPRPCDateTime():
                 41,
                 27,
                 847000,
-                tzinfo=timezone("US/Eastern"),
+                tzinfo=timezone("America/New_York"),
             ),
         )
         == "20180316T134127.847 GMT-0400"
@@ -641,11 +914,17 @@ def test_capitalize_configuration():
 
 def test_PredictorCategorization():
     df = (
-        pl.LazyFrame({"PredictorName": ["Customer.Variable", "Variable"]})
+        pl.LazyFrame({"PredictorName": ["Customer.Variable", "Variable", "pyChannel", "pyTreatment", "pyOther"]})
         .with_columns(cdh_utils.default_predictor_categorization())
         .collect()
     )
-    assert df.get_column("PredictorCategory").to_list() == ["Customer", "Primary"]
+    assert df.get_column("PredictorCategory").to_list() == [
+        "Customer",
+        "Primary",
+        "Context Keys",
+        "Context Keys",
+        "Primary",
+    ]
 
     df = (
         pl.LazyFrame({"Predictor": ["Customer.Variable", "Variable"]})

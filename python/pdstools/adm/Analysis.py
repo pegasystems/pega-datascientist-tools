@@ -14,6 +14,7 @@ import polars as pl
 
 from ..utils import cdh_utils, report_utils
 from ..utils.metric_limits import MetricLimits
+from .Aggregates import channel_is_valid_expr
 from .HealthCheckMarkdown import HealthCheckMarkdownRenderer, _format_markdown_value
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -21,6 +22,12 @@ if TYPE_CHECKING:  # pragma: no cover
     from ..prediction.Prediction import Prediction
 
 logger = logging.getLogger(__name__)
+IMPLAUSIBLE_SUCCESS_RATE = 0.9
+IMPLAUSIBLE_MIN_POSITIVES = 10
+
+# Univariate predictor AUC only exists for Naive Bayes (and legacy, untyped) models.
+_NAIVE_BAYES_QUERY = pl.col("ModelTechnique").fill_null("").ne("GradientBoost")
+
 RECOVERABLE_ANALYSIS_ERRORS = (
     pl.exceptions.PolarsError,
     AttributeError,
@@ -95,11 +102,14 @@ class HealthCheckPreAggregates:
     overall_avg_auc: float | None = None
     active_avg_auc: float | None = None
     predictor_count: int | None = None
+    """Number of predictors in scope across all model techniques."""
     channel_overview: pl.DataFrame | None = None
     channel_summary: pl.DataFrame | None = None
     configuration_summary: pl.DataFrame | None = None
     predictor_overview: pl.DataFrame | None = None
+    """Univariate performance overview for Naive Bayes predictors in scope."""
     predictor_categories: pl.DataFrame | None = None
+    """Category-level summaries of Naive Bayes predictor performance."""
     prediction_summary: pl.DataFrame | None = None
     taxonomy_counts: dict[str, int] = field(default_factory=dict)
 
@@ -387,13 +397,16 @@ class Analysis:
 
         if self.datamart.predictor_data is not None:
             try:
-                preaggregates.predictor_overview = self.datamart.aggregates.global_predictor_overview(
+                # Count predictors across all techniques; AUC summaries are NB only.
+                preaggregates.predictor_count = self.datamart.aggregates.global_predictor_overview(
                     query=active_filter
+                ).height
+                preaggregates.predictor_overview = self.datamart.aggregates.global_predictor_overview(
+                    query=_NAIVE_BAYES_QUERY if active_filter is None else active_filter & _NAIVE_BAYES_QUERY
                 )
             except RECOVERABLE_ANALYSIS_ERRORS as exc:
                 logger.debug("Could not compute health-check predictor pre-aggregates: %s", exc)
             else:
-                preaggregates.predictor_count = preaggregates.predictor_overview.height
                 if include_markdown_sections:
                     try:
                         preaggregates.predictor_categories = (
@@ -465,6 +478,9 @@ class Analysis:
         results: list[Finding] = []
         dq_findings, invalid_channels = self._check_data_quality()
         results.extend(dq_findings)
+        results.extend(self._check_hidden_characters())
+        results.extend(self._check_implausible_success_rates())
+        results.extend(self._check_very_low_success_rates())
         channel_findings, dead_channel_count, has_mature_low_perf_channel = self._check_channels(
             active_filter,
             invalid_channels=invalid_channels,
@@ -656,7 +672,7 @@ class Analysis:
                 CTR=pl.when(pl.col("Responses") > 0)
                 .then(pl.col("Positives") / pl.col("Responses"))
                 .otherwise(pl.lit(None)),
-                isValid=(pl.col("TotalPositives") >= 200) & (pl.col("TotalResponseCount") >= 1000),
+                isValid=channel_is_valid_expr(),
                 ChannelDirection=pl.format("{}/{}", pl.col("Channel"), pl.col("Direction")),
             )
             .collect()
@@ -867,6 +883,87 @@ class Analysis:
             )
         )
         return findings, invalid
+
+    def _check_hidden_characters(self) -> list[Finding]:
+        """Flag model identifiers with invisible characters."""
+        try:
+            hidden = self.datamart.aggregates.hidden_character_names().collect()
+        except RECOVERABLE_ANALYSIS_ERRORS as exc:
+            logger.debug("Could not check hidden characters: %s", exc)
+            return []
+        if hidden.height == 0:
+            return []
+        clashes = hidden.filter(pl.col("Name Clashes") > 0).height
+        columns = ", ".join(sorted(hidden["Column"].unique().to_list()))
+        return [
+            Finding(
+                severity="warning",
+                category="data_quality",
+                title=f"{hidden.height:,} model identifier values contain hidden characters ({columns})",
+                detail=(
+                    "Invisible characters such as zero-width or non-breaking spaces, or leading and trailing "
+                    "whitespace, make values that look identical differ. Responses recorded under such "
+                    "values can end up on separate models."
+                    + (
+                        f" For {clashes:,} of these values the cleaned value also exists as a separate value."
+                        if clashes
+                        else ""
+                    )
+                ),
+                data={"value_count": hidden.height, "lookalike_count": clashes},
+            )
+        ]
+
+    def _check_implausible_success_rates(self) -> list[Finding]:
+        """Flag models with a success rate close to 100%, usually missing negatives."""
+        try:
+            rates = self.datamart.aggregates.success_rate_intervals().collect()
+        except RECOVERABLE_ANALYSIS_ERRORS as exc:
+            logger.debug("Could not check success rates: %s", exc)
+            return []
+        suspicious = rates.filter(
+            (pl.col("SuccessRate") >= IMPLAUSIBLE_SUCCESS_RATE) & (pl.col("Positives") >= IMPLAUSIBLE_MIN_POSITIVES)
+        )
+        if suspicious.height == 0:
+            return []
+        return [
+            Finding(
+                severity="warning",
+                category="data_quality",
+                title=f"{suspicious.height:,} models have a success rate of at least {IMPLAUSIBLE_SUCCESS_RATE:.0%}",
+                detail=(
+                    "A success rate this high is implausible for most use cases and usually means that "
+                    "negative responses are not being recorded for these models."
+                ),
+                data={"model_count": suspicious.height},
+            )
+        ]
+
+    def _check_very_low_success_rates(self) -> list[Finding]:
+        """Flag models that, with confidence, succeed far less than their channel average."""
+        try:
+            rates = self.datamart.aggregates.success_rate_intervals().collect()
+        except RECOVERABLE_ANALYSIS_ERRORS as exc:
+            logger.debug("Could not check success rates: %s", exc)
+            return []
+        very_low = rates.filter(pl.col("SuccessRateCategory") == "Very low")
+        if very_low.height == 0:
+            return []
+        return [
+            Finding(
+                severity="warning",
+                category="data_quality",
+                title=(
+                    f"{very_low.height:,} models have a success rate of less than a tenth "
+                    "of the average of their channel and direction"
+                ),
+                detail=(
+                    "The confidence interval of these success rates lies entirely below a tenth of the average. "
+                    "This may point to propositions that are rarely relevant, or to issues in the response capture."
+                ),
+                data={"model_count": very_low.height},
+            )
+        ]
 
     def _check_channels(
         self,
@@ -1674,10 +1771,11 @@ class Analysis:
         if min_perf is None:
             return findings
 
-        # Poor predictors
         if predictor_overview is None:
             try:
-                predictor_overview = self.datamart.aggregates.predictors_global_overview().collect()
+                predictor_overview = self.datamart.aggregates.predictors_global_overview(
+                    query=_NAIVE_BAYES_QUERY,
+                ).collect()
             except RECOVERABLE_ANALYSIS_ERRORS as exc:
                 logger.debug("Could not compute predictor performance overview: %s", exc)
                 predictor_overview = None
@@ -1692,13 +1790,13 @@ class Analysis:
                         severity="warning" if pct > 30 else "info",
                         category="predictor",
                         title=(
-                            f"{poor_count} of {total_predictors} predictors "
+                            f"{poor_count} of {total_predictors} Naive Bayes predictors "
                             f"({pct:.0f}%) have poor performance "
                             f"(mean AUC < {min_perf * 100:.0f})"
                         ),
                         detail=(
                             "These predictors consistently perform below the "
-                            "minimum threshold across all models. They may "
+                            "minimum threshold across Naive Bayes models in scope. They may "
                             "indicate data sourcing issues. Be cautious with "
                             "removal — they may be valuable for specific actions."
                         ),
