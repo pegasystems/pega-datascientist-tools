@@ -763,39 +763,6 @@ def read_ds_export(
     )
 
 
-def _fill_context_field_nulls(df: pl.LazyFrame) -> pl.LazyFrame:
-    """Fill nulls in context fields to prevent issues in downstream operations.
-
-    Context fields (Channel, Direction, Issue, Group, Name) often have nulls in
-    source data which can cause errors in group_by, transpose, and concat_str
-    operations. This function fills nulls with "Unknown" to ensure these operations
-    work correctly.
-
-    Note: Treatment is intentionally NOT filled because null Treatment has semantic
-    meaning (no treatment variation exists for that action).
-
-    Parameters
-    ----------
-    df : pl.LazyFrame
-        Input dataframe
-
-    Returns
-    -------
-    pl.LazyFrame
-        Dataframe with nulls filled in context fields
-
-    """
-    context_fields = ["Channel", "Direction", "Issue", "Group", "Name"]
-
-    # Only fill nulls for columns that exist in the dataframe
-    existing_context_fields = [col for col in context_fields if col in df.collect_schema().names()]
-
-    if existing_context_fields:
-        return df.with_columns([pl.col(col).fill_null("Unknown") for col in existing_context_fields])
-
-    return df
-
-
 def _read_pega_export(
     file: str | BytesIO,
     extension: str,
@@ -814,10 +781,12 @@ def _read_pega_export(
       containers,
     * passes ADM-friendly CSV options (``schema_overrides`` for
       ``PYMODELID``, plus the user-supplied
-      ``infer_schema_length`` / ``separator`` / ``ignore_errors``),
-    * applies :func:`_fill_context_field_nulls` so downstream group-by /
-      concat operations don't trip on null Channel / Direction / Issue /
-      Group / Name values.
+      ``infer_schema_length`` / ``separator`` / ``ignore_errors``).
+
+    Values are returned as read: filling null context keys (for example
+    with ``"Unknown"``) is left to the consumer's own validation, such as
+    :class:`~pdstools.adm.ADMDatamart.ADMDatamart`, which first needs the
+    nulls to detect AGB configuration-summary rows (#667).
 
     Generic CSV defaults (``null_values``, ``try_parse_dates``) live in
     :func:`_scan_by_extension` and apply uniformly.
@@ -865,7 +834,7 @@ def _read_pega_export(
             f"Could not import file {file!r} (extension {extension!r}). "
             f"Supported extensions: .csv, .json, .parquet, .feather, .ipc, .arrow, .zip."
         ) from exc
-    return _fill_context_field_nulls(df)
+    return df
 
 
 def read_zipped_file(file: str | BytesIO) -> tuple[BytesIO, str]:

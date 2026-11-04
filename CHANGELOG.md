@@ -36,12 +36,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Before, `every` was ignored for cumulative trends. `cumulative=False`
   changes of count metrics are now calculated per model before summing, so
   models missing from a snapshot no longer cause negative changes.
-- `ADMDatamart` now fills missing or null `Channel`, `Direction`, `Issue`,
-  `Group` and `Name` values with `"Unknown"` for every way of loading model
-  data, as `read_ds_export()` already did for null values. Before, missing
-  `Channel`/`Direction` columns were added as nulls, so data without channels
-  showed empty channel trends and summaries. The fill happens after the AGB
-  configuration-summary rows are removed.
 - `plot.over_time()` y-axes: cumulative performance uses a fixed 50–100
   range, and success rates start at zero; other metrics keep Plotly's
   automatic range. `add_metric_limit_lines()` (also used by
@@ -58,6 +52,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- AGB configuration-summary rows (#667) are now also removed when model data
+  is loaded with `ADMDatamart.from_ds_export()`. `read_ds_export()` no longer
+  fills null `Channel`, `Direction`, `Issue`, `Group` and `Name` values with
+  "Unknown", because that hid the summary rows from the filter. `ADMDatamart`
+  validation now fills them with "Unknown" after the filter, on every load
+  path, including `Channel` and `Direction` columns that are missing from the
+  data, so data without channels no longer shows empty channel trends and
+  summaries. Other readers (IH, Prediction, Impact Analyzer, Value Finder,
+  Decision Analyzer) now get those columns as they are in the file.
 - AGB predictor importance (`ADMDatamart.aggregates.predictor_importance`,
   `unused_agb_predictors` and the ADM Health Check) now reports the global
   importance per configuration that the platform stores in the configuration
