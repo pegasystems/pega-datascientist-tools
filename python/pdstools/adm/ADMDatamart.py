@@ -654,6 +654,15 @@ class ADMDatamart:
                 )
             df = df.filter(~(is_agb & empty_context))
 
+        # After the summary-row filter above, which relies on empty context keys:
+        # missing or null context keys become "Unknown", so every model groups
+        # into a channel, direction, issue, group and action.
+        df = df.with_columns(
+            pl.col(c).fill_null("Unknown")
+            for c in ("Channel", "Direction", "Issue", "Group", "Name")
+            if c in schema.names()
+        )
+
         snapshot_type = schema.get("SnapshotTime")
         if snapshot_type is None or not snapshot_type.is_temporal():  # pl.Datetime
             df = df.with_columns(

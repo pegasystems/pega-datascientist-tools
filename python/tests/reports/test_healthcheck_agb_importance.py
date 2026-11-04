@@ -121,7 +121,7 @@ def test_agb_report_partitioning(agb_report_cell, importance_dm, configurations_
             for configuration, channel, direction in [
                 ("A", "Web", "Inbound"),
                 ("B", "Web", "Inbound"),
-                ("C", "Email", None),
+                ("C", "Email", "Unknown"),
             ]
         ]
         report_utils.quarto_callout_info.assert_not_called()
@@ -131,7 +131,7 @@ def test_agb_report_partitioning(agb_report_cell, importance_dm, configurations_
             pytest.approx({"Age": 50.0, "Param.Tier": 20.0, "IH.Clicks": 30.0}),
         ]
         assert titles == [
-            "Predictor Importance: C<br>Channel=Email, Direction=None, ModelTechnique=GradientBoost",
+            "Predictor Importance: C<br>Channel=Email, Direction=Unknown, ModelTechnique=GradientBoost",
             "Predictor Importance (configurations combined)<br>"
             "Channel=Web, Direction=Inbound, ModelTechnique=GradientBoost",
         ]
@@ -174,13 +174,13 @@ def test_nb_report_titles_and_fallback(nb_report_cell, importance_dm, configurat
             for configuration, channel, direction in [
                 ("A", "Web", "Inbound"),
                 ("B", "Web", "Inbound"),
-                ("C", "Email", None),
+                ("C", "Email", "Unknown"),
             ]
         ]
         report_utils.quarto_callout_info.assert_not_called()
     else:
         assert titles == [
-            "Predictor Importance: C<br>Channel=Email, Direction=None, ModelTechnique=NaiveBayes",
+            "Predictor Importance: C<br>Channel=Email, Direction=Unknown, ModelTechnique=NaiveBayes",
             "Predictor Importance (configurations combined)<br>"
             "Channel=Web, Direction=Inbound, ModelTechnique=NaiveBayes",
         ]
