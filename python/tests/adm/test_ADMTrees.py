@@ -1345,7 +1345,7 @@ def test_plot_feature_importance_by_gain_return_df(rich_model: ADMTreesModel):
     # Top predictor must be pyGroup.
     assert df["predictor"][0] == "pyGroup"
     assert df["total_gain"][0] == pytest.approx(48305.23435, rel=1e-4)
-    assert df["PredictorCategory"][0] == "Model context"
+    assert df["PredictorCategory"][0] == "Context Keys"
     # All rows are sorted descending by total_gain.
     gains = df["total_gain"].to_list()
     assert gains == sorted(gains, reverse=True)
@@ -1362,23 +1362,23 @@ def test_plot_feature_importance_by_gain_figure(rich_model: ADMTreesModel):
     fig = rich_model.plot.feature_importance_by_gain()
     assert isinstance(fig, go.Figure)
     colors_by_category = {trace.name: trace.marker.color for trace in fig.data}
-    assert colors_by_category["Model context"] == "#2E7D32"
+    assert colors_by_category["Context Keys"] == "#2E7D32"
     assert colors_by_category["Customer"] == "#001F5F"
     assert colors_by_category["IH"] == "#10A5AC"
 
 
-def test_agb_model_context_predictors_have_dedicated_category(rich_model: ADMTreesModel):
+def test_agb_context_key_predictors_have_dedicated_category(rich_model: ADMTreesModel):
     import polars as pl
 
     predictors = ["pyIssue", "pyGroup", "pyName", "pyTreatment", "pyDirection", "pyChannel", "AnotherPrimary"]
     df = pl.DataFrame({"predictor": predictors}).with_columns(rich_model.plot.predictor_category_expr)
     assert df["PredictorCategory"].to_list() == [
-        "Model context",
-        "Model context",
-        "Model context",
-        "Model context",
-        "Model context",
-        "Model context",
+        "Context Keys",
+        "Context Keys",
+        "Context Keys",
+        "Context Keys",
+        "Context Keys",
+        "Context Keys",
         "Primary",
     ]
 
@@ -1403,7 +1403,7 @@ def test_plot_early_vs_late_gain_return_df(rich_model: ADMTreesModel):
     row = df.filter(df["predictor"] == "pyGroup").row(0, named=True)
     assert row["early_gain"] == pytest.approx(15286.858930, rel=1e-4)
     assert row["late_gain"] == pytest.approx(6791.741500, rel=1e-4)
-    assert row["PredictorCategory"] == "Model context"
+    assert row["PredictorCategory"] == "Context Keys"
 
 
 def test_plot_early_vs_late_gain_figure(rich_model: ADMTreesModel):
@@ -1468,7 +1468,7 @@ def test_plot_feature_role_map_return_df(rich_model: ADMTreesModel):
     assert row["tree_coverage"] == 63
     assert row["total_gain"] == pytest.approx(48305.23435, rel=1e-4)
     assert row["mean_depth"] == pytest.approx(4.3161, abs=1e-3)
-    assert row["PredictorCategory"] == "Model context"
+    assert row["PredictorCategory"] == "Context Keys"
     # Exactly 4 predictor categories present.
     assert df["PredictorCategory"].n_unique() == 4
 

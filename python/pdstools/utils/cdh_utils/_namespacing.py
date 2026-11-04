@@ -127,6 +127,19 @@ def _capitalize(
     return [field[:1].upper() + field[1:] for field in fields]
 
 
+CONTEXT_KEYS_CATEGORY = "Context Keys"
+"""Predictor category for the ADM context keys used as AGB predictors."""
+
+CONTEXT_KEY_PREDICTORS = frozenset(
+    {"pyChannel", "pyDirection", "pyIssue", "pyGroup", "pyName", "pyTreatment"},
+)
+"""Predictor names of the standard ADM context keys.
+
+Not every model uses all of them (``pyTreatment`` is optional, for example);
+absent keys simply never match.
+"""
+
+
 def default_predictor_categorization(
     x: str | pl.Expr = pl.col("PredictorName"),
 ) -> pl.Expr:
@@ -138,9 +151,11 @@ def default_predictor_categorization(
     The most straight-forward way to implement this is with
     pl.when().then().otherwise(), which you can chain.
 
-    By default, this function returns "Primary" whenever
-    there is no '.' anywhere in the name string,
-    otherwise returns the first string before the first period
+    By default, this function returns "Context Keys" for the standard ADM
+    context keys (``pyChannel``, ``pyDirection``, ``pyIssue``, ``pyGroup``,
+    ``pyName`` and ``pyTreatment``, which Adaptive Gradient Boosting models
+    use as predictors), "Primary" whenever there is no '.' anywhere in the
+    name string, and otherwise the first string before the first period.
 
     Parameters
     ----------
@@ -154,6 +169,8 @@ def default_predictor_categorization(
     return (
         pl.when(x == "Classifier")
         .then(pl.lit(None).cast(pl.Utf8))
+        .when(x.is_in(list(CONTEXT_KEY_PREDICTORS)))
+        .then(pl.lit(CONTEXT_KEYS_CATEGORY))
         .when(x.str.split(".").list.len() > 1)
         .then(x.str.split(".").list.get(0))
         .otherwise(pl.lit("Primary"))

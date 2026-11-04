@@ -25,25 +25,9 @@ from ...utils.plot_utils import abbreviate_label
 from ..ADMDatamart import _STANDARD_PREDICTOR_CATEGORY_COLORS
 from ._nodes import _iter_nodes
 
-_AGB_MODEL_CONTEXT_CATEGORY = "Model context"
-_AGB_MODEL_CONTEXT_COLOR = "#2E7D32"
-_AGB_MODEL_CONTEXT_PREDICTORS = frozenset(
-    {
-        "pyIssue",
-        "pyGroup",
-        "pyName",
-        "pyTreatment",
-        "pyDirection",
-        "pyChannel",
-    }
-)
-
 # Fixed color assignments for well-known predictor categories, shared with
 # ADMDatamart predictor-category plots.
-_PREDICTOR_CATEGORY_COLORMAP: dict[str, str] = {
-    _AGB_MODEL_CONTEXT_CATEGORY: _AGB_MODEL_CONTEXT_COLOR,
-    **dict(_STANDARD_PREDICTOR_CATEGORY_COLORS),
-}
+_PREDICTOR_CATEGORY_COLORMAP: dict[str, str] = dict(_STANDARD_PREDICTOR_CATEGORY_COLORS)
 
 # Un-aliased value expression — import and extend this in notebooks to add
 # custom predictor categories before calling plot methods.
@@ -55,11 +39,7 @@ _PREDICTOR_CATEGORY_COLORMAP: dict[str, str] = {
 #       .otherwise(_PREDICTOR_CATEGORY_VALUE)
 #       .alias("PredictorCategory")
 #   )
-_PREDICTOR_CATEGORY_VALUE: pl.Expr = (
-    pl.when(pl.col("predictor").is_in(_AGB_MODEL_CONTEXT_PREDICTORS))
-    .then(pl.lit(_AGB_MODEL_CONTEXT_CATEGORY))
-    .otherwise(cdh_utils.default_predictor_categorization("predictor").meta.undo_aliases())
-)
+_PREDICTOR_CATEGORY_VALUE: pl.Expr = cdh_utils.default_predictor_categorization("predictor").meta.undo_aliases()
 
 _PREDICTOR_CATEGORY_EXPR: pl.Expr = _PREDICTOR_CATEGORY_VALUE.alias("PredictorCategory")
 

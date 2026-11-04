@@ -26,6 +26,7 @@ basePath = pathlib.Path(__file__).parent.parent.parent
         # Educational/article notebooks
         "examples/articles/ADMExplained.ipynb",
         "examples/articles/thompsonsampling.ipynb",
+        "examples/articles/ConversionModeling.ipynb",
         "examples/articles/explanations/agb_global_explanations.ipynb",
         # ADM analysis notebooks
         "examples/articles/AGBExplained.ipynb",

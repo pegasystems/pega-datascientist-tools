@@ -285,7 +285,7 @@ class HealthCheckMarkdownRenderer:
                 sections.append(("Top Configurations by Responses", configuration_summary))
 
         if preaggregates.predictor_categories is not None and preaggregates.predictor_categories.height > 0:
-            sections.append(("Predictor Categories", preaggregates.predictor_categories))
+            sections.append(("Naive Bayes Predictor Categories", preaggregates.predictor_categories))
 
         return sections
 

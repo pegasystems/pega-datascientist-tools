@@ -371,52 +371,51 @@ def _compute_ci_maturity_analysis(
             key: value for technique in techniques for key, value in _empty_ci_metrics(technique).items()
         }, pl.DataFrame()
 
-    analysis_rows: list[dict] = []
-    for row in active_agg.iter_rows(named=True):
-        model_id = row["ModelID"]
-        ci_data = {
-            "AUC_ActiveRange": None,
-            "AUC_ActiveRange_CI_Lower": None,
-            "AUC_ActiveRange_CI_Upper": None,
-            "AUC_ActiveRange_CI_Available": False,
-            "AUC_ActiveRange_CI_Reason": "analysis_error",
-        }
-        try:
-            ar = (
-                datamart.active_ranges(model_id)
-                .collect()
-                .select(
-                    "AUC_ActiveRange",
-                    "AUC_ActiveRange_CI_Lower",
-                    "AUC_ActiveRange_CI_Upper",
-                    "AUC_ActiveRange_CI_Available",
-                    "AUC_ActiveRange_CI_Reason",
-                )
-            )
-            if ar.height > 0:
-                ci_data = {
-                    "AUC_ActiveRange": ar["AUC_ActiveRange"][0],
-                    "AUC_ActiveRange_CI_Lower": ar["AUC_ActiveRange_CI_Lower"][0],
-                    "AUC_ActiveRange_CI_Upper": ar["AUC_ActiveRange_CI_Upper"][0],
-                    "AUC_ActiveRange_CI_Available": ar["AUC_ActiveRange_CI_Available"][0],
-                    "AUC_ActiveRange_CI_Reason": ar["AUC_ActiveRange_CI_Reason"][0],
-                }
-        except Exception:
-            # Keep model-level maturity rows even when CI cannot be computed.
-            pass
-
-        analysis_rows.append(
-            {
-                "ModelID": model_id,
-                "ModelTechnique": row["ModelTechnique"],
-                "Positives": row["Positives"],
-                "ResponseCount": row["ResponseCount"],
-                "IsActiveLast30Days": True,
-                **ci_data,
-            }
+    ci_schema = {
+        "ModelID": active_agg.schema["ModelID"],
+        "AUC_ActiveRange": pl.Float64,
+        "AUC_ActiveRange_CI_Lower": pl.Float64,
+        "AUC_ActiveRange_CI_Upper": pl.Float64,
+        "AUC_ActiveRange_CI_Available": pl.Boolean,
+        "AUC_ActiveRange_CI_Reason": pl.String,
+    }
+    # Compute active ranges for all models in one pass; a per-model call
+    # rescans the full predictor data each time and does not scale.
+    try:
+        ci_df = (
+            datamart.active_ranges(active_agg["ModelID"].to_list())
+            .select(list(ci_schema))
+            .unique(subset="ModelID", keep="first")
+            .collect()
+            .cast(ci_schema)
         )
+    except Exception as e:
+        # Keep model-level maturity rows even when CI cannot be computed.
+        print(f"  ⚠ Active range CI computation failed: {e}")
+        ci_df = pl.DataFrame(schema=ci_schema)
 
-    model_level = pl.DataFrame(analysis_rows).with_columns(
+    model_level = (
+        active_agg.join(ci_df, on="ModelID", how="left")
+        .with_columns(
+            IsActiveLast30Days=pl.lit(True),
+            AUC_ActiveRange_CI_Available=pl.col("AUC_ActiveRange_CI_Available").fill_null(False),
+            AUC_ActiveRange_CI_Reason=pl.when(
+                pl.col("AUC_ActiveRange").is_null() & pl.col("AUC_ActiveRange_CI_Reason").is_null()
+            )
+            .then(pl.lit("analysis_error"))
+            .otherwise(pl.col("AUC_ActiveRange_CI_Reason")),
+        )
+        .select(
+            "ModelID",
+            "ModelTechnique",
+            "Positives",
+            "ResponseCount",
+            "IsActiveLast30Days",
+            *list(ci_schema)[1:],
+        )
+    )
+
+    model_level = model_level.with_columns(
         CI_Width=(pl.col("AUC_ActiveRange_CI_Upper") - pl.col("AUC_ActiveRange_CI_Lower")),
         PositivesSegment=pl.when(pl.col("Positives") > positives_maturity_threshold)
         .then(pl.lit(f">{positives_maturity_threshold}"))

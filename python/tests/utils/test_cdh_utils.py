@@ -397,7 +397,7 @@ def test_toPRPCDateTime():
                 41,
                 27,
                 847000,
-                tzinfo=timezone("US/Eastern"),
+                tzinfo=timezone("America/New_York"),
             ),
         )
         == "20180316T134127.847 GMT-0400"
@@ -914,11 +914,17 @@ def test_capitalize_configuration():
 
 def test_PredictorCategorization():
     df = (
-        pl.LazyFrame({"PredictorName": ["Customer.Variable", "Variable"]})
+        pl.LazyFrame({"PredictorName": ["Customer.Variable", "Variable", "pyChannel", "pyTreatment", "pyOther"]})
         .with_columns(cdh_utils.default_predictor_categorization())
         .collect()
     )
-    assert df.get_column("PredictorCategory").to_list() == ["Customer", "Primary"]
+    assert df.get_column("PredictorCategory").to_list() == [
+        "Customer",
+        "Primary",
+        "Context Keys",
+        "Context Keys",
+        "Primary",
+    ]
 
     df = (
         pl.LazyFrame({"Predictor": ["Customer.Variable", "Variable"]})

@@ -22,7 +22,7 @@ changes are required for existing synchronous code.
 
 ```python
 from pdstools import AsyncInfinity  # NEW — async client
-from pdstools import Infinity       # unchanged
+from pdstools import Infinity  # unchanged
 ```
 
 ### Forward-compatible version handling

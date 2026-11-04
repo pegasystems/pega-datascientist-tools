@@ -291,10 +291,11 @@ if st.session_state.local_filters != []:
             additional_filters=channel_filter,
             others_filter=others_filters if others_filters else None,
         )
-        sample_warning = "Showing a representative sample of"
-        if warning_message and not warning_message.startswith(sample_warning):
-            st.warning(warning_message)
-        if fig is not None:
+        # A figure is only withheld for blocking problems; sampling notices accompany a figure.
+        if fig is None:
+            if warning_message:
+                st.warning(warning_message)
+        else:
             st.plotly_chart(
                 fig,
                 key="prio_factor_boxplots_chart",

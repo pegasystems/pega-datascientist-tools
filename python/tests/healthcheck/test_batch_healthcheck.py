@@ -412,19 +412,19 @@ def test_compute_ci_maturity_analysis_retains_rows_when_ci_fails_for_some_models
         }
     )
 
-    def active_ranges_side_effect(model_id):
-        if model_id == "m1":
-            return pl.LazyFrame(
-                {
-                    "ModelID": ["m1"],
-                    "AUC_ActiveRange": [0.72],
-                    "AUC_ActiveRange_CI_Lower": [0.69],
-                    "AUC_ActiveRange_CI_Upper": [0.75],
-                    "AUC_ActiveRange_CI_Available": [True],
-                    "AUC_ActiveRange_CI_Reason": [None],
-                }
-            )
-        raise ValueError("pos and neg must be non-empty")
+    def active_ranges_side_effect(model_ids):
+        assert sorted(model_ids) == ["m1", "m2"]
+        # m2 has no reachable classifier bins, so it is absent from the result.
+        return pl.LazyFrame(
+            {
+                "ModelID": ["m1"],
+                "AUC_ActiveRange": [0.72],
+                "AUC_ActiveRange_CI_Lower": [0.69],
+                "AUC_ActiveRange_CI_Upper": [0.75],
+                "AUC_ActiveRange_CI_Available": [True],
+                "AUC_ActiveRange_CI_Reason": [None],
+            }
+        )
 
     datamart.active_ranges.side_effect = active_ranges_side_effect
 
@@ -441,6 +441,33 @@ def test_compute_ci_maturity_analysis_retains_rows_when_ci_fails_for_some_models
     assert failing_model.height == 1
     assert failing_model["AUC_ActiveRange_CI_Available"][0] is False
     assert failing_model["AUC_ActiveRange_CI_Reason"][0] == "analysis_error"
+    datamart.active_ranges.assert_called_once()
+
+
+def test_compute_ci_maturity_analysis_retains_rows_when_active_ranges_fails():
+    now = datetime(2026, 8, 3, 12, 0, 0)
+    datamart = MagicMock()
+    datamart.predictor_data = pl.LazyFrame({"ModelID": ["m1", "m2"], "EntryType": ["Classifier", "Classifier"]})
+    datamart.model_data = pl.LazyFrame(
+        {
+            "ModelID": ["m1", "m2"],
+            "Positives": [250, 50],
+            "ResponseCount": [1200, 300],
+            "SnapshotTime": [now, now],
+        }
+    )
+    datamart.active_ranges.side_effect = ValueError("boom")
+
+    metrics, model_level = batch._compute_ci_maturity_analysis(
+        datamart,
+        active_window_days=30,
+        positives_maturity_threshold=200,
+    )
+
+    assert metrics["Active_NB_Models"] == 2
+    assert metrics["Active_NB_Models_With_CI"] == 0
+    assert model_level["AUC_ActiveRange_CI_Available"].to_list() == [False, False]
+    assert model_level["AUC_ActiveRange_CI_Reason"].to_list() == ["analysis_error", "analysis_error"]
 
 
 def test_compute_ci_maturity_analysis_splits_agb_and_defaults_missing_technique():
@@ -462,15 +489,16 @@ def test_compute_ci_maturity_analysis_splits_agb_and_defaults_missing_technique(
         }
     )
 
-    def active_ranges(model_id):
+    def active_ranges(model_ids):
+        n = len(model_ids)
         return pl.LazyFrame(
             {
-                "ModelID": [model_id],
-                "AUC_ActiveRange": [0.7],
-                "AUC_ActiveRange_CI_Lower": [0.65],
-                "AUC_ActiveRange_CI_Upper": [0.75],
-                "AUC_ActiveRange_CI_Available": [True],
-                "AUC_ActiveRange_CI_Reason": [None],
+                "ModelID": model_ids,
+                "AUC_ActiveRange": [0.7] * n,
+                "AUC_ActiveRange_CI_Lower": [0.65] * n,
+                "AUC_ActiveRange_CI_Upper": [0.75] * n,
+                "AUC_ActiveRange_CI_Available": [True] * n,
+                "AUC_ActiveRange_CI_Reason": [None] * n,
             }
         )
 

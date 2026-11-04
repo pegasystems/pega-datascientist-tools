@@ -19,6 +19,7 @@ from pdstools.decision_analyzer.plots import (
     Plot,
 )
 from plotly.graph_objs import Figure
+from polars.testing import assert_frame_equal
 
 pytestmark = pytest.mark.filterwarnings("ignore:The following default columns are missing:UserWarning")
 
@@ -259,8 +260,9 @@ class TestTrendChart:
         """Test with return_df."""
         result = plot_v2.trend_chart(stage="Output", scope="Action", return_df=True)
         collected = result.collect()
-        assert collected.shape == (45, 3)
         assert collected.columns == ["day", "Action", "Decisions"]
+        expected = plot_v2._decision_data.aggregates.get_trend_data(stage="Output", scope="Action").collect()
+        assert collected.equals(expected)
 
 
 class TestDecisionFunnel:
@@ -396,6 +398,7 @@ class TestRankBoxplot:
         """Test rank boxplot."""
         fig = plot_v2.rank_boxplot()
         assert isinstance(fig, Figure)
+        assert len(fig.data[0].x) <= 250
 
 
 class TestComponentActionImpact:
@@ -480,8 +483,15 @@ class TestOptionalityPerStage:
         """Test with return_df."""
         df = plot_v2.optionality_per_stage(return_df=True)
         collected = df.collect()
-        assert collected.shape == (123, 4)
         assert collected.columns == ["nOffers", "Stage Group", "Interactions", "AverageBestPropensity"]
+        expected = plot_v2._decision_data.aggregates.get_optionality_data(plot_v2._decision_data.sample).collect()
+        columns = ["nOffers", "Stage Group", "Interactions", "AverageBestPropensity"]
+        assert_frame_equal(
+            collected.sort(columns),
+            expected.sort(columns),
+            check_exact=False,
+            abs_tol=1e-12,
+        )
 
 
 class TestExclusionRateDistribution:
@@ -789,6 +799,39 @@ class TestPlotPriorityComponentDistribution:
             "Max",
         ]
 
+    def test_downsampling_preserves_full_data_statistics(self):
+        from pdstools.decision_analyzer.plots import plot_priority_component_distribution
+
+        value_data = pl.DataFrame(
+            {
+                "Issue": ["A"] * 10 + ["B"] * 5,
+                "Value": list(range(10)) + list(range(20, 25)),
+            }
+        ).lazy()
+
+        violin_fig, ecdf_fig, stats_df = plot_priority_component_distribution(
+            value_data,
+            component="Value",
+            granularity="Issue",
+            max_points_per_group=3,
+        )
+
+        assert [len(trace.x) for trace in violin_fig.data] == [3, 3]
+        assert [list(trace.x) for trace in violin_fig.data] == [[0, 4, 9], [20, 22, 24]]
+        assert all(len(trace.x) <= 6 for trace in ecdf_fig.data)
+        assert stats_df.select("Issue", "Count", "Mean", "Min", "Max").sort("Issue").rows() == [
+            ("A", 10, 4.5, 0, 9),
+            ("B", 5, 22.0, 20, 24),
+        ]
+
+        full_violin, _, _ = plot_priority_component_distribution(
+            value_data,
+            component="Value",
+            granularity="Issue",
+            max_points_per_group=None,
+        )
+        assert sum(len(trace.x) for trace in full_violin.data) == 15
+
 
 class TestPlotComponentOverview:
     """Test plot_component_overview function."""
@@ -811,6 +854,27 @@ class TestPlotComponentOverview:
         fig = plot_component_overview(overview_data, component_options, granularity="Action")
         assert isinstance(fig, Figure)
 
+    def test_downsampling_caps_each_component_group(self):
+        from pdstools.decision_analyzer.plots import plot_component_overview
+
+        overview_data = pl.DataFrame(
+            {
+                "Issue": ["A"] * 10 + ["B"] * 5,
+                "Value": list(range(10)) + list(range(20, 25)),
+                "Propensity": [value / 100 for value in range(15)],
+            }
+        ).lazy()
+
+        fig = plot_component_overview(
+            overview_data,
+            ["Value", "Propensity"],
+            granularity="Issue",
+            max_points_per_group=3,
+        )
+
+        assert len(fig.data) == 4
+        assert all(len(trace.x) == 3 for trace in fig.data)
+
 
 class TestCreateWinDistributionPlot:
     """Test create_win_distribution_plot function."""
@@ -825,11 +889,30 @@ class TestCreateWinDistributionPlot:
 class TestCreateParameterDistributionBoxplots:
     """Test create_parameter_distribution_boxplots function."""
 
-    @pytest.mark.skip(reason="Function signature or data requirements unclear")
-    def test_boxplots(self, da_v2):
-        """Test parameter distribution boxplots."""
-        # Function may have different signature or data requirements
-        pass
+    def test_downsampling_caps_each_segment(self):
+        from pdstools.decision_analyzer.plots import create_parameter_distribution_boxplots
+
+        segmented_data = pl.DataFrame(
+            {
+                "segment": ["Selected Actions"] * 10 + ["Others"] * 5,
+                "Value": list(range(10)) + list(range(20, 25)),
+            }
+        )
+
+        fig = create_parameter_distribution_boxplots(
+            segmented_data,
+            parameters=["Value"],
+            max_points_per_group=3,
+        )
+
+        assert [len(trace.y) for trace in fig.data] == [3, 3]
+
+        full_fig = create_parameter_distribution_boxplots(
+            segmented_data,
+            parameters=["Value"],
+            max_points_per_group=None,
+        )
+        assert [len(trace.y) for trace in full_fig.data] == [10, 5]
 
 
 # ---------------------------------------------------------------------------

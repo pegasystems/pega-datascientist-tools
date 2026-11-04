@@ -121,7 +121,7 @@ def test_predictors_global_overview(dm_aggregates):
 def test_summary_by_channel(dm_aggregates):
     summary_by_channel = dm_aggregates.summary_by_channel().collect()
     assert summary_by_channel.height == 3
-    assert summary_by_channel.width == 23
+    assert summary_by_channel.width == 24
     assert summary_by_channel["ChannelDirection"].to_list() == [
         "Email/Outbound",
         "SMS/Outbound",
@@ -257,7 +257,7 @@ def test_custom_channel_mapping(dm_aggregates):
         custom_channels={"MyChannel": "Web"},
     ).collect()
     assert summary_by_channel.height == 3
-    assert summary_by_channel.width == 23
+    assert summary_by_channel.width == 24
     assert summary_by_channel["ChannelDirection"].to_list() == [
         "Email/Outbound",
         "MyChannel/Outbound",
@@ -274,7 +274,7 @@ def test_aggregate_overall_summary(dm_aggregates):
     overall_summary = dm_aggregates.overall_summary().collect()
 
     assert overall_summary.height == 1
-    assert overall_summary.width == 21
+    assert overall_summary.width == 22
     assert overall_summary["Number of Valid Channels"].item() == 3
     assert overall_summary["Actions"].item() == 35
     assert overall_summary["Treatments"].item() == 0
@@ -296,7 +296,7 @@ def test_aggregate_overall_summary(dm_aggregates):
 def test_aggregate_summary_by_channel_and_time(dm_aggregates):
     summary_by_channel = dm_aggregates.summary_by_channel(every="4h").collect()
     assert summary_by_channel.height == 6
-    assert summary_by_channel.width == 23
+    assert summary_by_channel.width == 24
     assert set(summary_by_channel["Responses"].to_list()) == {
         27322.0,
         13062.0,
@@ -396,7 +396,7 @@ def test_omnichannel():
 def test_aggregate_overall_summary_by_time(dm_aggregates):
     overall_summary = dm_aggregates.overall_summary(every="1h").collect()
     assert overall_summary.height == 6
-    assert overall_summary.width == 21
+    assert overall_summary.width == 22
 
     # print(dm_aggregates.summary_by_channel(every="1h",debug=True).collect().select("Channel","Direction","Period","Positives","TotalPositives","isValid").to_pandas())
 
@@ -500,6 +500,20 @@ def test_summary_by_configuration_query_filters_models():
     assert filtered["Configuration"].to_list() == ["CfgX"]
     assert filtered["ResponseCount"].to_list() == [20]  # latest snapshot only
     assert filtered["Positives"].to_list() == [2]
+
+
+def test_configuration_overview_returns_empty_for_no_matching_models():
+    df = modeldata_from_scratch(
+        Name=["A"],
+        SnapshotTime=["20250101"],
+        Configuration=["CfgX"],
+    )
+    dm = ADMDatamart(df)
+
+    overview = dm.aggregates.configuration_overview(query=pl.col("Configuration") == "Missing")
+
+    assert overview.height == 0
+    assert {"Configuration", "ModelID", "NBAD", "AGB"}.issubset(overview.columns)
 
 
 def test_summary_by_configuration_query_active_models_filter():
@@ -690,3 +704,18 @@ def test_new_actions_issue_455():
     assert agg["Actions"].item() == 5
     assert agg["Used Actions"].item() == 5
     assert agg["New Actions"].item() == 5
+
+
+def test_channel_summary_agb_configurations():
+    dm = ADMDatamart(
+        modeldata_from_scratch(
+            Configuration=["ConfA", "ConfB", "ConfC"],
+            ModelTechnique=["NaiveBayes", "GradientBoost", "GradientBoost"],
+        ),
+    )
+    overview = dm.aggregates.channel_overview()
+    assert overview["AGB"].to_list() == ["Yes"]
+    assert overview["AGB Configurations"].to_list() == ["ConfB, ConfC"]
+
+    dm = ADMDatamart(modeldata_from_scratch(ModelTechnique=["NaiveBayes"]))
+    assert dm.aggregates.channel_overview()["AGB Configurations"].to_list() == [""]
