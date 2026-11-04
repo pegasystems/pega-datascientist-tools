@@ -138,6 +138,7 @@ def test_GenerateHealthCheck(sample: ADMDatamart, tmp_path):
     assert "Success Rate over Time by Channel/Direction" in html
     assert "Model Performance over Time by Channel/Direction" in html
     assert "Daily Success Rate" in html
+    assert "Actions over Time (daily)" in html
     assert "Performance (AUC)" in html
 
 

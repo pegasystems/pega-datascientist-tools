@@ -1818,6 +1818,10 @@ class Aggregates:
             - Actions - The total number of unique actions
             - Used Actions - The number of unique actions that have been used (have responses)
             - New Actions - The number of new actions introduced in the period
+            - Stopped Actions - Only with ``every``: the number of actions whose
+              last use (responses) was in the previous period. Null for the
+              first period; in the latest period this can include actions that
+              only paused.
             - Issues - The number of unique issues
             - Groups - The number of unique issue/group combinations
 
@@ -1910,6 +1914,19 @@ class Aggregates:
                 .drop([] if debug else ["TotalPositives", "TotalResponseCount"])
             )
 
+        # Actions stop in the period after the one with their last use.
+        stopped_actions = (
+            cdh_utils._apply_query(
+                self.datamart._require_model_data(),
+                query=pl.col("SnapshotTime").is_between(start_date, end_date),
+                allow_empty=True,
+            )
+            .filter("IsUpdated")
+            .group_by("Name")
+            .agg(pl.col("SnapshotTime").max().dt.truncate(every).alias("__last_used"))
+            .group_by("__last_used")
+            .agg(pl.len().alias("__stopped"))
+        )
         return (
             overall_summary.join(
                 best_worst_channel_summary,
@@ -1917,10 +1934,17 @@ class Aggregates:
                 nulls_equal=True,
                 how="left",
             )
+            .sort("Period")
+            .with_columns(pl.col("Period").shift(1).alias("__previous"))
+            .join(stopped_actions, left_on="__previous", right_on="__last_used", how="left")
             .with_columns(
                 cs.categorical().cast(pl.Utf8),
                 pl.col("Number of Valid Channels").fill_null(0),
+                pl.when(pl.col("__previous").is_not_null())
+                .then(pl.col("__stopped").fill_null(0))
+                .alias("Stopped Actions"),
             )
+            .drop("__previous", "__stopped")
             .sort("DateRange Min")
             .drop(
                 [] if debug else ["TotalPositives", "TotalResponseCount", "Period"],

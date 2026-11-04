@@ -847,6 +847,51 @@ def test_over_time_success_rate_without_history_raises():
         datamart.plot.over_time(metric="SuccessRate", by="Channel", cumulative=False)
 
 
+def test_action_trends():
+    rows = [
+        (1, "A", 10), (1, "B", 10),
+        (2, "A", 20), (2, "B", 20),
+        (3, "A", 30), (3, "B", 20), (3, "C", 5),
+        (4, "A", 40), (4, "B", 20), (4, "C", 10),
+    ]  # fmt: skip
+    datamart = ADMDatamart(
+        model_df=pl.DataFrame(
+            {
+                "SnapshotTime": [_utc_datetime(2024, 1, day) for day, _, _ in rows],
+                "ModelID": [name for _, name, _ in rows],
+                "Name": [name for _, name, _ in rows],
+                "Channel": ["Web"] * len(rows),
+                "Direction": ["Inbound"] * len(rows),
+                "Configuration": ["NB"] * len(rows),
+                "ResponseCount": [responses for _, _, responses in rows],
+                "Positives": [responses // 10 for _, _, responses in rows],
+                "Performance": [0.7] * len(rows),
+            }
+        ).lazy()
+    )
+
+    # The first interval (everything new and used) is left out.
+    data = datamart.plot.action_trends(every="1d", return_df=True)
+    assert data["New Actions"].to_list() == [0, 1, 0]
+    assert data["Stopped Actions"].to_list() == [0, 1, 0]
+
+    fig = datamart.plot.action_trends(every="auto")
+    assert fig.layout.title.text == "Actions over Time (daily)"
+    traces = {trace.name: trace for trace in fig.data}
+    assert list(traces) == [
+        "Actions (incl. not used)",
+        "Used actions (with responses)",
+        "New actions",
+        "Stopped actions",
+    ]
+    assert list(traces["Actions (incl. not used)"].y) == [2, 3, 3]
+    assert list(traces["New actions"].y) == [0, 1, 0]
+    assert list(traces["Stopped actions"].y) == [0, -1, 0]
+    assert traces["New actions"].yaxis == "y2"
+    assert fig.layout.barmode == "relative"
+    assert {annotation.text for annotation in fig.layout.annotations} == {"Min (50)", "Good (100)"}
+
+
 def test_proposition_success_rates(sample: ADMDatamart):
     df = sample.plot.proposition_success_rates(return_df=True)
 

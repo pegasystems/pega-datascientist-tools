@@ -321,6 +321,41 @@ def test_aggregate_summary_by_channel_and_time(dm_aggregates):
     ]
 
 
+def _action_trend_datamart():
+    """A used daily, B used on days 1-2 only, C new on day 3."""
+    rows = [
+        (1, "A", 10), (1, "B", 10),
+        (2, "A", 20), (2, "B", 20),
+        (3, "A", 30), (3, "B", 20), (3, "C", 5),
+        (4, "A", 40), (4, "B", 20), (4, "C", 10),
+    ]  # fmt: skip
+    return ADMDatamart(
+        model_df=pl.DataFrame(
+            {
+                "SnapshotTime": [datetime(2024, 1, day) for day, _, _ in rows],
+                "ModelID": [name for _, name, _ in rows],
+                "Name": [name for _, name, _ in rows],
+                "Channel": ["Web"] * len(rows),
+                "Direction": ["Inbound"] * len(rows),
+                "Configuration": ["NB"] * len(rows),
+                "ResponseCount": [responses for _, _, responses in rows],
+                "Positives": [responses // 10 for _, _, responses in rows],
+                "Performance": [0.7] * len(rows),
+            }
+        ).lazy()
+    )
+
+
+def test_overall_summary_stopped_actions():
+    summary = _action_trend_datamart().aggregates.overall_summary(every="1d").collect()
+
+    assert summary["Actions"].to_list() == [2, 2, 3, 3]
+    assert summary["Used Actions"].to_list() == [2, 2, 2, 2]
+    assert summary["New Actions"].to_list() == [2, 0, 1, 0]
+    # B is last used on day 2, so it stops on day 3; the first day has no previous period.
+    assert summary["Stopped Actions"].to_list() == [None, 0, 1, 0]
+
+
 def test_overall_summary_2():
     dm = ADMDatamart(modeldata_from_scratch())
     summ = dm.aggregates.overall_summary().collect()
@@ -402,7 +437,7 @@ def test_omnichannel():
 def test_aggregate_overall_summary_by_time(dm_aggregates):
     overall_summary = dm_aggregates.overall_summary(every="3d").collect()
     assert overall_summary.height == 6
-    assert overall_summary.width == 22
+    assert overall_summary.width == 23
 
     # print(dm_aggregates.summary_by_channel(every="3d",debug=True).collect().select("Channel","Direction","Period","Positives","TotalPositives","isValid").to_pandas())
 

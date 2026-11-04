@@ -824,57 +824,23 @@ if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
 
 ## Action Trends
 
-In a healthy implementation, new actions are introduced regularly. This trend chart shows the number of new actions per time interval; like the other trends in this report, the interval is daily, weekly or monthly depending on the length of the available history. It also shows the number of "used" actions, where used means they have been used in Pega decisions and AI processing has been applied (ADM Models used). The total number of actions reflects all the actions in the system that are modeled by ADM models. This is typically a much larger number, as we currently have no way to pull in the "active"/"inactive" status of actions into this ADM-based analysis.
+In a healthy implementation, new actions are introduced regularly. The top panel shows the number of actions and the number of "used" actions, where used means they received responses in that interval (ADM models used in Pega decisions). The gap between the two lines is the actions that exist but are not being used; the total includes these, as the ADM data cannot tell whether an action is still active. The bottom panel shows, per interval, the new actions as bars above zero and the stopped actions (last used in the previous interval) as bars below zero. Like the other trends in this report, the interval is daily, weekly or monthly depending on the length of the available history.
 
 ```{python}
 if datamart.has_single_snapshot:
     display(Markdown("::: {.callout-note title='Trend unavailable'}\nThis dataset contains only one snapshot. Trend plots require multiple snapshots captured over time.\n:::"))
 else:
-    action_trend_interval = cdh_utils.resolve_trend_interval(datamart.model_data, "auto")
-    action_trend_period = cdh_utils.trend_interval_label(action_trend_interval)
-    action_trend_count_label = f"{action_trend_period} Count"
-    action_trend_data = datamart.aggregates.overall_summary(every=action_trend_interval).collect()
-    plot_data = action_trend_data.unpivot(
-        on=["Actions", "New Actions", "Used Actions"],
-        index="DateRange Min",
-        variable_name="Action Type",
-        value_name=action_trend_count_label,
-    )
-
-    # Drop the first data point if there are multiple,
-    # because that always shows a peak in the new/used
-    # actions stemming from the fill_null(True)
-    if action_trend_data.select(pl.col("DateRange Min").n_unique()).item() > 1:
-        plot_data = plot_data.filter(pl.col("DateRange Min") > pl.col("DateRange Min").min())
-
-    fig = px.line(
-        plot_data,
-        x="DateRange Min",
-        y=action_trend_count_label,
-        color="Action Type",
-        markers=True,
-        template="pega",
-        title=f"Number of Actions Used and New ({action_trend_period.lower()})",
-    )
-    fig.update_xaxes(title="")
-    fig.update_layout(hovermode="x")
-
-    from pdstools.utils.metric_limits import MetricLimits
-    for key, color, label in [
-        ("minimum", "rgba(255, 69, 0, 0.5)", "Min"),
-        ("best_practice_min", "rgba(0, 128, 0, 0.5)", "Good"),
-    ]:
-        value = MetricLimits.get_limit_for_metric("ActionCount").get(key)
-        if value is not None:
-            fig.add_hline(
-                y=value, line_dash="dash", line_width=1, line_color=color,
-                layer="below", annotation_text=f"{label} ({value:.0f})",
-                annotation_position="right", annotation_font_size=9,
-                annotation_font_color=color,
-            )
-
-    fig.show()
+    try:
+        datamart.plot.action_trends(every="auto").show()
+    except Exception as e:
+        report_utils.quarto_plot_exception("Actions over Time", e)
 ```
+
+::: {.callout-tip title="Guidance"}
+-   New actions should appear regularly.
+-   Stopped actions in the latest interval can include actions that only paused; check again with the next snapshots.
+-   A growing gap between the two lines means more actions exist without being used; consider whether they can be retired.
+:::
 
 ## Success Rates
 

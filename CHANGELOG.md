@@ -14,6 +14,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `ADMDatamart.aggregates.metric_over_time()` returns the data behind
   `plot.over_time()`: the metric per time interval, or its change per
   interval, including the success rate within each interval.
+- `plot.action_trends()` shows the number of actions over time: all and
+  used actions as lines, with the new and stopped actions per interval as
+  bars above and below zero (#1002). The ADM Health Check "Action Trends"
+  section uses it.
+- `aggregates.overall_summary(every=...)` has a `Stopped Actions` column: the
+  actions whose last use was in the previous period.
 - `cdh_utils.InsufficientTrendHistoryError` (a `ValueError`) is raised when
   the snapshot history is too short for a success rate trend.
 
