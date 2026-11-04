@@ -1818,10 +1818,7 @@ class Aggregates:
             - Actions - The total number of unique actions
             - Used Actions - The number of unique actions that have been used (have responses)
             - New Actions - The number of new actions introduced in the period
-            - Stopped Actions - Only with ``every``: the number of actions whose
-              last use (responses) was in the previous period. Null for the
-              first period; in the latest period this can include actions that
-              only paused.
+            - Stopped Actions - Only with ``every``: the number of actions last used (with responses) in the previous period; null for the first period, and in the latest period it can include actions that only paused
             - Issues - The number of unique issues
             - Groups - The number of unique issue/group combinations
 

@@ -368,8 +368,8 @@ class _OverviewPlotsMixin(_PlotsBase):
             if value is not None:
                 fig.add_hline(
                     y=value,
-                    row=1,  # type: ignore[arg-type]  # plotly's stubs say str, but it takes a subplot number
-                    col=1,  # type: ignore[arg-type]  # same as row
+                    row=1,  # pyright: ignore[reportArgumentType]  # plotly's stubs say str, but it takes a subplot number
+                    col=1,  # pyright: ignore[reportArgumentType]  # same as row
                     line_dash="dash",
                     line_width=1,
                     line_color=color,
@@ -382,8 +382,8 @@ class _OverviewPlotsMixin(_PlotsBase):
 
         fig.add_hline(
             y=0,
-            row=2,  # type: ignore[arg-type]  # plotly's stubs say str, but it takes a subplot number
-            col=1,  # type: ignore[arg-type]  # same as row
+            row=2,  # pyright: ignore[reportArgumentType]  # plotly's stubs say str, but it takes a subplot number
+            col=1,  # pyright: ignore[reportArgumentType]  # same as row
             line_width=1,
             line_color="grey",
         )
