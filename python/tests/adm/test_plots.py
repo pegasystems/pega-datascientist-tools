@@ -810,7 +810,7 @@ def test_over_time_success_rate_marks_rates_above_100_percent():
 
 @pytest.mark.parametrize(("metric", "cumulative"), [("SuccessRate", False), ("ResponseCount", False)])
 def test_over_time_changes_without_valid_groups(metric, cumulative):
-    """All rows drop out when the grouping column is null, e.g. data without channels."""
+    """All rows drop out when the grouping value is null for every model."""
     datamart = ADMDatamart(
         model_df=pl.DataFrame(
             {
@@ -824,7 +824,8 @@ def test_over_time_changes_without_valid_groups(metric, cumulative):
         ).lazy()
     )
 
-    trend = datamart.plot.over_time(metric=metric, by="Channel", every="1d", cumulative=cumulative, return_df=True)
+    no_group = pl.when(pl.lit(False)).then(pl.col("Channel")).alias("Group")
+    trend = datamart.plot.over_time(metric=metric, by=no_group, every="1d", cumulative=cumulative, return_df=True)
     assert trend.collect().is_empty()
 
 

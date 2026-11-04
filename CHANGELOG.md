@@ -30,6 +30,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Before, `every` was ignored for cumulative trends. `cumulative=False`
   changes of count metrics are now calculated per model before summing, so
   models missing from a snapshot no longer cause negative changes.
+- `ADMDatamart` now fills missing or null `Channel`, `Direction`, `Issue`,
+  `Group` and `Name` values with `"Unknown"` for every way of loading model
+  data, as `read_ds_export()` already did for null values. Before, missing
+  `Channel`/`Direction` columns were added as nulls, so data without channels
+  showed empty channel trends and summaries. The fill happens after the AGB
+  configuration-summary rows are removed.
 - `plot.over_time()` y-axes: cumulative performance uses a fixed 50–100
   range, and success rates start at zero; other metrics keep Plotly's
   automatic range. `add_metric_limit_lines()` (also used by

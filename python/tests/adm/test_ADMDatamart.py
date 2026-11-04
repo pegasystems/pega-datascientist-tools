@@ -610,10 +610,35 @@ def test_validate_model_data_adds_missing_channel_direction():
     dm = ADMDatamart(model_df=df)
     out = dm._require_model_data().collect()
 
-    assert out["Channel"].to_list() == [None, None]
-    assert out["Direction"].to_list() == [None, None]
+    assert out["Channel"].to_list() == ["Unknown", "Unknown"]
+    assert out["Direction"].to_list() == ["Unknown", "Unknown"]
     assert "Channel" in dm.context_keys
     assert "Direction" in dm.context_keys
+
+
+def test_validate_model_data_fills_null_context_keys_after_agb_summary_filter():
+    df = pl.DataFrame(
+        {
+            "ModelID": ["nb", "agb", "agb-summary"],
+            "Configuration": ["NB", "AGB", "AGB"],
+            "ModelTechnique": ["NaiveBayes", "GradientBoost", "GradientBoost"],
+            "Channel": ["Web", None, "Web"],
+            "Direction": ["Inbound", "Inbound", "Inbound"],
+            "Issue": [None, "Sales", None],
+            "Group": ["Cards", "Cards", None],
+            "Name": ["Gold", "Gold", None],
+            "SnapshotTime": [datetime.datetime(2024, 1, 1)] * 3,
+            "Positives": [10, 10, 10],
+            "ResponseCount": [100, 100, 100],
+            "Performance": [0.7, 0.7, 0.7],
+        }
+    ).lazy()
+
+    out = ADMDatamart(model_df=df).model_data.sort("ModelID").collect()
+
+    assert out["ModelID"].to_list() == ["agb", "nb"]
+    assert out["Channel"].to_list() == ["Unknown", "Web"]
+    assert out["Issue"].to_list() == ["Sales", "Unknown"]
 
 
 def test_validate_model_data_success_rate_zero_when_no_responses():
