@@ -8,9 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Internal canonical-calendar and per-entity random-stream foundations for the
-  shared synthetic sample generator (#999). Existing sample entry points are
-  unchanged at this stage.
+- Internal canonical-calendar, per-entity random streams and validated immutable
+  catalogs for the shared synthetic sample generator (#999). The catalogs include
+  explicit action/treatment baselines, predictor policies, model contexts and
+  timed stories. Existing sample entry points are unchanged at this stage.
 - `pdstools.utils.cdh_utils.resolve_trend_interval()` and
   `trend_interval_label()` provide shared date-range-based trend cadence
   selection and display labels.

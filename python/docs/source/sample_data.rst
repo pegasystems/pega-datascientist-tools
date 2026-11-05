@@ -2,8 +2,27 @@ Shared synthetic sample data
 ============================
 
 The shared sample generator is being introduced in layers. Its reproducibility
-foundations are internal; the existing sample loaders and mock methods have not
-yet switched to the new generator.
+foundations and immutable catalogs are internal; the existing sample loaders and
+mock methods have not yet switched to the new generator.
+
+Maintained specification
+------------------------
+
+The package-owned specification contains the fictional action hierarchy,
+treatment baselines, channel volumes, model configurations, predictor policies,
+distributions and timed stories. Frozen records and tuples make the specification
+immutable and hashable. Construction validates references, probability and volume
+constraints, exclusive Web Loans routing and its deny-by-default predictor policy.
+
+Catalog model contexts distinguish primary, challenger and derived Omni views.
+AGB configuration-summary rows will be generated separately and are not extra
+action-level contexts. The internal specification derives a fresh catalog manifest
+and Markdown rationale tables from these records; neither is a second maintained
+copy of the catalog.
+
+These are synthetic metadata tables, not generated model snapshots or private
+source-document audit records. Predictor distributions describe marginal shapes;
+they are not instructions to sample correlated fields independently.
 
 Calendar contract
 -----------------
