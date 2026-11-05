@@ -218,3 +218,14 @@ def test_other_window_lengths(days):
     raw = model_snapshots(world).collect()
     assert raw.select(pl.col("pySnapshotTime").n_unique()).item() == days
     assert raw.select(pl.col("pyModelID").n_unique()).item() == 867
+
+
+def test_from_mock_data_window_and_views():
+    dm = ADMDatamart.from_mock_data(days=56, end="canonical", seed=7, scale=0.5)
+    models = dm.model_data.collect()
+    assert models["SnapshotTime"].dt.date().n_unique() == 56
+    assert str(models["SnapshotTime"].max().date()) == "2000-07-02"
+    assert models["ModelID"].n_unique() == 864
+    predictors = dm.predictor_data.collect()
+    assert set(predictors["ModelID"].unique()) <= set(models["ModelID"].unique())
+    assert set(predictors["EntryType"].unique().cast(pl.String)) == {"Active", "Inactive", "Classifier"}

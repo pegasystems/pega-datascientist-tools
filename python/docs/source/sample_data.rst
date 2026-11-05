@@ -3,7 +3,8 @@ Shared synthetic sample data
 
 The shared sample generator is being introduced in layers. Its reproducibility
 foundations, immutable catalogs and shared world are internal.
-:meth:`pdstools.Prediction.from_mock_data` already samples the shared world; the
+:meth:`pdstools.Prediction.from_mock_data` and
+:meth:`pdstools.ADMDatamart.from_mock_data` already sample the shared world; the
 other sample loaders and mock methods have not yet switched to the generator.
 
 Maintained specification
@@ -56,6 +57,24 @@ midnight. The model-control experiment uses 1 percent of traffic. Same-day arms
 share part of their outcome noise, as they see the same customers and context, so
 the small arms still show the lift story. Call Center has no ``NBA`` row and its
 tiny arms are deliberately invalid.
+
+ADM views
+---------
+
+The model snapshot view has one row per model per day for the 864 action-level
+models, plus AGB configuration-summary rows that the loader drops after using
+their importance. Actions launch and retire during the window; Mobile models
+mature from about 1.2 to 2 percent success rate. A few models are seeded as
+stuck (no active predictors), weak, or overfitting.
+
+The predictor binning view describes the last snapshot. Its bin totals
+reconcile exactly with the model snapshots, and each stored Performance is the
+AUC of the emitted bins. Naive Bayes predictors have about five bins and a
+median univariate AUC of about 0.56; numeric bins use one cut grid per
+predictor, so aggregation can align bins across models. Interaction History and
+Param predictors rank highest, and three shared predictors lead both Mobile
+configurations. AGB models carry feature importance only; their context keys
+are inactive at model level but ranked in the configuration summary.
 
 Randomness contract
 -------------------

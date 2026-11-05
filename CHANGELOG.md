@@ -12,6 +12,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   catalogs for the shared synthetic sample generator (#999). The catalogs include
   explicit action/treatment baselines, predictor policies, model contexts and
   timed stories.
+- `ADMDatamart.from_mock_data()` builds a datamart from the shared synthetic
+  sample world (#999). It has daily snapshots for 864 action-level models in
+  seven configurations (Naive Bayes and AGB, including a specialized Web model
+  for lending offers), plus the predictor binning of the last snapshot. Use
+  `seed`, `end` and `scale` like `Prediction.from_mock_data()`.
 - `pdstools.utils.cdh_utils.resolve_trend_interval()` and
   `trend_interval_label()` provide shared date-range-based trend cadence
   selection and display labels.
