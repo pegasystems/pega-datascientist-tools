@@ -66,6 +66,9 @@ text and label columns, and run a comprehensive quality check.
             help="Column containing the topic labels",
             key="dq_topic_col",
         )
+        if text_col is None or topic_col is None:
+            st.error("Select a text and topic column before running the quality check.")
+            st.stop()
 
         with st.sidebar:
             st.header("Analysis Options")

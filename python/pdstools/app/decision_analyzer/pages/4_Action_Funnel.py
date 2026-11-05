@@ -215,6 +215,9 @@ if has_components:
                     options=sort_options_display,
                     key="drilldown_sort",
                 )
+            if sort_by_display is None:
+                st.error("Select a sort option.")
+                st.stop()
             sort_by = sort_options_mapping[sort_by_display]
 
             impact_fig = da.plot.component_action_impact(

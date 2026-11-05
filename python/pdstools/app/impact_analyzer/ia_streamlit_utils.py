@@ -143,7 +143,7 @@ def render_channel_filter(ia: ImpactAnalyzer) -> str:
     with st.sidebar:
         st.divider()
         st.caption("**Filters**")
-        return st.selectbox(
+        selected_channel = st.selectbox(
             "Channel / Direction",
             ["Any", *channels],
             help=(
@@ -153,6 +153,7 @@ def render_channel_filter(ia: ImpactAnalyzer) -> str:
             ),
             key="lift_chart_channel_filter",
         )
+    return "Any" if selected_channel is None else selected_channel
 
 
 def _write_uploaded_file(uploaded_file) -> str:
