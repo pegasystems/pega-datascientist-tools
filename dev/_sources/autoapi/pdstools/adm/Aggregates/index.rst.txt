@@ -415,6 +415,58 @@ Module Contents
 
 
 
+   .. py:method:: metric_over_time(metric: str = 'Performance', by: polars.Expr | str | list[str] = 'ModelID', *, every: str | datetime.timedelta = '1d', cumulative: bool = True, query: pdstools.utils.types.QUERY | None = None, facet: str | None = None) -> polars.LazyFrame
+
+      Model metric per time interval, the data behind ``plot.over_time``.
+
+      The snapshots are grouped into ``every`` intervals as in Polars
+      ``group_by_dynamic``, keeping the last snapshot of each model per
+      interval. The models are then combined per ``by`` (and ``facet``)
+      group: ``Performance`` and ``SuccessRate`` as response-weighted
+      averages, other metrics as sums.
+
+      :param metric: Model data column to trend.
+      :type metric: str, default "Performance"
+      :param by: Grouping of the models. Several column names are combined with
+                 " / " into a single dimension.
+      :type by: pl.Expr, str or list of str, default "ModelID"
+      :param every: Interval as in Polars ``group_by_dynamic``, for example "1d",
+                    "1w" or "1mo". ``"auto"`` picks daily, weekly or monthly from the
+                    snapshot date range, see
+                    :func:`~pdstools.utils.cdh_utils.resolve_trend_interval`.
+      :type every: str or datetime.timedelta, default "1d"
+      :param cumulative: If True, return the (cumulative) metric value per interval. If
+                         False, return the change per interval:
+
+                         - ``SuccessRate``: positives over responses gained in the
+                           interval, from the per-model changes of the cumulative
+                           ``Positives`` and ``ResponseCount`` counters.
+                         - ``Performance``: the change of the group value.
+                         - Other metrics are treated as cumulative counters: the
+                           per-model changes are summed into ``{metric}_change``.
+
+                         Changes across missing intervals are averaged over the elapsed
+                         intervals. A model that first appears after the start of the
+                         history counts from zero.
+      :type cumulative: bool, default True
+      :param query: Restricts the models in scope.
+      :type query: QUERY, optional
+      :param facet: Additional grouping column.
+      :type facet: str, optional
+
+      :returns: One row per interval (``SnapshotTime`` is the interval start) and
+                group. A change other than ``SuccessRate`` is in
+                ``{metric}_change``. The change in ``SuccessRate`` also has
+                ``Positives`` and ``ResponseCount`` (per interval),
+                ``PositivesInInterval``, ``ResponsesInInterval``,
+                ``PeriodsCovered`` (the largest gap, in intervals, of the
+                contributing models) and ``TotalResponses`` (cumulative).
+      :rtype: pl.LazyFrame
+
+      :raises InsufficientTrendHistoryError: If ``every="auto"`` and there are no valid snapshot times.
+
+
+
    .. py:method:: overall_summary(*, start_date: datetime.datetime | None = None, end_date: datetime.datetime | None = None, window: int | datetime.timedelta | None = None, every: str | None = None, debug: bool = False) -> polars.LazyFrame
 
       Overall ADM models summary. Only valid data is included.
@@ -453,6 +505,7 @@ Module Contents
                 - Actions - The total number of unique actions
                 - Used Actions - The number of unique actions that have been used (have responses)
                 - New Actions - The number of new actions introduced in the period
+                - Stopped Actions - Only with ``every``: the number of actions last used (with responses) in the previous period; null for the first period, and in the latest period it can include actions that only paused
                 - Issues - The number of unique issues
                 - Groups - The number of unique issue/group combinations
 

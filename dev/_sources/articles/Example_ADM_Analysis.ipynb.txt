@@ -175,7 +175,7 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "Similar to the responses, the success rate over time can also be of interest. With [`plot.over_time`](https://pegasystems.github.io/pega-datascientist-tools/latest/autoapi/pdstools/adm/Plots/index.html#pdstools.adm.Plots.Plots), you can plot the success rate of different models as they develop over time."
+    "`plot.over_time` can also show the success rate over time. By default, it shows the cumulative success rate. Set `cumulative=False` to show the success rate within each interval, from the changes in the cumulative positives and responses of each model. `every` takes a Polars interval such as `\"1d\"` or `\"1w\"`; `every=\"auto\"` picks daily, weekly or monthly intervals from the date range. Intervals with a 100% success rate are marked with a red X; the y-axis is scaled to the other values."
    ]
   },
   {
@@ -184,7 +184,13 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "fig = CDHSample.plot.over_time(\"SuccessRate\", by=\"ModelID\", query=pl.col(\"Channel\") == \"Web\")\n",
+    "fig = CDHSample.plot.over_time(\n",
+    "    \"SuccessRate\",\n",
+    "    by=\"ModelID\",\n",
+    "    query=pl.col(\"Channel\") == \"Web\",\n",
+    "    every=\"auto\",\n",
+    "    cumulative=False,\n",
+    ")\n",
     "fig.show()"
    ]
   },

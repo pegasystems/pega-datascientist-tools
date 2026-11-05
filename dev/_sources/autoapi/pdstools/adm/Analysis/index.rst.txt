@@ -232,7 +232,7 @@ Module Contents
 
    .. py:method:: health_check_maturity_overview(*, last_data: polars.DataFrame | None = None, active_filter: polars.Expr | None = None, active_threshold_days: int = 30) -> polars.DataFrame
 
-      Return the shared maturity-overview table used by health checks.
+      Return the shared row-based action/treatment maturity table.
 
 
 

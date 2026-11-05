@@ -35,6 +35,10 @@ Module Contents
 
    Import a sample dataset from the CDH Sample application
 
+   In a source checkout, the repository data files are preferred so examples
+   and tests use the versioned sample data. Installed packages fall back to
+   the canonical GitHub data URL.
+
    :param query: An optional query to apply to the data, by default None
    :type query: QUERY | None, optional
 
