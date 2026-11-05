@@ -43,6 +43,7 @@ Welcome to the PDS Tools Python documentation
    :caption: Reference Information
 
    reference
+   sample_data
 
 .. toctree::
    :maxdepth: 1
