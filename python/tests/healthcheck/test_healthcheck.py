@@ -125,7 +125,7 @@ def sample_without_predictor_binning() -> ADMDatamart:
 
 @pytest.fixture
 def sample_prediction_data() -> Prediction:
-    return Prediction.from_mock_data(days=30)
+    return Prediction.from_mock_data(days=60)
 
 
 def test_GenerateHealthCheck(sample: ADMDatamart, tmp_path):

@@ -2,8 +2,9 @@ Shared synthetic sample data
 ============================
 
 The shared sample generator is being introduced in layers. Its reproducibility
-foundations and immutable catalogs are internal; the existing sample loaders and
-mock methods have not yet switched to the new generator.
+foundations, immutable catalogs and shared world are internal.
+:meth:`pdstools.Prediction.from_mock_data` already samples the shared world; the
+other sample loaders and mock methods have not yet switched to the generator.
 
 Maintained specification
 ------------------------
@@ -36,6 +37,25 @@ An explicit end date is normalized to the Sunday on or before that date. Without
 an explicit end date, the most recent completed Sunday in UTC is used. Every
 timestamp shift is a whole number of weeks, preserving weekdays and weekly
 stories. The canonical calendar is available for reproducible checks.
+
+Shared world
+------------
+
+One immutable world holds the expected, noise-free behaviour of every channel
+on every window day: response volume, model-chosen success rate, lift over
+random selection, model AUC and delayed-feedback state. Every view samples
+noise around the same world, so Prediction Studio, ADM and Interaction History
+tell consistent stories: Mobile learning and its AGB challenger, the Email feed
+dip with negative lift, Web and Email weekend dips, and positive-only weeks
+followed by a burst of negatives. Story days rescale to shorter windows by whole
+weeks, keeping weekdays intact.
+
+The prediction view emits the real snapshot shape: a ``Daily`` AUC row per
+prediction at noon with full totals, and ``Test``, ``Control`` and ``NBA`` rows at
+midnight. The model-control experiment uses 1 percent of traffic. Same-day arms
+share part of their outcome noise, as they see the same customers and context, so
+the small arms still show the lift story. Call Center has no ``NBA`` row and its
+tiny arms are deliberately invalid.
 
 Randomness contract
 -------------------

@@ -11,7 +11,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Internal canonical-calendar, per-entity random streams and validated immutable
   catalogs for the shared synthetic sample generator (#999). The catalogs include
   explicit action/treatment baselines, predictor policies, model contexts and
-  timed stories. Existing sample entry points are unchanged at this stage.
+  timed stories.
 - `pdstools.utils.cdh_utils.resolve_trend_interval()` and
   `trend_interval_label()` provide shared date-range-based trend cadence
   selection and display labels.
@@ -28,6 +28,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the snapshot history is too short for a success rate trend.
 
 ### Changed
+
+- `Prediction.from_mock_data()` now samples the shared synthetic world (#999):
+  five standard predictions (Web, Mobile, E-mail, Call Center and the
+  multi-channel `PredictActionPropensity`) in the real snapshot shape, with
+  Daily AUC rows plus Test, Control and NBA rows. New keyword arguments
+  `seed`, `end` and `scale`; `days` must be at least 56. By default the window
+  ends on the most recent completed Sunday; pass `end="canonical"` for fixed
+  dates. The Call Center prediction is deliberately invalid (tiny model-control
+  arms), so `is_valid` is `False` for the default mock.
 
 - ADM Health Check trend plots now use date-range-based daily, weekly, or
   monthly intervals. Success rate and response counts show per-interval
