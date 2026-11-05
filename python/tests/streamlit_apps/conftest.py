@@ -64,8 +64,6 @@ HC_APP_DIR = REPO_ROOT / "python" / "pdstools" / "app" / "health_check"
 IA_APP_DIR = REPO_ROOT / "python" / "pdstools" / "app" / "impact_analyzer"
 
 DA_SAMPLE_CSV = DATA_DIR / "da" / "sample_eev2_minimal.csv"
-ADM_MODEL_FILE = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip"
-ADM_PREDICTOR_FILE = "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip"
 
 
 @pytest.fixture(scope="session")
