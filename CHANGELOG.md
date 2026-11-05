@@ -6,6 +6,50 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `pdstools.utils.cdh_utils.resolve_trend_interval()` and
+  `trend_interval_label()` provide shared date-range-based trend cadence
+  selection and display labels.
+- `ADMDatamart.aggregates.metric_over_time()` returns the data behind
+  `plot.over_time()`: the metric per time interval, or its change per
+  interval, including the success rate within each interval.
+- `plot.action_trends()` shows the number of actions over time: all and
+  used actions as lines, with the new and stopped actions per interval as
+  bars above and below zero (#1002). The ADM Health Check "Action Trends"
+  section uses it.
+- `aggregates.overall_summary(every=...)` has a `Stopped Actions` column: the
+  actions whose last use was in the previous period.
+- `cdh_utils.InsufficientTrendHistoryError` (a `ValueError`) is raised when
+  the snapshot history is too short for a success rate trend.
+
+### Changed
+
+- ADM Health Check trend plots now use date-range-based daily, weekly, or
+  monthly intervals. Success rate and response counts show per-interval
+  changes, while performance (AUC) uses the latest value in each interval.
+  `cdh_sample()` uses repository data in source checkouts and falls back to
+  the canonical URL when those files are unavailable.
+- `plot.over_time()` now applies `every` to all metrics, cumulative or not,
+  with the same meaning as in Polars `group_by_dynamic`: each model's last
+  snapshot per interval is used and `SnapshotTime` is the interval start.
+  Before, `every` was ignored for cumulative trends. `cumulative=False`
+  changes of count metrics are now calculated per model before summing, so
+  models missing from a snapshot no longer cause negative changes.
+- `plot.over_time()` y-axes: cumulative performance uses a fixed 50–100
+  range, and success rates start at zero; other metrics keep Plotly's
+  automatic range. `add_metric_limit_lines()` (also used by
+  `bubble_chart(show_metric_limits=True)`) adds subtle background bands for
+  the threshold ranges.
+- The CDH sample data now spans 18 days (October 13–30, 2026), with model
+  and predictor snapshots sharing the same snapshot times, and includes
+  more actions. Most actions now receive responses every day, so the daily
+  number of used actions stays above the Health Check minimum.
+- **Breaking:** `Analysis.health_check_maturity_overview()` now returns
+  `"Number of Action/Treatment Records"` instead of `"Number of Models"`,
+  and its category labels describe action/treatment records. Update callers
+  that select the previous column name.
+
 ### Fixed
 
 - AGB configuration-summary rows (#667) are now also removed when model data
@@ -13,7 +57,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   fills null `Channel`, `Direction`, `Issue`, `Group` and `Name` values with
   "Unknown", because that hid the summary rows from the filter. `ADMDatamart`
   validation now fills them with "Unknown" after the filter, on every load
-  path. Other readers (IH, Prediction, Impact Analyzer, Value Finder,
+  path, including `Channel` and `Direction` columns that are missing from the
+  data, so data without channels no longer shows empty channel trends and
+  summaries. Other readers (IH, Prediction, Impact Analyzer, Value Finder,
   Decision Analyzer) now get those columns as they are in the file.
 - AGB predictor importance (`ADMDatamart.aggregates.predictor_importance`,
   `unused_agb_predictors` and the ADM Health Check) now reports the global

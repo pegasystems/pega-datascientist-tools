@@ -116,13 +116,34 @@ def add_metric_limit_lines(
     scale: float = 100.0,
     orientation: str = "vertical",
 ) -> Figure:
-    """Add dashed lines at MetricLimits thresholds (red=hard, green=best practice)."""
+    """Add dashed MetricLimits lines and subtle threshold bands."""
     limits = MetricLimits.get_limit_for_metric(metric_id)
     if not limits:
         return fig
 
     add_line = fig.add_vline if orientation == "vertical" else fig.add_hline
     pos_key = "x" if orientation == "vertical" else "y"
+    add_band = fig.add_vrect if orientation == "vertical" else fig.add_hrect
+    threshold_bands = [
+        ("minimum", "best_practice_min", "rgba(255, 165, 0, 0.08)"),
+        ("best_practice_min", "best_practice_max", "rgba(0, 128, 0, 0.08)"),
+        ("best_practice_max", "maximum", "rgba(255, 165, 0, 0.08)"),
+    ]
+    for lower_key, upper_key, fillcolor in threshold_bands:
+        lower = limits.get(lower_key)
+        upper = limits.get(upper_key)
+        if lower is not None and upper is not None:
+            add_band(
+                **{
+                    f"{pos_key}0": lower * scale,
+                    f"{pos_key}1": upper * scale,
+                },
+                fillcolor=fillcolor,
+                line_width=0,
+                layer="below",
+                row="all",
+                col="all",
+            )
 
     line_specs = [
         ("minimum", "rgba(255, 69, 0, 0.5)", "Min"),
@@ -149,6 +170,49 @@ def add_metric_limit_lines(
             )
 
     return fig
+
+
+def add_full_success_rate_markers(
+    fig: Figure,
+    full_success_rate: pl.DataFrame,
+    *,
+    y: float,
+    hover_data: dict[str, Any],
+    labels: dict[str, str],
+    facet: str | None = None,
+    facet_values: list[Any] | None = None,
+    facet_col_wrap: int | None = None,
+    facet_col_spacing: float | None = None,
+) -> Figure:
+    """Mark periods with a 100% success rate that the y-axis range clips.
+
+    One red X per row of ``full_success_rate`` is drawn at height ``y`` in
+    the matching facet, sharing a single legend entry across facets.
+    """
+    import plotly.express as px
+
+    name = "Success Rate 100%"
+    scatter_kwargs: dict[str, Any] = {
+        "x": "SnapshotTime",
+        "y": "__marker_y",
+        "hover_data": {**hover_data, "__marker_y": False},
+        "labels": labels,
+        "template": "pega",
+    }
+    if facet:
+        scatter_kwargs.update(facet_col=facet, facet_col_wrap=facet_col_wrap, category_orders={facet: facet_values})
+    if facet_col_spacing is not None:
+        scatter_kwargs["facet_col_spacing"] = facet_col_spacing
+    markers = px.scatter(full_success_rate.with_columns(pl.lit(y).alias("__marker_y")), **scatter_kwargs)
+    for index, trace in enumerate(markers.data):
+        trace.update(
+            name=name,
+            legendgroup=name,
+            showlegend=index == 0,
+            mode="markers",
+            marker={"color": "#d62728", "size": 9, "symbol": "x"},
+        )
+    return fig.add_traces(markers.data)
 
 
 def distribution_graph(df: pl.LazyFrame, title: str):

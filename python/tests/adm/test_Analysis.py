@@ -560,28 +560,28 @@ class TestAnalysisNamespace:
         bp_min_positives = MetricLimits.best_practice_min("TotalPositiveCount")
         min_perf = MetricLimits.minimum("ModelPerformance")
         legacy_criteria = [
-            ("Number of models in last snapshot", pl.lit(True)),
-            ("Models that have never been used (responses = 0)", pl.col("ResponseCount") < min_responses),
+            ("Number of action/treatment records in latest snapshot", pl.lit(True)),
+            ("Action/treatment records with no responses", pl.col("ResponseCount") < min_responses),
             (
-                "Models that have been used (responses > 0) but never received a positive response",
+                "Action/treatment records with responses but no positive responses",
                 (pl.col("Positives") < min_positives) & (pl.col("ResponseCount") >= min_responses),
             ),
             (
-                f"Models that are still in an immature phase of learning (positives < {int(bp_min_positives)})",
+                f"Action/treatment records with fewer than {int(bp_min_positives)} positives",
                 (pl.col("Positives") < bp_min_positives) & (pl.col("Positives") >= min_positives),
             ),
             (
-                "Models that have received sufficient responses but are still at their minimum performance (AUC = 50)",
+                "Action/treatment records with sufficient positives but minimum performance (AUC = 50)",
                 (pl.col("Performance") == 0.5) & (pl.col("Positives") >= bp_min_positives),
             ),
             (
-                f"Models that have received sufficient responses but still have a low performance (AUC < {min_perf})",
+                f"Action/treatment records with sufficient positives but low performance (AUC < {min_perf})",
                 (pl.col("Performance") > 0.5)
                 & (pl.col("Performance") < min_perf)
                 & (pl.col("Positives") >= bp_min_positives),
             ),
             (
-                f"Models with sufficient positive responses (≥ {int(bp_min_positives)}) and a decent performance (≥ {min_perf})",
+                f"Action/treatment records with sufficient positives (≥ {int(bp_min_positives)}) and decent performance (≥ {min_perf})",
                 (pl.col("Performance") >= min_perf) & (pl.col("Positives") >= bp_min_positives),
             ),
         ]
@@ -592,7 +592,7 @@ class TestAnalysisNamespace:
                 .group_by(None)
                 .agg(
                     pl.lit(label).alias("Category"),
-                    pl.col("Name").filter(filter_expression).len().alias("Number of Models"),
+                    pl.col("Name").filter(filter_expression).len().alias("Number of Action/Treatment Records"),
                     (
                         cdh_utils.weighted_average_polars(
                             pl.col("Performance").filter(filter_expression),

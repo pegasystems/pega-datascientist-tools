@@ -58,9 +58,9 @@ def test_overall_num_rollup(cdhsample_binaggregator):
     )
     assert rolled_up_binning["BinResponses"].to_list() == pytest.approx(
         [
-            2050.537142,
-            1984.863844,
-            1273.951683,
+            2059.156837,
+            1993.483539,
+            1279.712293,
             343.582104,
             190.330366,
             190.330366,
@@ -115,8 +115,8 @@ def test_overall_sym_rollup(cdhsample_binaggregator):
             1507.0,
             1757.0,
             0.0,
-            1743.0,
-            1683.0,
+            1754.5,
+            1694.5,
         ],
         1e-5,
     )

@@ -1,4 +1,4 @@
-"""Model-overview plots: bubble_chart, tree_map, action_overlap, partitioned_plot."""
+"""Model-overview plots: bubble_chart, tree_map, action_overlap, action_trends, partitioned_plot."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 import polars as pl
 
 from ...utils import cdh_utils
+from ...utils.metric_limits import MetricLimits
 from ...utils.plot_utils import get_colorscale
 from ._base import _PlotsBase
 from ._helpers import (
@@ -17,6 +18,7 @@ from ._helpers import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from datetime import timedelta
 
     from ...utils.types import QUERY
 
@@ -64,8 +66,9 @@ class _OverviewPlotsMixin(_PlotsBase):
         color : str, optional
             Column name used to colour the bubbles, by default "Performance"
         show_metric_limits : bool, optional
-            Whether to show dashed vertical lines at the ModelPerformance
-            metric limit thresholds (from MetricLimits.csv), by default False
+            Whether to show dashed vertical lines and subtle background bands
+            at the ModelPerformance metric limits (from MetricLimits.csv), by
+            default False
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
 
@@ -266,6 +269,133 @@ class _OverviewPlotsMixin(_PlotsBase):
             hover_data=hover_data,
             color_continuous_scale=colorscale,
             range_color=[0.5, 1] if metric == "Performance" else None,
+        )
+
+    @requires({"SnapshotTime", "Name", "Configuration"})
+    def action_trends(
+        self,
+        *,
+        every: str | timedelta = "auto",
+        return_df: bool = False,
+    ):
+        """Number of actions over time, with the new and stopped actions per interval.
+
+        The top panel shows all actions and the used actions (with responses
+        in the interval); the gap between them is the actions that exist but
+        are not used. The bottom panel shows the new actions per interval as
+        bars above zero and the stopped actions (last used in the previous
+        interval) as bars below zero. In the latest interval, stopped actions
+        can include actions that only paused. The dashed lines mark the
+        minimum and good number of actions from MetricLimits.csv. The first
+        interval is left out: every action in it counts as new and used.
+
+        Parameters
+        ----------
+        every : str or timedelta, optional
+            Interval as in Polars ``group_by_dynamic``, by default ``"auto"``,
+            which picks daily, weekly or monthly from the date range.
+        return_df : bool, optional
+            Whether to return the data instead of the figure, by default False
+
+        Returns
+        -------
+        Figure | pl.DataFrame
+            The figure, or with ``return_df`` the ``DateRange Min``,
+            ``Actions``, ``Used Actions``, ``New Actions`` and
+            ``Stopped Actions`` per interval.
+
+        Examples
+        --------
+        >>> fig = dm.plot.action_trends()
+        """
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+
+        every = cdh_utils.resolve_trend_interval(self.datamart._require_model_data(), every)
+        data = (
+            self.datamart.aggregates.overall_summary(every=every)  # type: ignore[arg-type]  # Polars also accepts a timedelta
+            .select("DateRange Min", "Actions", "Used Actions", "New Actions", "Stopped Actions")
+            .collect()
+        )
+        if data.height > 1:
+            data = data.slice(1)
+        if return_df:
+            return data
+
+        try:
+            interval = cdh_utils.trend_interval_label(every) if isinstance(every, str) else None
+        except ValueError:
+            interval = None
+        title = f"Actions over Time ({interval.lower()})" if interval else f"Actions over Time (per {every})"
+        if data.height == 0:
+            return _empty_plot(title)
+
+        fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.7, 0.3], vertical_spacing=0.04)
+        x = data["DateRange Min"].to_list()
+        for column, name, color in [
+            ("Actions", "Actions (incl. not used)", "#1f4e9c"),
+            ("Used Actions", "Used actions (with responses)", "#2a9d8f"),
+        ]:
+            fig.add_trace(
+                go.Scatter(x=x, y=data[column].to_list(), name=name, mode="lines+markers", line_color=color),
+                row=1,
+                col=1,
+            )
+        fig.add_trace(
+            go.Bar(x=x, y=data["New Actions"].to_list(), name="New actions", marker_color="#e9a752"),
+            row=2,
+            col=1,
+        )
+        fig.add_trace(
+            go.Bar(
+                x=x,
+                y=(-data["Stopped Actions"].fill_null(0).cast(pl.Int64)).to_list(),
+                customdata=data["Stopped Actions"].to_list(),
+                hovertemplate="%{customdata}",
+                name="Stopped actions",
+                marker_color="#d1665c",
+            ),
+            row=2,
+            col=1,
+        )
+
+        limits = MetricLimits.get_limit_for_metric("ActionCount") or {}
+        for key, color, label in [
+            ("minimum", "rgba(255, 69, 0, 0.5)", "Min"),
+            ("best_practice_min", "rgba(0, 128, 0, 0.5)", "Good"),
+        ]:
+            value = limits.get(key)
+            if value is not None:
+                fig.add_hline(
+                    y=value,
+                    row=1,  # pyright: ignore[reportArgumentType]  # plotly's stubs say str, but it takes a subplot number
+                    col=1,  # pyright: ignore[reportArgumentType]  # same as row
+                    line_dash="dash",
+                    line_width=1,
+                    line_color=color,
+                    layer="below",
+                    annotation_text=f"{label} ({value:.0f})",
+                    annotation_position="right",
+                    annotation_font_size=9,
+                    annotation_font_color=color,
+                )
+
+        fig.add_hline(
+            y=0,
+            row=2,  # pyright: ignore[reportArgumentType]  # plotly's stubs say str, but it takes a subplot number
+            col=1,  # pyright: ignore[reportArgumentType]  # same as row
+            line_width=1,
+            line_color="grey",
+        )
+        fig.update_yaxes(title_text="Actions", rangemode="tozero", row=1, col=1)
+        fig.update_yaxes(title_text="New / stopped", row=2, col=1)
+        return fig.update_layout(
+            title=title,
+            template="pega",
+            barmode="relative",
+            hovermode="x unified",
+            legend=dict(orientation="h", y=-0.15, x=0),
+            margin=dict(r=90),
         )
 
     def action_overlap(

@@ -366,7 +366,7 @@ def test_get_last_data_for_report(sample: ADMDatamart):
     """Test get_last_data_for_report formatting."""
     report_data = sample.get_last_data_for_report()
 
-    assert report_data.shape == (68, 31)
+    assert report_data.shape == (98, 31)
 
     # Check that nulls are filled with "NA" for string columns
     string_cols = [col for col in report_data.columns if report_data[col].dtype == pl.Utf8]
@@ -473,7 +473,7 @@ def test_from_s3_downloads_and_delegates(monkeypatch, tmp_path):
             boto3_client=client,
         )
 
-    assert dm.model_data.collect().height == 1047
+    assert dm.model_data.collect().height == 1535
     assert dm.predictor_data.collect().height == 70735
 
 
@@ -496,7 +496,7 @@ def test_from_s3_model_only(monkeypatch):
             boto3_client=client,
         )
 
-    assert dm.model_data.collect().height == 1047
+    assert dm.model_data.collect().height == 1535
     assert dm.predictor_data is None
 
 
@@ -614,6 +614,31 @@ def test_validate_model_data_adds_missing_channel_direction():
     assert out["Direction"].to_list() == ["Unknown", "Unknown"]
     assert "Channel" in dm.context_keys
     assert "Direction" in dm.context_keys
+
+
+def test_validate_model_data_fills_null_context_keys_after_agb_summary_filter():
+    df = pl.DataFrame(
+        {
+            "ModelID": ["nb", "agb", "agb-summary"],
+            "Configuration": ["NB", "AGB", "AGB"],
+            "ModelTechnique": ["NaiveBayes", "GradientBoost", "GradientBoost"],
+            "Channel": ["Web", None, "Web"],
+            "Direction": ["Inbound", "Inbound", "Inbound"],
+            "Issue": [None, "Sales", None],
+            "Group": ["Cards", "Cards", None],
+            "Name": ["Gold", "Gold", None],
+            "SnapshotTime": [datetime.datetime(2024, 1, 1)] * 3,
+            "Positives": [10, 10, 10],
+            "ResponseCount": [100, 100, 100],
+            "Performance": [0.7, 0.7, 0.7],
+        }
+    ).lazy()
+
+    out = ADMDatamart(model_df=df).model_data.sort("ModelID").collect()
+
+    assert out["ModelID"].to_list() == ["agb", "nb"]
+    assert out["Channel"].to_list() == ["Unknown", "Web"]
+    assert out["Issue"].to_list() == ["Sales", "Unknown"]
 
 
 def test_validate_model_data_success_rate_zero_when_no_responses():

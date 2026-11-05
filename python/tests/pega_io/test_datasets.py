@@ -1,11 +1,90 @@
 """Testing the functionality of the built-in datasets"""
 
+import polars as pl
 from pdstools import datasets
+from pdstools.utils import cdh_utils
 
 
 def test_import_CDHSample():
-    Sample = datasets.cdh_sample()
-    assert Sample.model_data.shape == (1047, 30)
+    sample = datasets.cdh_sample()
+    sample_model_data = sample.model_data.collect()
+    assert sample_model_data.shape == (1535, 30)
+    assert sample.predictor_data.collect().height == 70735
+
+    snapshot_times = (
+        sample.model_data.select("SnapshotTime").unique().sort("SnapshotTime").collect().get_column("SnapshotTime")
+    )
+    assert len(snapshot_times) == 18
+    assert (snapshot_times[-1] - snapshot_times[0]).days == 17
+    assert snapshot_times[0].year == snapshot_times[-1].year == 2026
+    predictor_snapshot_times = (
+        sample.predictor_data.select("SnapshotTime").unique().sort("SnapshotTime").collect().get_column("SnapshotTime")
+    )
+    assert predictor_snapshot_times.to_list() == snapshot_times.to_list()
+
+    period_ctr = sample.plot.over_time(
+        metric="SuccessRate",
+        by="ModelID",
+        query=pl.col("Channel") == "Web",
+        every="auto",
+        cumulative=False,
+        return_df=True,
+    ).collect()
+    assert period_ctr.height > 0
+    assert period_ctr.get_column("SnapshotTime").n_unique() > 1
+
+    trend = sample.plot.over_time(
+        metric="SuccessRate",
+        by="ModelID",
+        query=pl.col("Channel") == "Web",
+        every="auto",
+        cumulative=False,
+    )
+    assert trend.layout.yaxis.title.text == "Daily Success Rate"
+
+
+def test_cdh_sample_action_trend():
+    sample = datasets.cdh_sample()
+    for frame, date_column in (
+        (sample.model_data, "SnapshotTime"),
+        (sample.predictor_data, "SnapshotTime"),
+        (sample.model_data, "FactoryUpdateTime"),
+    ):
+        years = frame.select(pl.col(date_column).dt.year().unique()).collect().to_series().to_list()
+        assert years == [2026]
+
+    trend = sample.aggregates.overall_summary(every="1w").select("Actions", "Used Actions", "New Actions").collect()
+    assert trend["Actions"].to_list() == [60, 63, 65]
+    assert trend["Used Actions"].to_list() == [60, 58, 60]
+    assert trend["New Actions"].to_list() == [60, 3, 2]
+    assert trend.tail(2)["Used Actions"].min() > 50
+    assert (trend.tail(2)["Actions"] > trend.tail(2)["Used Actions"]).all()
+
+    auto_interval = cdh_utils.resolve_trend_interval(sample.model_data, "auto")
+    assert auto_interval == "1d"
+    daily_trend = sample.aggregates.overall_summary(every=auto_interval).select("New Actions", "Used Actions").collect()
+    assert daily_trend.filter(pl.col("New Actions") > 0)["New Actions"].to_list() == [59, 1, 3, 2]
+    # Above the Health Check minimum of 50 used actions, except for a single dip.
+    assert daily_trend["Used Actions"].to_list() == [
+        59,
+        54,
+        56,
+        53,
+        51,
+        51,
+        48,
+        53,
+        52,
+        53,
+        52,
+        53,
+        51,
+        55,
+        51,
+        55,
+        55,
+        55,
+    ]
 
 
 def test_import_SampleTrees():

@@ -11,6 +11,87 @@ if TYPE_CHECKING:
     from polars._typing import PolarsTemporalType
 
 
+_AUTO_DAILY_MAX_SPAN = datetime.timedelta(days=28)
+_AUTO_MONTHLY_MIN_SPAN = datetime.timedelta(days=365 * 5)
+_TREND_INTERVAL_LABELS = {"1d": "Daily", "1w": "Weekly", "1mo": "Monthly"}
+
+
+class InsufficientTrendHistoryError(ValueError):
+    """Raised when the snapshot history is too short for the requested trend."""
+
+
+def resolve_trend_interval(
+    df: pl.LazyFrame,
+    every: str | datetime.timedelta,
+) -> str | datetime.timedelta:
+    """Resolve an automatic trend interval from the available snapshot history.
+
+    Parameters
+    ----------
+    df : pl.LazyFrame
+        Model data containing a ``SnapshotTime`` column.
+    every : str or datetime.timedelta
+        A fixed Polars interval or ``"auto"`` to choose daily, weekly, or
+        monthly buckets based on the snapshot date range.
+
+    Returns
+    -------
+    str or datetime.timedelta
+        The requested interval, or ``"1d"``, ``"1w"``, or ``"1mo"`` for
+        automatic selection.
+
+    Raises
+    ------
+    InsufficientTrendHistoryError
+        If automatic selection is requested without valid snapshot times.
+    """
+    if every != "auto":
+        return every
+
+    start, end = (
+        df.select(
+            pl.col("SnapshotTime").min().alias("__start"),
+            pl.col("SnapshotTime").max().alias("__end"),
+        )
+        .collect()
+        .row(0)
+    )
+    if start is None or end is None:
+        raise InsufficientTrendHistoryError("Cannot infer a trend interval without valid SnapshotTime values")
+
+    span = end - start
+    if span <= _AUTO_DAILY_MAX_SPAN:
+        return "1d"
+    if span > _AUTO_MONTHLY_MIN_SPAN:
+        return "1mo"
+    return "1w"
+
+
+def trend_interval_label(interval: str) -> str:
+    """Return the shared display label for a resolved trend interval.
+
+    Parameters
+    ----------
+    interval : str
+        A resolved interval: ``"1d"``, ``"1w"``, or ``"1mo"``.
+
+    Returns
+    -------
+    str
+        The corresponding label: ``"Daily"``, ``"Weekly"``, or ``"Monthly"``.
+
+    Raises
+    ------
+    ValueError
+        If the interval has no shared trend label.
+    """
+    try:
+        return _TREND_INTERVAL_LABELS[interval]
+    except KeyError:
+        allowed = ", ".join(f'"{value}"' for value in _TREND_INTERVAL_LABELS)
+        raise ValueError(f"Unsupported trend interval {interval!r}; expected one of {allowed}") from None
+
+
 def parse_pega_date_time_formats(
     timestamp_col="SnapshotTime",
     timestamp_fmt: str | None = None,

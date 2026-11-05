@@ -46,10 +46,13 @@ from polars._typing import PolarsTemporalType
 from ..types import QUERY
 from ._common import F, logger
 from ._dates import (
+    InsufficientTrendHistoryError,
     _get_start_end_date_args,
     from_prpc_date_time,
     parse_pega_date_time_formats,
+    resolve_trend_interval,
     to_prpc_date_time,
+    trend_interval_label,
 )
 from ._io import (
     _validate_databricks_model_snapshots,
@@ -109,6 +112,7 @@ __all__ = [
     "QUERY",
     # constants / shared types
     "F",
+    "InsufficientTrendHistoryError",
     "auc_ci_from_bincounts",
     # metrics
     "auc_from_bincounts",
@@ -138,11 +142,13 @@ __all__ = [
     "overlap_matrix",
     "parse_pega_date_time_formats",
     "process_files_to_bytes",
+    "resolve_trend_interval",
     "safe_flatten_list",
     "safe_range_auc",
     "safe_range_interval",
     "setup_logger",
     "to_prpc_date_time",
+    "trend_interval_label",
     "validate_confidence_level",
     "weighted_auc_ci_from_estimates",
     "weighted_average_polars",

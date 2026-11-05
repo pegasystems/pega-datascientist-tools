@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING, Any
 import polars as pl
 
 from ...utils import cdh_utils
+from ..Aggregates import TREND_WEIGHTED_METRICS, trend_by_expression
 from ._base import _PlotsBase
-from ._helpers import add_metric_limit_lines, requires
+from ._helpers import add_full_success_rate_markers, add_metric_limit_lines, requires
 
 if TYPE_CHECKING:
     from datetime import timedelta
@@ -38,6 +39,9 @@ class _PerformancePlotsMixin(_PlotsBase):
     ):
         """Statistics over time
 
+        The data comes from :meth:`~pdstools.adm.Aggregates.Aggregates.metric_over_time`,
+        which describes how the intervals and changes are calculated.
+
         Parameters
         ----------
         metric : str, optional
@@ -49,18 +53,15 @@ class _PerformancePlotsMixin(_PlotsBase):
             chart readable, the top 10 combinations by total ``metric`` are
             kept and the rest are dropped with a warning.
         every : Union[str, timedelta], optional
-            By what time period to group, by default "1d", see https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.dt.truncate.html
-            for periods.
+            Interval as in Polars ``group_by_dynamic``, by default "1d". Set to
+            "auto" to choose daily, weekly or monthly intervals from the date
+            range.
         cumulative : bool, optional
-            Whether to show the cumulative metric value at each observed time
-            bucket or the period-over-period change, by default True. When
-            False, the method first keeps the last observed value per Polars
-            dynamic time bucket, then differences consecutive observed buckets
-            within each series. If one or more buckets are missing, count-like
-            deltas are divided by the number of elapsed buckets so a multi-week
-            gap in a weekly chart is shown as an average change per week, not as
-            a single-week spike. Missing buckets are only used to count elapsed
-            time; they are not plotted or value-interpolated.
+            Whether to show the cumulative metric value per interval or the
+            change per interval, by default True. For "SuccessRate" the change
+            is the success rate within the interval. Intervals with a 100%
+            success rate are marked with a red X; the y-axis is scaled to the
+            other values.
         query : Optional[QUERY], optional
             The query to apply to the data, by default None
         facet : Optional[str], optional
@@ -70,9 +71,9 @@ class _PerformancePlotsMixin(_PlotsBase):
             ``facet_col_spacing`` scale from 0 to 1. By default, Plotly's
             standard spacing is used.
         show_metric_limits : bool, optional
-            Whether to show dashed horizontal lines at the metric limit
-            thresholds (from MetricLimits.csv), by default False.
-            Only applies when metric is "Performance".
+            Whether to show dashed horizontal lines and subtle background
+            bands at the metric limit thresholds (from MetricLimits.csv), by
+            default False. Only applies when metric is "Performance".
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
 
@@ -80,6 +81,12 @@ class _PerformancePlotsMixin(_PlotsBase):
         -------
         Figure | pl.LazyFrame
             Plotly line chart or LazyFrame if return_df=True
+
+        Raises
+        ------
+        InsufficientTrendHistoryError
+            If the success rate per interval is requested but no interval has
+            a valid change in responses.
 
         Examples
         --------
@@ -100,121 +107,52 @@ class _PerformancePlotsMixin(_PlotsBase):
         ...     facet="Direction",
         ... )
 
+        >>> # Success rate per interval, with the interval chosen from the date range
+        >>> fig = dm.plot.over_time(
+        ...     metric="SuccessRate",
+        ...     cumulative=False,
+        ...     every="auto",
+        ... )
+
         >>> # Return the data instead of the figure
         >>> df = dm.plot.over_time(return_df=True)
 
         """
-        percentage_metrics = ["Performance", "SuccessRate"]
         metric_formatting = {
             "SuccessRate": ":.4%",
             "Performance": ":.2",
             "Positives": ":.d",
             "ResponseCount": ":.d",
         }
-        if isinstance(by, list):
-            if len(by) == 0:
-                raise ValueError("`by` must contain at least one column name")
-            if len(by) == 1:
-                by = pl.col(by[0])
-            else:
-                by_name = " / ".join(by)
-                by = pl.concat_str(
-                    [pl.col(c).cast(pl.Utf8).fill_null("<null>") for c in by],
-                    separator=" / ",
-                ).alias(by_name)
-        elif not isinstance(by, pl.Expr):
-            by = pl.col(by)
-        by_col = by.meta.output_name()
+        by_col = trend_by_expression(by).meta.output_name()
 
         if self.datamart.model_data is None:
             raise ValueError("Visualisation requires model_data")
 
-        columns_to_select: set[str] = {"SnapshotTime", metric, "ResponseCount"}
-        columns_to_select.update(by.meta.root_names())
-        if facet:
-            columns_to_select.add(facet)
-
-        is_percentage = metric in percentage_metrics
-        metric_scaling = pl.lit(100.0 if metric == "Performance" else 1.0)
-
-        df = (
-            cdh_utils._apply_query(self.datamart.model_data, query).sort("SnapshotTime").select(list(columns_to_select))
+        every = cdh_utils.resolve_trend_interval(cdh_utils._apply_query(self.datamart.model_data, query), every)
+        df = self.datamart.aggregates.metric_over_time(
+            metric,
+            by,
+            every=every,
+            cumulative=cumulative,
+            query=query,
+            facet=facet,
         )
-
-        grouping_columns = [by_col]
-        if facet:
-            grouping_columns.append(facet)
-        df = df.with_columns(by).set_sorted("SnapshotTime")
-
-        # Filter out null values in SnapshotTime and grouping columns to avoid issues with group_by_dynamic
-        null_filters = [pl.col("SnapshotTime").is_not_null()] + [pl.col(col).is_not_null() for col in grouping_columns]
-        df = df.filter(pl.all_horizontal(null_filters))
-
-        agg_expr = [
-            (
-                metric_scaling * cdh_utils.weighted_average_polars(metric, "ResponseCount")
-                if is_percentage
-                else pl.sum(metric)
-            ).alias(metric),
-        ]
-        if is_percentage:
-            agg_expr.append(pl.sum("ResponseCount"))
-
-        df = (
-            df.with_columns(pl.col("SnapshotTime"))
-            .group_by([*grouping_columns, "SnapshotTime"])
-            .agg(agg_expr)
-            .sort("SnapshotTime", by_col)
-        )
-
-        unique_intervals = df.select(pl.col("SnapshotTime").unique()).collect().height
-
-        if not cumulative and unique_intervals <= 1:
-            logger.warning(
-                f"Only one {every} interval of data found. Cannot calculate interval-to-interval differences. "
-                "Automatically switching to cumulative mode to show values instead.",
-            )
-            cumulative = True
-
-        plot_metric = metric
-        if not cumulative:
-            plot_metric = f"{metric}_change"
-            df = (
-                df.group_by_dynamic(
-                    "SnapshotTime",
-                    every=every,
-                    group_by=grouping_columns,
-                )
-                .agg(pl.last(metric))
-                .sort(*grouping_columns, "SnapshotTime")
-            )
-            period_index = (
-                df.collect()
-                .upsample("SnapshotTime", every=every, group_by=grouping_columns)
-                .sort(*grouping_columns, "SnapshotTime")
-                .with_columns(
-                    pl.int_range(pl.len()).over(grouping_columns).alias("__period_index"),
-                )
-                .select([*grouping_columns, "SnapshotTime", "__period_index"])
-            )
-            periods_elapsed = pl.col("__period_index").diff().over(grouping_columns).clip(lower_bound=1)
-            df = (
-                df.join(period_index.lazy(), on=[*grouping_columns, "SnapshotTime"])
-                .sort(*grouping_columns, "SnapshotTime")
-                .with_columns(
-                    (pl.col(metric).diff().over(grouping_columns) / periods_elapsed).alias(plot_metric),
-                )
-                .drop("__period_index")
-            )
-
         if return_df:
             return df
         final_df = df.collect()
 
+        is_success_rate_change = metric == "SuccessRate" and not cumulative
+        if is_success_rate_change and final_df.height == 0:
+            raise cdh_utils.InsufficientTrendHistoryError(
+                "The success rate per interval requires observations in at least two distinct intervals per model",
+            )
+        plot_metric = f"{metric}_change" if f"{metric}_change" in final_df.columns else metric
+
         max_series = 10
         unique_series = final_df.get_column(by_col).unique().to_list()
         if len(unique_series) > max_series:
-            ranking_metric = "ResponseCount" if is_percentage else metric
+            ranking_metric = "ResponseCount" if metric in TREND_WEIGHTED_METRICS else metric
             top_series = (
                 final_df.group_by(by_col)
                 .agg(pl.sum(ranking_metric).alias("__total"))
@@ -238,11 +176,26 @@ class _PerformancePlotsMixin(_PlotsBase):
 
         import plotly.express as px
 
-        facet_col_wrap = None
-        if facet:
-            unique_facet_values = final_df.select(facet).unique().height
-            facet_col_wrap = max(2, int(unique_facet_values**0.5))
+        facet_values = final_df.get_column(facet).unique(maintain_order=True).to_list() if facet else []
+        facet_col_wrap = max(2, int(len(facet_values) ** 0.5)) if facet else None
 
+        try:
+            interval_label = cdh_utils.trend_interval_label(every) if isinstance(every, str) else None
+        except ValueError:
+            interval_label = None
+        success_rate_labels = {
+            "SuccessRate": f"{interval_label} Success Rate" if interval_label else f"Success Rate per {every}",
+            "TotalResponses": "Responses (cumulative)",
+            "PositivesInInterval": "Positives in interval",
+            "ResponsesInInterval": "Responses in interval",
+            "PeriodsCovered": "Snapshot gap (intervals)",
+        }
+        success_rate_hover = {
+            "TotalResponses": ":,.0f",
+            "PositivesInInterval": ":,.0f",
+            "ResponsesInInterval": ":,.0f",
+            "PeriodsCovered": ":.0f",
+        }
         title = "over all models" if facet is None else f"per {facet}"
         line_kwargs: dict[str, Any] = {
             "x": "SnapshotTime",
@@ -257,15 +210,43 @@ class _PerformancePlotsMixin(_PlotsBase):
             "facet_col": facet,
             "template": "pega",
         }
+        if is_success_rate_change:
+            line_kwargs["hover_data"].update({"ResponseCount": False, "Positives": False, **success_rate_hover})
+            line_kwargs["labels"] = success_rate_labels
+        elif plot_metric == "Performance":
+            line_kwargs["labels"] = {"Performance": "Performance (AUC)"}
         if facet_col_wrap is not None:
             line_kwargs["facet_col_wrap"] = facet_col_wrap
         if facet_col_spacing is not None:
             line_kwargs["facet_col_spacing"] = facet_col_spacing
+        if facet_values:
+            line_kwargs["category_orders"] = {facet: facet_values}
 
         fig = px.line(final_df, **line_kwargs)
+        fig.update_xaxes(hoverformat="%b %d, %Y")
 
-        if metric == "SuccessRate":
-            fig.update_yaxes(tickformat=".2%", rangemode="nonnegative")
+        if plot_metric == "Performance":
+            fig.update_yaxes(range=[50, 100])
+        elif is_success_rate_change:
+            # Scale to the success rates below 100%; mark the 100% intervals instead.
+            full_success_rate = final_df.filter(pl.col(metric) >= 1.0)
+            partial_max = final_df.filter(pl.col(metric) < 1.0).select(pl.col(metric).max()).item()
+            y_max = 1.0 if partial_max is None else (min(1.0, float(partial_max) * 1.05) if partial_max > 0 else 0.01)
+            if full_success_rate.height:
+                fig = add_full_success_rate_markers(
+                    fig,
+                    full_success_rate,
+                    y=y_max * 0.96,
+                    hover_data={by_col: True, "SuccessRate": ":.2%", **success_rate_hover},
+                    labels={**success_rate_labels, "SnapshotTime": "Interval", "SuccessRate": "Success Rate"},
+                    facet=facet,
+                    facet_values=facet_values,
+                    facet_col_wrap=facet_col_wrap,
+                    facet_col_spacing=facet_col_spacing,
+                )
+            fig.update_yaxes(range=[0, y_max], tickformat=".2%")
+        elif metric == "SuccessRate":
+            fig.update_yaxes(tickformat=".2%", rangemode="tozero")
 
         if show_metric_limits and metric == "Performance":
             fig = add_metric_limit_lines(fig, orientation="horizontal")

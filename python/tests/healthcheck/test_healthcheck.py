@@ -134,6 +134,12 @@ def test_GenerateHealthCheck(sample: ADMDatamart, tmp_path):
     _assert_report_path(hc, tmp_path, "HealthCheck")
     errors = check_report_for_errors(hc)
     assert len(errors) == 0, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
+    html = _read_report_html(hc)
+    assert "Success Rate over Time by Channel/Direction" in html
+    assert "Model Performance over Time by Channel/Direction" in html
+    assert "Daily Success Rate" in html
+    assert "Actions over Time (daily)" in html
+    assert "Performance (AUC)" in html
 
 
 def test_GenerateHealthCheck_default_cdn_is_djs_copy_safe(sample: ADMDatamart, tmp_path, monkeypatch):

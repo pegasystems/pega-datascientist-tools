@@ -185,37 +185,37 @@ class Analysis:
             raise ValueError("Missing maturity thresholds in MetricLimits.")
 
         return [
-            ("last_snapshot", "Number of models in last snapshot", pl.lit(True)),
+            ("last_snapshot", "Number of action/treatment records in latest snapshot", pl.lit(True)),
             (
                 "never_used",
-                "Models that have never been used (responses = 0)",
+                "Action/treatment records with no responses",
                 pl.col("ResponseCount") < min_responses,
             ),
             (
                 "responses_no_positives",
-                "Models that have been used (responses > 0) but never received a positive response",
+                "Action/treatment records with responses but no positive responses",
                 (pl.col("Positives") < min_positives) & (pl.col("ResponseCount") >= min_responses),
             ),
             (
                 "immature",
-                f"Models that are still in an immature phase of learning (positives < {int(bp_min_positives)})",
+                f"Action/treatment records with fewer than {int(bp_min_positives)} positives",
                 (pl.col("Positives") < bp_min_positives) & (pl.col("Positives") >= min_positives),
             ),
             (
                 "stuck_at_50",
-                "Models that have received sufficient responses but are still at their minimum performance (AUC = 50)",
+                "Action/treatment records with sufficient positives but minimum performance (AUC = 50)",
                 (pl.col("Performance") == 0.5) & (pl.col("Positives") >= bp_min_positives),
             ),
             (
                 "low_performance",
-                f"Models that have received sufficient responses but still have a low performance (AUC < {min_perf})",
+                f"Action/treatment records with sufficient positives but low performance (AUC < {min_perf})",
                 (pl.col("Performance") > 0.5)
                 & (pl.col("Performance") < min_perf)
                 & (pl.col("Positives") >= bp_min_positives),
             ),
             (
                 "mature_decent",
-                f"Models with sufficient positive responses (≥ {int(bp_min_positives)}) and a decent performance (≥ {min_perf})",
+                f"Action/treatment records with sufficient positives (≥ {int(bp_min_positives)}) and decent performance (≥ {min_perf})",
                 (pl.col("Performance") >= min_perf) & (pl.col("Positives") >= bp_min_positives),
             ),
         ]
@@ -227,7 +227,7 @@ class Analysis:
         active_filter: pl.Expr | None = None,
         active_threshold_days: int = 30,
     ) -> pl.DataFrame:
-        """Return the shared maturity-overview table used by health checks."""
+        """Return the shared row-based action/treatment maturity table."""
         if last_data is None:
             last_data = self._get_last_data()
         if active_filter is None:
@@ -239,7 +239,7 @@ class Analysis:
                 active_last_data.group_by(None)
                 .agg(
                     pl.lit(label).alias("Category"),
-                    pl.col("Name").filter(filter_expression).len().alias("Number of Models"),
+                    pl.col("Name").filter(filter_expression).len().alias("Number of Action/Treatment Records"),
                     (
                         cdh_utils.weighted_average_polars(
                             pl.col("Performance").filter(filter_expression),
