@@ -1,10 +1,7 @@
 """Testing the functionality of the IH class"""
 
-import datetime
-import importlib
 import math
 from datetime import timedelta
-from unittest.mock import patch
 
 import polars as pl
 import pytest
@@ -12,33 +9,16 @@ from pdstools import IH
 from pdstools.ih.Schema import REQUIRED_IH_COLUMNS, IHInteraction
 from plotly.graph_objs import Figure
 
-# Grab the module explicitly: `pdstools.ih.IH` resolves to the *class* (re-exported
-# via pdstools/ih/__init__.py), so mock.patch("pdstools.ih.IH.datetime") tries to
-# patch an attribute on the class and fails. Importing the module by string
-# bypasses that shadowing.
-_ih_module = importlib.import_module("pdstools.ih.IH")
 
-# Freezing "now" makes the date-derived columns (and therefore every period
-# bucketing — "1d", "1w", etc.) fully deterministic. Without this, mock data
-# anchors on datetime.now() and bucket counts drift by a handful of rows
-# depending on when CI runs.
-_FROZEN_NOW = datetime.datetime(2026, 1, 15, 12, 0, 0)
-
-
-@pytest.fixture
+@pytest.fixture(scope="module")
 def ih():
-    # seed=42 makes from_mock_data deterministic so tests can assert exact values.
-    with patch.object(_ih_module, "datetime") as mock_dt:
-        mock_dt.datetime.now.return_value = _FROZEN_NOW
-        # Pass through everything else (timedelta, datetime constructor, …).
-        mock_dt.datetime.side_effect = lambda *a, **kw: datetime.datetime(*a, **kw)
-        mock_dt.timedelta = datetime.timedelta
-        yield IH.from_mock_data(seed=42)
+    # The canonical end date pins the window, so tests can assert exact values.
+    return IH.from_mock_data(end="canonical")
 
 
 def test_mockdata(ih):
-    assert ih.data.collect().height == 102294  # interactions (n=100000 + multi-outcome rows)
-    assert ih.data.collect().width == 13  # nr of IH properties in the sample data
+    assert ih.data.collect().height == 125886  # interactions (n=100000 + multi-outcome rows)
+    assert ih.data.collect().width == 22  # nr of IH properties in the sample data
 
     summary = ih.aggregates.summarize_by_interaction().collect()
     assert summary.height == 100000
@@ -83,10 +63,10 @@ def test_summarize_by_interaction_with_by(ih):
 def test_summarize_by_interaction_with_every(ih):
     """Test summarize_by_interaction with 'every' parameter"""
     # Test with string parameter — height is fully deterministic now that the
-    # ih fixture freezes datetime.now().
+    # ih fixture pins the canonical end date.
     result_daily = ih.aggregates.summarize_by_interaction(every="1d").collect()
     assert result_daily.columns[0] == "OutcomeTime"
-    assert result_daily.height == 100582
+    assert result_daily.height == 101955
 
     # Test with timedelta — must produce identical result to "1d"
     result_td = ih.aggregates.summarize_by_interaction(
@@ -102,14 +82,14 @@ def test_summarize_by_interaction_with_query(ih):
     result_web = ih.aggregates.summarize_by_interaction(
         query=pl.col("Channel") == "Web",
     ).collect()
-    assert result_web.height == 49934  # filtered Web subset
+    assert result_web.height == 47661  # filtered Web subset
 
     # Test with complex query — all Web channel interactions are Inbound
     # in the mock data, so the additional Direction filter is a no-op.
     result_complex = ih.aggregates.summarize_by_interaction(
         query=(pl.col("Channel") == "Web") & (pl.col("Direction") == "Inbound"),
     ).collect()
-    assert result_complex.height == 49934
+    assert result_complex.height == 47661
     assert result_complex.height <= result_web.height
 
 
@@ -123,7 +103,7 @@ def test_summarize_by_interaction_complex(ih):
     ).collect()
 
     assert {"Channel", "Direction", "OutcomeTime", "Outcomes"}.issubset(result.columns)
-    assert result.height == 100198
+    assert result.height == 100332
 
 
 def test_summary_success_rates_basic(ih):
@@ -145,10 +125,10 @@ def test_summary_success_rates_basic(ih):
 
 def test_summary_success_rates_with_by(ih):
     """Test summary_success_rates with 'by' parameter"""
-    # Test with string parameter — mock data has exactly 2 channels (Web, Email)
+    # Test with string parameter — mock data has exactly 4 channels
     result_channel = ih.aggregates.summary_success_rates(by="Channel").collect()
     assert "Channel" in result_channel.columns
-    assert result_channel.height == 2
+    assert result_channel.height == 4
 
     # Test with list parameter — Web is always Inbound and Email always Outbound,
     # so (Channel, Direction) yields the same 2 rows.
@@ -156,14 +136,14 @@ def test_summary_success_rates_with_by(ih):
         by=["Channel", "Direction"],
     ).collect()
     assert {"Channel", "Direction"}.issubset(result_multi.columns)
-    assert result_multi.height == 2
+    assert result_multi.height == 4
 
     # Test with Polars expression
     result_expr = ih.aggregates.summary_success_rates(
         by=pl.col("Channel").alias("ChannelRenamed"),
     ).collect()
     assert "ChannelRenamed" in result_expr.columns
-    assert result_expr.height == 2
+    assert result_expr.height == 4
 
 
 def test_summary_success_rates_with_every(ih):
@@ -171,7 +151,7 @@ def test_summary_success_rates_with_every(ih):
     # Roughly 90 days of mock data; deterministic given the frozen "now".
     result_daily = ih.aggregates.summary_success_rates(every="1d").collect()
     assert "OutcomeTime" in result_daily.columns
-    assert result_daily.height == 91
+    assert result_daily.height == 183
 
     # timedelta must produce identical result
     result_td = ih.aggregates.summary_success_rates(every=timedelta(days=1)).collect()
@@ -224,7 +204,7 @@ def test_summary_success_rates_complex(ih):
     assert {"PropensityBin", "Channel", "Direction", "OutcomeTime", "Outcomes"}.issubset(result.columns)
     # 10 propensity bins × ~14 weeks × 2 channel/direction combos, with some
     # bins empty in some weeks. Deterministic under the frozen "now".
-    assert result.height == 280
+    assert result.height == 948
 
     # Verify calculations
     for metric in ih.positive_outcome_labels.keys():
@@ -247,39 +227,38 @@ def test_summary_outcomes_basic(ih):
     """Test basic functionality of summary_outcomes"""
     result = ih.aggregates.summary_outcomes().collect()
 
-    # Mock data emits exactly these 5 outcome labels with deterministic counts
-    # under seed=42.
+    # The canonical mock world emits exactly these 6 outcome labels.
     assert result.columns == ["Outcome", "Count"]
-    assert result.height == 5
+    assert result.height == 6
     assert dict(zip(result["Outcome"].to_list(), result["Count"].to_list(), strict=True)) == {
-        "Accepted": 588,
-        "Conversion": 639,
-        "Clicked": 1067,
-        "Impression": 49934,
-        "Pending": 50066,
+        "Accepted": 640,
+        "Clicked": 2169,
+        "Conversion": 794,
+        "Impression": 84375,
+        "Opened": 4774,
+        "Pending": 33134,
     }
 
 
 def test_summary_outcomes_with_by(ih):
     """Test summary_outcomes with 'by' parameter"""
-    # Test with string parameter — 5 outcomes × Web/Email, with one outcome
-    # appearing only on Email and another only on Web => 6 rows.
+    # Each channel emits only its own outcomes: 4 channels give 13 rows.
     result_channel = ih.aggregates.summary_outcomes(by="Channel").collect()
     assert {"Channel", "Outcome"}.issubset(result_channel.columns)
-    assert result_channel.height == 6
+    assert result_channel.height == 13
 
     # Direction is fully determined by Channel, so the row count is unchanged.
     result_multi = ih.aggregates.summary_outcomes(by=["Channel", "Direction"]).collect()
     assert {"Channel", "Direction", "Outcome"}.issubset(result_multi.columns)
-    assert result_multi.height == 6
+    assert result_multi.height == 13
 
 
 def test_summary_outcomes_with_every(ih):
     """Test summary_outcomes with 'every' parameter"""
-    # ~5 outcomes × ~91 days, minus some (outcome, day) combos that don't appear.
+    # ~6 outcomes × 182 days, minus some (outcome, day) combos that don't appear.
     result_daily = ih.aggregates.summary_outcomes(every="1d").collect()
     assert {"OutcomeTime", "Outcome"}.issubset(result_daily.columns)
-    assert result_daily.height == 454
+    assert result_daily.height == 1083
 
     # timedelta must produce identical result
     result_td = ih.aggregates.summary_outcomes(every=timedelta(days=1)).collect()
@@ -319,7 +298,7 @@ def test_summary_outcomes_complex(ih):
 
     assert {"Channel", "Direction", "OutcomeTime", "Outcome", "Count"}.issubset(result.columns)
     # ~14 weeks × 2 channel/direction × ~3 outcomes per channel.
-    assert result.height == 84
+    assert result.height == 328
 
     # Verify sorting
     # The result should be sorted by Count (descending) and then by the group_by columns
@@ -393,13 +372,14 @@ def ih_discriminating():
 
 def test_ih_from_mock_data_sets_outcome_labels_used():
     """from_mock_data always resolves and stores outcome_labels_used."""
-    ih = IH.from_mock_data(n=1000, seed=42)
-    # With seed=42 the mock data deterministically yields these channel-aware
-    # labels. Email now surfaces 'Accepted' at n=1000 with current dependency
-    # versions (numpy/polars seeded random output shifted).
+    ih = IH.from_mock_data(n=1000, end="canonical")
+    # The mock world declares its labels per channel rather than scanning,
+    # so outbound Pending counts as an impression.
     assert ih.outcome_labels_used == {
-        "Email/Outbound": {"Impressions": [], "Accepts": ["Accepted"]},
         "Web/Inbound": {"Impressions": ["Impression"], "Accepts": ["Clicked"]},
+        "Mobile/Inbound": {"Impressions": ["Impression"], "Accepts": ["Clicked"]},
+        "Email/Outbound": {"Impressions": ["Pending"], "Accepts": ["Accepted"]},
+        "Call Center/Outbound": {"Impressions": ["Pending"], "Accepts": ["Accepted"]},
     }
 
 

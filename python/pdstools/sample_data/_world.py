@@ -10,7 +10,7 @@ so they stay mutually consistent without depending on each other.
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 from functools import cache
 from math import exp, floor, sqrt
@@ -84,10 +84,16 @@ class SampleWorld:
     seed: int
     calendar: SampleCalendar
     scale: float = 1.0
+    _hash: int = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         if isinstance(self.scale, bool) or not isinstance(self.scale, (int, float)) or not self.scale > 0:
             raise ValueError("scale must be a positive number.")
+        object.__setattr__(self, "_hash", hash((self.spec, self.seed, self.calendar, self.scale)))
+
+    def __hash__(self) -> int:
+        # Worlds key every per-process cache; rehashing the nested spec on each lookup dominates runtime.
+        return self._hash
 
     @property
     def days(self) -> int:

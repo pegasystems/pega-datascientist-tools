@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import datetime
 import logging
 import math
 import os
-import random
 from collections import defaultdict
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 import polars as pl
-import polars.selectors as cs
 
 from ..pega_io.File import read_ds_export
 from ..utils import cdh_utils
@@ -27,6 +24,7 @@ from .Plots import Plots
 from .Schema import REQUIRED_IH_COLUMNS
 
 if TYPE_CHECKING:
+    import datetime
     import os
 
     from ..utils.types import QUERY
@@ -272,251 +270,59 @@ class IH:
     @classmethod
     def from_mock_data(
         cls,
-        days: int = 90,
+        days: int = 182,
         n: int = 100000,
-        seed: int | None = None,
-    ) -> "IH":
-        """Create an IH instance with synthetic sample data.
+        *,
+        seed: int | None = 42,
+        end: datetime.date | Literal["canonical"] | None = None,
+        scale: float = 1.0,
+    ) -> IH:
+        """Create an IH instance from the shared synthetic sample world.
 
-        Generates realistic interaction history data for testing and
-        demonstration purposes. Includes inbound (Web) and outbound (Email)
-        channels with configurable propensities and model noise.
+        Samples ``n`` decisions from the same world as
+        :meth:`pdstools.adm.ADMDatamart.from_mock_data` and
+        :meth:`pdstools.prediction.Prediction.from_mock_data`, so engagement
+        per channel matches the model and prediction data. Web and Mobile
+        (inbound) record Impression and Clicked; Email and Call Center
+        (outbound) record Pending and Accepted, with Email Opened in between.
+        Every offered action is an exposure carrying its Impact Analyzer
+        control group (``MktValue``, ``MktType``), model-control cohort
+        (``ModelControlGroup``), propensities and accepted ``Value``. A
+        separate Conversion-Test/Control experiment adds Conversion outcomes.
 
         Parameters
         ----------
-        days : int, default 90
-            Number of days of data to generate.
+        days : int, default 182
+            Number of days in the window.
         n : int, default 100000
-            Number of interaction records to generate.
-        seed : int or None, default None
-            Optional seed for the random number generator. When provided,
-            data generation becomes deterministic across runs — useful for
-            tests and reproducible notebooks. When ``None`` (the default),
-            results vary between invocations.
+            Number of interactions (decisions) to sample.
+        seed : int or None, default 42
+            Seed for reproducible data; ``None`` draws a random seed.
+        end : date, "canonical" or None, default None
+            Last day of the window, resolved to the Sunday on or before it.
+            ``None`` uses the most recent completed Sunday, ``"canonical"``
+            pins Sunday 2000-07-02.
+        scale : float, default 1.0
+            Multiplier on world response volumes.
 
         Returns
         -------
         IH
-            IH instance with synthetic data.
+            IH instance with one row per outcome.
 
         Examples
         --------
-        >>> ih = IH.from_mock_data(days=30, n=10000, seed=42)
-        >>> ih.data.select("pyChannel").collect().unique()
+        >>> ih = IH.from_mock_data(n=10000, end="canonical")
+        >>> ih.aggregates.summary_by_channel().collect()
 
         """
-        n = int(n)
-        rng = random.Random(seed)
+        from ..sample_data._ih import interaction_history, outcome_labels
+        from ..sample_data._world import sample_world
 
-        n_actions = 10
-        click_avg_duration_minutes = 2
-        accept_avg_duration_minutes = 30
-        convert_over_accept_click_rate_test = 0.5
-        convert_over_accept_click_rate_control = 0.3
-        convert_avg_duration_days = 2
-        inbound_base_propensity = 0.02
-        outbound_base_propensity = 0.01
-        inbound_modelnoise_NaiveBayes = 0.2  # relative amount of extra noise added to models
-        inbound_modelnoise_GradientBoost = 0.0
-        outbound_modelnoise_NaiveBayes = 0.3
-        outbound_modelnoise_GradientBoost = 0.1
-
-        now = datetime.datetime.now()
-
-        def thompson_sampler(propensity, responses=10000):
-            # Using the same approach as we're doing in NBAD at the moment
-            a = responses * propensity
-            b = responses * (1 - propensity)
-
-            return rng.betavariate(a, b)
-
-        ih_fake_impressions = pl.DataFrame(
-            {
-                "pxInteractionID": [str(int(1e9 + i)) for i in range(n)],
-                "pyChannel": rng.choices(
-                    ["Web", "Email"],
-                    k=n,
-                ),  # Direction will be derived from this later
-                "pyIssue": rng.choices(
-                    ["Acquisition", "Retention", "Risk", "Service"],
-                    k=n,
-                ),
-                "pyGroup": rng.choices(
-                    [
-                        "Pension",
-                        "Lending",
-                        "Mortgages",
-                        "Investments",
-                        "Insurance",
-                        "Savings",
-                    ],
-                    weights=[1, 1, 2, 2, 3, 3],
-                    k=n,
-                ),
-                "pyName": rng.choices(
-                    range(1, 1 + n_actions),
-                    weights=list(reversed(range(1, 1 + n_actions))),
-                    k=n,
-                ),  # nr will be appended to group name to form action name
-                "pyTreatment": [rng.randint(1, 2) for _ in range(n)],  # nr will be appended to group/channel
-                # https://stackoverflow.com/questions/40351791/how-to-hash-strings-into-a-float-in-01
-                "ExperimentGroup": [
-                    "Conversion-Test",
-                    "Conversion-Test",
-                    "Conversion-Control",
-                    "Conversion-Control",
-                ]
-                * int(n / 4),
-                "pyModelTechnique": [
-                    "NaiveBayes",
-                    "GradientBoost",
-                    "NaiveBayes",
-                    "GradientBoost",
-                ]
-                * int(n / 4),
-                "pxOutcomeTime": [(now - datetime.timedelta(days=i * days / n)) for i in range(n)],
-                "Temp.ClickDurationMinutes": [rng.uniform(0, 2 * click_avg_duration_minutes) for i in range(n)],
-                "Temp.AcceptDurationMinutes": [rng.uniform(0, 2 * accept_avg_duration_minutes) for i in range(n)],
-                "Temp.ConvertDurationDays": [rng.uniform(0, 2 * convert_avg_duration_days) for i in range(n)],
-                "Temp.RandomUniform": [rng.uniform(0, 1) for i in range(n)],
-            },
-        ).with_columns(
-            pyDirection=pl.when(pl.col("pyChannel") == "Web").then(pl.lit("Inbound")).otherwise(pl.lit("Outbound")),
-            pyName=pl.format("{}_{}", pl.col("pyGroup"), pl.col("pyName")),
-            pyTreatment=pl.format(
-                "{}_{}_{}Treatment{}",
-                pl.col("pyGroup"),
-                pl.col("pyName"),
-                pl.col("pyChannel"),
-                pl.col("pyTreatment"),
-            ),
-            pyOutcome=pl.when(pl.col.pyChannel == "Web").then(pl.lit("Impression")).otherwise(pl.lit("Pending")),
-        )
-
-        action_basepropensities = (
-            ih_fake_impressions.group_by(["pyName"])
-            .agg(Count=pl.len())
-            .sort("Count", descending=True)
-            .with_row_index("Index")
-            .with_columns(
-                (1.0 / (5 + pl.col("Index"))).alias("Temp.Zipf"),
-            )
-        )
-
-        ih_fake_impressions = (
-            ih_fake_impressions.join(
-                action_basepropensities.select(["pyName", "Temp.Zipf"]),
-                on=["pyName"],
-            )
-            .with_columns(
-                pl.col("Temp.Zipf").mean().over(["pyChannel", "pyDirection"]).alias("Temp.ZipfMean"),
-                pl.when(pl.col("pyDirection") == "Inbound")
-                .then(pl.lit(inbound_base_propensity))
-                .otherwise(pl.lit(outbound_base_propensity))
-                .alias("Temp.ChannelBasePropensity"),
-            )
-            .with_columns(
-                BasePropensity=pl.col("Temp.Zipf") * pl.col("Temp.ChannelBasePropensity") / pl.col("Temp.ZipfMean"),
-            )
-            .with_columns(
-                pyPropensity=pl.col("BasePropensity").map_elements(
-                    thompson_sampler,
-                    pl.Float64,
-                ),
-            )
-        )
-
-        # Add artificial noise to the models to manipulate some scenarios
-        ih_fake_impressions = ih_fake_impressions.with_columns(
-            pl.when(
-                (pl.col.pyModelTechnique == "NaiveBayes") & (pl.col.pyDirection == "Inbound"),
-            )
-            .then(pl.col("Temp.ChannelBasePropensity") * inbound_modelnoise_NaiveBayes)
-            .when(
-                (pl.col.pyModelTechnique == "GradientBoost") & (pl.col.pyDirection == "Inbound"),
-            )
-            .then(
-                pl.col("Temp.ChannelBasePropensity") * inbound_modelnoise_GradientBoost,
-            )
-            .when(
-                (pl.col.pyModelTechnique == "NaiveBayes") & (pl.col.pyDirection == "Outbound"),
-            )
-            .then(pl.col("Temp.ChannelBasePropensity") * outbound_modelnoise_NaiveBayes)
-            .when(
-                (pl.col.pyModelTechnique == "GradientBoost") & (pl.col.pyDirection == "Outbound"),
-            )
-            .then(
-                pl.col("Temp.ChannelBasePropensity") * outbound_modelnoise_GradientBoost,
-            )
-            .otherwise(pl.lit(0.0))
-            .alias("Temp.ExtraModelNoise"),
-        )
-
-        ih_fake_clicks = (
-            ih_fake_impressions.filter(pl.col.pyDirection == "Inbound")
-            .filter(
-                pl.col("Temp.RandomUniform") < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise")),
-            )
-            .with_columns(
-                pxOutcomeTime=pl.col.pxOutcomeTime + pl.duration(minutes=pl.col("Temp.ClickDurationMinutes")),
-                pyOutcome=pl.lit("Clicked"),
-            )
-        )
-        ih_fake_accepts = (
-            ih_fake_impressions.filter(pl.col.pyDirection == "Outbound")
-            .filter(
-                pl.col("Temp.RandomUniform") < (pl.col("pyPropensity") + pl.col("Temp.ExtraModelNoise")),
-            )
-            .with_columns(
-                pxOutcomeTime=pl.col.pxOutcomeTime + pl.duration(minutes=pl.col("Temp.AcceptDurationMinutes")),
-                pyOutcome=pl.lit("Accepted"),
-            )
-        )
-
-        def create_fake_converts(df, group, fraction):
-            return (
-                df.filter(pl.col("ExperimentGroup") == group)
-                .sample(fraction=fraction, seed=rng.randint(0, 2**31 - 1) if seed is not None else None)
-                .with_columns(
-                    pxOutcomeTime=pl.col("pxOutcomeTime") + pl.duration(days=pl.col("Temp.ConvertDurationDays")),
-                    pyOutcome=pl.lit("Conversion"),
-                )
-            )
-
-        ih_data = (
-            pl.concat(
-                [
-                    ih_fake_impressions,
-                    ih_fake_clicks,
-                    ih_fake_accepts,
-                    create_fake_converts(
-                        ih_fake_clicks,
-                        "Conversion-Test",
-                        convert_over_accept_click_rate_test,
-                    ),
-                    create_fake_converts(
-                        ih_fake_accepts,
-                        "Conversion-Test",
-                        convert_over_accept_click_rate_test,
-                    ),
-                    create_fake_converts(
-                        ih_fake_clicks,
-                        "Conversion-Control",
-                        convert_over_accept_click_rate_control,
-                    ),
-                    create_fake_converts(
-                        ih_fake_accepts,
-                        "Conversion-Control",
-                        convert_over_accept_click_rate_control,
-                    ),
-                ],
-            )
-            .filter(pl.col("pxOutcomeTime") <= pl.lit(now))
-            .drop(cs.starts_with("Temp."))
-            .sort("pxInteractionID", "pxOutcomeTime")
-        )
-
-        return IH(ih_data.lazy())
+        world = sample_world(seed=seed, days=days, end=end, scale=scale)
+        ih = cls(interaction_history(world, int(n)))
+        ih.outcome_labels_used = outcome_labels(world)
+        return ih
 
     def get_sequences(
         self,
@@ -572,7 +378,9 @@ class IH:
         """
         cols = [customerid_column, level, outcome_column]
 
-        df = self.data.select(cols).sort([customerid_column]).collect()
+        df = (
+            self.data.select(*cols, "OutcomeTime").sort(customerid_column, "OutcomeTime", maintain_order=True).collect()
+        )
 
         count_actions: list[defaultdict[tuple[str, ...], int]] = [defaultdict(int), defaultdict(int)]
         count_sequences: list[defaultdict[tuple[str, ...], int]] = [
