@@ -32,7 +32,7 @@ logging.disable()
 from IPython.display import display, Markdown
 
 from pdstools import (
-    datasets,
+    demo_data,
     ADMDatamart,
     Prediction,
     read_ds_export,
@@ -208,7 +208,7 @@ if model_file_path is not None:
     )
 else:
     # fall back to sample data
-    datamart = datasets.cdh_sample()
+    datamart = demo_data().datamart
 
 # Get formatted data for report display
 last_data = datamart.get_last_data_for_report()

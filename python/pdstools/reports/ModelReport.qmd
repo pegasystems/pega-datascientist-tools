@@ -30,7 +30,7 @@ import os.path
 from pathlib import Path
 import traceback
 
-from pdstools import __version__ as pdstools_version, datasets, ADMDatamart, read_ds_export
+from pdstools import __version__ as pdstools_version, demo_data, ADMDatamart, read_ds_export
 from pdstools.utils.cdh_utils import auc_ci_from_bincounts, z_ratio, lift
 import polars as pl
 from IPython.display import display, Markdown
@@ -100,8 +100,12 @@ if model_id is not None and predictor_file_path is not None:
     # .fillMissing()
 else:
     # fall back to sample data
-    model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
-    datamart = datasets.cdh_sample(query=pl.col("ModelID") == model_id)
+    model_id = "05085857-c52c-5daa-b51b-0af576a038af"
+    sample = demo_data(end="canonical").datamart
+    datamart = ADMDatamart(
+        sample.model_data.filter(pl.col("ModelID") == model_id),
+        sample.predictor_data.filter(pl.col("ModelID") == model_id),
+    )
 
 # TODO ensure this is only one predictor snapshot, just in case? although it would be
 # neat to show predictor evolution, if available

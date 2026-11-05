@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import polars as pl
 import pytest
+from pdstools import demo_data
 from pdstools.utils import streamlit_utils
 
 
@@ -79,14 +80,15 @@ class TestCachingFunctions:
         """Test loading sample data."""
         result = streamlit_utils.cached_sample()
 
-        assert result.model_data.collect().height == 1535
-        assert result.predictor_data.collect().height == 70735
+        assert result is demo_data().datamart
+        assert result.model_data.collect().height == 131845
+        assert result.predictor_data.collect().height == 244764
         assert result.model_data.collect().columns[:5] == [
             "ModelID",
+            "AppliesToClass",
+            "Configuration",
+            "ModelTechnique",
             "Issue",
-            "Group",
-            "Name",
-            "Channel",
         ]
 
     @patch("streamlit.cache_resource", lambda f: f)
@@ -94,7 +96,8 @@ class TestCachingFunctions:
         """Test loading sample prediction data."""
         result = streamlit_utils.cached_sample_prediction()
 
-        assert result.predictions.collect().height == 300
+        assert result is demo_data().prediction
+        assert result.predictions.collect().height == 910
         assert result.predictions.collect().columns[:5] == [
             "pyModelId",
             "SnapshotTime",

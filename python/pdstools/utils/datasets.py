@@ -4,7 +4,6 @@ import pathlib
 import warnings
 from typing import TYPE_CHECKING
 
-from ..adm.ADMDatamart import ADMDatamart
 from ..valuefinder.ValueFinder import ValueFinder
 
 _RAW_GITHUB_DATA_URL = "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data"
@@ -17,45 +16,8 @@ if TYPE_CHECKING:
     from ..adm.trees import ADMTreesModel
     from ..data_quality._topic_data_quality import TopicDataQuality
     from ..explanations.Explanations import Explanations
-    from ..utils.types import QUERY
 else:
     ADMTreesModel = None
-
-
-def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
-    """Import a sample dataset from the CDH Sample application
-
-    In a source checkout, the repository data files are preferred so examples
-    and tests use the versioned sample data. Installed packages fall back to
-    the canonical GitHub data URL.
-
-    Parameters
-    ----------
-    query : QUERY | None, optional
-        An optional query to apply to the data, by default None
-
-    Returns
-    -------
-    ADMDatamart
-        The ADM Datamart class populated with CDH Sample data
-
-    """
-    models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip"
-    predictors = "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip"
-    has_local_sample = all((_REPO_DATA_DIR / filename).is_file() for filename in (models, predictors))
-    path = _REPO_DATA_DIR if has_local_sample else _RAW_GITHUB_DATA_URL
-    with warnings.catch_warnings(record=True) as w:
-        try:
-            return ADMDatamart.from_ds_export(
-                model_filename=models,
-                predictor_filename=predictors,
-                base_path=path,
-                query=query,
-            )
-        except Exception as e:
-            raise RuntimeError(
-                f"Error importing CDH Sample. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
-            ) from e
 
 
 def sample_trees():

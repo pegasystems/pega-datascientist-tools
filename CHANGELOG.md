@@ -70,8 +70,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - ADM Health Check trend plots now use date-range-based daily, weekly, or
   monthly intervals. Success rate and response counts show per-interval
   changes, while performance (AUC) uses the latest value in each interval.
-  `cdh_sample()` uses repository data in source checkouts and falls back to
-  the canonical URL when those files are unavailable.
 - `plot.over_time()` now applies `every` to all metrics, cumulative or not,
   with the same meaning as in Polars `group_by_dynamic`: each model's last
   snapshot per interval is used and `SnapshotTime` is the interval start.
@@ -91,6 +89,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `"Number of Action/Treatment Records"` instead of `"Number of Models"`,
   and its category labels describe action/treatment records. Update callers
   that select the previous column name.
+
+### Removed
+
+- `pdstools.cdh_sample()` and `pdstools.datasets.cdh_sample()` are removed
+  (#999). Use `pdstools.demo_data().datamart`, or
+  `ADMDatamart.from_mock_data()`, for a synthetic datamart that needs no
+  download. The Health Check and model report fallbacks and the Streamlit
+  sample now use the same synthetic world.
 
 ### Fixed
 
