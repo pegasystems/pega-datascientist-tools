@@ -142,6 +142,25 @@ class SampleWorld:
         """Return the expected behaviour of one channel for every window day."""
         return _channel_days(self, channel)
 
+    def feedback(self, channel: str, technique: str) -> tuple[tuple[bool, float], ...]:
+        """Return per-day delayed-feedback state of one channel and model technique.
+
+        Positive-only stories hit every model of the affected channel and
+        technique, including multi-channel models, so the weekly success rate
+        of that facet is exactly one.
+
+        Returns
+        -------
+        tuple[tuple[bool, float], ...]
+            Per window day: whether negatives are withheld, and the multiplier
+            on negatives while they catch up.
+        """
+        return _feedback(self, channel, technique)
+
+    def baseline(self, channel: str) -> float:
+        """Mature weekday success rate of a channel, including the Omni stream."""
+        return self._daily_volume(channel)[1]
+
     def _daily_volume(self, channel: str) -> tuple[float, float]:
         if channel == OMNI:
             return _OMNI_DAILY_RESPONSES * self.scale, _OMNI_BASELINE
@@ -198,6 +217,16 @@ def _channel_days(world: SampleWorld, channel: str) -> tuple[ChannelDay, ...]:
                 lift = 0.05 + (lift - 0.05) * progress
                 auc -= 4 * (1 - progress)
         result.append(ChannelDay(day, when, volume, ctr, lift, auc, positive_only, burst))
+    return tuple(result)
+
+
+@cache
+def _feedback(world: SampleWorld, channel: str, technique: str) -> tuple[tuple[bool, float], ...]:
+    stories = [s for s in world.spec.stories if s.positive_only and s.channel == channel and s.technique == technique]
+    result = []
+    for day in range(world.days):
+        phases = [world._story_phase(story, day)[0] for story in stories]
+        result.append(("event" in phases, _NEGATIVE_BURST if "recovery" in phases else 1.0))
     return tuple(result)
 
 
