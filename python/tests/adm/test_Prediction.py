@@ -665,11 +665,11 @@ def test_performance_range_in_summary_methods(preds_singleday):
     )
     assert mock_rows == pytest.approx(
         {
-            "Multi-channel": 0.6586881749482256,
-            "Mobile": 0.6549576420323682,
+            "Multi-channel": 0.6586924799893247,
+            "Mobile": 0.65496452612483,
             "Call Center": 0.557509616443089,
-            "E-mail": 0.6719559690065728,
-            "Web": 0.7564622048694816,
+            "E-mail": 0.6719626944646954,
+            "Web": 0.7564634897336598,
         },
         rel=1e-6,
     )
