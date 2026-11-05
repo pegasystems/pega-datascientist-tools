@@ -1,26 +1,27 @@
 """Testing the functionality of the built-in datasets"""
 
+from datetime import datetime
+
 import polars as pl
-from pdstools import datasets
+from pdstools import datasets, demo_data
 from pdstools.utils import cdh_utils
 
 
-def test_import_CDHSample():
-    sample = datasets.cdh_sample()
-    sample_model_data = sample.model_data.collect()
-    assert sample_model_data.shape == (1535, 30)
-    assert sample.predictor_data.collect().height == 70735
+def test_demo_datamart():
+    sample = demo_data(end="canonical").datamart
+    assert sample.model_data.collect().shape == (131845, 20)
+    assert sample.predictor_data.collect().height == 244764
 
     snapshot_times = (
         sample.model_data.select("SnapshotTime").unique().sort("SnapshotTime").collect().get_column("SnapshotTime")
     )
-    assert len(snapshot_times) == 18
-    assert (snapshot_times[-1] - snapshot_times[0]).days == 17
-    assert snapshot_times[0].year == snapshot_times[-1].year == 2026
+    assert len(snapshot_times) == 182
+    assert snapshot_times[0] == datetime(2000, 1, 3, 22, 3, 49)
+    assert snapshot_times[-1] == datetime(2000, 7, 2, 22, 3, 49)
     predictor_snapshot_times = (
-        sample.predictor_data.select("SnapshotTime").unique().sort("SnapshotTime").collect().get_column("SnapshotTime")
+        sample.predictor_data.select("SnapshotTime").unique().collect().get_column("SnapshotTime")
     )
-    assert predictor_snapshot_times.to_list() == snapshot_times.to_list()
+    assert predictor_snapshot_times.to_list() == [snapshot_times[-1]]
 
     period_ctr = sample.plot.over_time(
         metric="SuccessRate",
@@ -30,8 +31,7 @@ def test_import_CDHSample():
         cumulative=False,
         return_df=True,
     ).collect()
-    assert period_ctr.height > 0
-    assert period_ctr.get_column("SnapshotTime").n_unique() > 1
+    assert period_ctr.get_column("SnapshotTime").n_unique() == 25
 
     trend = sample.plot.over_time(
         metric="SuccessRate",
@@ -40,51 +40,22 @@ def test_import_CDHSample():
         every="auto",
         cumulative=False,
     )
-    assert trend.layout.yaxis.title.text == "Daily Success Rate"
+    assert trend.layout.yaxis.title.text == "Weekly Success Rate"
 
 
-def test_cdh_sample_action_trend():
-    sample = datasets.cdh_sample()
-    for frame, date_column in (
-        (sample.model_data, "SnapshotTime"),
-        (sample.predictor_data, "SnapshotTime"),
-        (sample.model_data, "FactoryUpdateTime"),
-    ):
-        years = frame.select(pl.col(date_column).dt.year().unique()).collect().to_series().to_list()
-        assert years == [2026]
+def test_demo_action_trend():
+    sample = demo_data(end="canonical").datamart
+    assert cdh_utils.resolve_trend_interval(sample.model_data, "auto") == "1w"
 
-    trend = sample.aggregates.overall_summary(every="1w").select("Actions", "Used Actions", "New Actions").collect()
-    assert trend["Actions"].to_list() == [60, 63, 65]
-    assert trend["Used Actions"].to_list() == [60, 58, 60]
-    assert trend["New Actions"].to_list() == [60, 3, 2]
-    assert trend.tail(2)["Used Actions"].min() > 50
-    assert (trend.tail(2)["Actions"] > trend.tail(2)["Used Actions"]).all()
-
-    auto_interval = cdh_utils.resolve_trend_interval(sample.model_data, "auto")
-    assert auto_interval == "1d"
-    daily_trend = sample.aggregates.overall_summary(every=auto_interval).select("New Actions", "Used Actions").collect()
-    assert daily_trend.filter(pl.col("New Actions") > 0)["New Actions"].to_list() == [59, 1, 3, 2]
-    # Above the Health Check minimum of 50 used actions, except for a single dip.
-    assert daily_trend["Used Actions"].to_list() == [
-        59,
-        54,
-        56,
-        53,
-        51,
-        51,
-        48,
-        53,
-        52,
-        53,
-        52,
-        53,
-        51,
-        55,
-        51,
-        55,
-        55,
-        55,
-    ]
+    trend = (
+        sample.aggregates.overall_summary(every="4w")
+        .select("Actions", "Used Actions", "New Actions", "Stopped Actions")
+        .collect()
+    )
+    assert trend["Actions"].to_list() == [84, 89, 93, 98, 103, 108, 111]
+    assert trend["Used Actions"].to_list() == [84, 89, 93, 98, 99, 100, 101]
+    assert trend["New Actions"].to_list() == [84, 5, 4, 5, 5, 5, 3]
+    assert trend["Stopped Actions"].to_list() == [None, 0, 0, 0, 4, 4, 2]
 
 
 def test_import_SampleTrees():
@@ -103,15 +74,6 @@ def test_import_SampleValueFinder():
 
 def _raise(*args, **kwargs):
     raise RuntimeError("boom")
-
-
-def test_cdh_sample_raises_runtime_error(monkeypatch):
-    import pytest
-    from pdstools.adm.ADMDatamart import ADMDatamart
-
-    monkeypatch.setattr(ADMDatamart, "from_ds_export", _raise)
-    with pytest.raises(RuntimeError, match="Error importing CDH Sample"):
-        datasets.cdh_sample()
 
 
 def test_sample_trees_raises_runtime_error(monkeypatch):

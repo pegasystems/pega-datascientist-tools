@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo as timezone
 import numpy as np
 import polars as pl
 import pytest
-from pdstools import datasets
+from pdstools import demo_data
 from pdstools.utils import cdh_utils
 from pdstools.utils.cdh_utils import _metrics
 from pdstools.utils.cdh_utils._io import (
@@ -910,10 +910,8 @@ def test_feature_importance_edge_cases():
 
 
 def test_feature_importance_with_sample_datamart():
-    """Integration test with actual ADM sample data."""
-    from pdstools import datasets
-
-    dm = datasets.cdh_sample()
+    """Integration test with the synthetic demo datamart."""
+    dm = demo_data(end="canonical").datamart
 
     result = (
         dm.predictor_data.filter(pl.col("EntryType") != "Classifier")
@@ -923,11 +921,11 @@ def test_feature_importance_with_sample_datamart():
         .collect()
     )
 
-    # Verify exact values from the CDH sample dataset (1780 predictor×model rows)
-    assert result.height == 1780
+    # Exact values from the canonical demo datamart (114334 predictor×model rows)
+    assert result.height == 114334
     assert result["FeatureImportance"].null_count() == 0
-    assert result["FeatureImportance"].min() == pytest.approx(0.011369702282117651, rel=1e-6)
-    assert result["FeatureImportance"].max() == pytest.approx(2.6622881702249597, rel=1e-6)
+    assert 0.0 <= result["FeatureImportance"].min() < 1e-6
+    assert result["FeatureImportance"].max() == pytest.approx(4.9882495617243, rel=1e-6)
 
 
 # Test _capitalize function
@@ -1147,7 +1145,7 @@ def test_gains_table():
 
 
 def test_legend_color_order():
-    input_fig = datasets.cdh_sample().plot.bubble_chart()
+    input_fig = demo_data(end="canonical").datamart.plot.bubble_chart()
     output_fig = cdh_utils.legend_color_order(input_fig)
 
     assert output_fig.data[0].marker.color == "#001F5F"

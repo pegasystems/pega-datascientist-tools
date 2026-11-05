@@ -8,7 +8,7 @@ group_by aggregation. These tests pin the contract:
 * The new batched implementation produces bit-equal (within 1e-9) results
   versus a verbatim copy of the old one across many synthetic inputs.
 * Edge cases (no models, disjoint bins, identical bins, immature models).
-* End-to-end equivalence via ``roll_up`` against the cdh_sample fixture.
+* End-to-end equivalence via ``roll_up`` against the demo-data fixture.
 """
 
 from __future__ import annotations
@@ -19,19 +19,14 @@ from typing import TYPE_CHECKING
 
 import polars as pl
 import pytest
-from pdstools import datasets
+from pdstools import ADMDatamart
 from polars.testing import assert_frame_equal
 
 if TYPE_CHECKING:
     from pdstools.adm.BinAggregator import BinAggregator
 
 
-@pytest.fixture(scope="module")
-def cdhsample_binaggregator():
-    sample = datasets.cdh_sample(
-        query=((pl.col("Issue").is_in(["Sales"])) & (pl.col("Direction") == "Inbound")),
-    )
-    return sample.bin_aggregator
+NUM_PREDICTOR = "IH.Web.Inbound.Clicked.pxLastOutcomeTime.DaysSince"
 
 
 def _accumulate_num_binnings_reference(
@@ -99,15 +94,15 @@ def _make_source(
 # ---------------------------------------------------------------------------
 
 
-def test_old_accumulate_is_order_independent(cdhsample_binaggregator):
+def test_old_accumulate_is_order_independent(sample_binaggregator):
     """Old sequential accumulate must be order-independent within ~1e-9.
 
     This is the invariant that justifies the batched refactor. If this ever
     fails we have a hidden ordering bug — STOP and investigate before
     trusting the batched implementation.
     """
-    ba = cdhsample_binaggregator
-    predictor = "Customer.AnnualIncome"
+    ba = sample_binaggregator
+    predictor = NUM_PREDICTOR
     ids = ba.all_predictorbinning.select(pl.col("ModelID").unique().sort()).collect()["ModelID"].to_list()
     assert len(ids) >= 2
 
@@ -195,14 +190,14 @@ def _make_synthetic_case(seed: int, n_models: int, n_bins: int, *, disjoint: boo
     ],
 )
 def test_batched_matches_reference(
-    cdhsample_binaggregator,
+    sample_binaggregator,
     seed,
     n_models,
     n_bins,
     kw,
 ):
     """Batched ``_combine_many_numbinnings`` ≡ verbatim sequential reference."""
-    ba = cdhsample_binaggregator
+    ba = sample_binaggregator
     target, sources, modelids = _make_synthetic_case(
         seed,
         n_models,
@@ -236,9 +231,9 @@ def test_batched_matches_reference(
 # ---------------------------------------------------------------------------
 
 
-def test_no_sources_leaves_target_unchanged(cdhsample_binaggregator):
+def test_no_sources_leaves_target_unchanged(sample_binaggregator):
     """Empty modelids: target untouched, Models incremented by 0."""
-    ba = cdhsample_binaggregator
+    ba = sample_binaggregator
     target = _make_target(0.0, 100.0, 5)
     out = ba._combine_many_numbinnings(
         pl.concat([_make_source("ignored", [0, 1], [0.0], [0.0])], how="vertical_relaxed").head(0),
@@ -248,9 +243,9 @@ def test_no_sources_leaves_target_unchanged(cdhsample_binaggregator):
     assert_frame_equal(out, target)
 
 
-def test_disjoint_bins_only_increment_models(cdhsample_binaggregator):
+def test_disjoint_bins_only_increment_models(sample_binaggregator):
     """Source entirely outside target range: only Models changes."""
-    ba = cdhsample_binaggregator
+    ba = sample_binaggregator
     target = _make_target(0.0, 100.0, 4)
     src = _make_source("m", [200.0, 210.0, 220.0], [1.0, -0.5], [100.0, 200.0])
     out = ba._combine_many_numbinnings(src, target.clone(), n_models=1)
@@ -261,9 +256,9 @@ def test_disjoint_bins_only_increment_models(cdhsample_binaggregator):
     assert out["Models"].to_list() == [1] * 4
 
 
-def test_source_identical_to_target_passes_through(cdhsample_binaggregator):
+def test_source_identical_to_target_passes_through(sample_binaggregator):
     """Source bins == target bins: target adopts source lift/responses exactly."""
-    ba = cdhsample_binaggregator
+    ba = sample_binaggregator
     target = _make_target(0.0, 100.0, 4)
     edges = [0.0, 25.0, 50.0, 75.0, 100.0]
     lifts = [0.5, -0.25, 1.5, -1.0]
@@ -279,9 +274,9 @@ def test_source_identical_to_target_passes_through(cdhsample_binaggregator):
     assert out["Models"].to_list() == [1] * 4
 
 
-def test_all_zero_responses_immature_model(cdhsample_binaggregator):
+def test_all_zero_responses_immature_model(sample_binaggregator):
     """Immature model (BinResponses = 0): contributes lift but no responses."""
-    ba = cdhsample_binaggregator
+    ba = sample_binaggregator
     target = _make_target(0.0, 100.0, 4)
     src = _make_source("m", [0.0, 50.0, 100.0], [1.0, -1.0], [0.0, 0.0])
     out = ba._combine_many_numbinnings(src, target.clone(), n_models=1)
@@ -293,14 +288,14 @@ def test_all_zero_responses_immature_model(cdhsample_binaggregator):
 
 
 # ---------------------------------------------------------------------------
-# (d) End-to-end via ``roll_up`` against the public cdh_sample fixture.
+# (d) End-to-end via ``roll_up`` against the demo-data fixture.
 # ---------------------------------------------------------------------------
 
 
-def test_roll_up_matches_reference_implementation(cdhsample_binaggregator):
+def test_roll_up_matches_reference_implementation(sample_binaggregator):
     """``roll_up`` (which calls accumulate_num_binnings) matches old impl."""
-    ba = cdhsample_binaggregator
-    predictor = "Customer.AnnualIncome"
+    ba = sample_binaggregator
+    predictor = NUM_PREDICTOR
 
     new_result = ba.roll_up(predictor, n=10, return_df=True)
 
@@ -339,9 +334,9 @@ def _benchmark():
 
     logging.basicConfig(level=logging.WARNING)
 
-    sample = datasets.cdh_sample()
+    sample = ADMDatamart.from_mock_data(end="canonical")
     ba = sample.bin_aggregator
-    predictor = "Customer.AnnualIncome"
+    predictor = NUM_PREDICTOR
 
     # Synthesise 50 source binnings × 20 bins each by replicating the few real ones.
     base_ids = ba.all_predictorbinning.select(pl.col("ModelID").unique().sort()).collect()["ModelID"].to_list()
