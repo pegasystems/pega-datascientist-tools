@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from . import v24_1, v24_2, v25_1, v26_1
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .base import AsyncPredictionStudioBase, PredictionStudioBase

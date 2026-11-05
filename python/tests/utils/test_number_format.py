@@ -83,7 +83,7 @@ class TestMetricFormats:
 
     def test_get_returns_format_for_known_metric(self):
         fmt = MetricFormats.get("ModelPerformance")
-        assert fmt is not None
+        assert fmt == MetricFormats._FORMATS["ModelPerformance"]
         assert fmt.decimals == 2
 
     def test_get_returns_none_for_unknown_metric(self):
@@ -109,7 +109,7 @@ class TestMetricFormats:
         MetricFormats.register("_TestMetric", custom_fmt)
         try:
             retrieved = MetricFormats.get("_TestMetric")
-            assert retrieved is not None
+            assert retrieved == custom_fmt
             assert retrieved.decimals == 4
         finally:
             del MetricFormats._FORMATS["_TestMetric"]

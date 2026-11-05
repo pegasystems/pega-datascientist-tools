@@ -15,13 +15,12 @@ from __future__ import annotations
 
 import logging
 import random
+from typing import TYPE_CHECKING
 
 import polars as pl
 import pytest
-from polars.testing import assert_frame_equal
-
 from pdstools import datasets
-from typing import TYPE_CHECKING
+from polars.testing import assert_frame_equal
 
 if TYPE_CHECKING:
     from pdstools.adm.BinAggregator import BinAggregator

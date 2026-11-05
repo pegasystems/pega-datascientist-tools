@@ -4,6 +4,7 @@ import datetime
 import itertools
 import logging
 import os
+from typing import TYPE_CHECKING
 
 import polars as pl
 
@@ -15,7 +16,6 @@ from ..utils.metric_limits import (
     is_standard_NBAD_prediction,
 )
 from .Plots import PredictionPlots
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

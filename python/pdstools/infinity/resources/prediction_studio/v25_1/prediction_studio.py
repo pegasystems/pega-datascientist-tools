@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, cast, overload
 
-
 from ....internal._pagination import AsyncPaginatedList, PaginatedList
 from ..v26_1.prediction_studio._async import AsyncPredictionStudio as _AsyncPredictionStudiov26_1
 from ..v26_1.prediction_studio._sync import PredictionStudio as _PredictionStudiov26_1

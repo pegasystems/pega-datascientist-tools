@@ -10,9 +10,9 @@ the transition from "no data" to "have data".
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
 from streamlit.testing.v1 import AppTest
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -54,12 +54,11 @@ def test_sample_auto_load_triggers_rerun_then_unlocks_nav(da_app_dir: Path):
     # ``_navigation.pages()`` directly here would need a live Streamlit
     # runtime (``st.Page`` requires it), so assert on the underlying
     # signal instead.
-    from pdstools.app.decision_analyzer import _navigation
-
     # ``locked_page_titles()`` reads ``st.session_state`` (the bare
     # module-level one, not AppTest's). Mirror the loaded state into
     # it so we exercise the gating logic end-to-end.
     import streamlit as st
+    from pdstools.app.decision_analyzer import _navigation
 
     st.session_state["decision_data"] = at.session_state["decision_data"]
     try:

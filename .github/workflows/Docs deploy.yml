@@ -93,7 +93,7 @@ jobs:
         run: uv python install 3.11
 
       - name: Install the project
-        run: uv sync --project "${{ steps.build_tree.outputs.build_root }}" --extra docs --extra all
+        run: uv sync --locked --project "${{ steps.build_tree.outputs.build_root }}" --extra docs --extra all
 
       - name: System dependencies
         run: |

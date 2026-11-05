@@ -9,10 +9,10 @@ error rather than crashing with a Python stack trace.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
 import pytest
 from streamlit.testing.v1 import AppTest
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pathlib import Path

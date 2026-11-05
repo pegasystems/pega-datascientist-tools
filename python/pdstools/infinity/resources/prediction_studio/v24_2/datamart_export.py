@@ -15,15 +15,15 @@ class _DatamartExportV24_2Mixin:
         ----------
         client : Client
             The client used to interact with the API.
-        reference_id : str
+        referenceId : str
             The reference ID for the data mart export.
         location : str
             The location of the data mart export.
-        repository_name : str
+        repositoryName : str
             The name of the repository for the data mart export.
 
         """
-        super().__init__(client=client)  # type: ignore[call-arg]
+        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative mixin init resolves at runtime; mypy sees object.__init__
         self.reference_id = referenceId
         self.location = location
         self.repository_name = repositoryName

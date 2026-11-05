@@ -12,13 +12,14 @@ exception branch.
 
 from __future__ import annotations
 
-
-from streamlit.testing.v1 import AppTest
 from typing import TYPE_CHECKING
 
+from streamlit.testing.v1 import AppTest
+
 if TYPE_CHECKING:
-    import pytest
     from pathlib import Path
+
+    import pytest
 
 
 def _boom() -> object:

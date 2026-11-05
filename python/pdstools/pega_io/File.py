@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from glob import glob
 from io import BytesIO
 from pathlib import Path
-from typing import Literal, cast, overload, TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, cast, overload
 
 import polars as pl
 import polars.selectors as cs
@@ -82,6 +82,15 @@ def _local_repo_data_path(path: str) -> str | None:
     return str(local_path) if local_path.is_dir() else None
 
 
+def is_url(source: str | Path) -> bool:
+    """Return True when ``source`` is an ``http(s)://`` URL rather than a local path.
+
+    ``pathlib`` mangles URLs (it collapses ``//`` and resolves them against the
+    working directory), so any path-like handling has to branch on this first.
+    """
+    return str(source).startswith(("http://", "https://"))
+
+
 def _is_artifact(name: str) -> bool:
     """Return True for OS-generated junk entries (macOS, Windows, etc.)."""
     return name.startswith("__MACOSX") or name.startswith("._") or name in {".DS_Store", "Thumbs.db", "desktop.ini"}
@@ -133,6 +142,65 @@ def _extract_zip(archive_path: Path) -> str:
             "but it is not a complete ZIP archive that Python can extract.",
         ) from exc
     return tmp_dir
+
+
+_MAX_NESTED_ZIP_DEPTH = 5
+
+
+def _find_zip_files(directory: Path) -> list[Path]:
+    return sorted(path for path in directory.rglob("*") if path.is_file() and path.suffix.lower() == ".zip")
+
+
+def _unique_sibling(path: Path) -> Path:
+    candidate = path
+    counter = 1
+    while candidate.exists():
+        candidate = path.with_name(f"{path.name}_{counter}")
+        counter += 1
+    return candidate
+
+
+def _extract_nested_zip_archives(directory: str) -> None:
+    """Expand nested ``.zip`` entries in an extracted archive tree, in place.
+
+    Real ZIP archives are extracted recursively. Gzip files with a ``.zip``
+    extension (the chunk format of Pega Action Analysis exports) are
+    decompressed to ``.ndjson``. Any other ``.zip`` file is skipped with a
+    warning.
+
+    Raises
+    ------
+    ValueError
+        When ZIP archives are nested deeper than ``_MAX_NESTED_ZIP_DEPTH``.
+    """
+    pending = [(path, 1) for path in _find_zip_files(Path(directory))]
+    while pending:
+        archive_path, depth = pending.pop()
+        with archive_path.open("rb") as fh:
+            is_gzip = fh.read(2) == b"\x1f\x8b"
+
+        if is_gzip:
+            target = _unique_sibling(archive_path.with_suffix(".ndjson"))
+            with gzip.open(archive_path, "rb") as src, target.open("wb") as dst:
+                shutil.copyfileobj(src, dst)
+            archive_path.unlink()
+            continue
+
+        if not zipfile.is_zipfile(archive_path):
+            logger.warning("Skipping a non-ZIP file with a .zip extension in the archive.")
+            archive_path.unlink(missing_ok=True)
+            continue
+
+        if depth > _MAX_NESTED_ZIP_DEPTH:
+            raise ValueError(f"ZIP archives are nested more than {_MAX_NESTED_ZIP_DEPTH} levels deep.")
+
+        extracted_dir = _unique_sibling(archive_path.with_suffix(""))
+        extracted_dir.mkdir(parents=True)
+        with zipfile.ZipFile(archive_path, "r") as archive:
+            archive.extractall(extracted_dir)
+        archive_path.unlink()
+        _clean_artifacts(str(extracted_dir))
+        pending.extend((path, depth + 1) for path in _find_zip_files(extracted_dir))
 
 
 def _scan_by_extension(
@@ -263,6 +331,9 @@ def _read_from_bytesio(
         The BytesIO object containing file data.
     extension : str
         The file extension (e.g., '.csv', '.json', '.zip', '.gz').
+    read_options : dict, optional
+        Extra keyword arguments forwarded to the polars reader for the
+        resolved leaf format, by default None.
 
     Returns
     -------
@@ -323,13 +394,21 @@ def scan_parquet_path(source: str | Path | list[str] | list[Path]) -> pl.LazyFra
     Parameters
     ----------
     source : str or Path or list of str/Path
-        Path to a parquet file, a glob pattern (e.g. ``"folder/*_BATCH_*.parquet"``),
-        or a list of file paths.
+        Path to a parquet file, an ``http(s)://`` URL, a glob pattern (e.g.
+        ``"folder/*_BATCH_*.parquet"``), or a list of file paths.
 
     Returns
     -------
     pl.LazyFrame
         LazyFrame over the matched parquet file(s).
+
+    Raises
+    ------
+    FileNotFoundError
+        If a plain (non-glob) local path does not exist. ``pl.scan_parquet``
+        is lazy, so without this the failure would surface much later from an
+        unrelated ``collect()``, pointing at the wrong operation. URLs are
+        exempt: only the remote server can answer whether they exist.
 
     """
     # lgtm [py/path-injection]
@@ -338,6 +417,8 @@ def scan_parquet_path(source: str | Path | list[str] | list[Path]) -> pl.LazyFra
     # intended functionality, not a vulnerability.
     if isinstance(source, list):
         return pl.scan_parquet(source)
+    if not is_url(source) and not any(c in str(source) for c in "*?[") and not Path(source).exists():
+        raise FileNotFoundError(f"No parquet file found at {source}")
     return _scan_by_extension(source, ".parquet")
 
 
@@ -352,6 +433,8 @@ def read_data(
     json, xlsx, xls, zip, tar, tar.gz, tgz, and gz.
     Handles both individual files and directories (including Hive-partitioned structures).
     Archives (zip, tar) are automatically extracted to temporary directories.
+    Nested ZIP archives are recursively extracted before scanning; gzip chunks
+    with a ``.zip`` extension (Pega Action Analysis exports) are read as NDJSON.
     Gzip files (.gz) are automatically decompressed.
 
     Parameters
@@ -530,6 +613,7 @@ def read_data(
         elif extension == ".zip":
             tmp_dir = _extract_zip(original_path)
             _clean_artifacts(tmp_dir)
+            _extract_nested_zip_archives(tmp_dir)
             return read_data(tmp_dir, read_options=read_options)
 
     if extension is None:
@@ -679,39 +763,6 @@ def read_ds_export(
     )
 
 
-def _fill_context_field_nulls(df: pl.LazyFrame) -> pl.LazyFrame:
-    """Fill nulls in context fields to prevent issues in downstream operations.
-
-    Context fields (Channel, Direction, Issue, Group, Name) often have nulls in
-    source data which can cause errors in group_by, transpose, and concat_str
-    operations. This function fills nulls with "Unknown" to ensure these operations
-    work correctly.
-
-    Note: Treatment is intentionally NOT filled because null Treatment has semantic
-    meaning (no treatment variation exists for that action).
-
-    Parameters
-    ----------
-    df : pl.LazyFrame
-        Input dataframe
-
-    Returns
-    -------
-    pl.LazyFrame
-        Dataframe with nulls filled in context fields
-
-    """
-    context_fields = ["Channel", "Direction", "Issue", "Group", "Name"]
-
-    # Only fill nulls for columns that exist in the dataframe
-    existing_context_fields = [col for col in context_fields if col in df.collect_schema().names()]
-
-    if existing_context_fields:
-        return df.with_columns([pl.col(col).fill_null("Unknown") for col in existing_context_fields])
-
-    return df
-
-
 def _read_pega_export(
     file: str | BytesIO,
     extension: str,
@@ -730,10 +781,12 @@ def _read_pega_export(
       containers,
     * passes ADM-friendly CSV options (``schema_overrides`` for
       ``PYMODELID``, plus the user-supplied
-      ``infer_schema_length`` / ``separator`` / ``ignore_errors``),
-    * applies :func:`_fill_context_field_nulls` so downstream group-by /
-      concat operations don't trip on null Channel / Direction / Issue /
-      Group / Name values.
+      ``infer_schema_length`` / ``separator`` / ``ignore_errors``).
+
+    Values are returned as read: filling null context keys (for example
+    with ``"Unknown"``) is left to the consumer's own validation, such as
+    :class:`~pdstools.adm.ADMDatamart.ADMDatamart`, which first needs the
+    nulls to detect AGB configuration-summary rows (#667).
 
     Generic CSV defaults (``null_values``, ``try_parse_dates``) live in
     :func:`_scan_by_extension` and apply uniformly.
@@ -781,7 +834,7 @@ def _read_pega_export(
             f"Could not import file {file!r} (extension {extension!r}). "
             f"Supported extensions: .csv, .json, .parquet, .feather, .ipc, .arrow, .zip."
         ) from exc
-    return _fill_context_field_nulls(df)
+    return df
 
 
 def read_zipped_file(file: str | BytesIO) -> tuple[BytesIO, str]:
@@ -864,7 +917,7 @@ def read_multi_zip(
                 UserWarning,
                 stacklevel=2,
             )
-            print("Reading files...")
+            print("Reading files...")  # noqa: T201 - progress fallback when tqdm is missing
         files_iterator = file_list
 
     table = []
@@ -876,7 +929,7 @@ def read_multi_zip(
 
     df = pl.concat(table, how="diagonal")
     if verbose:
-        print("Combining completed")
+        print("Combining completed")  # noqa: T201 - user-facing progress
     return df.lazy()
 
 

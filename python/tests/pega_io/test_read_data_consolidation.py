@@ -30,8 +30,7 @@ class TestReadDataConsolidation:
         df.write_parquet(path)
 
         result = read_data(path)
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().shape == (3, 2)
+        assert result.collect().to_dict(as_series=False) == {"a": [1, 2, 3], "b": ["x", "y", "z"]}
 
     def test_read_data_with_bytesio(self):
         """read_data should handle BytesIO objects."""
@@ -44,8 +43,7 @@ class TestReadDataConsolidation:
         bio.name = "test.parquet"
 
         result = read_data(bio)
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().shape == (3, 2)
+        assert result.collect().to_dict(as_series=False) == {"a": [1, 2, 3], "b": ["x", "y", "z"]}
 
     def test_read_ds_export_delegates_to_read_data_for_bytesio(self):
         """read_ds_export should delegate to read_data for BytesIO objects."""
@@ -58,8 +56,7 @@ class TestReadDataConsolidation:
         bio.name = "test.parquet"
 
         result = read_ds_export(bio)
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().shape == (3, 2)
+        assert result.collect().to_dict(as_series=False) == {"a": [1, 2, 3], "b": ["x", "y", "z"]}
 
     def test_read_ds_export_still_works_for_files(self, tmp_path):
         """read_ds_export should still work for file paths."""
@@ -70,8 +67,7 @@ class TestReadDataConsolidation:
         df.write_csv(path)
 
         result = read_ds_export(str(path))
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().shape == (2, 2)
+        assert result.collect().to_dict(as_series=False) == {"col1": [10, 20], "col2": ["foo", "bar"]}
 
     def test_helper_functions_accessible(self):
         """Helper functions should be accessible from pega_io.File."""
@@ -116,20 +112,21 @@ class TestReadDataConsolidation:
             path = tmp_path / filename
             writer(path)
             result = read_data(path)
-            assert isinstance(result, pl.LazyFrame), f"Failed for {filename}"
-            assert result.collect().shape[0] == 3, f"Wrong shape for {filename}"
+            assert result.collect().to_dict(as_series=False) == {"x": [1, 2, 3], "y": ["a", "b", "c"]}, (
+                f"Failed for {filename}"
+            )
 
     def test_streamlit_utils_imports_correctly(self):
         """Streamlit utils should import from the new locations."""
         from pdstools.app.decision_analyzer.da_streamlit_utils import (
             _clean_artifacts,
+            _extract_nested_zip_archives,
             read_data,
-            read_nested_zip_files,
         )
 
         assert callable(_clean_artifacts)
+        assert callable(_extract_nested_zip_archives)
         assert callable(read_data)
-        assert callable(read_nested_zip_files)
 
     def test_tar_archive_support(self, tmp_path):
         """read_data should handle TAR archives."""
@@ -148,9 +145,7 @@ class TestReadDataConsolidation:
             tar.add(parquet_path, arcname="data.parquet")
 
         result = read_data(tar_path)
-        assert isinstance(result, pl.LazyFrame)
-        collected = result.collect()
-        assert collected.shape == (3, 2)
+        assert result.collect().to_dict(as_series=False) == {"a": [1, 2, 3], "b": ["x", "y", "z"]}
 
     def test_gzip_decompression(self, tmp_path):
         """read_data should handle gzipped files."""
@@ -167,9 +162,7 @@ class TestReadDataConsolidation:
             f.write(csv_content.encode())
 
         result = read_data(gz_path)
-        assert isinstance(result, pl.LazyFrame)
-        collected = result.collect()
-        assert collected.shape == (3, 2)
+        assert result.collect().to_dict(as_series=False) == {"a": [1, 2, 3], "b": ["x", "y", "z"]}
 
     def test_clean_artifacts_removes_os_junk(self, tmp_path):
         """_clean_artifacts should remove __MACOSX, .DS_Store, and ._* files."""
@@ -206,8 +199,7 @@ class TestReadDataConsolidation:
         bio.name = "test.csv"
 
         result = read_data(bio)
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().shape == (3, 2)
+        assert result.collect().to_dict(as_series=False) == {"a": [1, 2, 3], "b": ["x", "y", "z"]}
 
     def test_bytesio_json(self):
         """read_data should handle BytesIO with JSON data."""
@@ -220,8 +212,7 @@ class TestReadDataConsolidation:
         bio.name = "test.json"
 
         result = read_data(bio)
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().shape == (3, 2)
+        assert result.collect().to_dict(as_series=False) == {"a": [1, 2, 3], "b": ["x", "y", "z"]}
 
     def test_bytesio_arrow(self):
         """read_data should handle BytesIO with Arrow/IPC data."""
@@ -234,8 +225,7 @@ class TestReadDataConsolidation:
         bio.name = "test.arrow"
 
         result = read_data(bio)
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().shape == (3, 2)
+        assert result.collect().to_dict(as_series=False) == {"a": [1, 2, 3], "b": ["x", "y", "z"]}
 
     def test_bytesio_feather(self):
         """read_data should handle BytesIO with feather extension."""
@@ -248,8 +238,7 @@ class TestReadDataConsolidation:
         bio.name = "test.feather"
 
         result = read_data(bio)
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().shape == (3, 2)
+        assert result.collect().to_dict(as_series=False) == {"a": [1, 2, 3], "b": ["x", "y", "z"]}
 
     def test_tar_gz_archive(self, tmp_path):
         """read_data should handle .tar.gz archives."""
@@ -268,8 +257,7 @@ class TestReadDataConsolidation:
             tar.add(parquet_path, arcname="data.parquet")
 
         result = read_data(tar_path)
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().shape == (3, 2)
+        assert result.collect().to_dict(as_series=False) == {"a": [1, 2, 3], "b": ["x", "y", "z"]}
 
     def test_tgz_archive(self, tmp_path):
         """read_data should handle .tgz archives."""
@@ -288,8 +276,7 @@ class TestReadDataConsolidation:
             tar.add(parquet_path, arcname="data.parquet")
 
         result = read_data(tar_path)
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().shape == (3, 2)
+        assert result.collect().to_dict(as_series=False) == {"a": [1, 2, 3], "b": ["x", "y", "z"]}
 
     def test_pega_dataset_export_zip(self, tmp_path):
         """read_data should handle Pega Dataset Export format (zip with data.json)."""
@@ -307,8 +294,7 @@ class TestReadDataConsolidation:
             zf.writestr("META-INF/MANIFEST.mf", "Manifest-Version: 1.0")
 
         result = read_data(zip_path)
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().shape == (3, 2)
+        assert result.collect().to_dict(as_series=False) == {"a": [1, 2, 3], "b": ["x", "y", "z"]}
 
     def test_zip_with_nested_data_json(self, tmp_path):
         """read_data should handle zip with nested data.json."""
@@ -324,8 +310,7 @@ class TestReadDataConsolidation:
             zf.writestr("some_folder/data.json", json_data)
 
         result = read_data(zip_path)
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().shape == (3, 2)
+        assert result.collect().to_dict(as_series=False) == {"a": [1, 2, 3], "b": ["x", "y", "z"]}
 
 
 class TestReadDataGlobs:
@@ -338,8 +323,10 @@ class TestReadDataGlobs:
             pl.DataFrame({"a": [i], "b": [f"x{i}"]}).write_parquet(tmp_path / f"part_{i}.parquet")
 
         result = read_data(str(tmp_path / "*.parquet"))
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().sort("a").shape == (3, 2)
+        assert result.collect().sort("a").to_dict(as_series=False) == {
+            "a": [0, 1, 2],
+            "b": ["x0", "x1", "x2"],
+        }
 
     def test_glob_recursive_parquet_pattern(self, tmp_path):
         from pdstools.pega_io import read_data
@@ -349,8 +336,7 @@ class TestReadDataGlobs:
         pl.DataFrame({"a": [1, 2]}).write_parquet(sub / "data.parquet")
 
         result = read_data(str(tmp_path / "**" / "*.parquet"))
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().shape == (2, 1)
+        assert result.collect().to_dict(as_series=False) == {"a": [1, 2]}
 
     def test_glob_csv_pattern(self, tmp_path):
         from pdstools.pega_io import read_data
@@ -359,8 +345,7 @@ class TestReadDataGlobs:
         pl.DataFrame({"a": [3, 4]}).write_csv(tmp_path / "right.csv")
 
         result = read_data(str(tmp_path / "*.csv"))
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().sort("a").shape == (4, 1)
+        assert result.collect().sort("a").to_dict(as_series=False) == {"a": [1, 2, 3, 4]}
 
     def test_glob_without_extension_defaults_to_parquet(self, tmp_path):
         from pdstools.pega_io import read_data
@@ -368,5 +353,95 @@ class TestReadDataGlobs:
         pl.DataFrame({"a": [1]}).write_parquet(tmp_path / "data.parquet")
 
         result = read_data(str(tmp_path / "*"))
-        assert isinstance(result, pl.LazyFrame)
-        assert result.collect().shape == (1, 1)
+        assert result.collect().to_dict(as_series=False) == {"a": [1]}
+
+
+def _parquet_bytes(values: list[int]) -> bytes:
+    buffer = BytesIO()
+    pl.DataFrame({"value": values}).write_parquet(buffer)
+    return buffer.getvalue()
+
+
+def _zip_bytes(entries: dict[str, bytes]) -> bytes:
+    import zipfile
+
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        for name, content in entries.items():
+            archive.writestr(name, content)
+    return buffer.getvalue()
+
+
+class TestReadDataNestedZip:
+    """read_data on ZIP archives whose entries are themselves .zip files."""
+
+    def test_nested_parquet_zips_skip_invalid_entries(self, tmp_path, caplog):
+        from pdstools.pega_io import read_data
+
+        archive = tmp_path / "export.zip"
+        archive.write_bytes(
+            _zip_bytes(
+                {
+                    "chunks/part-1.zip": _zip_bytes({"nested/part.parquet": _parquet_bytes([1, 2])}),
+                    "chunks/part-2.zip": _zip_bytes({"nested/part.parquet": _parquet_bytes([3])}),
+                    "chunks/invalid.zip": b"not a ZIP archive",
+                },
+            ),
+        )
+
+        result = read_data(archive)
+
+        assert result.collect().sort("value").to_dict(as_series=False) == {"value": [1, 2, 3]}
+        assert "Skipping a non-ZIP file" in caplog.text
+
+    def test_action_analysis_gzip_chunks(self, tmp_path):
+        import gzip
+
+        from pdstools.pega_io import read_data
+
+        archive = tmp_path / "action-analysis.zip"
+        archive.write_bytes(
+            _zip_bytes(
+                {
+                    "part-1.zip": gzip.compress(b'{"value": 1, "b": "x"}\n{"value": 2, "b": "y"}\n'),
+                    "part-2.zip": gzip.compress(b'{"b": "z", "value": 3}\n'),
+                },
+            ),
+        )
+
+        result = read_data(archive)
+
+        assert result.collect().sort("value").to_dict(as_series=False) == {
+            "value": [1, 2, 3],
+            "b": ["x", "y", "z"],
+        }
+
+    def test_nested_zip_does_not_merge_into_existing_folder(self, tmp_path):
+        from pdstools.pega_io import read_data
+
+        archive = tmp_path / "export.zip"
+        archive.write_bytes(
+            _zip_bytes(
+                {
+                    "part/existing.parquet": _parquet_bytes([1]),
+                    "part.zip": _zip_bytes({"existing.parquet": _parquet_bytes([2])}),
+                },
+            ),
+        )
+
+        result = read_data(archive)
+
+        assert result.collect().sort("value").to_dict(as_series=False) == {"value": [1, 2]}
+
+    def test_excessive_nesting_raises(self, tmp_path):
+        import pytest
+        from pdstools.pega_io import read_data
+
+        content = _zip_bytes({"data.parquet": _parquet_bytes([1])})
+        for _ in range(7):
+            content = _zip_bytes({"inner.zip": content})
+        archive = tmp_path / "deep.zip"
+        archive.write_bytes(content)
+
+        with pytest.raises(ValueError, match="nested more than"):
+            read_data(archive)

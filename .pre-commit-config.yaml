@@ -35,6 +35,11 @@ repos:
 
   - repo: local
     hooks:
+      - id: quality-guards
+        name: quality guards
+        entry: python3 scripts/check_quality_guards.py
+        language: system
+        files: ^(python/tests/.*\.py|python/pdstools/.*\.py)$
       - id: pyright
         name: pyright
         entry: uv run pyright --project pyrightconfig.json

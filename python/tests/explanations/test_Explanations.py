@@ -3,10 +3,19 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import polars as pl
 import pytest
 from pdstools.explanations import Explanations
+from pdstools.explanations.Aggregates import Aggregates
+from pdstools.explanations.Plots import Plots
+from pdstools.explanations.Reports import Reports
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "explanations" / "aggregated_data"
+
+
+def make_explanations(**kwargs) -> Explanations:
+    """Build an Explanations over empty frames, for tests that don't touch data."""
+    return Explanations(pl.LazyFrame(), pl.LazyFrame(), **kwargs)
 
 
 class TestExplanationsDateRange:
@@ -14,7 +23,7 @@ class TestExplanationsDateRange:
 
     def test_date_range_only_to_date(self):
         to_date = datetime(2023, 1, 8)
-        explanations = Explanations(to_date=to_date)
+        explanations = make_explanations(to_date=to_date)
 
         expected_from_date = to_date - timedelta(days=7)
         assert explanations.from_date == expected_from_date
@@ -22,7 +31,7 @@ class TestExplanationsDateRange:
 
     def test_date_range_only_from_date(self):
         from_date = datetime(2023, 1, 1)
-        explanations = Explanations(from_date=from_date)
+        explanations = make_explanations(from_date=from_date)
 
         expected_to_date = datetime.today().date()
         assert explanations.from_date == from_date
@@ -32,14 +41,14 @@ class TestExplanationsDateRange:
         from_date = datetime(2023, 1, 8)
         to_date = datetime(2023, 1, 1)
 
-        with pytest.raises(ValueError, match="from_date cannot be after to_date"):
-            Explanations(from_date=from_date, to_date=to_date)
+        with pytest.raises(ValueError, match=r"from_date \(2023-01-08.*\) cannot be after to_date \(2023-01-01.*\)"):
+            make_explanations(from_date=from_date, to_date=to_date)
 
     def test_valid_date_range(self):
         from_date = datetime(2023, 1, 1)
         to_date = datetime(2023, 1, 8)
 
-        explanations = Explanations(from_date=from_date, to_date=to_date)
+        explanations = make_explanations(from_date=from_date, to_date=to_date)
 
         assert explanations.from_date == from_date
         assert explanations.to_date == to_date
@@ -47,13 +56,13 @@ class TestExplanationsDateRange:
     def test_same_from_and_to_date(self):
         date = datetime(2023, 1, 1)
 
-        explanations = Explanations(from_date=date, to_date=date)
+        explanations = make_explanations(from_date=date, to_date=date)
 
         assert explanations.from_date == date
         assert explanations.to_date == date
 
     def test_default_date_range(self):
-        explanations = Explanations()
+        explanations = make_explanations()
 
         expected_to_date = datetime.today().date()
         expected_from_date = expected_to_date - timedelta(days=7)
@@ -67,74 +76,144 @@ class TestPureInit:
 
     def test_init_does_not_touch_filesystem(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
-        exp = Explanations()
+        make_explanations()
 
         assert list(tmp_path.iterdir()) == []
-        assert exp.root_dir == ".tmp"
-        assert Path(exp.root_dir) / exp.data_folder == Path(".tmp/aggregated_data")
+
+    def test_init_requires_both_frames(self):
+        with pytest.raises(TypeError):
+            Explanations()  # type: ignore[call-arg]
 
     def test_init_rejects_positional_paths(self):
+        # Only two positional args (overall, contextual) are accepted.
         with pytest.raises(TypeError):
-            Explanations("some_root_dir")  # type: ignore[misc]
+            Explanations(pl.LazyFrame(), pl.LazyFrame(), "some_root_dir")  # type: ignore[misc]
+
+    def test_frames_are_stored_verbatim(self):
+        overall, contextual = pl.LazyFrame({"a": [1]}), pl.LazyFrame({"b": [2]})
+        exp = Explanations(overall, contextual)
+
+        assert (exp.overall, exp.contextual) == (overall, contextual)
 
     def test_namespaces_attached(self):
-        exp = Explanations()
-        assert exp.aggregate is not None
-        assert exp.plot is not None
-        assert exp.report is not None
+        exp = make_explanations()
 
-    def test_absolute_path_splits_correctly(self, tmp_path):
-        """Test that absolute data_folder path is split into root_dir and data_folder."""
-        custom_data_path = tmp_path / "mydata"
-        custom_data_path.mkdir(parents=True)
+        assert (type(exp.aggregates), type(exp.plot), type(exp.report)) == (Aggregates, Plots, Reports)
+        assert all(namespace.explanations is exp for namespace in (exp.aggregates, exp.plot, exp.report))
 
-        exp = Explanations(data_folder=str(custom_data_path))
 
-        assert exp.root_dir == str(tmp_path)
-        assert exp.data_folder == "mydata"
-        assert Path(exp.root_dir) / exp.data_folder == custom_data_path
+class TestFromAggregates:
+    """from_aggregates owns all the I/O."""
 
-    def test_relative_path_splits_correctly(self):
-        """Test that relative data_folder path is split into root_dir and data_folder."""
-        exp = Explanations(data_folder="custom/path/mydata")
-
-        assert Path(exp.root_dir).as_posix() == "custom/path"
-        assert exp.data_folder == "mydata"
-
-    def test_explicit_root_dir_with_relative_data_folder(self, tmp_path):
-        """A relative aggregate folder resolves under the explicit root_dir."""
-        data_dir = tmp_path / "custom_aggs"
-        data_dir.mkdir()
+    def test_reads_both_frames(self, tmp_path):
         for filename in ("BY_CONTEXT.parquet", "OVERVIEW.parquet"):
-            (data_dir / filename).write_bytes((DATA_DIR / filename).read_bytes())
+            (tmp_path / filename).write_bytes((DATA_DIR / filename).read_bytes())
 
-        exp = Explanations.from_aggregates(root_dir=str(tmp_path), data_folder="custom_aggs")
+        exp = Explanations.from_aggregates(base_path=str(tmp_path))
 
-        assert exp.root_dir == str(tmp_path)
-        assert exp.data_folder == "custom_aggs"
-        assert exp.aggregate.data_folderpath == data_dir
+        assert exp.overall.collect().height == 1072
+        assert exp.contextual.collect().height == 8064
 
-    def test_path_object_accepted(self, tmp_path):
-        """Test that Path objects are accepted for data_folder."""
-        custom_data_path = tmp_path / "mydata"
-        custom_data_path.mkdir(parents=True)
+    def test_missing_folder_raises_immediately(self, tmp_path):
+        with pytest.raises(FileNotFoundError):
+            Explanations.from_aggregates(base_path=str(tmp_path / "nope"))
 
-        exp = Explanations(data_folder=custom_data_path)
+    def test_empty_folder_raises_immediately(self, tmp_path):
+        with pytest.raises(FileNotFoundError):
+            Explanations.from_aggregates(base_path=str(tmp_path))
 
-        assert exp.root_dir == str(tmp_path)
-        assert exp.data_folder == "mydata"
+    def test_contextual_filename_selects_a_batch(self, tmp_path):
+        (tmp_path / "OVERVIEW.parquet").write_bytes((DATA_DIR / "OVERVIEW.parquet").read_bytes())
+        batches = tmp_path / "batches"
+        batches.mkdir()
+        (batches / "BATCH_1.parquet").write_bytes((DATA_DIR / "BY_CONTEXT.parquet").read_bytes())
+
+        exp = Explanations.from_aggregates(
+            base_path=str(tmp_path),
+            contextual_filename="batches/BATCH_1.parquet",
+        )
+
+        assert exp.contextual.collect().height > 0
+
+    def test_absolute_filename_ignores_base_path(self, tmp_path):
+        """An absolute overall_filename / contextual_filename wins over base_path."""
+        other_dir = tmp_path / "other"
+        other_dir.mkdir()
+        for filename in ("BY_CONTEXT.parquet", "OVERVIEW.parquet"):
+            (other_dir / filename).write_bytes((DATA_DIR / filename).read_bytes())
+
+        base = tmp_path / "empty_base"
+        base.mkdir()
+
+        exp = Explanations.from_aggregates(
+            overall_filename=other_dir / "OVERVIEW.parquet",
+            contextual_filename=other_dir / "BY_CONTEXT.parquet",
+            base_path=str(base),
+        )
+
+        assert exp.overall.collect().height == 1072
+        assert exp.contextual.collect().height == 8064
 
 
-class TestValidateDataFolder:
-    """Test the validate_data_folder method of Explanations."""
+class TestSaveData:
+    """Tests for Explanations.save_data."""
 
-    def test_folder_exists_but_no_parquet_files(self, tmp_path):
-        """Folder exists but contains no .parquet files raises FileNotFoundError."""
-        data_dir = tmp_path / "aggregated_data"
-        data_dir.mkdir()
-        (data_dir / "readme.txt").write_text("no parquet here")
+    def test_save_data_returns_paths(self, tmp_path):
+        exp = Explanations.from_aggregates(base_path=DATA_DIR)
+        overview_path, context_path = exp.save_data(tmp_path)
 
-        exp = Explanations(data_folder=str(data_dir))
+        assert overview_path == tmp_path / "OVERVIEW.parquet"
+        assert context_path == tmp_path / "BY_CONTEXT.parquet"
 
-        with pytest.raises(FileNotFoundError, match="No parquet files found"):
-            exp.validate_data_folder()
+    def test_save_data_creates_files(self, tmp_path):
+        exp = Explanations.from_aggregates(base_path=DATA_DIR)
+        overview_path, context_path = exp.save_data(tmp_path)
+
+        assert overview_path.exists()
+        assert context_path.exists()
+
+    def test_save_data_round_trips_row_counts(self, tmp_path):
+        exp = Explanations.from_aggregates(base_path=DATA_DIR)
+        exp.save_data(tmp_path)
+
+        reloaded = Explanations.from_aggregates(base_path=tmp_path)
+        assert reloaded.overall.collect().height == 1072
+        assert reloaded.contextual.collect().height == 8064
+
+    def test_save_data_creates_directory(self, tmp_path):
+        exp = Explanations.from_aggregates(base_path=DATA_DIR)
+        new_dir = tmp_path / "new" / "subdir"
+        exp.save_data(new_dir)
+
+        assert (new_dir / "OVERVIEW.parquet").exists()
+        assert (new_dir / "BY_CONTEXT.parquet").exists()
+
+
+class TestJoin:
+    """A full path in filename always wins, regardless of the base path.
+
+    Absolute paths come from ``tmp_path``: a POSIX-style ``/abs/f`` is not
+    absolute on Windows (it has no drive), so hardcoding one makes the
+    behaviour under test platform-dependent.
+    """
+
+    def test_local_base_relative_filename(self, tmp_path):
+        from pdstools.explanations.Explanations import _join
+
+        assert _join(tmp_path, "OVERVIEW.parquet") == tmp_path / "OVERVIEW.parquet"
+
+    def test_url_base_relative_filename(self):
+        from pdstools.explanations.Explanations import _join
+
+        assert _join("https://host/agg/", "OVERVIEW.parquet") == "https://host/agg/OVERVIEW.parquet"
+
+    def test_url_base_absolute_local_filename(self, tmp_path):
+        from pdstools.explanations.Explanations import _join
+
+        absolute = tmp_path / "OVERVIEW.parquet"
+        assert _join("https://host/agg", str(absolute)) == absolute
+
+    def test_local_base_url_filename(self, tmp_path):
+        from pdstools.explanations.Explanations import _join
+
+        assert _join(tmp_path, "https://host/OVERVIEW.parquet") == "https://host/OVERVIEW.parquet"

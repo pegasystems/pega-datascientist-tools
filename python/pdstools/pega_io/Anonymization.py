@@ -7,9 +7,9 @@ import math
 import os
 import tempfile
 from glob import glob
+from typing import TYPE_CHECKING
 
 import polars as pl
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -88,14 +88,14 @@ class Anonymization:
             Print progress messages between stages.
         """
         if verbose:
-            print("Writing temporary parquet files")
+            print("Writing temporary parquet files")  # noqa: T201 - user-facing stage progress
         chunked_files = self.preprocess(verbose=verbose)
 
         if verbose:
-            print("Processing and writing parquet files to single file")
+            print("Processing and writing parquet files to single file")  # noqa: T201 - user-facing stage progress
         self.process(chunked_files, verbose=verbose)
         if verbose:
-            print(f"Successfully anonymized data to {self.output_file}")
+            print(f"Successfully anonymized data to {self.output_file}")  # noqa: T201 - user-facing stage progress
 
     @staticmethod
     def min_max(column_name: str, value_range: list[dict[str, float]]) -> pl.Expr:
@@ -251,10 +251,9 @@ class Anonymization:
         skipped = [key for key in schema.names() if key.startswith(self.skip_col_prefix)]
         nums = [key for key, value in schema.items() if value.is_numeric() and key not in skipped]
         symb = [key for key in schema.names() if key not in nums and key not in skipped]
-        if verbose:
-            print("Context_* and Decision_* columns (not anonymized):", skipped)
-            print("Numeric columns:", nums)
-            print("Symbolic columns:", symb)
+        logger.debug("Columns not anonymized: %s", skipped)
+        logger.debug("Numeric columns: %s", nums)
+        logger.debug("Symbolic columns: %s", symb)
 
         min_max_df = df.select(
             [

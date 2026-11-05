@@ -7,7 +7,6 @@ import sys
 
 import pytest
 
-
 OPTIONAL_IMPORTS = [
     "plotly",
     "pydot",

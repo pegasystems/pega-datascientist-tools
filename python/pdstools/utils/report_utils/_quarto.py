@@ -10,8 +10,33 @@ import subprocess
 import traceback
 from pathlib import Path
 
+from packaging.version import InvalidVersion, Version
+
 from ._common import logger
-from ._html import _inline_css
+from ._html import drop_inlined_resources, inline_local_assets
+
+
+def docs_version_for_links(package_version: str) -> str:
+    """Return the docs-version segment to use in public documentation links.
+
+    Pre-release/dev package versions are often ahead of published docs, so
+    they intentionally resolve to the ``latest`` docs path.
+    """
+    try:
+        parsed = Version(package_version)
+    except InvalidVersion:
+        return "latest"
+
+    if parsed.is_prerelease or parsed.is_devrelease:
+        return "latest"
+
+    return parsed.base_version
+
+
+def docs_article_url(article_slug: str, package_version: str) -> str:
+    """Build a docs URL for an article using stable/latest version routing."""
+    docs_version = docs_version_for_links(package_version)
+    return f"https://pegasystems.github.io/pega-datascientist-tools/{docs_version}/articles/{article_slug}.html"
 
 
 def _write_params_files(
@@ -174,6 +199,7 @@ def run_quarto(
 
     env = os.environ.copy()
     env["QUARTO_PYTHON"] = sys.executable
+    env["PLOTLY_RENDERER"] = "notebook" if full_embed else "notebook_connected"
     logger.info(f"Setting QUARTO_PYTHON to: {sys.executable}")
 
     process = subprocess.Popen(
@@ -224,8 +250,18 @@ def run_quarto(
     if not full_embed and output_type == "html" and output_filename is not None:
         html_path = temp_dir / output_filename
         if html_path.is_file():
-            n_inlined = _inline_css(html_path, temp_dir)
-            logger.info("Inlined %d CSS stylesheet(s) into %s", n_inlined, output_filename)
+            n_css, n_js = inline_local_assets(html_path, temp_dir)
+            logger.info(
+                "Inlined %d CSS stylesheet(s) and %d script(s) into %s",
+                n_css,
+                n_js,
+                output_filename,
+            )
+            # With every local asset inlined the companion folder is dead weight;
+            # dropping it keeps the report a single distributable HTML file.
+            n_removed = drop_inlined_resources(html_path, Path(qmd_file).stem if qmd_file else "")
+            if n_removed:
+                logger.info("%s is self-contained; dropped its resources folder.", output_filename)
 
     return return_code
 

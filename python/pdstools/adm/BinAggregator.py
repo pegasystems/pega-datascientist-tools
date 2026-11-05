@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ["BinAggregator"]
 import logging
 from functools import cached_property
-from typing import ClassVar, Literal, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, ClassVar, Literal, cast
 
 import polars as pl
 
@@ -185,7 +185,8 @@ class BinAggregator(LazyNamespace):
                     )
 
                 if is_numeric:
-                    assert empty_numeric_binning is not None  # set above when is_numeric
+                    if empty_numeric_binning is None:
+                        raise RuntimeError("Expected numeric binning data when processing numeric predictors.")
                     cum_binning = self.accumulate_num_binnings(
                         predictor,
                         ids,
@@ -263,7 +264,7 @@ class BinAggregator(LazyNamespace):
             .filter(pl.col("PredictorName") == predictor)
             .filter(pl.col("BinSymbol") != "NON-MISSING")
             .filter(pl.col("Symbol").is_not_null())
-            .explode("Symbol")
+            .explode("Symbol", empty_as_null=True)
             .group_by("Symbol")
             .agg(
                 Frequency=pl.sum("BinResponses"),
@@ -302,7 +303,7 @@ class BinAggregator(LazyNamespace):
         # Explode symbol list into separate rows
         symbins_long = (
             symbins.join(lift_residual_bins, on="ModelID", how="left")
-            .explode("Symbol")
+            .explode("Symbol", empty_as_null=True)
             .filter(pl.col("Symbol").is_in(symbollist))
             .collect()
         )

@@ -11,10 +11,8 @@ import random
 
 import polars as pl
 import pytest
-from polars.testing import assert_frame_equal, assert_series_equal
-
 from pdstools.utils import cdh_utils
-
+from polars.testing import assert_frame_equal, assert_series_equal
 
 # ---------------------------------------------------------------------------
 # Reference implementations (verbatim from the pre-vectorisation version).

@@ -3,19 +3,18 @@ from __future__ import annotations
 # python/pdstools/app/decision_analyzer/pages/11_Arbitration_Distribution.py
 import polars as pl
 import streamlit as st
+
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
     contextual_filters,
     ensure_data,
-    stage_level_selector,
-    stage_selectbox,
     st_component_overview,
     st_priority_component_distribution,
+    stage_level_selector,
+    stage_selectbox,
 )
-from pdstools.utils.streamlit_utils import get_current_index
-
 from pdstools.decision_analyzer.utils import PRIO_COMPONENTS
-from pdstools.utils.streamlit_utils import standard_page_config
+from pdstools.utils.streamlit_utils import get_current_index, standard_page_config
 
 standard_page_config(page_title="Arbitration Distribution · Decision Analysis")
 

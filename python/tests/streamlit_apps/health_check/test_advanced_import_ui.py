@@ -5,9 +5,8 @@ import zipfile
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from streamlit.testing.v1 import AppTest
-
 from pdstools.adm.HealthCheckImport import MODEL_CACHE_FILENAME
+from streamlit.testing.v1 import AppTest
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -8,6 +8,7 @@ import logging
 import os
 from functools import cached_property
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import polars as pl
 import polars.selectors as cs
@@ -17,19 +18,19 @@ from ..pega_io.File import read_dataflow_output, read_ds_export
 from ..utils import cdh_utils
 from ..utils.cdh_utils import _polars_capitalize
 from ..utils.cdh_utils._io import _DATABRICKS_MODEL_SNAPSHOTS_COLUMNS
+from ..utils.cdh_utils._metrics import _auc_ci_from_binned_rows
 from . import Schema
-from .trees import AGB
 from .Aggregates import Aggregates
 from .Analysis import Analysis
 from .BinAggregator import BinAggregator
 from .Plots import Plots
 from .Reports import Reports
-from typing import TYPE_CHECKING
+from .trees import AGB
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
+
     from ..utils.types import QUERY
-    from collections.abc import Callable
-    from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ _STANDARD_PREDICTOR_CATEGORY_COLORS = {
     "Customer": "#001F5F",
     "IH": "#10A5AC",
     "Primary": "#63666F",
+    cdh_utils.CONTEXT_KEYS_CATEGORY: "#2E7D32",
     "Param": "#F76923",
     "Account": "#661D34",
     "External Model": "#DE4342",
@@ -188,6 +190,8 @@ class ADMDatamart:
         self.agb = AGB(datamart=self)
         self.analysis = Analysis(datamart=self)
         self.generate = Reports(datamart=self)
+        self._agb_importance_models: pl.LazyFrame | None = None
+        self._agb_summary_model_ids: list[str] = []
 
         logger.info("Validating ADM model data.")
         model_data_validated = self._validate_model_data(
@@ -644,7 +648,20 @@ class ADMDatamart:
                 [(pl.col(c).is_null() | (pl.col(c) == "")) for c in agb_context_cols],
             )
             is_agb = (pl.col("ModelTechnique") == "GradientBoost").fill_null(False)
+            if "Configuration" in schema and df.filter(is_agb & empty_context).select(pl.len()).collect().item():
+                self._agb_importance_models, self._agb_summary_model_ids = self._agb_configuration_models(
+                    df, is_agb, empty_context
+                )
             df = df.filter(~(is_agb & empty_context))
+
+        # After the summary-row filter above, which relies on empty context keys:
+        # missing or null context keys become "Unknown", so every model groups
+        # into a channel, direction, issue, group and action.
+        df = df.with_columns(
+            pl.col(c).fill_null("Unknown")
+            for c in ("Channel", "Direction", "Issue", "Group", "Name")
+            if c in schema.names()
+        )
 
         snapshot_type = schema.get("SnapshotTime")
         if snapshot_type is None or not snapshot_type.is_temporal():  # pl.Datetime
@@ -671,6 +688,104 @@ class ADMDatamart:
         df = cdh_utils._apply_schema_types(df, Schema.ADMModelSnapshot)
 
         return self._normalize_performance_scale(df)
+
+    @staticmethod
+    def _agb_configuration_models(
+        df: pl.LazyFrame,
+        is_agb: pl.Expr,
+        empty_context: pl.Expr,
+    ) -> tuple[pl.LazyFrame, list[str]]:
+        """Map AGB action models to the summary model of their configuration.
+
+        AGB writes, next to the action-level models, one configuration-level
+        summary model (empty context keys) whose predictor importance is the
+        global importance of the configuration. Only configurations with
+        exactly one summary model are mapped; otherwise the link is ambiguous.
+
+        Returns
+        -------
+        tuple[pl.LazyFrame, list[str]]
+            ``ModelID`` and ``_ConfigurationModelID`` of the mapped action
+            models, and the IDs of all summary models.
+        """
+        summary_models = (
+            df.filter(is_agb & empty_context)
+            .group_by("Configuration")
+            .agg(pl.col("ModelID").unique().alias("_ConfigurationModelID"))
+            .collect()
+        )
+        ambiguous = summary_models.filter(pl.col("_ConfigurationModelID").list.len() > 1)
+        if ambiguous.height > 0:
+            logger.warning(
+                "Not using configuration-level AGB predictor importance for %s: "
+                "multiple summary models per configuration.",
+                ", ".join(sorted(str(c) for c in ambiguous["Configuration"].to_list())),
+            )
+        unique_summary = (
+            summary_models.filter(pl.col("_ConfigurationModelID").list.len() == 1)
+            .with_columns(pl.col("_ConfigurationModelID").list.first())
+            .lazy()
+        )
+        mapping = (
+            df.filter(is_agb & ~empty_context)
+            .select("ModelID", "Configuration")
+            .unique()
+            .join(unique_summary, on="Configuration")
+            .select("ModelID", "_ConfigurationModelID")
+        )
+        summary_ids = [str(i) for ids in summary_models.get_column("_ConfigurationModelID").to_list() for i in ids]
+        return mapping, summary_ids
+
+    @staticmethod
+    def _inherit_configuration_importance(
+        df: pl.LazyFrame,
+        configuration_models: pl.LazyFrame,
+    ) -> pl.LazyFrame:
+        """Add the configuration-level AGB importance to action predictor rows.
+
+        Action-level AGB models hold their context keys constant, so those
+        report zero importance there, and the other importances are rescaled
+        without them. The configuration summary model carries the global
+        importance of all predictors. Its values are stored on the action rows
+        as ``ConfigurationImportance`` and ``ConfigurationActive`` so that
+        report caches and filtered datamarts, which never contain summary
+        models, keep them. Summary and action snapshots are matched on
+        ``SnapshotTime``.
+
+        Parameters
+        ----------
+        df : pl.LazyFrame
+            Validated predictor binning data, including summary models.
+        configuration_models : pl.LazyFrame
+            ``ModelID`` and ``_ConfigurationModelID`` as returned by
+            :meth:`_agb_configuration_models`.
+
+        Returns
+        -------
+        pl.LazyFrame
+            ``df`` with ``ConfigurationImportance`` and ``ConfigurationActive``.
+        """
+        df = df.with_columns(pl.col("PredictorName").cast(pl.Utf8).alias("_PredictorName"))
+        configuration_importance = (
+            df.filter(pl.col("EntryType") != "Classifier")
+            .select(
+                pl.col("ModelID").alias("_ConfigurationModelID"),
+                "_PredictorName",
+                "SnapshotTime",
+                pl.col("FeatureImportance").alias("ConfigurationImportance"),
+                (pl.col("EntryType") == "Active").alias("ConfigurationActive"),
+            )
+            .unique(subset=["_ConfigurationModelID", "_PredictorName", "SnapshotTime"], keep="first")
+        )
+        inherited = configuration_models.join(configuration_importance, on="_ConfigurationModelID").drop(
+            "_ConfigurationModelID"
+        )
+        return df.join(
+            inherited,
+            on=["ModelID", "_PredictorName", "SnapshotTime"],
+            how="left",
+            nulls_equal=True,
+        ).drop("_PredictorName")
 
     def _validate_predictor_data(
         self,
@@ -702,13 +817,32 @@ class ADMDatamart:
             if df is None:
                 raise ValueError("Predictor categorization returned no data.")
         else:
+            # Caches written before context keys had their own category label
+            # them "Primary"; upgrade that stale default.
+            is_stale_context_key = (pl.col("PredictorCategory") == "Primary") & pl.col("PredictorName").cast(
+                pl.Utf8
+            ).is_in(list(cdh_utils.CONTEXT_KEY_PREDICTORS))
             df = df.with_columns(
-                PredictorCategory=pl.coalesce(
-                    "PredictorCategory",
-                    cdh_utils.default_predictor_categorization(),
+                PredictorCategory=pl.when(is_stale_context_key)
+                .then(pl.lit(cdh_utils.CONTEXT_KEYS_CATEGORY))
+                .otherwise(
+                    pl.coalesce(
+                        "PredictorCategory",
+                        cdh_utils.default_predictor_categorization(),
+                    )
                 ),
             )
         df = cdh_utils._apply_schema_types(df, Schema.ADMPredictorBinningSnapshot)
+
+        if (
+            self._agb_importance_models is not None
+            and "FeatureImportance" in schema
+            and "ConfigurationImportance" not in schema
+        ):
+            df = self._inherit_configuration_importance(df, self._agb_importance_models)
+        if self._agb_summary_model_ids:
+            # Like the summary models themselves (#667), drop their predictor rows.
+            df = df.filter(~pl.col("ModelID").cast(pl.Utf8).is_in(self._agb_summary_model_ids))
 
         return self._normalize_performance_scale(df)
 
@@ -1103,13 +1237,15 @@ class ADMDatamart:
     def active_ranges(
         self,
         model_ids: str | list[str] | None = None,
+        *,
+        confidence_level: float = 0.95,
     ) -> pl.LazyFrame:
         """Calculate the active, reachable bins in classifiers.
 
-        The classifiers exported by Pega contain (in certain product versions) more than
-        the bins that can be reached given the current state of the predictors. This method
-        first calculates the min and max score range from the predictor log odds, then maps
-        that to the interval boundaries of the classifier(s) to find the min and max index.
+        For Naive Bayes models, this method calculates the minimum and maximum
+        score from predictor-bin log odds and maps that interval to the classifier
+        bins. For AGB models, predictor-bin log odds do not represent the tree
+        ensemble, so the active range spans the occupied classifier bins instead.
 
         It returns a LazyFrame with the score min/max, the min/max index, as well as the
         AUC as reported in the datamart data, when calculated from the full range, and when
@@ -1118,11 +1254,33 @@ class ADMDatamart:
         This information can be used in the Health Check documents or when verifying the
         AUC numbers from the datamart.
 
+        AUC values and confidence-interval bounds are returned on the conventional
+        0-to-1 scale. The AUC point estimate uses ``safe_range_auc`` semantics:
+        values below 0.5 are reflected around 0.5 so the reported AUC stays in
+        the 0.5-to-1.0 range. The ``AUC_ActiveRange_CI_Safe_Lower`` and
+        ``AUC_ActiveRange_CI_Safe_Upper`` fields apply the same convention to the
+        interval bounds. To display the AUC and safe bounds on Pega's 50-to-100
+        scale, multiply them by 100. The raw ``AUC_ActiveRange_CI_Lower`` and
+        ``AUC_ActiveRange_CI_Upper`` fields remain the regular clipped interval
+        endpoints before that safe-range transform.
+        The confidence-interval variance is expressed on the corresponding squared
+        0-to-1 scale.
+
+        Naive Bayes intervals are computed per model. AGB configurations share one
+        fitted tree ensemble across issue, group, and action segments, so their
+        occupied classifier-bin counts are pooled by configuration and a single
+        conditional interval is attached to each segment. This interval quantifies
+        validation-sample uncertainty conditional on the exported fitted ensemble;
+        a single export cannot identify model-fit uncertainty.
+
         Parameters
         ----------
         model_ids : Optional[Union[str, list[str]]], optional
             An optional list of model id's, or just a single one, to report on. When
             not given, the information is returned for all models.
+        confidence_level : float, default=0.95
+            Two-sided confidence level used to compute the active-range AUC
+            confidence interval.
 
         Returns
         -------
@@ -1136,6 +1294,16 @@ class ADMDatamart:
             - AUC_Datamart - The AUC value as reported in the datamart
             - AUC_FullRange - The AUC calculated from the full range of bins in the classifier
             - AUC_ActiveRange - The AUC calculated from only the active/reachable bins
+            - AUC_ActiveRange_CI_Estimate - The AUC estimate at the CI scope
+            - AUC_ActiveRange_CI_Variance - The variance of the active-range AUC estimate; null when unavailable
+            - AUC_ActiveRange_CI_Lower - Lower CI bound for active-range AUC
+            - AUC_ActiveRange_CI_Upper - Upper CI bound for active-range AUC
+            - AUC_ActiveRange_CI_Safe_Lower - Lower CI bound after applying Pega's safe AUC convention
+            - AUC_ActiveRange_CI_Safe_Upper - Upper CI bound after applying Pega's safe AUC convention
+            - AUC_ActiveRange_CI_Available - Whether CI could be estimated
+            - AUC_ActiveRange_CI_Reason - Unavailable reason when CI is missing
+            - AUC_ActiveRange_CI_Scope - ``model`` for Naive Bayes or ``configuration`` for AGB
+            - AUC_ActiveRange_CI_IncludesModelFitUncertainty - Always false for exported classifier-bin intervals
 
             Classifier Information:
             - Bins - The total number of bins in the classifier
@@ -1153,24 +1321,7 @@ class ADMDatamart:
             - idx_max - The maximum bin index that can be reached given the current binning of all predictors
 
         """
-        import numpy as np
-
-        def find_binindex(bounds, score):
-            if len(bounds) == 1:
-                return 0
-            # Polars has search_sorted but it seems it doesn't do
-            # the exact same thing as numpy searchsorted. We could
-            # also use python's native bisect but that seems slower.
-            return min(
-                max(1, np.searchsorted(bounds, score, side="right").item()),
-                len(bounds),
-            )
-
-        def auc_from_active_bins(pos, neg, idx_min, idx_max):
-            return cdh_utils.auc_from_bincounts(
-                pos[idx_min:idx_max],
-                neg[idx_min:idx_max],
-            )
+        cdh_utils.validate_confidence_level(confidence_level)
 
         if isinstance(model_ids, str):
             query = pl.col("ModelID") == model_ids
@@ -1196,84 +1347,270 @@ class ADMDatamart:
             allow_empty=True,
         )
 
-        classifier_info = (
+        if self.model_data is None:
+            model_metadata = pl.LazyFrame(
+                schema={
+                    "ModelID": pl.String,
+                    "Configuration": pl.String,
+                    "ModelTechnique": pl.String,
+                },
+            )
+        else:
+            model_metadata = (
+                self.model_data.sort("SnapshotTime")
+                .group_by("ModelID")
+                .agg(
+                    pl.col("Configuration").cast(pl.String).last(),
+                    pl.col("ModelTechnique").last(),
+                )
+            )
+        agb_model_ids = model_metadata.filter(pl.col("ModelTechnique") == "GradientBoost").select("ModelID")
+
+        if self.model_data is not None:
+            bin_columns = most_recent_binning_data.collect_schema().names()
+            deduplication_columns = [column for column in bin_columns if column != "BinIndex"]
+            agb_binning_data = (
+                most_recent_binning_data.join(
+                    agb_model_ids,
+                    on="ModelID",
+                    how="semi",
+                )
+                .sort("BinIndex")
+                .unique(
+                    subset=deduplication_columns,
+                    keep="first",
+                    maintain_order=True,
+                )
+            )
+            most_recent_binning_data = pl.concat(
+                [
+                    most_recent_binning_data.join(
+                        agb_model_ids,
+                        on="ModelID",
+                        how="anti",
+                    ),
+                    agb_binning_data,
+                ],
+            )
+
+        scores = self._minMaxScoresPerModel(
+            most_recent_binning_data.join(
+                agb_model_ids,
+                on="ModelID",
+                how="anti",
+            ),
+        )
+
+        classifier_bins = (
             most_recent_binning_data.filter(EntryType="Classifier")
-            .sort("BinIndex")
-            .group_by("ModelID", maintain_order=True)
-            .agg(
-                AUC_Datamart=pl.col("Performance").first(),
-                Bins=pl.len(),
-                classifierBounds=pl.col("BinLowerBound").cast(pl.Float64),
-                classifierPos=pl.col("BinPositives").cast(pl.Float64),
-                classifierNeg=pl.col("BinNegatives").cast(pl.Float64),
+            .select(
+                "ModelID",
+                "BinIndex",
+                AUC_Datamart=pl.col("Performance"),
+                _ClassifierBound=pl.col("BinLowerBound").cast(pl.Float64),
+                _ClassifierPositive=pl.col("BinPositives").cast(pl.Float64),
+                _ClassifierNegative=pl.col("BinNegatives").cast(pl.Float64),
+            )
+            .sort("ModelID", "BinIndex")
+            .join(model_metadata, on="ModelID", how="left", maintain_order="left")
+            .join(scores, on="ModelID", how="left", maintain_order="left")
+            .with_columns(
+                _IsAGB=(pl.col("ModelTechnique") == "GradientBoost").fill_null(False),
+            )
+            .sort("ModelID", "BinIndex")
+            .with_columns(
+                Bins=pl.len().over("ModelID"),
+                _ValidBounds=pl.col("_ClassifierBound").is_not_null().sum().over("ModelID"),
+                _BinPosition=(pl.col("BinIndex").rank(method="ordinal").over("ModelID") - 1),
+                _MinInsertion=(
+                    pl.col("_ClassifierBound").is_not_null() & (pl.col("_ClassifierBound") <= pl.col("score_min"))
+                )
+                .sum()
+                .over("ModelID"),
+                _MaxInsertion=(
+                    pl.col("_ClassifierBound").is_not_null() & (pl.col("_ClassifierBound") <= pl.col("score_max"))
+                )
+                .sum()
+                .over("ModelID"),
+                _Occupied=(pl.col("_ClassifierPositive") + pl.col("_ClassifierNegative")) > 0,
+            )
+            .with_columns(
+                _OccupiedMin=pl.col("_BinPosition").filter(pl.col("_Occupied")).min().over("ModelID"),
+                _OccupiedMax=pl.col("_BinPosition").filter(pl.col("_Occupied")).max().over("ModelID") + 1,
+            )
+            .with_columns(
+                idx_min=pl.when(pl.col("_IsAGB"))
+                .then(pl.col("_OccupiedMin"))
+                .when(
+                    pl.col("score_min").is_null() | (pl.col("_ValidBounds") == 0),
+                )
+                .then(None)
+                .when(pl.col("_ValidBounds") == 1)
+                .then(-1)
+                .otherwise(
+                    pl.max_horizontal(
+                        1,
+                        pl.min_horizontal(
+                            "_MinInsertion",
+                            "_ValidBounds",
+                        ),
+                    )
+                    - 1,
+                )
+                .cast(pl.Int32),
+                idx_max=pl.when(pl.col("_IsAGB"))
+                .then(pl.col("_OccupiedMax"))
+                .when(
+                    pl.col("score_max").is_null() | (pl.col("_ValidBounds") == 0),
+                )
+                .then(None)
+                .when(pl.col("_ValidBounds") == 1)
+                .then(0)
+                .otherwise(
+                    pl.max_horizontal(
+                        1,
+                        pl.min_horizontal(
+                            "_MaxInsertion",
+                            "_ValidBounds",
+                        ),
+                    ),
+                )
+                .cast(pl.Int32),
+            )
+            .with_columns(
+                _CIScopeKey=pl.when(pl.col("_IsAGB"))
+                .then(pl.coalesce("Configuration", "ModelID"))
+                .otherwise(pl.col("ModelID")),
             )
         )
 
-        scores = self._minMaxScoresPerModel(most_recent_binning_data)
+        classifier_info = classifier_bins.group_by("ModelID").agg(
+            AUC_Datamart=pl.col("AUC_Datamart").first(),
+            Configuration=pl.col("Configuration").first(),
+            ModelTechnique=pl.col("ModelTechnique").first(),
+            Bins=pl.col("Bins").first(),
+            nActivePredictors=pl.col("nActivePredictors").first(),
+            classifierLogOffset=pl.when(pl.col("_IsAGB").first())
+            .then(None)
+            .otherwise(pl.col("classifierLogOffset").first()),
+            sumMinLogOdds=pl.when(pl.col("_IsAGB").first()).then(None).otherwise(pl.col("sumMinLogOdds").first()),
+            sumMaxLogOdds=pl.when(pl.col("_IsAGB").first()).then(None).otherwise(pl.col("sumMaxLogOdds").first()),
+            score_min=pl.when(pl.col("_IsAGB").first()).then(None).otherwise(pl.col("score_min").first()),
+            score_max=pl.when(pl.col("_IsAGB").first()).then(None).otherwise(pl.col("score_max").first()),
+            idx_min=pl.col("idx_min").first(),
+            idx_max=pl.col("idx_max").first(),
+            _IsAGB=pl.col("_IsAGB").first(),
+            _CIScopeKey=pl.col("_CIScopeKey").first(),
+        )
+
+        full_range_auc = _auc_ci_from_binned_rows(
+            classifier_bins,
+            group_col="ModelID",
+            positive_col="_ClassifierPositive",
+            negative_col="_ClassifierNegative",
+            confidence_level=confidence_level,
+        ).select(
+            "ModelID",
+            AUC_FullRange=pl.col("AUC"),
+        )
+        active_classifier_bins = classifier_bins.filter(
+            (pl.col("_BinPosition") >= pl.col("idx_min")) & (pl.col("_BinPosition") < pl.col("idx_max")),
+        )
+        active_range_auc = _auc_ci_from_binned_rows(
+            active_classifier_bins,
+            group_col="ModelID",
+            positive_col="_ClassifierPositive",
+            negative_col="_ClassifierNegative",
+            confidence_level=confidence_level,
+        ).select(
+            "ModelID",
+            AUC_ActiveRange=pl.col("AUC"),
+            _ActivePositiveCount=pl.col("_PositiveCount"),
+            _ActiveNegativeCount=pl.col("_NegativeCount"),
+        )
+        agb_ci_bins = (
+            active_classifier_bins.filter(pl.col("_IsAGB"))
+            .group_by("_CIScopeKey", "_ClassifierBound")
+            .agg(
+                pl.col("_ClassifierPositive").sum(),
+                pl.col("_ClassifierNegative").sum(),
+            )
+        )
+        non_agb_ci_bins = active_classifier_bins.filter(~pl.col("_IsAGB")).select(
+            "_CIScopeKey",
+            "_ClassifierBound",
+            "_ClassifierPositive",
+            "_ClassifierNegative",
+        )
+        scoped_active_range_ci = _auc_ci_from_binned_rows(
+            pl.concat([non_agb_ci_bins, agb_ci_bins]),
+            group_col="_CIScopeKey",
+            positive_col="_ClassifierPositive",
+            negative_col="_ClassifierNegative",
+            confidence_level=confidence_level,
+        ).select(
+            "_CIScopeKey",
+            AUC_ActiveRange_CI_Estimate=pl.col("AUC"),
+            AUC_ActiveRange_CI_Variance=pl.col("AUC_CI_Variance"),
+            AUC_ActiveRange_CI_Lower=pl.col("AUC_CI_Lower"),
+            AUC_ActiveRange_CI_Upper=pl.col("AUC_CI_Upper"),
+            AUC_ActiveRange_CI_Safe_Lower=pl.col("AUC_CI_Safe_Lower"),
+            AUC_ActiveRange_CI_Safe_Upper=pl.col("AUC_CI_Safe_Upper"),
+            _CIPositiveCount=pl.col("_PositiveCount"),
+            _CINegativeCount=pl.col("_NegativeCount"),
+        )
 
         return (
-            classifier_info.join(scores, on="ModelID", how="left")
-            .with_columns(
-                AUC_FullRange=pl.map_groups(
-                    exprs=[
-                        pl.col("classifierPos").explode(),
-                        pl.col("classifierNeg").explode(),
-                    ],
-                    function=lambda data: cdh_utils.auc_from_bincounts(
-                        data[0],
-                        data[1],
-                    ),
-                    return_dtype=pl.Float64,
-                    returns_scalar=True,
-                ).over("ModelID"),
-                idx_min=(
-                    pl.map_groups(
-                        exprs=[
-                            pl.col("classifierBounds"),
-                            pl.col("score_min"),
-                        ],
-                        function=lambda data: find_binindex(
-                            data[0].to_list()[0],
-                            data[1].item(),
-                        ),
-                        return_dtype=pl.Int32,
-                        returns_scalar=True,
-                    )
-                    - 1
-                ).over("ModelID"),
-                idx_max=pl.map_groups(
-                    exprs=[
-                        pl.col("classifierBounds"),
-                        pl.col("score_max"),
-                    ],
-                    function=lambda data: find_binindex(
-                        data[0].to_list()[0],
-                        data[1].item(),
-                    ),
-                    return_dtype=pl.Int32,
-                    returns_scalar=True,
-                ).over("ModelID"),
+            classifier_info.join(
+                full_range_auc,
+                on="ModelID",
+                how="left",
+            )
+            .join(
+                active_range_auc,
+                on="ModelID",
+                how="left",
+            )
+            .join(
+                scoped_active_range_ci,
+                on="_CIScopeKey",
+                how="left",
             )
             .with_columns(
-                AUC_ActiveRange=pl.map_groups(
-                    exprs=[
-                        pl.col("classifierPos"),
-                        pl.col("classifierNeg"),
-                        pl.col("idx_min"),
-                        pl.col("idx_max"),
-                    ],
-                    function=lambda data: auc_from_active_bins(
-                        data[0].to_list()[0],
-                        data[1].to_list()[0],
-                        data[2].item(),
-                        data[3].item(),
-                    ),
-                    return_dtype=pl.Float64,
-                    returns_scalar=True,
-                ).over("ModelID"),
+                AUC_ActiveRange_CI_Scope=pl.when(pl.col("_IsAGB"))
+                .then(pl.lit("configuration"))
+                .otherwise(pl.lit("model")),
+                AUC_ActiveRange_CI_IncludesModelFitUncertainty=pl.lit(False),
+                AUC_ActiveRange_CI_Available=pl.col(
+                    "AUC_ActiveRange_CI_Variance",
+                ).is_not_null(),
+                AUC_ActiveRange_CI_Reason=pl.when(
+                    pl.col("_IsAGB") & (pl.col("idx_min").is_null() | pl.col("idx_max").is_null()),
+                )
+                .then(pl.lit("empty_active_range"))
+                .when(
+                    pl.col("idx_min").is_null() | pl.col("idx_max").is_null(),
+                )
+                .then(pl.lit("missing_score_range"))
+                .when(pl.col("AUC_ActiveRange").is_null())
+                .then(pl.lit("empty_active_range"))
+                .when(
+                    (pl.col("_CIPositiveCount") <= 1) | (pl.col("_CINegativeCount") <= 1),
+                )
+                .then(pl.lit("insufficient_class_volume"))
+                .when(pl.col("AUC_ActiveRange_CI_Variance").is_null())
+                .then(pl.lit("variance_unavailable"))
+                .otherwise(None),
             )
             .sort("ModelID")
-            .drop("classifierBounds", "classifierPos", "classifierNeg")
+            .drop(
+                "_ActivePositiveCount",
+                "_ActiveNegativeCount",
+                "_CIPositiveCount",
+                "_CINegativeCount",
+                "_IsAGB",
+                "_CIScopeKey",
+            )
             .select(cs.starts_with("AUC"), ~cs.starts_with("AUC"))
             .select("ModelID", ~cs.starts_with("ModelID"))
         )

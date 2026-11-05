@@ -14,8 +14,9 @@ from typing import TYPE_CHECKING
 from ._common import logger
 
 if TYPE_CHECKING:
-    import polars as pl
     from os import PathLike
+
+    import polars as pl
 
 
 def process_files_to_bytes(

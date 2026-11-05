@@ -149,106 +149,114 @@ model=...)` directly.
 Previously `def __init__(self, *args, **kwargs)`. Now uses explicit
 parameters matching the documented constructor signature.
 
-### `Explanations.__init__` is pure config; loading moves to `from_aggregates`
+### Explanations: renamed namespaces and methods
 
-The `Explanations` constructor used to accept filesystem paths
-(`root_dir`, `data_folder`, `data_file`) and run the DuckDB
-pre-aggregation pipeline as a side effect of construction. This
-violated the project's pure-`__init__` rule (see AGENTS.md, "I/O lives
-in classmethods, not `__init__`").
+The explanations API now follows the same naming conventions as
+`ADMDatamart`: no `get_` prefixes on accessors, no `plot_` prefix on
+methods reached through the `plot` namespace, and a plural
+`aggregates` namespace.
 
-In v5 the constructor takes only configuration (`root_dir`,
-`data_folder`, `model_name`, `from_date`, `to_date`, all keyword-only)
-and performs no I/O. The
-explanations API now expects pre-aggregated parquet files and loads them
-with `from_aggregates`.
+| Before (v4.x) | After (v5) |
+| --- | --- |
+| `Explanations.aggregate` | `Explanations.aggregates` |
+| `Aggregate` (class) | `Aggregates` |
+| `plot.plot_contributions_for_overall(...)` | `plot.contributions_overall(...)` |
+| `plot.plot_contributions_by_context(...)` | `plot.contributions_by_context(...)` |
+| `aggregate.get_predictor_contributions(...)` | `aggregates.predictor_contributions(...)` |
+| `aggregate.get_predictor_value_contributions(...)` | `aggregates.predictor_value_contributions(...)` |
+| `aggregate.get_unique_contexts_list(...)` | `aggregates.unique_contexts(...)` |
+| `aggregate.get_df_overall()` | `Explanations.overall` |
+| `aggregate.get_df_contextual()` | `Explanations.contextual` |
 
-```python
-# Before (v4.x):
-exp = Explanations(
-    data_folder="explanations_data",
-    model_name="AdaptiveBoostCT",
-    from_date=datetime(2025, 3, 28),
-    to_date=datetime(2025, 3, 28),
-)
+### Explanations: I/O moved out of the constructor
 
-# After (v5):
-exp = Explanations.from_aggregates(
-    data_folder="explanations_data",
-    model_name="AdaptiveBoostCT",
-    from_date=datetime(2025, 3, 28),
-    to_date=datetime(2025, 3, 28),
-)
-```
-
-Raw single-file / remote-URL aggregation is no longer part of this API.
-Generate or provide a folder containing the pre-aggregated parquet files
-(`BY_CONTEXT.parquet` and `OVERVIEW.parquet`) before constructing
-`Explanations`:
+`Explanations.__init__` is now pure configuration, matching `ADMDatamart`:
+it takes the two already-scanned `pl.LazyFrame`s and performs no I/O. All
+file reading lives in `from_aggregates`, whose signature now mirrors
+`ADMDatamart.from_ds_export` — two filenames plus a base path:
 
 ```python
-exp = Explanations.from_aggregates(data_folder=".tmp/aggregated_data")
+# Before (v4.x)
+exp = Explanations(root_dir=".tmp", data_folder="aggregated_data")
+
+# After (v5)
+exp = Explanations.from_aggregates(base_path=".tmp/aggregated_data")
+
+# ...or pass frames you loaded yourself
+exp = Explanations(overall_lf, contextual_lf, model_name="AdaptiveBoostCT")
 ```
 
-If you previously used `Explanations.from_local_directory(...)`, migrate
-to `from_aggregates(...)`:
+| v4.x | v5 |
+| --- | --- |
+| `data_folder=` | `base_path=` |
+| `aggregates.data_pattern = "batches/BATCH_3.parquet"` | `contextual_filename="batches/BATCH_3.parquet"` |
+| *(filename hardcoded)* | `overall_filename=` |
+| `root_dir=` | `report.generate(output_dir=...)` |
+| `Explanations.from_local_directory(...)` | `Explanations.from_aggregates(...)` |
+
+`Explanations` no longer carries an input path at all — it holds only the two
+LazyFrames, so the aggregates may live anywhere polars can read from:
 
 ```python
-# Before (v4.x):
-exp = Explanations.from_local_directory(data_folder=".tmp/aggregated_data")
-
-# After (v5):
-exp = Explanations.from_aggregates(data_folder=".tmp/aggregated_data")
+exp = Explanations.from_aggregates(base_path="https://example.com/aggregates")
 ```
 
-Quarto report templates that previously did
-`Explanations(root_dir="...")` followed by manual
-`aggregate.data_folderpath = "..."` should use explicit path configuration
-on `Explanations` itself:
+Report artifacts (`unique_contexts.json`, `batches/`) used to be written back
+into the source folder. They now land in the report's own working directory,
+`<output_dir>/data/`, alongside parquet copies of the frames written by the new
+`Explanations.save_data()`. Consequently `ContextOperations.create_unique_contexts_file()` and
+`create_batch_parquet_files()` are merged into a single
+`write_batches(target_dir)`, and the `ContextOperations.unique_contexts_file`
+property is gone.
+
+As with `from_ds_export`, a full path in either filename is used as-is and
+`base_path` is ignored, so the two aggregates may live in different places.
+
+There is no longer an implicit `.tmp/aggregated_data` default: `base_path`
+defaults to `"."`, like every other reader in the library. Pass the folder
+explicitly.
+
+The frames are plain attributes on the parent — `exp.overall` and
+`exp.contextual` — mirroring `dm.model_data` / `dm.predictor_data` on
+`ADMDatamart`. They are no longer reachable through the `aggregates`
+namespace, and `Aggregates.data_folderpath` is gone — the class carries no
+input path at all.
+
+A missing aggregate file now raises `FileNotFoundError` from
+`from_aggregates` itself rather than from the first operation that touches
+the data.
+
+`root_dir` is gone from `Explanations`. It only ever fed the report output
+folder, so it is now a call-time argument where it belongs:
 
 ```python
-# Before:
-explanations = Explanations(root_dir=ROOT_DIR)
-explanations.aggregate.data_folderpath = DATA_FOLDER
-# After:
-explanations = Explanations.from_aggregates(
-    root_dir=ROOT_DIR,
-    data_folder=DATA_FOLDER,
-)
+exp.report.generate(output_dir="my/reports")  # default: ".tmp/reports"
 ```
+
+`Reports` no longer stores `report_folderpath`, `report_output_dir`,
+`aggregate_folder` or `params_file`; those are derived from `output_dir`
+inside `generate()`.
 
 ### Explanations: explicit filter parameters
 
 The `**filter_kwargs` catch-all on the Explanations `Plots`,
-`Aggregate`, and `Reports` public methods has been replaced with
+`Aggregates`, and `Reports` public methods has been replaced with
 explicit, keyword-only parameters: `sort_by`, `display_by`,
 `descending`, `missing`, `remaining`, `include_numeric_single_bin`.
-Affected methods: `Plots.plot_contributions_for_overall`,
-`Plots.plot_contributions_by_context`,
-`Aggregate.get_predictor_contributions`,
-`Aggregate.get_predictor_value_contributions`, and `Reports.generate`.
-Unknown kwargs now raise `TypeError`. New `SortBy` / `DisplayBy`
-`Literal` aliases are exported alongside.
+Affected methods: `Plots.contributions_overall`,
+`Plots.contributions_by_context`,
+`Aggregates.predictor_contributions`,
+`Aggregates.predictor_value_contributions`, and `Reports.generate`.
+Unknown kwargs now raise `TypeError`. The accepted values for `sort_by`
+and `display_by` are described by the `ContributionType` `Literal` alias
+in `pdstools.explanations._constants`.
 
 ```python
 # Before (v4.x):
 plots.plot_contributions_for_overall(**{"sort_by": "contribution", "typo_arg": True})  # silently dropped
 
 # After (v5):
-plots.plot_contributions_for_overall(sort_by="contribution")  # unknown kwargs raise TypeError
-```
-
-`Plots.contributions(...)` was removed. Use the remaining public plot
-methods directly:
-
-```python
-# Before (v4.x):
-plots.contributions(top_n=20, top_k=20)
-
-# After (v5):
-plots.plot_contributions_for_overall(top_n=20, top_k=20)
-# or
-plots.plot_contributions_by_context({"pyChannel": "Web"}, top_n=20, top_k=20)
+plots.contributions_overall(sort_by="contribution")  # unknown kwargs raise TypeError
 ```
 
 ### Explanations: context partition field name
@@ -260,11 +268,11 @@ name is now `context_partition` (instead of `partition`) in both
 
 ```python
 # Before (v4.x):
-df = exp.aggregate.context_operations.get_df(with_partition_col=True)
+df = exp.aggregates.context_operations.get_df(with_partition_col=True)
 assert "partition" in df.columns
 
 # After (v5):
-df = exp.aggregate.context_operations.get_df(with_partition_col=True)
+df = exp.aggregates.context_operations.get_df(with_partition_col=True)
 assert "context_partition" in df.columns
 ```
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 import polars as pl
 
@@ -11,13 +12,13 @@ from ..utils import cdh_utils
 from . import Schema
 from .Aggregates import Aggregates
 from .Plots import Plots
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
-    from pathlib import Path
-    from collections.abc import Iterable
     import os
+    from collections.abc import Iterable
+    from pathlib import Path
+
+    from ..utils.types import QUERY
 
 
 class ValueFinder:

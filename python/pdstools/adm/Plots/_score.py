@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import polars as pl
 
 from ...utils import cdh_utils
 from ._base import _PlotsBase
 from ._helpers import distribution_graph, requires
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ...utils.types import QUERY
     from ...utils.plot_utils import Figure
+    from ...utils.types import QUERY
 
 
 class _ScorePlotsMixin(_PlotsBase):

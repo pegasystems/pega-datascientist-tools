@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Literal, TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
-from packaging.version import Version, InvalidVersion
 import polars as pl
 import polars.selectors as cs
 import streamlit as st
+from packaging.version import InvalidVersion, Version
 
 from .. import __version__ as pdstools_version
 from ..adm.ADMDatamart import ADMDatamart
@@ -395,8 +395,13 @@ def filter_dataframe(
 
     Parameters
     ----------
-    df : pl.DataFrame
+    df : pl.LazyFrame
         Original dataframe
+    schema : dict, optional
+        Optional column-name to dtype mapping used to pick the right filter
+        widget per column. Inferred from ``df`` when not given.
+    queries : list[pl.Expr], optional
+        Existing filter expressions to append to, by default None
 
     Returns
     -------

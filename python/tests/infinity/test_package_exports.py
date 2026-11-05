@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
-
 import pdstools.infinity as inf
+import pytest
 from pdstools.infinity import (
     ModelData,
     ModelInstanceData,

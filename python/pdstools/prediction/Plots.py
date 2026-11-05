@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import ClassVar, Literal, TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, ClassVar, Literal, overload
 
 import polars as pl
 
@@ -9,9 +9,9 @@ from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
     from plotly.graph_objects import Figure
 
+    from ..utils.types import QUERY
     from .Prediction import Prediction
 
 logger = logging.getLogger(__name__)

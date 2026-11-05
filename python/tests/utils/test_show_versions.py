@@ -2,10 +2,8 @@
 
 from unittest.mock import patch
 
-import polars as pl
-import pytest
-
 import pdstools
+import pytest
 from pdstools.utils import show_versions as sv_module
 
 
@@ -98,9 +96,21 @@ def test_grouped_dependencies_has_required():
 class TestDependencyTable:
     def test_returns_polars_dataframe(self):
         table = sv_module._dependency_table(public_only=False)
-        assert isinstance(table, pl.DataFrame)
         assert table.columns[0] == "group"
-        assert table.height > 0
+        assert set(table["group"].to_list()) == {
+            "adm",
+            "pega-io",
+            "api",
+            "healthcheck",
+            "explanations",
+            "nlp",
+            "app",
+            "onnx",
+            "all",
+            "dev",
+            "docs",
+            "tests",
+        }
 
     def test_public_only_excludes_private_groups(self):
         table_all = sv_module._dependency_table(public_only=False)

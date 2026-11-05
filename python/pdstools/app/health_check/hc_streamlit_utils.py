@@ -15,6 +15,7 @@ import zipfile
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
 
 import streamlit as st
 
@@ -37,7 +38,6 @@ from pdstools.utils.streamlit_utils import (
     cached_sample_prediction,
     get_data_path,
 )
-from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from pdstools.adm.ADMDatamart import ADMDatamart
@@ -651,6 +651,7 @@ def render_import_ui() -> None:
         if model_source is None:
             st.error("Select a Model Snapshot to enable Import.")
             st.stop()
+            raise RuntimeError("A model snapshot is required for import.")
         try:
             with st.spinner("Importing Health Check data..."):
                 result = import_health_check_data(

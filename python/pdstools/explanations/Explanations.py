@@ -6,37 +6,56 @@ import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from .Aggregate import Aggregate
+import polars as pl
+
+from ..pega_io import is_url, scan_parquet_path
+from .Aggregates import Aggregates
 from .Plots import Plots
 from .Reports import Reports
+from .Schema import apply_schema
 
 logger = logging.getLogger(__name__)
+
+_DEFAULT_DATE_RANGE_DAYS = 7
+
+
+def _join(base_path: str | Path, filename: str | Path) -> str | Path:
+    """Resolve ``filename`` against ``base_path``, URL-aware.
+
+    A full path in ``filename`` wins and ``base_path`` is ignored, matching
+    :meth:`ADMDatamart.from_ds_export`. ``pathlib`` cannot be used for URLs, so
+    those are joined as strings.
+    """
+    if is_url(filename):
+        return filename
+    if Path(filename).is_absolute():
+        return Path(filename)
+    if is_url(base_path):
+        return f"{str(base_path).rstrip('/')}/{filename}"
+    return Path(base_path).resolve() / filename
+
+
+def _scan_aggregate(path: str | Path) -> pl.LazyFrame:
+    """Scan one aggregated parquet file and normalise it for downstream use."""
+    return apply_schema(scan_parquet_path(path)).filter(pl.col("contribution") != 0.0).sort(by="predictor_name")
 
 
 class Explanations:
     """Process and explore explanation data for Adaptive Gradient Boost models.
 
-    The class is a thin orchestrator over three sub-namespaces (``aggregate``,
+    The class is a thin orchestrator over three sub-namespaces (``aggregates``,
     ``plot``, ``report``) that operate on pre-aggregated parquet files.
 
-    The constructor is **pure configuration** — it accepts optional filesystem
-    path settings (``root_dir`` / ``data_folder``) but performs no I/O.
-    Use the ``from_aggregates`` classmethod to point at pre-aggregated data
-    (typically ``.tmp/aggregated_data/``) with validation.
-    After initialization, ``aggregate``, ``plot`` and ``report`` can be used
-    freely.
+    The constructor is **pure configuration** — it accepts already-scanned
+    :class:`polars.LazyFrame`s and path settings, and performs no I/O. Use
+    :meth:`from_aggregates` to read the parquet files from disk.
 
     Parameters
     ----------
-    root_dir : str, optional, default ".tmp"
-        Working directory under which the pre-aggregated parquet files
-        (and report scratch space) are written. Ignored if a custom ``data_folder`` is provided,
-        in which case the parent of ``data_folder`` is used as the root.
-    data_folder : str | Path, optional, default "aggregated_data"
-        Path to the folder containing pre-aggregated parquet files.
-        Can be a relative path (combined with ``root_dir``) or an absolute path.
-        Note: validation (FileNotFoundError) only occurs via ``from_aggregates``;
-        direct ``__init__`` calls skip validation.
+    overall : pl.LazyFrame
+        Contributions aggregated across all contexts.
+    contextual : pl.LazyFrame
+        Contributions aggregated per context.
     model_name : str, optional
         Name of the model rule. Used for report metadata only.
     from_date : datetime, optional
@@ -53,10 +72,10 @@ class Explanations:
     Explanations.from_aggregates : Load pre-aggregated parquet files.
 
     Notes
-    --------
-    Environment variable that influence the batch parquet file generation:
+    -----
+    Environment variables that influence the batch parquet file generation:
 
-    ``FILE_BATCH_LIMIT``
+    ``PDSTOOLS_FILE_BATCH_LIMIT``
         Number of context partitions per batch. Default: ``100``.
 
     Examples
@@ -65,51 +84,59 @@ class Explanations:
 
     >>> from pathlib import Path
     >>> exp = Explanations.from_aggregates(
-    ...     data_folder=Path(".tmp/aggregated_data"),
+    ...     base_path=Path(".tmp/aggregated_data"),
     ...     model_name="AdaptiveBoostCT",
     ...     from_date=datetime(2025, 3, 28),
     ...     to_date=datetime(2025, 3, 28),
     ... )
-    >>> df = exp.aggregate.get_df_overall().collect()  # doctest: +SKIP
+    >>> df = exp.overall.collect()  # doctest: +SKIP
 
     Construct with a custom aggregates path:
 
-    >>> exp = Explanations(data_folder="/path/to/my/aggregates")
-    >>> df = exp.aggregate.get_df_overall().collect()  # doctest: +SKIP
+    >>> exp = Explanations.from_aggregates(base_path="/path/to/my/aggregates")
+    >>> df = exp.overall.collect()  # doctest: +SKIP
+
+    The aggregates may also live behind a URL:
+
+    >>> exp = Explanations.from_aggregates(base_path="https://example.com/aggregates")
+    >>> df = exp.overall.collect()  # doctest: +SKIP
 
     """
 
-    _DEFAULT_ROOT_DIR = ".tmp"
-    # Default storage location for aggregated data.
-    _DEFAULT_DATA_FOLDER = "aggregated_data"
+    overall: pl.LazyFrame
+    """Contributions aggregated across all contexts."""
+
+    contextual: pl.LazyFrame
+    """Contributions aggregated per context."""
 
     def __init__(
         self,
+        overall: pl.LazyFrame,
+        contextual: pl.LazyFrame,
         *,
-        root_dir: str = _DEFAULT_ROOT_DIR,
-        data_folder: str | Path = _DEFAULT_DATA_FOLDER,
         model_name: str | None = None,
         from_date: datetime | None = None,
         to_date: datetime | None = None,
     ):
-        self._init_state(
-            root_dir=root_dir,
-            data_folder=data_folder,
-            model_name=model_name,
-            from_date=from_date,
-            to_date=to_date,
-        )
+        self.overall = overall
+        self.contextual = contextual
+        self.model_name = model_name
+        self.from_date, self.to_date = self._resolve_date_range(from_date, to_date)
+        self.aggregates = Aggregates(explanations=self)
+        self.plot = Plots(explanations=self)
+        self.report = Reports(explanations=self)
 
     @classmethod
     def from_aggregates(
         cls,
+        overall_filename: str | Path = "OVERVIEW.parquet",
+        contextual_filename: str | Path = "BY_CONTEXT.parquet",
+        base_path: str | Path = ".",
         *,
-        root_dir: str = _DEFAULT_ROOT_DIR,
-        data_folder: str | Path = _DEFAULT_DATA_FOLDER,
         model_name: str | None = None,
         from_date: datetime | None = None,
         to_date: datetime | None = None,
-    ) -> "Explanations":
+    ) -> Explanations:
         """Construct an ``Explanations`` from pre-aggregated parquet files.
 
         This is the standard entry point: it points to a folder containing
@@ -117,13 +144,17 @@ class Explanations:
 
         Parameters
         ----------
-        root_dir : str, default ".tmp"
-            Working directory under which the pre-aggregated parquet files
-            (and report scratch space) are written.
-        data_folder : str | Path, default "aggregated_data"
-            Path to the folder containing pre-aggregated parquet files.
-            Can be a relative path (combined with ``root_dir``) or an absolute path.
-            Must exist and be non-empty; raises FileNotFoundError otherwise.
+        overall_filename : str | Path, default "OVERVIEW.parquet"
+            Contributions aggregated across all contexts, relative to
+            ``base_path``. A full path is used as-is, ignoring ``base_path``.
+        contextual_filename : str | Path, default "BY_CONTEXT.parquet"
+            Contributions aggregated per context, relative to ``base_path``. A
+            full path is used as-is, ignoring ``base_path``. The report pipeline
+            uses this to point a page at a single pre-computed batch (e.g.
+            ``"batches/BATCH_3.parquet"``) instead of the full set.
+        base_path : str | Path, default "."
+            Folder containing the pre-aggregated parquet files. May be an
+            ``http(s)://`` URL.
         model_name : str, optional
             Name of the model rule. Used for report metadata only.
         from_date : datetime, optional
@@ -136,118 +167,65 @@ class Explanations:
         Returns
         -------
         Explanations
-            A fully initialised instance pointing at the aggregated data.
+            A fully initialised instance holding LazyFrames over the
+            aggregated data.
 
         Raises
         ------
         FileNotFoundError
-            If ``root_dir`` or ``data_folder`` does not exist or is empty.
-
+            If either aggregate file does not exist.
         """
-        instance = cls.__new__(cls)
-        instance._init_state(
-            root_dir=root_dir,
-            data_folder=data_folder,
+        return cls(
+            overall=_scan_aggregate(_join(base_path, overall_filename)),
+            contextual=_scan_aggregate(_join(base_path, contextual_filename)),
             model_name=model_name,
             from_date=from_date,
             to_date=to_date,
         )
-        instance.validate_data_folder()
-        return instance
 
-    def _init_state(
-        self,
-        *,
-        root_dir: str,
-        data_folder: str | Path,
-        model_name: str | None,
-        from_date: datetime | None,
-        to_date: datetime | None,
-    ) -> None:
-        """Set instance attributes and wire sub-namespaces. Pure (no I/O)."""
+    def save_data(self, path: str | Path = ".") -> tuple[Path, Path]:
+        """Cache ``overall`` and ``contextual`` to parquet files.
 
-        self.root_dir = root_dir
-        self.data_folder = str(data_folder) if isinstance(data_folder, Path) else data_folder
-
-        data_folder_path = Path(self.data_folder)
-        root_is_default = root_dir == self._DEFAULT_ROOT_DIR
-        should_split_data_folder = self.data_folder != self._DEFAULT_DATA_FOLDER and (
-            data_folder_path.is_absolute() or (root_is_default and data_folder_path.parent != Path("."))
-        )
-
-        # Treat absolute paths and default-root multi-part relative paths as full
-        # aggregate paths. When callers pass root_dir explicitly, a relative
-        # data_folder remains relative to that root.
-        if should_split_data_folder:
-            self.data_folder = str(data_folder_path.name)
-            self.root_dir = str(data_folder_path.parent)
-            logger.info(
-                "Using custom data folder: %s, setting root_dir to %s, data_folder to %s",
-                data_folder_path,
-                self.root_dir,
-                self.data_folder,
-            )
-        self.model_name = model_name
-        self._set_date_range(from_date, to_date)
-        self.aggregate = Aggregate(explanations=self)
-        self.plot = Plots(explanations=self)
-        self.report = Reports(explanations=self)
-
-    def validate_data_folder(self) -> None:
-        """Validate that data_folder exists and contains parquet files."""
-        agg_folder = Path(self.root_dir) / self.data_folder
-
-        if not agg_folder.exists() or not agg_folder.is_dir():
-            raise FileNotFoundError(
-                f"Aggregated data directory not found: {agg_folder}. "
-                "Please ensure that pre-aggregated data is available at the specified path"
-            )
-
-        if not any(agg_folder.glob("*.parquet")):
-            raise FileNotFoundError(
-                f"No parquet files found in {agg_folder}. "
-                "Please ensure that pre-aggregated data is available at the specified path"
-            )
-
-    def _set_date_range(
-        self,
-        from_date: datetime | None,
-        to_date: datetime | None,
-        days: int = 7,
-    ) -> None:
-        """Resolve the ``(from_date, to_date)`` window using the default rules.
+        Mirrors :meth:`ADMDatamart.save_data`. The report pipeline uses this to
+        materialise the frames into its working directory, so that the Quarto
+        subprocess reads local files regardless of where the data came from -
+        a URL, a database, or frames built in memory.
 
         Parameters
         ----------
-        from_date : datetime or None
-            Start of the date range. If ``None`` and ``to_date`` is given,
-            defaults to ``to_date - days``.
-        to_date : datetime or None
-            End of the date range. If ``None`` and ``from_date`` is given,
-            defaults to ``datetime.today()``.
-        days : int, default 7
-            Window length used to fill in the missing endpoint when only one
-            of ``from_date`` / ``to_date`` is provided.
+        path : str | Path, default "."
+            Directory to write into. Created if it does not exist.
+
+        Returns
+        -------
+        tuple[Path, Path]
+            Paths of the written overall and contextual parquet files.
+        """
+        folder = Path(path)
+        folder.mkdir(parents=True, exist_ok=True)
+        overall_file = folder / "OVERVIEW.parquet"
+        contextual_file = folder / "BY_CONTEXT.parquet"
+        self.overall.sink_parquet(overall_file)
+        self.contextual.sink_parquet(contextual_file)
+        return overall_file, contextual_file
+
+    @staticmethod
+    def _resolve_date_range(
+        from_date: datetime | None,
+        to_date: datetime | None,
+    ) -> tuple[datetime, datetime]:
+        """Fill in either missing endpoint of the reporting window.
+
+        ``to_date`` defaults to today, and ``from_date`` to
+        ``to_date - _DEFAULT_DATE_RANGE_DAYS``.
 
         Raises
         ------
         ValueError
-            If both endpoints are provided and ``from_date > to_date``.
-
+            If ``from_date`` is after ``to_date``.
         """
-        if from_date is None and to_date is None:
-            to_date = datetime.today()
-            from_date = to_date - timedelta(days=days)
-
-        if from_date is None and to_date is not None:
-            from_date = to_date - timedelta(days=days)
-
-        if from_date is not None and to_date is None:
-            to_date = datetime.today()
-
-        if from_date is not None and to_date is not None:
-            if from_date > to_date:
-                raise ValueError("from_date cannot be after to_date")
-
-        self.from_date = from_date
-        self.to_date = to_date
+        to_date = to_date or datetime.today()
+        from_date = from_date or to_date - timedelta(days=_DEFAULT_DATE_RANGE_DAYS)
+        if from_date > to_date:
+            raise ValueError(f"from_date ({from_date}) cannot be after to_date ({to_date})")
+        return from_date, to_date

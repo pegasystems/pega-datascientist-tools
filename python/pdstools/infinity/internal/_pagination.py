@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Generic, TypeVar, cast, overload, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast, overload
 
 import polars as pl
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
-    from collections.abc import AsyncIterator, Iterator
+    from collections.abc import AsyncIterator, Iterator, Mapping, Sequence
 
 T = TypeVar("T", covariant=True)
 
@@ -204,7 +203,8 @@ class PaginatedList(Generic[T]):
     def __getitem__(self, key: slice) -> _Slice[T]: ...
 
     def __getitem__(self, key: int | slice | str) -> T | _Slice[T]:
-        assert isinstance(key, (int, slice, str))
+        if not isinstance(key, (int, slice, str)):
+            raise TypeError("key must be an int, slice, or str")
         if isinstance(key, int):
             if key < 0:
                 raise IndexError("Cannot negative index a PaginatedList")
@@ -267,6 +267,9 @@ class PaginatedList(Generic[T]):
             Can be an int (index), slice (start:end), or string (id/label)
         __default : str | None, optional
             The value to return if none found, by default None
+        **kwargs : Any
+            Attribute name/value pairs to match against, used instead of
+            ``__key`` to look up an element by arbitrary field values.
 
         Returns
         -------

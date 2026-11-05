@@ -52,8 +52,8 @@ arb_data = (
     apply_filter(da.preaggregated_filter_view, channel_filter)
     .filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
     .select(
-        pl.col("Propensity").explode(),
-        pl.col("Priority").explode(),
+        pl.col("Propensity").explode(empty_as_null=True),
+        pl.col("Priority").explode(empty_as_null=True),
         pl.col("Decisions"),
     )
     .collect()
@@ -235,8 +235,8 @@ with st.container(border=True):
         .select(
             pl.col("Issue"),
             pl.col("Group"),
-            pl.col("Propensity").explode().alias("Propensity"),
-            pl.col("Priority").explode().alias("Priority"),
+            pl.col("Propensity").explode(empty_as_null=True).alias("Propensity"),
+            pl.col("Priority").explode(empty_as_null=True).alias("Priority"),
             pl.col("Decisions"),
         )
         .filter((pl.col("Propensity") >= propensity_threshold) & (pl.col("Priority") >= priority_threshold))

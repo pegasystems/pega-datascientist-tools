@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal, overload
 
-
 from ....internal._pagination import AsyncPaginatedList, PaginatedList
 from ....internal._resource import api_method
 from ..base import AsyncModel as AsyncPreviousModel
@@ -17,9 +16,11 @@ from ..base import Model as PreviousModel
 from ..schemas import ModelData, ModelDataV26_1
 
 if TYPE_CHECKING:
-    import polars as pl
-    from ..types import NotificationCategory
     from collections.abc import Callable
+
+    import polars as pl
+
+    from ..types import NotificationCategory
 
 
 class _Modelv26_1Mixin:

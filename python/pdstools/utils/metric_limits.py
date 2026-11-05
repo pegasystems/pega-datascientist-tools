@@ -14,8 +14,8 @@ from __future__ import annotations
 
 import difflib
 import re
-from typing import Any, ClassVar, Literal
 from collections.abc import Callable
+from typing import Any, ClassVar, Literal
 
 import polars as pl
 
@@ -316,7 +316,7 @@ def standard_NBAD_configurations_rag(value: str) -> RAGValue | None:
     if not value:
         return None
 
-    items = [v.strip() for v in value.split(",") if v.strip()]
+    items = [v.strip().removesuffix("(*)").strip() for v in value.split(",") if v.strip()]
     if not items:
         return None
 

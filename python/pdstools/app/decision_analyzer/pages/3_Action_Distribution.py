@@ -10,9 +10,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     stage_level_selector,
     stage_selectbox,
 )
-from pdstools.utils.streamlit_utils import get_current_index
-
-from pdstools.utils.streamlit_utils import standard_page_config
+from pdstools.utils.streamlit_utils import get_current_index, standard_page_config
 
 standard_page_config(page_title="Action Distribution · Decision Analysis")
 

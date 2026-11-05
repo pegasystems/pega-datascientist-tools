@@ -15,14 +15,14 @@ state-transition: change the radio value, verify the analyzer's
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
 from streamlit.testing.v1 import AppTest
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
     from pathlib import Path
+
+    from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 
 
 def _find_radio(at: AppTest, key: str):
@@ -49,7 +49,8 @@ def test_stage_level_radio_updates_analyzer(
     )
 
     radio = _find_radio(at, "_stage_level_radio")
-    assert radio is not None, "Expected stage-level radio to be rendered"
+    assert "_stage_level_radio" in [widget.key for widget in at.radio]
+    assert radio.options == ["Stage Group", "Stage"]
     assert da.level == "Stage Group", f"Initial level should be 'Stage Group', got {da.level!r}"
 
     radio.set_value("Stage").run()

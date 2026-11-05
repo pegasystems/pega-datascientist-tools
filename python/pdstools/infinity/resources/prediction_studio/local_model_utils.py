@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 import logging
 import re
+import tempfile
 from enum import Enum
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 from pydantic import AliasChoices, BaseModel, Field, field_validator, model_validator
@@ -538,29 +540,27 @@ class ONNXModel(LocalModel):
                 namespace="ONNXModel.from_pytorch",
             ) from None
 
-        import io as _io
-
         import onnx
 
         model.eval()
         input_names = input_names or ["input"]
         output_names = output_names or ["output"]
 
-        buf = _io.BytesIO()
-        with torch.no_grad():
-            torch.onnx.export(
-                model,
-                dummy_input,
-                buf,
-                input_names=input_names,
-                output_names=output_names,
-                dynamic_axes=None,
-                opset_version=opset_version,
-                do_constant_folding=True,
-            )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "model.onnx"
+            with torch.no_grad():
+                torch.onnx.export(
+                    model,
+                    dummy_input,
+                    str(output_path),
+                    input_names=input_names,
+                    output_names=output_names,
+                    dynamic_axes=None,
+                    opset_version=opset_version,
+                    do_constant_folding=True,
+                )
 
-        buf.seek(0)
-        proto = onnx.load_model_from_string(buf.read())
+            proto = onnx.load(str(output_path))
 
         if fixed_batch_size:
             cls._fix_dynamic_shapes(proto, batch_size=1)

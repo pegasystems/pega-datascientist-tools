@@ -18,6 +18,7 @@ import polars as pl
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
     from great_tables import GT
 
 __all__ = ["NumberFormat"]

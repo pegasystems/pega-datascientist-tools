@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 import polars as pl
 import pytest
-from polars.testing import assert_frame_equal
 from pdstools import ADMDatamart, datasets
 from pdstools.adm.Analysis import (
     Analysis,
@@ -17,6 +16,7 @@ from pdstools.adm.Analysis import (
 )
 from pdstools.utils import cdh_utils
 from pdstools.utils.metric_limits import MetricLimits
+from polars.testing import assert_frame_equal
 
 
 def _make_dm(rows: list[dict]) -> ADMDatamart:
@@ -419,7 +419,7 @@ class TestAnalysisNamespace:
         titles = [title for title, _ in sections]
         assert "Top Channels by Responses" in titles
         assert "Top Configurations by Responses" in titles
-        assert "Predictor Categories" in titles
+        assert "Naive Bayes Predictor Categories" in titles
 
     def test_estate_snapshot_sections_allow_configuration_summary_without_channel_direction(
         self,
@@ -1269,7 +1269,7 @@ class TestCheckTaxonomyExceptionPaths:
     def test_predictor_count_exception_is_swallowed(self):
         """Lines 619-620: exception in predictor-count block is swallowed."""
         dm = datasets.cdh_sample()
-        assert dm.predictor_data is not None
+        assert dm.predictor_data.select(pl.len()).collect().item() == 70735
         # combined_data must work for schema check (line 529) but fail on .filter() (line 594)
         mock_cd = MagicMock()
         mock_cd.collect_schema.return_value.names.return_value = ["Configuration", "EntryType", "PredictorName"]

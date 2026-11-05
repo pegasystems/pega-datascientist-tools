@@ -12,7 +12,6 @@ import datetime
 
 import polars as pl
 import pytest
-
 from pdstools.infinity.internal._pagination import PaginatedList
 from pdstools.infinity.resources.prediction_studio.base import (
     AsyncNotification,

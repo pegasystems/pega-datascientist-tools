@@ -3,9 +3,8 @@ from __future__ import annotations
 # python/pdstools/decision_analyzer/column_schema.py
 from typing import TypedDict
 
-from typing_extensions import NotRequired
-
 import polars as pl
+from typing_extensions import NotRequired
 
 
 class TableConfig(TypedDict):

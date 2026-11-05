@@ -8,14 +8,15 @@ instead of passing silently.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from pdstools.impactanalyzer.ImpactAnalyzer import ImpactAnalyzer
     from pathlib import Path
+
+    from pdstools.impactanalyzer.ImpactAnalyzer import ImpactAnalyzer
 
 
 def test_home_pre_load_text_is_product_neutral(ia_app_dir: Path):

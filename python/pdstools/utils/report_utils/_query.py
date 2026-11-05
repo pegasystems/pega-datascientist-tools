@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import io
 import json
+from typing import TYPE_CHECKING
 
 import polars as pl
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..types import QUERY

@@ -9,7 +9,6 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from pdstools.infinity.internal._exceptions import PegaException, PegaMLopsError
 from pdstools.infinity.resources.prediction_studio.v24_2.champion_challenger._sync import (
     ChampionChallenger as CCv24_2,

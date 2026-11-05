@@ -73,9 +73,12 @@ def test_action_overlap(sample_datamart):
 
     # Test with return_df=True
     df = sample_datamart.plot.action_overlap(return_df=True)
-    assert isinstance(df, pl.DataFrame)
-    assert "Channel" in df.columns
-    assert df.shape[0] == 3  # 3 channels
+    assert df.sort("Channel").to_dict(as_series=False) == {
+        "Overlap_Name_Email": [None, 0.0, 0.0],
+        "Overlap_Name_Mobile": [0.0, None, 0.0],
+        "Overlap_Name_Web": [0.0, 0.0, None],
+        "Channel": ["Email", "Mobile", "Web"],
+    }
 
     # Test with custom group_col
     fig = sample_datamart.plot.action_overlap(group_col="Direction")
@@ -127,20 +130,26 @@ def test_binning_lift_enhanced(sample_datamart):
     fig = sample_datamart.plot.binning_lift(model_id, predictor_name)
     assert isinstance(fig, Figure)
 
-    # Check that the figure has the expected traces
-    assert len(fig.data) > 0
+    assert [(trace.name, list(trace.x), list(trace.y)) for trace in fig.data] == [
+        ("pos", [0.0], ["<30"]),
+    ]
 
     # Test with return_df=True
     df = sample_datamart.plot.binning_lift(model_id, predictor_name, return_df=True)
-    assert isinstance(df, pl.LazyFrame)
-
-    # Check that the dataframe has the expected columns
     collected_df = df.collect()
-    assert "PredictorName" in collected_df.columns
-    assert "BinIndex" in collected_df.columns
-    assert "BinSymbol" in collected_df.columns
-    assert "Lift" in collected_df.columns
-    assert "Direction" in collected_df.columns
+    assert collected_df.select(
+        "PredictorName",
+        "BinIndex",
+        "BinSymbol",
+        "Lift",
+        "Direction",
+    ).to_dict(as_series=False) == {
+        "PredictorName": ["Age"],
+        "BinIndex": [1],
+        "BinSymbol": ["<30"],
+        "Lift": [0.0],
+        "Direction": ["pos"],
+    }
 
     # Test with query
     fig = sample_datamart.plot.binning_lift(

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 __all__ = ["Scoring"]
 
-from typing import Literal, TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import polars as pl
 import polars.selectors as cs
@@ -263,9 +263,14 @@ class Scoring:
             self.da.preaggregated_filter_view.filter(pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down))
             .select(
                 # TODO can probably code this up more efficiently
-                [pl.col(fld).explode().quantile(q / 100.0).alias(f"p{q}") for q in quantile_range]
+                [pl.col(fld).explode(empty_as_null=True).quantile(q / 100.0).alias(f"p{q}") for q in quantile_range]
                 + [
-                    ((pl.col(fld).explode()) < (pl.col(fld).explode().quantile(q / 100.0))).sum().alias(f"n{q}")
+                    (
+                        pl.col(fld).explode(empty_as_null=True)
+                        < pl.col(fld).explode(empty_as_null=True).quantile(q / 100.0)
+                    )
+                    .sum()
+                    .alias(f"n{q}")
                     for q in quantile_range
                 ]
                 + [pl.lit("Arbitration").alias(self.da.level)]

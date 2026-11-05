@@ -4,7 +4,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import ClassVar, Literal, overload, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Literal, overload
 
 import polars as pl
 import polars.selectors as cs
@@ -23,9 +23,10 @@ from .Schema import REQUIRED_IA_COLUMNS, ImpactAnalyzerData
 from .statistics import lift_pl
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
-    from collections.abc import Callable, Sequence
     import os
+    from collections.abc import Callable, Sequence
+
+    from ..utils.types import QUERY
 
 logger = logging.getLogger(__name__)
 
@@ -886,13 +887,10 @@ class ImpactAnalyzer:
         first non-null result per row.
         """
         c = pl.col(col)
-        # First attempt: trust the dtype as polars/calamine read it.
-        # cast(strict=False) yields null for incompatible source dtypes
-        # (e.g. String → Datetime), letting subsequent attempts take over.
-        attempts: list[pl.Expr] = [c.cast(pl.Datetime, strict=False)]
-        # String-based fallbacks. Cast everything to String first so an
-        # already-numeric column (Excel serial) still gets tried below.
+        # Parse from String rather than casting directly to Datetime: Polars 2
+        # removed String → Datetime casts, even with strict=False.
         s = c.cast(pl.String, strict=False).str.strip_chars()
+        attempts: list[pl.Expr] = []
         for fmt in (
             "%Y-%m-%dT%H:%M:%S%.fZ",
             "%Y-%m-%dT%H:%M:%S",
@@ -1036,10 +1034,18 @@ class ImpactAnalyzer:
             ),
         )
 
-        long = pl.concat([test_long, control_long], how="vertical_relaxed")
-
         if query is not None:
-            long = _apply_query(long, query=query)
+            # Materialize each arm separately to avoid Polars 2 misplanning
+            # filters when the lazy branches are concatenated.
+            # Workaround for pola-rs/polars#29788 (fixed by pola-rs/polars#29793
+            # after 2.0.0); needed while Polars 2.0.0 is supported.
+            filtered_test = _apply_query(test_long, query=query, allow_empty=True).collect()
+            filtered_control = _apply_query(control_long, query=query, allow_empty=True).collect()
+            if filtered_test.height + filtered_control.height == 0:
+                raise ValueError("The given query resulted in an empty dataframe")
+            long = pl.concat([filtered_test, filtered_control], how="vertical_relaxed").lazy()
+        else:
+            long = pl.concat([test_long, control_long], how="vertical_relaxed")
 
         # Aggregate: for non-NBA arms there is one row per (date, channel,
         # action, treatment, ControlGroup); for the NBA arm there are up to

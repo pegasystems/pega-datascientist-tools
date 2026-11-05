@@ -26,6 +26,7 @@ basePath = pathlib.Path(__file__).parent.parent.parent
         # Educational/article notebooks
         "examples/articles/ADMExplained.ipynb",
         "examples/articles/thompsonsampling.ipynb",
+        "examples/articles/ConversionModeling.ipynb",
         "examples/articles/explanations/agb_global_explanations.ipynb",
         # ADM analysis notebooks
         "examples/articles/AGBExplained.ipynb",
@@ -44,6 +45,11 @@ def test_notebook(relative_filepath):
             f"""
         import os
         import sys
+        if sys.platform == "win32":
+            import asyncio
+
+            # pyzmq requires add_reader support, which ProactorEventLoop lacks.
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         os.chdir(r'{notebook_dir}')
         sys.path.append('{pythonPath}')""",
         )

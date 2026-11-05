@@ -17,9 +17,7 @@ from collections import defaultdict
 
 import polars as pl
 import pytest
-
 from pdstools.ih.IH import IH
-
 
 # ---------------------------------------------------------------------------
 # Reference implementation: the pre-rewrite O(L^2) version of

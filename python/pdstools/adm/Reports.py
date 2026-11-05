@@ -11,7 +11,7 @@ __all__ = ["ReportOptions", "Reports"]
 import logging
 import shutil
 from pathlib import Path
-from typing import ClassVar, Literal, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 import polars as pl
 from typing_extensions import TypedDict, Unpack
@@ -27,10 +27,11 @@ from ..utils.report_utils import (
 )
 
 if TYPE_CHECKING:
-    from ..utils.types import QUERY
-    from os import PathLike
     from collections.abc import Callable
+    from os import PathLike
+
     from ..prediction.Prediction import Prediction
+    from ..utils.types import QUERY
     from .ADMDatamart import ADMDatamart
     from .Analysis import HealthCheckPreAggregates
 
@@ -140,6 +141,7 @@ class Reports(LazyNamespace):
         *,
         name: str | None = None,
         only_active_predictors: bool = True,
+        confidence_level: float = 0.95,
         progress_callback: Callable[[int, int], None] | None = None,
         model_file_path: str | PathLike[str] | None = None,
         predictor_file_path: str | PathLike[str] | None = None,
@@ -155,6 +157,8 @@ class Reports(LazyNamespace):
             Base file name of the report.
         only_active_predictors : bool, default=True
             Whether to only include active predictor details.
+        confidence_level : float, default=0.95
+            Two-sided confidence level for AUC confidence intervals.
         progress_callback : callable, optional
             Function called as ``progress_callback(current, total)`` after each model
             report is rendered. Used by the Streamlit app.
@@ -197,6 +201,7 @@ class Reports(LazyNamespace):
             model_ids = [model_ids]
         if not model_ids or not all(isinstance(i, str) for i in model_ids):
             raise ValueError("No valid model IDs")
+        cdh_utils.validate_confidence_level(confidence_level)
 
         output_dir, temp_dir = cdh_utils.create_working_and_temp_dir(name, output_dir)
 
@@ -236,6 +241,8 @@ class Reports(LazyNamespace):
                         "predictor_file_path": str(predictor_file_path),
                         "model_id": model_id,
                         "only_active_predictors": only_active_predictors,
+                        "confidence_level": confidence_level,
+                        "full_embed": full_embed,
                         "title": title,
                         "subtitle": subtitle,
                         "disclaimer": disclaimer,
@@ -263,9 +270,10 @@ class Reports(LazyNamespace):
                 if progress_callback:
                     progress_callback(i + 1, len(model_ids))
 
+            bundled_file_name = output_path if len(output_file_paths) == 1 else Path("ModelReports.zip")
             file_data, file_name = cdh_utils.process_files_to_bytes(
                 output_file_paths,
-                base_file_name=output_path,
+                base_file_name=bundled_file_name,
             )
             final_path = output_dir / file_name
             with open(final_path, "wb") as f:
@@ -276,9 +284,6 @@ class Reports(LazyNamespace):
             logger.info("Data exported to %s", final_path)
             return final_path
 
-        except Exception as e:
-            logger.error(e)
-            raise
         finally:
             if not keep_temp_files and temp_dir.exists() and temp_dir.is_dir():
                 shutil.rmtree(temp_dir, ignore_errors=True)
@@ -393,6 +398,7 @@ class Reports(LazyNamespace):
                     "predictor_file_path": str(predictor_file_path) if predictor_file_path is not None else "",
                     "prediction_file_path": str(prediction_file_path) if prediction_file_path is not None else "",
                     "query": serialize_query(query),
+                    "full_embed": full_embed,
                     "title": title,
                     "subtitle": subtitle,
                     "disclaimer": disclaimer,

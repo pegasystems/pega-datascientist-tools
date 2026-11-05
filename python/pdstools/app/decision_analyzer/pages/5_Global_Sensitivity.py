@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import polars as pl
 import streamlit as st
-from pdstools.app.decision_analyzer.da_streamlit_utils import collect_page_filters, contextual_filters, ensure_data
-from pdstools.utils.streamlit_utils import get_current_index
 
+from pdstools.app.decision_analyzer.da_streamlit_utils import collect_page_filters, contextual_filters, ensure_data
 from pdstools.decision_analyzer.utils import apply_filter
-from pdstools.utils.streamlit_utils import standard_page_config
+from pdstools.utils.streamlit_utils import get_current_index, standard_page_config
 
 standard_page_config(page_title="Global Sensitivity · Decision Analysis")
 

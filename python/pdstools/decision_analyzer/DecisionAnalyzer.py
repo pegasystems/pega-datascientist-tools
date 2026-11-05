@@ -1,25 +1,32 @@
 from __future__ import annotations
 
-# python/pdstools/decision_analyzer/DecisionAnalyzer.py
-from pathlib import Path
-from typing import ClassVar, TYPE_CHECKING, cast
-from functools import cached_property
 import logging
 import os
 import warnings
+from functools import cached_property
+
+# python/pdstools/decision_analyzer/DecisionAnalyzer.py
+from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar, cast
 
 import polars as pl
 import polars.selectors as cs
 
-from .data_read_utils import validate_columns
+from ..pega_io.File import read_data
+from ..utils.namespaces import LazyNamespace
 from ._aggregates import Aggregates
 from ._scoring import Scoring
-from .stage_grouping import DISPLAY_NAME_LOOKUP
 from .column_schema import (
     DecisionAnalyzer as DecisionAnalyzer_TD,
+)
+from .column_schema import (
     ExplainabilityExtract as ExplainabilityExtract_TD,
+)
+from .column_schema import (
     TableConfig,
 )
+from .data_read_utils import validate_columns
+from .stage_grouping import DISPLAY_NAME_LOOKUP
 from .utils import (
     SCOPE_HIERARCHY,
     apply_filter,
@@ -28,8 +35,6 @@ from .utils import (
     rename_and_cast_types,
     resolve_aliases,
 )
-from ..pega_io.File import read_data
-from ..utils.namespaces import LazyNamespace
 
 if TYPE_CHECKING:
     import os

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
 from .....internal._pagination import PaginatedList
 from ...base import ChampionChallenger as ChampionChallengerBase
 from ._mixin import _ChampionChallengerV24_2Mixin
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import polars as pl

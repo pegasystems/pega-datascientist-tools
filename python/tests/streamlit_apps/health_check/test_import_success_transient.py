@@ -15,7 +15,6 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
-
 REPO_ROOT = Path(__file__).resolve().parents[4]
 DATA_DIR = REPO_ROOT / "data"
 MODEL_ZIP = DATA_DIR / "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip"
@@ -46,7 +45,7 @@ def test_import_success_banner_is_transient(hc_app_dir: Path) -> None:
     assert any("Import Successful" in s.value for s in at.success), (
         f"expected 'Import Successful!' on the import run, got: {[s.value for s in at.success]}"
     )
-    assert at.session_state["_hc_import_result"] is not None
+    assert at.session_state["_hc_import_result"].datamart is at.session_state["dm"]
 
     # A subsequent rerun (e.g. navigating back to the page) must NOT keep the
     # stale success banner; instead it shows the imported-data status.

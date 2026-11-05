@@ -51,7 +51,7 @@ def test_normalize_performance_scale_is_lazy():
     df = pl.LazyFrame({"Performance": [55.0, 70.0, 100.0]})
     with patch.object(pl.LazyFrame, "collect", side_effect=RuntimeError("should stay lazy")):
         out = Prediction._normalize_performance_scale(df)
-    assert isinstance(out, pl.LazyFrame)
+    assert out.collect_schema() == pl.Schema({"Performance": pl.Float64})
 
 
 def test_parse_snapshot_time_from_pega_string():

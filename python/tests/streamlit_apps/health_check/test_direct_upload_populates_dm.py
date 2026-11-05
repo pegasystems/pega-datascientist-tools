@@ -18,9 +18,6 @@ import polars as pl
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from pdstools.adm.ADMDatamart import ADMDatamart
-
-
 REPO_ROOT = Path(__file__).resolve().parents[4]
 DATA_DIR = REPO_ROOT / "data"
 MODEL_ZIP = DATA_DIR / "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip"
@@ -49,11 +46,13 @@ def test_direct_upload_populates_dm(hc_app_dir: Path) -> None:
 
     # Find the model + predictor uploaders by label and drop the bundled zips in.
     uploaders = {u.label: u for u in at.get("file_uploader")}
-    model_uploader = next((u for lbl, u in uploaders.items() if "Model Snapshot" in lbl), None)
-    predictor_uploader = next((u for lbl, u in uploaders.items() if "Predictor" in lbl), None)
-    assert model_uploader is not None and predictor_uploader is not None, (
-        f"Expected Model + Predictor uploaders, got: {list(uploaders)}"
-    )
+    assert list(uploaders) == [
+        "Upload Model Snapshot",
+        "Upload Predictor Binning snapshot (optional)",
+        "Upload Prediction Table (optional)",
+    ]
+    model_uploader = uploaders["Upload Model Snapshot"]
+    predictor_uploader = uploaders["Upload Predictor Binning snapshot (optional)"]
 
     model_uploader.upload(MODEL_ZIP.name, MODEL_ZIP.read_bytes(), "application/zip")
     predictor_uploader.upload(PREDICTOR_ZIP.name, PREDICTOR_ZIP.read_bytes(), "application/zip")
@@ -79,14 +78,13 @@ def test_direct_upload_populates_dm(hc_app_dir: Path) -> None:
         f"errors: {[error.value for error in at.error]}"
     )
     dm = at.session_state["dm"]
-    assert isinstance(dm, ADMDatamart), f"Expected ADMDatamart, got {type(dm).__name__}"
     assert dm is not autoloaded_dm, (
         "The post-upload datamart must be a freshly built instance, not the same object as the autoloaded CDH Sample"
     )
 
     model_count = dm.aggregates.last().select("ModelID").unique().collect().height
-    assert model_count > 0, f"Uploaded datamart must have at least one model, got {model_count}"
+    assert model_count == 68
     categories = (
         dm.predictor_data.select("PredictorCategory").filter(pl.col("PredictorCategory") == "Uploaded").collect()
     )
-    assert categories.height > 0
+    assert categories.select("PredictorCategory").unique().to_series().to_list() == ["Uploaded"]

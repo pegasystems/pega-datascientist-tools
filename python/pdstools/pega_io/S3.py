@@ -157,7 +157,7 @@ class S3Data:
                 await task
 
         if verbose:
-            print(
+            print(  # noqa: T201 - user-facing progress
                 f"Completed {prefix}. Imported {len(files)} files, skipped {len(already_on_disk)} files.",
             )
         return [local_path(f) for f in (*files, *already_on_disk)]
