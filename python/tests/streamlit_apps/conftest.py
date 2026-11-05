@@ -17,6 +17,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pdstools import demo_data
 from pdstools.adm.ADMDatamart import ADMDatamart
 from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 from pdstools.impactanalyzer.ImpactAnalyzer import ImpactAnalyzer
@@ -110,18 +111,11 @@ def seeded_decision_analyzer(da_sample_path: Path) -> DecisionAnalyzer:
 
 @pytest.fixture
 def seeded_admdatamart() -> ADMDatamart:
-    """An ADMDatamart loaded from the canonical CDH sample.
-
-    Health Check pages read this from ``st.session_state["dm"]``. We
-    re-use the same fixture data as ``test_ADMDatamart.py`` so any
-    schema drift surfaces in both layers.
-    """
-    if not (DATA_DIR / ADM_MODEL_FILE).exists():
-        pytest.skip(f"ADM sample data missing: {DATA_DIR / ADM_MODEL_FILE}")
-    return ADMDatamart.from_ds_export(
-        base_path=str(DATA_DIR),
-        model_filename=ADM_MODEL_FILE,
-        predictor_filename=ADM_PREDICTOR_FILE,
+    """Canonical demo-world datamart used by Health Check page tests."""
+    demo_datamart = demo_data(end="canonical").datamart
+    return ADMDatamart(
+        model_df=demo_datamart.model_data,
+        predictor_df=demo_datamart.predictor_data,
     )
 
 

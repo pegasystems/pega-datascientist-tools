@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from pathlib import Path
 
 import plotly.express as px
 import polars as pl
@@ -8,21 +7,9 @@ from pdstools import ADMDatamart
 from pdstools.utils import cdh_utils
 from plotly.graph_objs import Figure
 
-basePath = Path(__file__).parent.parent.parent.parent
-
 
 def _utc_datetime(year: int, month: int, day: int) -> datetime:
     return datetime(year, month, day, tzinfo=timezone.utc)
-
-
-@pytest.fixture
-def sample():
-    """Fixture to serve as class to call functions from."""
-    return ADMDatamart.from_ds_export(
-        base_path=f"{basePath}/data",
-        model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
-        predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
-    )
 
 
 @pytest.fixture
@@ -50,11 +37,11 @@ def sample2():
 def test_bubble_chart(sample: ADMDatamart):
     df = sample.plot.bubble_chart(return_df=True)
 
-    assert df.select(pl.col("Performance").top_k(1)).collect().item() == 77.4901
-    assert round(df.select(pl.col("SuccessRate").top_k(1)).collect().item(), 2) == 0.28
+    assert df.select(pl.col("Performance").top_k(1)).collect().item() == 89.4546
+    assert round(df.select(pl.col("SuccessRate").top_k(1)).collect().item(), 2) == 0.4
     assert df.select(
         pl.col("ResponseCount").top_k(1),
-    ).collect().item() == pytest.approx(8201, abs=1e-6)
+    ).collect().item() == pytest.approx(17083982, abs=1e-6)
     plot = sample.plot.bubble_chart()
     assert isinstance(plot, Figure)
     assert plot.layout.xaxis.title.text == "Performance"
@@ -895,8 +882,11 @@ def test_action_trends():
 def test_proposition_success_rates(sample: ADMDatamart):
     df = sample.plot.proposition_success_rates(return_df=True)
 
-    assert round(df.select(pl.col("SuccessRate").top_k(1)).collect().item(), 3) == 0.295
-    assert df.select(pl.col("Name").top_k(1)).collect().item() == "VisaSignature"
+    assert df.select(pl.col("SuccessRate").max()).collect().item() == 1.0
+    assert (
+        "RewardsRedemption"
+        in df.filter(pl.col("SuccessRate") == 1.0).select("Name").unique().collect().to_series().to_list()
+    )
 
     plot = sample.plot.proposition_success_rates()
     assert isinstance(plot, Figure)
@@ -905,7 +895,7 @@ def test_proposition_success_rates(sample: ADMDatamart):
 
 
 def test_score_distribution(sample: ADMDatamart):
-    model_id = "277a2c48-8888-5b71-911e-443d52c9b50f"
+    model_id = "05085857-c52c-5daa-b51b-0af576a038af"
 
     df = sample.plot.score_distribution(model_id=model_id, return_df=True)
 
@@ -934,7 +924,7 @@ def test_score_distribution_falls_back_to_full_range_when_active_range_is_empty(
     sample: ADMDatamart,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    model_id = "277a2c48-8888-5b71-911e-443d52c9b50f"
+    model_id = "05085857-c52c-5daa-b51b-0af576a038af"
 
     def out_of_bounds_active_range(model_ids: str):
         assert model_ids == model_id
@@ -953,12 +943,19 @@ def test_multiple_score_distributions(sample: ADMDatamart):
         sample.aggregates.last(table="combined_data")
         .filter(pl.col("PredictorName") == "Classifier")
         .select(pl.col("ModelID").unique())
+        .sort("ModelID")
+        .limit(3)
         .collect()
+        .get_column("ModelID")
+        .to_list()
     )
 
-    assert not model_ids.is_empty()
+    assert len(model_ids) == 3
 
-    plots = sample.plot.multiple_score_distributions(show_all=False)
+    plots = sample.plot.multiple_score_distributions(
+        query=pl.col("ModelID").is_in(model_ids),
+        show_all=False,
+    )
 
     assert len(plots) == len(model_ids)
 
@@ -1021,12 +1018,23 @@ def test_predictor_binning(sample: ADMDatamart):
 
 def test_multiple_predictor_binning(sample: ADMDatamart):
     model_id = sample.combined_data.select("ModelID").collect().row(0)[0]
-
-    expected_predictor_count = (
-        sample.combined_data.filter(pl.col("ModelID") == model_id).select("PredictorName").unique().collect().shape[0]
+    predictor_names = (
+        sample.combined_data.filter(pl.col("ModelID") == model_id)
+        .select(pl.col("PredictorName").unique())
+        .sort("PredictorName")
+        .limit(3)
+        .collect()
+        .get_column("PredictorName")
+        .to_list()
     )
 
-    plots = sample.plot.multiple_predictor_binning(model_id=model_id, show_all=False)
+    expected_predictor_count = len(predictor_names)
+
+    plots = sample.plot.multiple_predictor_binning(
+        model_id=model_id,
+        query=pl.col("PredictorName").is_in(predictor_names),
+        show_all=False,
+    )
 
     assert isinstance(plots, list)
 
@@ -1039,14 +1047,14 @@ def test_multiple_predictor_binning(sample: ADMDatamart):
         assert plot.data[0].type == "bar"  # Responses
         assert plot.data[1].type == "scatter"  # Propensity
 
-    sample.plot.multiple_predictor_binning(model_id="invalid_id", show_all=False) == []
+    assert sample.plot.multiple_predictor_binning(model_id="invalid_id", show_all=False) == []
 
 
 def test_predictor_performance(sample: ADMDatamart):
     df = sample.plot.predictor_performance(return_df=True)
     assert "PredictorName" in df.collect_schema().names()
     assert "median" in df.collect_schema().names()
-    assert round(df.select(pl.col("median").top_k(1)).item(), 2) == 65.17
+    assert round(df.select(pl.col("median").top_k(1)).item(), 2) == 60.26
 
     plot = sample.plot.predictor_performance()
     assert isinstance(plot, Figure)
@@ -1156,10 +1164,10 @@ def test_predictor_performance_legend_order_is_alphabetical_without_reordering_t
 
 def test_predictor_category_performance(sample: ADMDatamart):
     df = sample.plot.predictor_category_performance(return_df=True)
-    assert df.shape == (3, 10)
+    assert df.shape == (5, 10)
     assert "PredictorCategory" in df.columns
     assert "mean" in df.columns
-    assert round(df.select(pl.col("mean").top_k(1)).item(), 2) == 56.56
+    assert round(df.select(pl.col("mean").top_k(1)).item(), 2) == 51.78
 
     plot = sample.plot.predictor_category_performance()
     assert isinstance(plot, Figure)
@@ -1176,19 +1184,23 @@ def test_predictor_category_performance_empty_query(sample: ADMDatamart):
 
 def test_predictor_contribution(sample: ADMDatamart):
     df = sample.plot.predictor_contribution(return_df=True).collect()
-    assert df.shape == (3, 4)
+    assert df.shape == (30, 4)
     assert "PredictorCategory" in df.columns
     assert "Contribution" in df.columns
-    assert df.select(pl.col("Contribution").sum()).item() == pytest.approx(
-        100,
-        rel=1e-2,
+    contribution_totals = (
+        df.group_by("Configuration").agg(pl.col("Contribution").sum()).sort("Configuration")["Contribution"].to_list()
     )
+    assert contribution_totals == pytest.approx([100.0] * 7, rel=1e-2)
     assert (
         round(
-            df.filter(pl.col("PredictorCategory") == "Customer").select("Contribution").item(),
+            df.filter(
+                (pl.col("PredictorCategory") == "Customer") & (pl.col("Configuration") == "OmniAdaptiveModel"),
+            )
+            .select("Contribution")
+            .item(),
             2,
         )
-        == 38.96
+        == 3.86
     )
 
     plot = sample.plot.predictor_contribution()
@@ -1196,36 +1208,36 @@ def test_predictor_contribution(sample: ADMDatamart):
 
 
 def test_predictor_performance_heatmap(sample: ADMDatamart):
-    df = sample.plot.predictor_performance_heatmap(return_df=True)
+    model_id = "05085857-c52c-5daa-b51b-0af576a038af"
+    query = pl.col("ModelID") == model_id
+    predictor = "IH.Web.Inbound.Clicked.pxLastOutcomeTime.DaysSince"
+    df = sample.plot.predictor_performance_heatmap(query=query, return_df=True)
 
     assert (
         round(
-            df.filter(Name="Customer.AnnualIncome").select("AutoUsed60Months").collect().item(),
+            df.filter(Name=predictor).select("FixedRateLoan").collect().item(),
             5,
         )
-        == 0.69054
+        == 0.61345
     )
     assert df.select(pl.col("*").exclude("Name")).collect().to_numpy().max() <= 1.0
     assert "Name" in df.collect().columns
-    assert "ChannelAction_Template" in df.collect().columns
+    assert "FixedRateLoan" in df.collect().columns
 
-    plot = sample.plot.predictor_performance_heatmap()
+    plot = sample.plot.predictor_performance_heatmap(query=query)
     assert isinstance(plot, Figure)
     # Plotted on the Pega AUC scale (50-100); return_df keeps the 0-1 scale.
     assert (plot.layout.coloraxis.cmin, plot.layout.coloraxis.cmax) == (50, 100)
     assert (
         round(
-            float(
-                plot.data[0].z[list(plot.data[0].y).index("Customer.AnnualIncome")][
-                    list(plot.data[0].x).index("AutoUsed60Months")
-                ]
-            ),
+            float(plot.data[0].z[list(plot.data[0].y).index(predictor)][list(plot.data[0].x).index("FixedRateLoan")]),
             3,
         )
-        == 69.054
+        == 61.345
     )
 
     df = sample.plot.predictor_performance_heatmap(
+        query=query,
         by=pl.concat_str(
             pl.col("Issue"),
             pl.col("Group"),
@@ -1237,7 +1249,14 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
 
     assert "Name" not in df.collect().columns
     assert "Predictor" in df.collect().columns
-    assert "Sales/CreditCards/ChannelAction_Template" in df.collect().columns
+    model_context = (
+        sample.model_data.filter(pl.col("ModelID") == model_id)
+        .select("Issue", "Group", "Name")
+        .unique()
+        .collect()
+        .row(0)
+    )
+    assert "/".join(model_context) in df.collect().columns
 
 
 def test_predictor_performance_heatmap_empty_query(sample: ADMDatamart):
@@ -1252,8 +1271,8 @@ def test_predictor_performance_heatmap_empty_query(sample: ADMDatamart):
 
 def test_tree_map(sample: ADMDatamart):
     df = sample.plot.tree_map(return_df=True).collect()
-    assert df.shape == (98, 10)
-    assert df.sort("Total number of positives").row(0)[-1] == 0.0
+    assert df.shape == (266, 10)
+    assert df.sort("Total number of positives").row(0)[-1] == 2.0
     plot = sample.plot.tree_map()
     assert isinstance(plot, Figure)
 
@@ -1273,11 +1292,10 @@ def test_predictor_count(sample: ADMDatamart):
     df = sample.plot.predictor_count(return_df=True)
 
     collected = df.collect() if isinstance(df, pl.LazyFrame) else df
-    # Fixture has 70 ADM models contributing predictor counts; capture exact
-    # shape and the total predictor count summed across all models.
-    assert collected.shape == (120, 4)
+    # Exact shape and count guard against changes to the canonical fixture.
+    assert collected.shape == (5125, 4)
     assert collected.schema["Count"] == pl.UInt64
-    assert collected["Count"].sum() == 3560
+    assert collected["Count"].sum() == 228668
     assert set(collected["EntryType"].unique().to_list()) == {"Active", "Inactive", "Overall"}
     assert set(collected["Type"].unique().to_list()) == {"numeric", "symbolic"}
 
@@ -1339,8 +1357,8 @@ def test_gains_chart_return_df(sample: ADMDatamart):
 
     # Verify data makes sense
     collected = df.collect()
-    # 98 models in fixture + a leading (0, 0) anchor point => 99 rows.
-    assert collected.height == 99
+    # 864 models in the canonical snapshot + a leading (0, 0) anchor point.
+    assert collected.height == 865
     assert collected["cum_x"][0] == 0.0
     assert collected["cum_y"][0] == 0.0
     assert collected["cum_x"][-1] == pytest.approx(1.0, abs=0.01)
@@ -1361,7 +1379,7 @@ def test_gains_chart_with_index(sample: ADMDatamart):
     df = sample.plot.gains_chart(value="Positives", index="ResponseCount", return_df=True)
     # Verify index column is used for sorting
     collected = df.collect()
-    assert collected.height == 99
+    assert collected.height == 865
     assert collected["cum_x"].is_sorted()
     assert collected["cum_y"][-1] == pytest.approx(1.0, abs=0.01)
 
@@ -1370,9 +1388,9 @@ def test_gains_chart_with_query(sample: ADMDatamart):
     """Test gains chart with query filter."""
     # Use a filter that keeps some but not all data
     df = sample.plot.gains_chart(value="ResponseCount", query=pl.col("Channel") == "Email", return_df=True)
-    # Should still return data for filtered subset (Email channel: 35 models + anchor)
+    # Email has 280 models in the canonical snapshot, plus the anchor point.
     collected = df.collect()
-    assert collected.height == 36
+    assert collected.height == 281
     assert collected["cum_x"][0] == 0.0
     assert collected["cum_y"][-1] == pytest.approx(1.0, abs=0.01)
 
@@ -1390,9 +1408,9 @@ def test_performance_volume_distribution_return_df(sample: ADMDatamart):
     assert "PerformanceBinned" in schema
     assert "ResponseCount" in schema
 
-    # The null-performance row is retained alongside the ten performance bins.
+    # Only non-empty performance bins are included.
     collected = df.collect()
-    assert collected.height == 11
+    assert collected.height == 12
     assert collected["PerformanceBinned"].drop_nulls().to_list() == [
         "[50, 53)",
         "[53, 56)",
@@ -1404,11 +1422,13 @@ def test_performance_volume_distribution_return_df(sample: ADMDatamart):
         "[71, 74)",
         "[74, 77)",
         "[77, 80)",
+        "[86, 89)",
+        "[89, 92)",
     ]
-    assert collected.filter(pl.col("PerformanceBinned").is_null())["ResponseCount"].item() == 0.0
+    assert collected["PerformanceBinned"].null_count() == 0
     # Proportions across all bins must sum to 1.0
     assert collected["Proportion"].sum() == pytest.approx(1.0, abs=1e-5)
-    assert collected["ResponseCount"].sum() == pytest.approx(1821299.0, rel=1e-6)
+    assert collected["ResponseCount"].sum() == pytest.approx(26501937152.0, rel=1e-6)
 
 
 def test_performance_volume_distribution_with_grouping(sample: ADMDatamart):
@@ -1425,17 +1445,17 @@ def test_performance_volume_distribution_bin_width(sample: ADMDatamart):
     collected = df.collect()
     # Verify binning created expected number of bins
     num_bins = collected["PerformanceBinned"].drop_nulls().n_unique()
-    assert num_bins == 6  # Performance range 50-80 with bin_width=5 produces 6 bins
+    assert num_bins == 7
 
 
 def test_performance_volume_distribution_with_query(sample: ADMDatamart):
     """Test performance volume distribution with query filter."""
     df = sample.plot.performance_volume_distribution(query=pl.col("ResponseCount") > 100, return_df=True)
     collected = df.collect()
-    # Same Performance range -> same 10 bins, but lower total response count after the query.
-    assert collected.height == 10
-    assert collected["ResponseCount"].sum() == pytest.approx(1814772.0, rel=1e-6)
-    assert collected["ResponseCount"].sum() < 1821299.0  # query genuinely filtered rows
+    # Same non-empty bins, but lower total response count after the query.
+    assert collected.height == 12
+    assert collected["ResponseCount"].sum() == pytest.approx(26501844992.0, rel=1e-6)
+    assert collected["ResponseCount"].sum() < 26501937152.0
 
 
 # ---------------------------------------------------------------------------
@@ -1447,11 +1467,10 @@ def test_predictor_category_color_map_stable(sample: ADMDatamart):
     """predictor_category_color_map returns a non-empty, stable mapping."""
     color_map = sample.predictor_category_color_map
     assert isinstance(color_map, dict)
-    assert color_map == {
-        "Customer": "#001F5F",
-        "IH": "#10A5AC",
-        "Param": "#F76923",
-    }
+    assert set(color_map) == {"Account", "Context Keys", "Customer", "IH", "Param"}
+    assert color_map["Customer"] == "#001F5F"
+    assert color_map["IH"] == "#10A5AC"
+    assert color_map["Param"] == "#F76923"
     # Calling twice returns the same object (cached_property)
     assert sample.predictor_category_color_map is color_map
 
@@ -1462,7 +1481,7 @@ def test_predictor_category_color_map_pins_standard_categories(sample: ADMDatama
     sample.apply_predictor_categorization(
         {
             "External Model": "Score",
-            "Custom Signal": "Age",
+            "Custom Signal": "AccountBalance",
         },
     )
 
@@ -1475,10 +1494,7 @@ def test_predictor_category_color_map_pins_standard_categories(sample: ADMDatama
     assert color_map["External Model"] == "#DE4342"
     assert "Custom Signal" in color_map
     assert color_map["Custom Signal"] not in {
-        color_map["Customer"],
-        color_map["IH"],
-        color_map["Param"],
-        color_map["External Model"],
+        color for category, color in color_map.items() if category != "Custom Signal"
     }
 
 

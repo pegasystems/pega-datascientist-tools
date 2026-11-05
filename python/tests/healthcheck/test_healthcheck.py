@@ -5,10 +5,8 @@ from html.parser import HTMLParser
 
 import pytest
 from openpyxl import load_workbook
-from pdstools import ADMDatamart, Prediction, demo_data, read_ds_export
+from pdstools import ADMDatamart, Prediction, demo_data
 from pdstools.utils.report_utils import check_report_for_errors
-
-basePath = pathlib.Path(__file__).parent.parent.parent.parent
 
 PLOTLY_CDN_LOAD_RE = re.compile(r"(?:src=|import\s+)[\"']https://cdn\.plot\.ly/")
 CSS_URL_RE = re.compile(r"url\(\s*([\"']?)([^\"')]+)\1\s*\)", re.IGNORECASE)
@@ -109,18 +107,17 @@ def _assert_full_embed_size_ratio(sizes: dict[str, int], *, report_label: str, m
 
 @pytest.fixture
 def sample() -> ADMDatamart:
-    return demo_data(end="canonical").datamart
+    demo_datamart = demo_data(end="canonical").datamart
+    return ADMDatamart(
+        model_df=demo_datamart.model_data,
+        predictor_df=demo_datamart.predictor_data,
+    )
 
 
 @pytest.fixture
 def sample_without_predictor_binning() -> ADMDatamart:
-    """Fixture to serve as class to call functions from."""
-    # Using from_ds_export automaticaly detects predictor_snapshot.
-    model_df = read_ds_export(
-        filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
-        path=f"{basePath}/data",
-    )
-    return ADMDatamart(model_df=model_df)
+    """Demo-world datamart with model data only."""
+    return ADMDatamart(model_df=demo_data(end="canonical").datamart.model_data)
 
 
 @pytest.fixture
@@ -137,8 +134,8 @@ def test_GenerateHealthCheck(sample: ADMDatamart, tmp_path):
     html = _read_report_html(hc)
     assert "Success Rate over Time by Channel/Direction" in html
     assert "Model Performance over Time by Channel/Direction" in html
-    assert "Daily Success Rate" in html
-    assert "Actions over Time (daily)" in html
+    assert "Weekly Success Rate" in html
+    assert "Actions over Time (weekly)" in html
     assert "Performance (AUC)" in html
 
 
