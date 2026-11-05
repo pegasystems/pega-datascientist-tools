@@ -12,7 +12,7 @@ from packaging.version import InvalidVersion, Version
 from .. import __version__ as pdstools_version
 from ..adm.ADMDatamart import ADMDatamart
 from ..prediction.Prediction import Prediction
-from ..utils import datasets
+from ..sample_data import demo_data
 from . import cdh_utils
 
 if TYPE_CHECKING:
@@ -319,8 +319,8 @@ def get_current_index(options, key, default=0):
 
 @st.cache_resource
 def cached_sample():
-    """Cached sample."""
-    return datasets.cdh_sample()
+    """Cached ADM datamart from the synthetic demo world."""
+    return demo_data().datamart
 
 
 @st.cache_resource
@@ -347,8 +347,8 @@ def cached_datamart(**kwargs):
 
 @st.cache_resource
 def cached_sample_prediction():
-    """Cached sample prediction."""
-    return Prediction.from_mock_data(days=60)
+    """Cached Prediction from the same synthetic demo world as ``cached_sample``."""
+    return demo_data().prediction
 
 
 @st.cache_resource

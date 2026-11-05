@@ -1,31 +1,26 @@
 """Testing the functionality of the ADMDatamart Aggregates predictors_overview function"""
 
-import pathlib
-
 import polars as pl
 import pytest
 from pdstools import ADMDatamart
 from pdstools.adm.Aggregates import Aggregates
 
-basePath = pathlib.Path(__file__).parent.parent.parent.parent
-
 
 @pytest.fixture
-def dm_aggregates():
+def dm_aggregates(sample: ADMDatamart):
     """Fixture to serve as class to call functions from."""
-    return Aggregates(
-        ADMDatamart.from_ds_export(
-            base_path=f"{basePath}/data",
-            model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
-            predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
-        ),
-    )
+    return Aggregates(sample)
 
 
 def test_predictors_overview(dm_aggregates):
-    """Test the predictors_overview method."""
-    # Test with no model_id (all models)
-    overview = dm_aggregates.predictors_overview().collect()
+    """Test predictor overview aggregation on a bounded canonical model slice."""
+    model_id = "05085857-c52c-5daa-b51b-0af576a038af"
+    datamart = dm_aggregates.datamart
+    model_slice = ADMDatamart(
+        model_df=datamart.model_data.filter(pl.col("ModelID") == model_id),
+        predictor_df=datamart.predictor_data.filter(pl.col("ModelID") == model_id),
+    )
+    overview = model_slice.aggregates.predictors_overview().collect()
 
     expected_columns = [
         "ModelID",
@@ -43,23 +38,21 @@ def test_predictors_overview(dm_aggregates):
         "Residual %",
     ]
     assert overview.columns == expected_columns
-    assert overview.shape == (1800, 13)
+    assert overview.shape == (151, 13)
 
-    # Test with a specific model_id
-    model_id = "692f453a-f825-5a90-ab40-f83cbb34b058"
     overview_single = dm_aggregates.predictors_overview(model_id=model_id).collect()
     assert overview_single.columns == expected_columns[1:]
-    assert overview_single.shape == (90, 12)
+    assert overview_single.shape == (151, 12)
     assert overview_single.head(2).select(
         "PredictorName",
         "Responses",
         "Positives",
         "EntryType",
     ).to_dict(as_series=False) == {
-        "PredictorName": ["Customer.Prefix", "Classifier"],
-        "Responses": [518, 518],
-        "Positives": [13, 13],
-        "EntryType": ["Active", "Classifier"],
+        "PredictorName": ["Classifier", "Customer.AnnualIncome"],
+        "Responses": [114460, 114460],
+        "Positives": [3916, 3916],
+        "EntryType": ["Classifier", "Inactive"],
     }
 
     # Test with additional aggregations

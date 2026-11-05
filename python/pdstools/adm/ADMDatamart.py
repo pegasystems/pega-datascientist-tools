@@ -8,7 +8,7 @@ import logging
 import os
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import polars as pl
 import polars.selectors as cs
@@ -604,6 +604,57 @@ class ADMDatamart:
             )
         )
         return cls(model_df=adm_data, extract_pyname_keys=True)
+
+    @classmethod
+    def from_mock_data(
+        cls,
+        days: int = 182,
+        *,
+        seed: int | None = 42,
+        end: datetime.date | Literal["canonical"] | None = None,
+        scale: float = 1.0,
+    ) -> ADMDatamart:
+        """Create an ADMDatamart from the shared synthetic sample world.
+
+        Daily model snapshots for 864 action-level models in seven model
+        configurations (Web, Mobile, Email, Call Center and Omni; Naive Bayes
+        and AGB), plus the predictor binning of the last snapshot. The data
+        shows the stories of the demo world: Mobile models learning, a Mobile
+        AGB challenger, a specialized Web model for lending offers with a
+        stricter predictor set, action launches and retirements, and a few
+        seeded stuck, weak and overfitting models.
+
+        Parameters
+        ----------
+        days : int, default 182
+            Number of daily snapshots; at least 56.
+        seed : int or None, default 42
+            Seed for reproducible data; ``None`` draws a random seed.
+        end : date, "canonical" or None, default None
+            Last snapshot date, resolved to the Sunday on or before it.
+            ``None`` uses the most recent completed Sunday, ``"canonical"``
+            pins Sunday 2000-07-02.
+        scale : float, default 1.0
+            Multiplier on response volumes.
+
+        Returns
+        -------
+        ADMDatamart
+            Datamart with model and predictor data.
+
+        Examples
+        --------
+        >>> from pdstools import ADMDatamart
+        >>> dm = ADMDatamart.from_mock_data(end="canonical")
+        >>> dm.plot.bubble_chart()
+
+        """
+        from ..sample_data._adm import model_snapshots
+        from ..sample_data._binning import predictor_binning
+        from ..sample_data._world import sample_world
+
+        world = sample_world(seed=seed, days=days, end=end, scale=scale)
+        return cls(model_df=model_snapshots(world), predictor_df=predictor_binning(world))
 
     def _validate_model_data(
         self,

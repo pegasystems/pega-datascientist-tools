@@ -8,6 +8,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Internal canonical-calendar, per-entity random streams and validated immutable
+  catalogs for the shared synthetic sample generator (#999). The catalogs include
+  explicit action/treatment baselines, predictor policies, model contexts and
+  timed stories.
+- `pdstools.demo_data()` returns the datamart, prediction and Interaction
+  History views of one seeded synthetic world (#999), built lazily and cached
+  per process. `demo_data().write_ds_export(path)` writes the model, predictor
+  and prediction views as Pega dataset export zips that the readers, the CLI
+  and the app upload flows accept.
+- `ADMDatamart.from_mock_data()` builds a datamart from the shared synthetic
+  sample world (#999). It has daily snapshots for 864 action-level models in
+  seven configurations (Naive Bayes and AGB, including a specialized Web model
+  for lending offers), plus the predictor binning of the last snapshot. Use
+  `seed`, `end` and `scale` like `Prediction.from_mock_data()`.
+- `ImpactAnalyzer.from_mock_data()` aggregates the exposures of
+  `IH.from_mock_data()` with the same arguments, so the counts reconcile
+  exactly with that Interaction History (#999). All five stock experiments
+  are present; each control group holds about 1 percent of customers per
+  month, so small channels and short windows can leave arms sparse. Pass
+  `return_df=True` for the aggregated frame.
 - `pdstools.utils.cdh_utils.resolve_trend_interval()` and
   `trend_interval_label()` provide shared date-range-based trend cadence
   selection and display labels.
@@ -25,11 +45,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `Prediction.from_mock_data()` now samples the shared synthetic world (#999):
+  five standard predictions (Web, Mobile, E-mail, Call Center and the
+  multi-channel `PredictActionPropensity`) in the real snapshot shape, with
+  Daily AUC rows plus Test, Control and NBA rows. New keyword arguments
+  `seed`, `end` and `scale`; `days` must be at least 56. By default the window
+  ends on the most recent completed Sunday; pass `end="canonical"` for fixed
+  dates. The Call Center prediction is deliberately invalid (tiny model-control
+  arms), so `is_valid` is `False` for the default mock.
+
+- `IH.from_mock_data()` now samples the shared synthetic world (#999): Web,
+  Mobile, Email and a small Call Center, with one exposure per offered
+  action and Impact Analyzer control groups in `MktValue`, `MktType` and
+  `ModelControlGroup`. New columns include `ExposureID`, `SubjectID`,
+  `Treatment`, `ModelPropensity` and `Value`; `BasePropensity` is gone.
+  Outbound channels use Pending, Opened and Accepted outcomes, and
+  `outcome_labels_used` declares the labels per channel. The defaults are
+  now `days=182` and `seed=42`, so the data is deterministic; pass
+  `seed=None` for a random world. New keyword arguments `end` and `scale`
+  behave as in `Prediction.from_mock_data()`.
+- `IH.get_sequences()` orders each customer's interactions by `OutcomeTime`
+  instead of relying on the input row order.
+
 - ADM Health Check trend plots now use date-range-based daily, weekly, or
   monthly intervals. Success rate and response counts show per-interval
   changes, while performance (AUC) uses the latest value in each interval.
-  `cdh_sample()` uses repository data in source checkouts and falls back to
-  the canonical URL when those files are unavailable.
 - `plot.over_time()` now applies `every` to all metrics, cumulative or not,
   with the same meaning as in Polars `group_by_dynamic`: each model's last
   snapshot per interval is used and `SnapshotTime` is the interval start.
@@ -49,6 +89,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `"Number of Action/Treatment Records"` instead of `"Number of Models"`,
   and its category labels describe action/treatment records. Update callers
   that select the previous column name.
+
+### Removed
+
+- `pdstools.cdh_sample()` and `pdstools.datasets.cdh_sample()` are removed
+  (#999). Use `pdstools.demo_data().datamart`, or
+  `ADMDatamart.from_mock_data()`, for a synthetic datamart that needs no
+  download. The Health Check and model report fallbacks and the Streamlit
+  sample now use the same synthetic world.
 
 ### Fixed
 
