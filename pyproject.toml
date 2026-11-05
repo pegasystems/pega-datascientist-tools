@@ -54,7 +54,11 @@ adm = [
     'requests',
 ]
 pega_io = ['aioboto3>=15.5,<16', 'polars_hash>=0.5,<1']
-api = ['httpx>=0.27,<1', 'pydantic>=2.10,<3', 'anyio>=4.0,<5']
+api = [
+    'httpx>=0.27,<1',
+    'pydantic>=2.10,<3',
+    "anyio>=4.14.2,<5",
+]
 healthcheck = ['pdstools[adm]', 'great_tables>=0.13,<1', 'quarto', 'papermill>=2.6,<3', 'xlsxwriter>=3.0,<4', 'pydot>=4.0,<5', 'ipykernel>=6,<8', 'packaging>=24,<27']
 explanations = ["plotly[express]>=6.0,<7", "pyyaml>=6,<7"]
 nlp = [
@@ -70,7 +74,7 @@ nlp = [
 ]
 app = [
     'pdstools[healthcheck]',
-    'streamlit>=1.45,<2',
+    "streamlit>=1.62.0,<2",
     "polars[rt64]>=1.37,!=1.35.1,<3",
     'humanize>=4.0.0,<5',
     'fastexcel>=0.19,<1',
