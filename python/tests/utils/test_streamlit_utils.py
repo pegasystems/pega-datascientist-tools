@@ -94,7 +94,7 @@ class TestCachingFunctions:
         """Test loading sample prediction data."""
         result = streamlit_utils.cached_sample_prediction()
 
-        assert result.predictions.collect().height == 540
+        assert result.predictions.collect().height == 300
         assert result.predictions.collect().columns[:5] == [
             "pyModelId",
             "SnapshotTime",

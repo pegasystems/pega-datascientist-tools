@@ -15,7 +15,8 @@ from ._random import entity_rng
 from ._world import OMNI, SampleWorld, binomial
 
 if TYPE_CHECKING:
-    from .schema import ModelContext, SampleSpec
+    from ._spec import SampleSpec
+    from .schema import ModelContext
 
 APPLIES_TO_CLASS = "Data-Decision-Request-Customer"
 """Class the sample's ADM models apply to."""
@@ -377,10 +378,10 @@ def model_snapshots(world: SampleWorld) -> pl.LazyFrame:
                 summary[2] += auc * (positives + negatives)
 
     totals_by_configuration = {c.name: len(c.predictor_ids) for c in world.spec.configurations}
-    for (configuration, day), (positives, negatives, weighted_auc) in sorted(summaries.items()):
-        responses = positives + negatives
-        auc = weighted_auc / responses if responses else 50.0
-        values = (
+    for (configuration, day), (sum_positives, sum_negatives, weighted_auc) in sorted(summaries.items()):
+        summary_responses = sum_positives + sum_negatives
+        summary_auc = weighted_auc / summary_responses if summary_responses else 50.0
+        summary_values = (
             summary_model_id(configuration),
             APPLIES_TO_CLASS,
             configuration,
@@ -392,14 +393,14 @@ def model_snapshots(world: SampleWorld) -> pl.LazyFrame:
             None,
             None,
             timestamps[day],
-            positives,
-            negatives,
-            responses,
-            round(min(100.0, max(50.0, auc)), 4),
+            sum_positives,
+            sum_negatives,
+            summary_responses,
+            round(min(100.0, max(50.0, summary_auc)), 4),
             totals_by_configuration[configuration],
             totals_by_configuration[configuration],
         )
-        for column, value in zip(_SCHEMA, values, strict=True):
+        for column, value in zip(_SCHEMA, summary_values, strict=True):
             rows[column].append(value)
 
     return pl.LazyFrame(rows, schema=_SCHEMA)
