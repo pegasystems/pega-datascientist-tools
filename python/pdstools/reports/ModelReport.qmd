@@ -100,7 +100,7 @@ if model_id is not None and predictor_file_path is not None:
     # .fillMissing()
 else:
     # fall back to sample data
-    model_id = "05085857-c52c-5daa-b51b-0af576a038af"
+    model_id = model_id or "05085857-c52c-5daa-b51b-0af576a038af"
     sample = demo_data(end="canonical").datamart
     datamart = ADMDatamart(
         sample.model_data.filter(pl.col("ModelID") == model_id),
