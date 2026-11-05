@@ -12,6 +12,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   catalogs for the shared synthetic sample generator (#999). The catalogs include
   explicit action/treatment baselines, predictor policies, model contexts and
   timed stories.
+- `pdstools.demo_data()` returns the datamart, prediction and Interaction
+  History views of one seeded synthetic world (#999), built lazily and cached
+  per process. `demo_data().write_ds_export(path)` writes the model, predictor
+  and prediction views as Pega dataset export zips that the readers, the CLI
+  and the app upload flows accept.
 - `ADMDatamart.from_mock_data()` builds a datamart from the shared synthetic
   sample world (#999). It has daily snapshots for 864 action-level models in
   seven configurations (Naive Bayes and AGB, including a specialized Web model

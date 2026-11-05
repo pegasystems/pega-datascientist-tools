@@ -1,12 +1,29 @@
 Shared synthetic sample data
 ============================
 
-The shared sample generator is being introduced in layers. Its reproducibility
-foundations, immutable catalogs and shared world are internal.
-:meth:`pdstools.Prediction.from_mock_data`,
-:meth:`pdstools.ADMDatamart.from_mock_data`, :meth:`pdstools.IH.from_mock_data`
-and :meth:`pdstools.ImpactAnalyzer.from_mock_data` already sample the shared
-world; the sample loaders have not yet switched to the generator.
+:func:`pdstools.demo_data` returns the datamart, prediction and Interaction
+History views of one seeded synthetic world, generated on demand without
+customer data or stored files:
+
+.. code-block:: python
+
+    from pdstools import demo_data
+
+    demo = demo_data()
+    demo.datamart.plot.bubble_chart()
+    demo.prediction.plot.performance_trend()
+    demo.ih.plot.success_rate()
+
+Views are built on first access and cached per process for the same
+arguments, so treat them as read-only. :meth:`pdstools.ADMDatamart.from_mock_data`,
+:meth:`pdstools.Prediction.from_mock_data`, :meth:`pdstools.IH.from_mock_data`
+and :meth:`pdstools.ImpactAnalyzer.from_mock_data` return a single view of the
+same world.
+
+``demo.write_ds_export(path)`` writes the model, predictor and prediction views
+as Pega dataset export zips, for example to try the command line or the
+Streamlit upload flows with real files. The reproducibility foundations,
+catalogs and world object are internal.
 
 Maintained specification
 ------------------------
