@@ -3,9 +3,10 @@ Shared synthetic sample data
 
 The shared sample generator is being introduced in layers. Its reproducibility
 foundations, immutable catalogs and shared world are internal.
-:meth:`pdstools.Prediction.from_mock_data` and
-:meth:`pdstools.ADMDatamart.from_mock_data` already sample the shared world; the
-other sample loaders and mock methods have not yet switched to the generator.
+:meth:`pdstools.Prediction.from_mock_data`,
+:meth:`pdstools.ADMDatamart.from_mock_data`, :meth:`pdstools.IH.from_mock_data`
+and :meth:`pdstools.ImpactAnalyzer.from_mock_data` already sample the shared
+world; the sample loaders have not yet switched to the generator.
 
 Maintained specification
 ------------------------
@@ -75,6 +76,27 @@ predictor, so aggregation can align bins across models. Interaction History and
 Param predictors rank highest, and three shared predictors lead both Mobile
 configurations. AGB models carry feature importance only; their context keys
 are inactive at model level but ranked in the configuration summary.
+
+Interaction History and Impact Analyzer views
+---------------------------------------------
+
+The Interaction History view samples decisions from the same world: Web and
+Mobile show one or two offers, Email one, and the Call Center a small share of
+outbound contacts. Each offered action is an exposure with one impression
+(Impression inbound, Pending outbound) followed by its responses: Clicked on
+Web and Mobile, Opened then Accepted on Email and Call Center, and Conversion
+for the conversion experiment. Accepts carry the action's synthetic value.
+Channel success rates track the world, and Mobile mixes Naive Bayes and AGB
+decisions after its challenger starts.
+
+Every customer belongs to one Impact Analyzer control group per month. The
+five stock experiments each hold about 1 percent of customers, sharing the NBA
+group as their test arm, and each arm changes the arbitration: random
+relevance, propensity only, no business levers, no engagement policies, or a
+random instead of a model propensity in the model-control arm. The Impact Analyzer view
+aggregates these exposures per day, control group, channel and action, so it
+reconciles exactly with the Interaction History. Arms on small channels or
+short windows can be empty or without accepts; they are never filled in.
 
 Randomness contract
 -------------------
