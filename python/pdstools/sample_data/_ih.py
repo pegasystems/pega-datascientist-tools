@@ -291,12 +291,18 @@ def interaction_history(world: SampleWorld, n: int) -> pl.LazyFrame:
     memo: dict = {}
     groups: dict[tuple[int, str], str] = {}
     policies: dict[tuple[int, str], tuple[random.Random, dict[str, tuple[bool, bool]]]] = {}
+    current_period = None
     end = datetime.combine(world.dates[-1], time()) + timedelta(days=1)
 
     for index, (day, second, channel, subject) in enumerate(plan):
         state = world.channel_days(channel)[day]
         when = start + timedelta(days=day, seconds=second)
         period = f"{when:%Y-%m}"
+        if period != current_period:
+            # The plan is chronological, so earlier months' state is no longer needed.
+            groups.clear()
+            policies.clear()
+            current_period = period
         subject_id = f"CUST-{subject:07d}"
         interaction_id = f"{10**17 + index}"
         group = groups.get((subject, period))

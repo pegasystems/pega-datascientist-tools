@@ -114,6 +114,18 @@ def test_impact_groups_are_shared_and_stable(raw):
         assert fraction == pytest.approx(share[group.removeprefix("NBAHealth_")], abs=0.004)
 
 
+def test_repeated_subject_decisions_across_months(raw):
+    decisions = raw.filter(
+        pl.col("pySubjectID") == "CUST-0000005",
+        pl.col("pyOutcome").is_in(["Impression", "Pending"]),
+    ).select("pxInteractionID", "pxOutcomeTime", "pyChannel", "pyName", "MktValue")
+    assert decisions.rows() == [
+        ("100000000000016369", datetime.datetime(2000, 2, 2, 7, 25, 55), "Email", "VehicleLoan", "NBAHealth_NBA"),
+        ("100000000000017419", datetime.datetime(2000, 2, 3, 22, 56, 47), "Web", "RegularInvestment", "NBAHealth_NBA"),
+        ("100000000000050838", datetime.datetime(2000, 4, 5, 10, 15, 6), "Email", "FlexibleCard", "NBAHealth_NBA"),
+    ]
+
+
 def test_model_control_labels(raw):
     labels = raw.select("MktValue", "MktType", "ModelControlGroup").unique()
     mapping = {value: (kind, control) for value, kind, control in labels.iter_rows()}
