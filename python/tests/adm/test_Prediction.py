@@ -546,8 +546,8 @@ def test_prediction_plots_internal_method(preds_singleday):
     # Mobile and Web (Unknown / Multi-channel are filtered out).
     assert isinstance(plt, Figure)
     assert sorted(t.name for t in plt.data) == [
-        "Mobile (PREDICTMOBILEPROPENSITY)",
-        "Web (PREDICTWEBPROPENSITY)",
+        "Mobile<br>(PREDICTMOBILE<br>PROPENSITY)",
+        "Web<br>(PREDICTWEB<br>PROPENSITY)",
     ]
     assert plt.layout.title.text.startswith("Test Plot")
 
