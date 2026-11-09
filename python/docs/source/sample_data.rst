@@ -120,8 +120,9 @@ The Interaction History view samples decisions from the same world: Web and
 Mobile show one or two offers, Email one, and the Call Center a small share of
 outbound contacts. Each offered action is an exposure with one impression
 (Impression inbound, Pending outbound) followed by its responses: Clicked on
-Web and Mobile, Opened then Accepted on Email and Call Center, and Conversion
-for the conversion experiment. Accepts carry the action's synthetic value.
+Web and Mobile, Opened then Accepted on Email, or Accepted on Call Center.
+Conversion events are also generated for the conversion experiment. Accepts
+carry the action's synthetic value.
 Channel success rates track the world, and Mobile mixes Naive Bayes and AGB
 decisions after its challenger starts.
 

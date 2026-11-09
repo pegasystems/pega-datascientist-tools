@@ -1,4 +1,5 @@
 import zipfile
+from datetime import date
 
 import polars as pl
 import pytest
@@ -46,7 +47,7 @@ def test_cached_per_process(demo):
 
 def test_views_are_lazy():
     fresh = DemoData(demo_data(end="canonical").world)
-    fresh.prediction
+    _ = fresh.prediction
     assert "datamart" not in vars(fresh)
     assert "ih" not in vars(fresh)
 
@@ -54,6 +55,24 @@ def test_views_are_lazy():
 def test_minimum_window():
     with pytest.raises(ValueError, match="56"):
         demo_data(days=30)
+
+
+def test_adm_and_prediction_views_shift_only_their_timestamps():
+    end = date(2026, 11, 8)
+    canonical = demo_data(days=56, end="canonical")
+    shifted = demo_data(days=56, end=end)
+    offset = end - date(2000, 7, 2)
+
+    for original, moved in (
+        (canonical.datamart.model_data, shifted.datamart.model_data),
+        (canonical.datamart.predictor_data, shifted.datamart.predictor_data),
+        (canonical.prediction.predictions, shifted.prediction.predictions),
+    ):
+        baseline = original.collect()
+        temporal = (
+            (pl.col(name) + offset).cast(dtype) for name, dtype in baseline.schema.items() if dtype.is_temporal()
+        )
+        assert_frame_equal(baseline.with_columns(temporal), moved.collect(), check_exact=True)
 
 
 def test_write_ds_export_round_trip(demo, tmp_path):

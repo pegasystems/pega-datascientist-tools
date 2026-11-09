@@ -59,10 +59,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   action and Impact Analyzer control groups in `MktValue`, `MktType` and
   `ModelControlGroup`. New columns include `ExposureID`, `SubjectID`,
   `Treatment`, `ModelPropensity` and `Value`; `BasePropensity` is gone.
-  Outbound channels use Pending, Opened and Accepted outcomes, and
-  `outcome_labels_used` declares the labels per channel. The defaults are
-  now `days=182` and `seed=42`, so the data is deterministic; pass
-  `seed=None` for a random world. New keyword arguments `end` and `scale`
+  Email uses Pending, Opened and Accepted outcomes; Call Center uses Pending
+  and Accepted. `outcome_labels_used` declares the labels per channel. The
+  defaults are now `days=182` and `seed=42`, so the data is deterministic;
+  pass `seed=None` for a random world. New keyword arguments `end` and `scale`
   behave as in `Prediction.from_mock_data()`.
 - `IH.get_sequences()` orders each customer's interactions by `OutcomeTime`
   instead of relying on the input row order.
@@ -81,10 +81,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   automatic range. `add_metric_limit_lines()` (also used by
   `bubble_chart(show_metric_limits=True)`) adds subtle background bands for
   the threshold ranges.
-- The CDH sample data now spans 18 days (October 13–30, 2026), with model
-  and predictor snapshots sharing the same snapshot times, and includes
-  more actions. Most actions now receive responses every day, so the daily
-  number of used actions stays above the Health Check minimum.
+- The legacy CDH sample archives retained for compatibility span 18 days
+  (October 13–30, 2026), with aligned model and predictor snapshot times.
+  Most actions receive responses every day, so the daily number of used
+  actions stays above the Health Check minimum.
 - **Breaking:** `Analysis.health_check_maturity_overview()` now returns
   `"Number of Action/Treatment Records"` instead of `"Number of Models"`,
   and its category labels describe action/treatment records. Update callers
