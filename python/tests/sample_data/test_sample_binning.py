@@ -13,6 +13,7 @@ MOBILE_SHARED = {
     "Param.MessageLengthBand",
     "IH.Mobile.Inbound.Clicked.pxLastOutcomeTime.DaysSince",
 }
+CHURN_SCORE = "ExternalModel.CustomerChurnRiskScore"
 
 
 @pytest.fixture(scope="module")
@@ -69,7 +70,7 @@ def test_is_deterministic(world, raw):
 
 def test_loader_keeps_all_categories(predictors):
     categories = set(predictors["PredictorCategory"].drop_nulls().unique().to_list())
-    assert categories == {"Customer", "Account", "IH", "Param", "Context Keys"}
+    assert categories == {"Customer", "Account", "IH", "Param", "Context Keys", "External Model"}
     assert predictors.filter(pl.col("PredictorCategory").is_null())["EntryType"].unique().to_list() == ["Classifier"]
 
 
@@ -205,3 +206,53 @@ def test_gradient_boost_favours_ih_and_param(datamart, models):
     )
     assert importance["IH"] > 3 * importance["Customer"]
     assert importance["IH"] > 3 * importance["Account"]
+
+
+@pytest.mark.parametrize(
+    ("configuration", "channel", "technique"),
+    [
+        ("Mobile_Click_Through_Rate", "Mobile", "NaiveBayes"),
+        ("Email_Click_Through_Rate", "Email", "NaiveBayes"),
+        ("Mobile_Click_Through_Rate_GB", "Mobile", "GradientBoost"),
+        ("Web_Click_Through_Rate_GB", "Web", "GradientBoost"),
+    ],
+)
+def test_external_churn_score_ranks_in_health_check_plots(datamart, configuration, channel, technique):
+    query = (
+        (pl.col("Configuration") == configuration)
+        & (pl.col("Channel") == channel)
+        & datamart.analysis.health_check_active_filter()
+    )
+    if technique == "NaiveBayes":
+        query &= pl.col("ResponseCountBin") > 200
+        data = datamart.plot.predictor_performance(query=query, top_n=30, return_df=True)
+        fig = datamart.plot.predictor_performance(query=query, top_n=30)
+        mean_order = data.sort("mean", descending=True)["PredictorName"].cast(pl.String).to_list()
+    else:
+        data = datamart.plot.predictor_importance(query=query, top_n=20, return_df=True)
+        fig = datamart.plot.predictor_importance(query=query, top_n=20)
+        mean_order = data["PredictorName"].cast(pl.String).to_list()
+
+    display_order = data["PredictorName"].cast(pl.String).to_list()
+    assert CHURN_SCORE in mean_order
+    assert 10 <= mean_order.index(CHURN_SCORE) + 1 <= 20
+    assert 10 <= display_order.index(CHURN_SCORE) + 1 <= 20
+    assert data.filter(pl.col("PredictorName") == CHURN_SCORE)["PredictorCategory"].to_list() == ["External Model"]
+    traces = [trace for trace in fig.data if trace.name == "External Model"]
+    assert len(traces) == 1
+    assert CHURN_SCORE in traces[0].y
+    assert traces[0].marker.color == "#DE4342"
+    assert traces[0].showlegend
+
+
+def test_external_churn_score_has_numeric_bins_and_never_enters_loans(raw, models):
+    score = raw.filter(pl.col("pyPredictorName") == CHURN_SCORE).join(
+        models.select("pyModelID", "pyConfigurationName", "pyModelTechnique").unique(),
+        on="pyModelID",
+    )
+    assert set(score["pyModelTechnique"].unique()) == {"NaiveBayes", "GradientBoost"}
+    assert score["pyType"].unique().to_list() == ["numeric"]
+    assert "Web_Loans_Click_Through_Rate_GB" not in set(score["pyConfigurationName"])
+    nb = score.filter(pl.col("pyModelTechnique") == "NaiveBayes", pl.col("pyEntryType") == "Active")
+    assert nb["pyBinLowerBound"].min() == 0
+    assert nb["pyBinUpperBound"].max() == 1

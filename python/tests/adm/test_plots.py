@@ -1055,7 +1055,7 @@ def test_predictor_performance(sample: ADMDatamart):
     df = sample.plot.predictor_performance(return_df=True)
     assert "PredictorName" in df.collect_schema().names()
     assert "median" in df.collect_schema().names()
-    assert round(df.select(pl.col("median").top_k(1)).item(), 2) == 60.26
+    assert round(df.select(pl.col("median").top_k(1)).item(), 2) == 60.29
 
     plot = sample.plot.predictor_performance()
     assert isinstance(plot, Figure)
@@ -1165,10 +1165,10 @@ def test_predictor_performance_legend_order_is_alphabetical_without_reordering_t
 
 def test_predictor_category_performance(sample: ADMDatamart):
     df = sample.plot.predictor_category_performance(return_df=True)
-    assert df.shape == (5, 10)
+    assert df.shape == (6, 10)
     assert "PredictorCategory" in df.columns
     assert "mean" in df.columns
-    assert round(df.select(pl.col("mean").top_k(1)).item(), 2) == 51.78
+    assert round(df.select(pl.col("mean").top_k(1)).item(), 2) == 51.70
 
     plot = sample.plot.predictor_category_performance()
     assert isinstance(plot, Figure)
@@ -1185,7 +1185,7 @@ def test_predictor_category_performance_empty_query(sample: ADMDatamart):
 
 def test_predictor_contribution(sample: ADMDatamart):
     df = sample.plot.predictor_contribution(return_df=True).collect()
-    assert df.shape == (30, 4)
+    assert df.shape == (36, 4)
     assert "PredictorCategory" in df.columns
     assert "Contribution" in df.columns
     contribution_totals = (
@@ -1201,7 +1201,7 @@ def test_predictor_contribution(sample: ADMDatamart):
             .item(),
             2,
         )
-        == 3.86
+        == 2.57
     )
 
     plot = sample.plot.predictor_contribution()
@@ -1219,7 +1219,7 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
             df.filter(Name=predictor).select("FixedRateLoan").collect().item(),
             5,
         )
-        == 0.61345
+        == 0.58682
     )
     assert df.select(pl.col("*").exclude("Name")).collect().to_numpy().max() <= 1.0
     assert "Name" in df.collect().columns
@@ -1234,7 +1234,7 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
             float(plot.data[0].z[list(plot.data[0].y).index(predictor)][list(plot.data[0].x).index("FixedRateLoan")]),
             3,
         )
-        == 61.345
+        == 58.682
     )
 
     df = sample.plot.predictor_performance_heatmap(
@@ -1296,7 +1296,7 @@ def test_predictor_count(sample: ADMDatamart):
     # Exact shape and count guard against changes to the canonical fixture.
     assert collected.shape == (5125, 4)
     assert collected.schema["Count"] == pl.UInt64
-    assert collected["Count"].sum() == 228668
+    assert collected["Count"].sum() == 230348
     assert set(collected["EntryType"].unique().to_list()) == {"Active", "Inactive", "Overall"}
     assert set(collected["Type"].unique().to_list()) == {"numeric", "symbolic"}
 
@@ -1468,10 +1468,11 @@ def test_predictor_category_color_map_stable(sample: ADMDatamart):
     """predictor_category_color_map returns a non-empty, stable mapping."""
     color_map = sample.predictor_category_color_map
     assert isinstance(color_map, dict)
-    assert set(color_map) == {"Account", "Context Keys", "Customer", "IH", "Param"}
+    assert set(color_map) == {"Account", "Context Keys", "Customer", "External Model", "IH", "Param"}
     assert color_map["Customer"] == "#001F5F"
     assert color_map["IH"] == "#10A5AC"
     assert color_map["Param"] == "#F76923"
+    assert color_map["External Model"] == "#DE4342"
     # Calling twice returns the same object (cached_property)
     assert sample.predictor_category_color_map is color_map
 

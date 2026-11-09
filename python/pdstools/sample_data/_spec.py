@@ -89,6 +89,11 @@ PREDICTOR_GROUPS = (
         "Synthetic creative and placement attributes, shared across modeling techniques.",
         ("predictor_importance", "symbolic_binning", "specialized_models"),
     ),
+    PredictorGroup(
+        "external_model",
+        "Precomputed customer churn-risk scores; excluded from the restricted Web Loans model.",
+        ("predictor_importance", "numeric_binning"),
+    ),
 )
 
 

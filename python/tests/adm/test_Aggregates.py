@@ -101,11 +101,11 @@ def test_last_uses_global_latest_snapshot(dm_minimal):
 
 def test_predictors_overview(dm_aggregates):
     overview = dm_aggregates.predictors_overview(model_id="05085857-c52c-5daa-b51b-0af576a038af").collect()
-    assert overview.shape == (151, 12)
+    assert overview.shape == (152, 12)
 
 
 def test_predictors_global_overview(dm_aggregates):
-    assert dm_aggregates.predictors_global_overview().collect().height == 171
+    assert dm_aggregates.predictors_global_overview().collect().height == 172
     assert dm_aggregates.predictors_global_overview().collect().width == 9
 
 
@@ -628,7 +628,7 @@ def test_summary_by_configuration_query_active_models_filter():
 def test_predictors_global_overview_query_filters_to_active_models(dm_aggregates):
     """``query`` semi-joins on model_data so model-level expressions filter predictor rows."""
     full = dm_aggregates.predictors_global_overview().collect()
-    assert full.height == 171
+    assert full.height == 172
 
     # Restrict to a single channel; the joined predictor rows now cover only
     # those models, so per-predictor maxima must drop strictly below the

@@ -44,6 +44,9 @@ _AUC_SLOPE = 0.105
 _AUC_NOISE = 0.3
 _AUC_RANGE = (0.503, 0.78)
 _INACTIVE_SCALE = 0.08
+_AGB_FAMILY_IMPORTANCE_BOOST = {"external_model": 1.3}
+_MOBILE_SHARED_AGB_BOOST = 1.18
+"""Keep the shared Mobile comparison signals among the leading predictors."""
 _NUMERIC_BIN_COUNTS = (3, 4, 5, 6, 7)
 _NUMERIC_BIN_WEIGHTS = (0.25, 0.35, 0.2, 0.12, 0.08)
 _CUT_QUANTILES = tuple(q / 10 for q in range(1, 10))
@@ -322,7 +325,9 @@ def _never_active(spec: SampleSpec, seed: int) -> dict[str, frozenset[str]]:
         candidates = [
             p
             for p in configuration.predictor_ids
-            if predictors[p].family not in _FAMILY_BOOST and p not in _MOBILE_SHARED
+            if predictors[p].family not in _FAMILY_BOOST
+            and predictors[p].family != "external_model"
+            and p not in _MOBILE_SHARED
         ]
         size = round(len(configuration.predictor_ids) * _NEVER_ACTIVE_SHARE)
         never[configuration.name] = frozenset(rng.sample(sorted(candidates), min(size, len(candidates))))
@@ -488,7 +493,13 @@ def _gradient_boost(
     configuration = next(c for c in world.spec.configurations if c.name == model.context.configuration)
     ranking = _ranking(world, model, rng)
     active = ranking[: totals.active]
-    raw = {p: _strength(predictors[p], model.context.channel) ** 2 * exp(rng.gauss(0.0, 0.5)) for p in active}
+    raw = {
+        p: _strength(predictors[p], model.context.channel) ** 2
+        * _AGB_FAMILY_IMPORTANCE_BOOST.get(predictors[p].family, 1.0)
+        * (_MOBILE_SHARED_AGB_BOOST if configuration.name.startswith("Mobile_") and p in _MOBILE_SHARED else 1.0)
+        * exp(rng.gauss(0.0, 0.5))
+        for p in active
+    }
     total = sum(raw.values())
     importance = {p: 100 * v / total for p, v in raw.items()} if total else {}
     responses = totals.positives + totals.negatives

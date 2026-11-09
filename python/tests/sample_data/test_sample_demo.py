@@ -72,6 +72,13 @@ def test_write_ds_export_round_trip(demo, tmp_path):
     dm = ADMDatamart.from_ds_export(files["model_data"].name, files["predictor_data"].name, tmp_path / "exports")
     assert_frame_equal(dm.model_data.collect(), demo.datamart.model_data.collect())
     assert_frame_equal(dm.predictor_data.collect(), demo.datamart.predictor_data.collect())
+    score_categories = (
+        dm.predictor_data.filter(pl.col("PredictorName") == "ExternalModel.CustomerChurnRiskScore")
+        .select(pl.col("PredictorCategory").unique())
+        .collect()["PredictorCategory"]
+        .to_list()
+    )
+    assert score_categories == ["External Model"]
 
     pred = Prediction.from_ds_export(files["prediction_data"].name, tmp_path / "exports")
     assert_frame_equal(pred.predictions.collect(), demo.prediction.predictions.collect())

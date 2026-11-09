@@ -10,7 +10,7 @@ from pdstools.utils import cdh_utils
 def test_demo_datamart():
     sample = demo_data(end="canonical").datamart
     assert sample.model_data.collect().shape == (131845, 20)
-    assert sample.predictor_data.collect().height == 244764
+    assert sample.predictor_data.collect().height == 246470
 
     snapshot_times = (
         sample.model_data.select("SnapshotTime").unique().sort("SnapshotTime").collect().get_column("SnapshotTime")

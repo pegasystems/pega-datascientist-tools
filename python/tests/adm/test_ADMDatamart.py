@@ -63,7 +63,14 @@ def test_cached_properties(sample: ADMDatamart):
         "Web_Loans_Click_Through_Rate_GB",
     ]
 
-    assert sample.unique_predictor_categories == ["Account", "Context Keys", "Customer", "IH", "Param"]
+    assert sample.unique_predictor_categories == [
+        "Account",
+        "Context Keys",
+        "Customer",
+        "External Model",
+        "IH",
+        "Param",
+    ]
 
 
 def test_write_then_load(sample: ADMDatamart):
@@ -187,9 +194,10 @@ def test_predictor_categorization_default(sample):
         .collect()["PredictorCategory"]
         .to_list()
     )
-    assert default_cats == ["Account", "Context Keys", "Customer", "IH", "Param"]
+    assert default_cats == ["Account", "Context Keys", "Customer", "External Model", "IH", "Param"]
     assert _check_cat(sample, "Account.AccountBalance") == "Account"
     assert _check_cat(sample, "IH.Web.Inbound.Clicked.pxLastOutcomeTime.DaysSince") == "IH"
+    assert _check_cat(sample, "ExternalModel.CustomerChurnRiskScore") == "External Model"
     assert _check_cat(sample, "Classifier") is None
 
 
@@ -231,16 +239,21 @@ def test_predictor_categorization_fills_null_source_categories():
     )
     predictor_df = pl.LazyFrame(
         {
-            "ModelID": ["m1", "m1"],
-            "PredictorName": ["Customer.Score", "Classifier"],
-            "PredictorCategory": [None, None],
-            "EntryType": ["Active", "Classifier"],
-            "BinIndex": [1, 1],
-            "BinPositives": [8.0, 4.0],
-            "BinNegatives": [12.0, 16.0],
-            "ResponseCount": [20.0, 20.0],
-            "Performance": [0.72, 0.62],
-            "SnapshotTime": [datetime.datetime(2024, 1, 1), datetime.datetime(2024, 1, 1)],
+            "ModelID": ["m1"] * 4,
+            "PredictorName": [
+                "Customer.Score",
+                "Classifier",
+                "ExternalModel.CustomerChurnRiskScore",
+                "ExternalModel.UserScore",
+            ],
+            "PredictorCategory": [None, None, None, "User category"],
+            "EntryType": ["Active", "Classifier", "Active", "Active"],
+            "BinIndex": [1] * 4,
+            "BinPositives": [8.0, 4.0, 8.0, 8.0],
+            "BinNegatives": [12.0, 16.0, 12.0, 12.0],
+            "ResponseCount": [20.0] * 4,
+            "Performance": [0.72, 0.62, 0.72, 0.72],
+            "SnapshotTime": [datetime.datetime(2024, 1, 1)] * 4,
         },
     )
 
@@ -253,8 +266,13 @@ def test_predictor_categorization_fills_null_source_categories():
         .to_dict(as_series=False)
     )
     assert categories == {
-        "PredictorName": ["Classifier", "Customer.Score"],
-        "PredictorCategory": [None, "Customer"],
+        "PredictorName": [
+            "Classifier",
+            "Customer.Score",
+            "ExternalModel.CustomerChurnRiskScore",
+            "ExternalModel.UserScore",
+        ],
+        "PredictorCategory": [None, "Customer", "External Model", "User category"],
     }
 
 

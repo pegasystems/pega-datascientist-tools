@@ -7,7 +7,7 @@ from typing import Literal
 
 Direction = Literal["Inbound", "Outbound"]
 Technique = Literal["NaiveBayes", "GradientBoost"]
-Family = Literal["customer", "account", "clickstream", "ih", "param"]
+Family = Literal["customer", "account", "clickstream", "ih", "param", "external_model"]
 
 
 @dataclass(frozen=True)

@@ -180,7 +180,7 @@ def test_default_report_model(datamart):
         .collect()
         .row(0, named=True)
     )
-    assert last["TotalPredictors"] == 135
+    assert last["TotalPredictors"] == 136
     assert 27 <= last["ActivePredictors"] <= 30
     assert last["Positives"] >= 200
     assert last["Performance"] > 0.6

@@ -13,7 +13,7 @@ def test_approved_catalog_manifest():
         "groups": 14,
         "actions": 110,
         "treatments": 532,
-        "predictors": 266,
+        "predictors": 267,
         "configurations": 7,
         "stories": 4,
         "model_contexts": 864,
@@ -78,13 +78,13 @@ def test_exact_treatment_baseline():
 def test_configured_predictor_counts_and_loans_subset():
     configurations = {c.name: c for c in DEFAULT_SPEC.configurations}
     assert {name: len(c.predictor_ids) for name, c in configurations.items()} == {
-        "Web_Click_Through_Rate_GB": 135,
+        "Web_Click_Through_Rate_GB": 136,
         "Web_Loans_Click_Through_Rate_GB": 21,
-        "Mobile_Click_Through_Rate": 135,
-        "Mobile_Click_Through_Rate_GB": 135,
-        "Email_Click_Through_Rate": 110,
-        "CallCenterAcceptRateOutbound": 100,
-        "OmniAdaptiveModel": 150,
+        "Mobile_Click_Through_Rate": 136,
+        "Mobile_Click_Through_Rate_GB": 136,
+        "Email_Click_Through_Rate": 111,
+        "CallCenterAcceptRateOutbound": 101,
+        "OmniAdaptiveModel": 151,
     }
     loans = set(configurations["Web_Loans_Click_Through_Rate_GB"].predictor_ids)
     assert loans == {
@@ -116,6 +116,32 @@ def test_configured_predictor_counts_and_loans_subset():
     assert len(excluded) == 57
     assert {"Customer.Age", "Customer.Gender", "Customer.HasCriticalIllness"} <= excluded
     assert all(not excluded.intersection(c.predictor_ids) for c in DEFAULT_SPEC.configurations)
+
+
+def test_external_churn_score_is_excluded_from_the_loans_policy():
+    name = "ExternalModel.CustomerChurnRiskScore"
+    predictor = next(p for p in DEFAULT_SPEC.predictors if p.id == name)
+    assert (predictor.family, predictor.data_type, predictor.baseline_eligible, predictor.loan_allowed) == (
+        "external_model",
+        "numeric",
+        True,
+        False,
+    )
+    assert predictor.distribution == Distribution(
+        kind="binned_numeric",
+        weights=(0.4, 0.25, 0.18, 0.1, 0.07),
+        edges=(0, 0.2, 0.4, 0.6, 0.8, 1.0),
+    )
+    for configuration in DEFAULT_SPEC.configurations:
+        assert (name in configuration.predictor_ids) == (configuration.role != "single-group specialization")
+
+    loans = next(c for c in DEFAULT_SPEC.configurations if c.role == "single-group specialization")
+    unsafe_loans = replace(loans, predictor_ids=(*loans.predictor_ids, name))
+    with pytest.raises(ValueError, match="Loans allowlist"):
+        replace(
+            DEFAULT_SPEC,
+            configurations=tuple(unsafe_loans if c == loans else c for c in DEFAULT_SPEC.configurations),
+        )
 
 
 def test_exclusive_routing_and_context_lifetimes():

@@ -38,11 +38,11 @@ def test_predictors_overview(dm_aggregates):
         "Residual %",
     ]
     assert overview.columns == expected_columns
-    assert overview.shape == (151, 13)
+    assert overview.shape == (152, 13)
 
     overview_single = dm_aggregates.predictors_overview(model_id=model_id).collect()
     assert overview_single.columns == expected_columns[1:]
-    assert overview_single.shape == (151, 12)
+    assert overview_single.shape == (152, 12)
     assert overview_single.head(2).select(
         "PredictorName",
         "Responses",

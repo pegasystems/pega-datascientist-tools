@@ -82,7 +82,7 @@ class TestCachingFunctions:
 
         assert result is demo_data().datamart
         assert result.model_data.collect().height == 131845
-        assert result.predictor_data.collect().height == 244764
+        assert result.predictor_data.collect().height == 246470
         assert result.model_data.collect().columns[:5] == [
             "ModelID",
             "AppliesToClass",

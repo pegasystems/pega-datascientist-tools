@@ -921,11 +921,11 @@ def test_feature_importance_with_sample_datamart():
         .collect()
     )
 
-    # Exact values from the canonical demo datamart (114334 predictor×model rows)
-    assert result.height == 114334
+    # Exact values from the canonical demo datamart (115174 predictor×model rows)
+    assert result.height == 115174
     assert result["FeatureImportance"].null_count() == 0
     assert 0.0 <= result["FeatureImportance"].min() < 1e-6
-    assert result["FeatureImportance"].max() == pytest.approx(4.9882495617243, rel=1e-6)
+    assert result["FeatureImportance"].max() == pytest.approx(3.288992733270296, rel=1e-6)
 
 
 # Test _capitalize function
@@ -954,7 +954,21 @@ def test_capitalize_configuration():
 
 def test_PredictorCategorization():
     df = (
-        pl.LazyFrame({"PredictorName": ["Customer.Variable", "Variable", "pyChannel", "pyTreatment", "pyOther"]})
+        pl.LazyFrame(
+            {
+                "PredictorName": [
+                    "Customer.Variable",
+                    "Variable",
+                    "pyChannel",
+                    "pyTreatment",
+                    "pyOther",
+                    "ExternalModel.CustomerChurnRiskScore",
+                    "ExternalModel.AnotherScore",
+                    "ExternalModelled.Score",
+                    "Customer.CreditScore",
+                ],
+            }
+        )
         .with_columns(cdh_utils.default_predictor_categorization())
         .collect()
     )
@@ -964,6 +978,10 @@ def test_PredictorCategorization():
         "Context Keys",
         "Context Keys",
         "Primary",
+        "External Model",
+        "External Model",
+        "ExternalModelled",
+        "Customer",
     ]
 
     df = (

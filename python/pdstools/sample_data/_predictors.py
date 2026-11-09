@@ -3524,4 +3524,17 @@ PREDICTORS = (
         latent_effect_size=0.6105,
         distribution=_DISTRIBUTIONS[26],
     ),
+    Predictor(
+        id="ExternalModel.CustomerChurnRiskScore",
+        family="external_model",
+        data_type="numeric",
+        baseline_eligible=True,
+        exclusion_reason=None,
+        loan_allowed=False,
+        missing_probability=0.03,
+        signal_role="relationship",
+        correlation_family="CustomerChurnRiskScore",
+        latent_effect_size=0.71,
+        distribution=_DISTRIBUTIONS[20],
+    ),
 )

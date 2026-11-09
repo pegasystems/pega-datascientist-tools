@@ -154,8 +154,9 @@ def default_predictor_categorization(
     By default, this function returns "Context Keys" for the standard ADM
     context keys (``pyChannel``, ``pyDirection``, ``pyIssue``, ``pyGroup``,
     ``pyName`` and ``pyTreatment``, which Adaptive Gradient Boosting models
-    use as predictors), "Primary" whenever there is no '.' anywhere in the
-    name string, and otherwise the first string before the first period.
+    use as predictors), "External Model" for predictors in the
+    ``ExternalModel.`` namespace, "Primary" whenever there is no '.' anywhere
+    in the name string, and otherwise the first string before the first period.
 
     Parameters
     ----------
@@ -171,6 +172,8 @@ def default_predictor_categorization(
         .then(pl.lit(None).cast(pl.Utf8))
         .when(x.is_in(list(CONTEXT_KEY_PREDICTORS)))
         .then(pl.lit(CONTEXT_KEYS_CATEGORY))
+        .when(x.str.starts_with("ExternalModel."))
+        .then(pl.lit("External Model"))
         .when(x.str.split(".").list.len() > 1)
         .then(x.str.split(".").list.get(0))
         .otherwise(pl.lit("Primary"))
