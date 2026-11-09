@@ -815,11 +815,13 @@ display(gt)
 ## Issue/Group Hierarchy
 
 We're showing the hierarchy of Issues and Groups with a sample of the actions in each.
+Whitespace variants are collapsed in this overview; the Model Naming Review below reports the raw identifiers.
 
 ```{python}
 if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:
     df_action_hierarchy = (
         datamart.model_data.filter(active_models_filter_expr)
+        .with_columns(pl.col("Group").str.strip_chars())
         .group_by(["Issue", "Group"])
         # TODO actions/treatments/used actions/used treatments
         # but only if available. Maybe a few examples too.

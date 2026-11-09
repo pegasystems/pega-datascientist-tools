@@ -32,6 +32,10 @@ else:
 
 
 DEFAULT_PLOT_POINTS_PER_GROUP = 250
+_FACET_VALUE_LABELS = {
+    "NaiveBayes": "Naive Bayes",
+    "GradientBoost": "Gradient Boosting",
+}
 
 
 def downsample_distribution(
@@ -255,11 +259,12 @@ def abbreviate_label_expr(
 
 
 def simplify_facet_titles(fig: "Figure") -> "Figure":
-    """Strip the ``column=`` prefix from Plotly facet annotations.
+    """Simplify Plotly facet annotations and render known public labels.
 
     Plotly Express labels facets as ``"<column_name>=<value>"``; in our
     reports the column name is redundant context. This helper rewrites each
-    facet annotation to show only the value.
+    facet annotation to show only the value, using public labels for known
+    model techniques, including when a technique is the final path segment.
 
     Parameters
     ----------
@@ -271,9 +276,20 @@ def simplify_facet_titles(fig: "Figure") -> "Figure":
     Figure
         The same figure (returned for chaining).
     """
-    return fig.for_each_annotation(
-        lambda a: a.update(text=a.text.split("=")[-1]) if "=" in a.text else a,
-    )
+
+    def update_annotation(annotation):
+        if "=" not in annotation.text:
+            return annotation
+
+        value = annotation.text.rsplit("=", 1)[-1]
+        prefix, separator, final_segment = value.rpartition("/")
+        if final_segment in _FACET_VALUE_LABELS:
+            value = f"{prefix}{separator}{_FACET_VALUE_LABELS[final_segment]}"
+        else:
+            value = _FACET_VALUE_LABELS.get(value, value)
+        return annotation.update(text=value)
+
+    return fig.for_each_annotation(update_annotation)
 
 
 def fig_update_facet(

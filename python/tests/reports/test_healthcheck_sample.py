@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, sentinel
 
+import polars as pl
 import pytest
 
 
@@ -16,6 +17,15 @@ def data_cells():
         compile(next(cell for cell in cells if marker in cell), str(template), "exec")
         for marker in ("# Load datamart", "prediction = None\nif prediction_file_path:")
     ]
+
+
+@pytest.fixture(scope="module")
+def action_hierarchy_cell():
+    template = Path(__file__).parents[2] / "pdstools" / "reports" / "HealthCheck.qmd"
+    source = template.read_text(encoding="utf-8")
+    start = source.index('if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:')
+    end = source.index("\n```", start)
+    return compile(source[start:end], str(template), "exec")
 
 
 @pytest.mark.parametrize(
@@ -80,3 +90,30 @@ def test_healthcheck_prediction_source(data_cells, model_path, prediction_path, 
         read_ds_export.assert_not_called()
         prediction_cls.assert_not_called()
         prediction_cls.from_processed_data.assert_not_called()
+
+
+def test_action_hierarchy_collapses_whitespace_group_variants(action_hierarchy_cell):
+    report_utils = Mock()
+    namespace = {
+        "pl": pl,
+        "datamart": SimpleNamespace(
+            model_data=pl.DataFrame(
+                {
+                    "Issue": ["Sales", "Sales", "Sales"],
+                    "Group": ["CreditCards", "CreditCards\u00a0", "Loans"],
+                    "ModelID": ["model-1", "model-2", "model-3"],
+                    "Name": ["EverydayCard", "TravelCard", "PersonalLoan"],
+                }
+            ).lazy()
+        ),
+        "datamart_all_columns": ["Issue", "Group"],
+        "active_models_filter_expr": pl.lit(True),
+        "active_models_threshold_date_string": "2026-01-01",
+        "report_utils": report_utils,
+        "display": Mock(),
+    }
+
+    exec(action_hierarchy_cell, namespace)
+
+    hierarchy = report_utils.create_metric_gttable.call_args.args[0]
+    assert hierarchy.select("Group", "Models").rows() == [("CreditCards", 2), ("Loans", 1)]
