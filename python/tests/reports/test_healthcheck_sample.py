@@ -104,7 +104,9 @@ def test_action_hierarchy_collapses_whitespace_group_variants(action_hierarchy_c
                     "ModelID": ["model-1", "model-2", "model-3"],
                     "Name": ["EverydayCard", "TravelCard", "PersonalLoan"],
                 }
-            ).lazy()
+            )
+            .with_columns(pl.col("Group").cast(pl.Categorical))
+            .lazy()
         ),
         "datamart_all_columns": ["Issue", "Group"],
         "active_models_filter_expr": pl.lit(True),
