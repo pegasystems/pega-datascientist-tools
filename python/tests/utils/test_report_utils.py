@@ -453,6 +453,44 @@ def test_write_analysis_metadata_updates_document_front_matter(tmp_path):
     assert metadata["analysis"] == {"predictors": True}
 
 
+def test_run_quarto_writes_analysis_metadata(tmp_path, monkeypatch):
+    import yaml
+
+    qmd_file = tmp_path / "HealthCheck.qmd"
+    qmd_file.write_text("---\ntitle: Test\nanalysis:\n  predictions: true\n---\nBody\n")
+
+    class FakeStdout:
+        def readline(self):
+            return ""
+
+    class FakeProcess:
+        stdout = FakeStdout()
+
+        def wait(self):
+            return 0
+
+    monkeypatch.setattr(
+        report_utils._quarto,
+        "get_quarto_with_version",
+        lambda: ("quarto", "1.4.0"),
+    )
+    monkeypatch.setattr(report_utils._quarto.subprocess, "Popen", lambda *_args, **_kwargs: FakeProcess())
+
+    assert (
+        report_utils.run_quarto(
+            qmd_file="HealthCheck.qmd",
+            params={"title": "Test"},
+            analysis={"predictions": False, "predictors": True},
+            temp_dir=tmp_path,
+        )
+        == 0
+    )
+
+    front_matter = qmd_file.read_text().split("---\n", 2)[1]
+    metadata = yaml.safe_load(front_matter)
+    assert metadata["analysis"] == {"predictors": True}
+
+
 def test_run_quarto_sets_plotly_renderer_env(tmp_path, monkeypatch):
     """run_quarto must pass the Plotly renderer mode to Quarto's Python process."""
 
