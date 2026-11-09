@@ -198,7 +198,8 @@ files or the individual file paths.
 
 - **Direct file upload**: Upload the Model Snapshot, optional Predictor Binning snapshot, and optional Prediction Table through the web interface.
 - **File paths**: Provide the folder path where the ADM files are located (e.g., ``/User/Downloads/``), or provide individual paths. The tool will automatically find the relevant files in a configured folder.
-- **CDH Sample**: For testing, you can use the sample that loads automatically on first launch.
+- **Synthetic demo data**: A bundled dataset loads automatically on first launch
+  for testing; upload or select your own files to replace it.
 
 Advanced import settings are available for non-standard exports, including
 custom delimiters, quote characters, encodings, timestamp parsing, and missing
