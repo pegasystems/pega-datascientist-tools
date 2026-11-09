@@ -613,6 +613,32 @@ def test_create_metric_gttable_callable_rag_with_metric_format():
     assert "0.00123" not in html
 
 
+def test_create_metric_gttable_tuple_callable_shares_first_column_format():
+    """Prediction overview CTR group columns must format like CTR, not round to 0."""
+    from pdstools.utils.metric_limits import exclusive_0_1_range_rag
+
+    df = pl.DataFrame(
+        {
+            "Channel": ["Web"],
+            "CTR": [0.02],
+            "CTR_Test": [0.024],
+            "CTR_Control": [0.016],
+            "CTR_NBA": [0.0201],
+        },
+    )
+
+    html = report_utils.create_metric_gttable(
+        df,
+        column_to_metric={
+            ("CTR", "CTR_Test", "CTR_Control", "CTR_NBA"): exclusive_0_1_range_rag,
+        },
+        strict_metric_validation=False,
+    ).as_raw_html()
+
+    for expected in ["2.000%", "2.400%", "1.600%", "2.010%"]:
+        assert expected in html
+
+
 def test_create_metric_gttable_callable_rag_without_format():
     """Test that columns with callable RAG but no MetricFormat use default formatting."""
     df = pl.DataFrame(
