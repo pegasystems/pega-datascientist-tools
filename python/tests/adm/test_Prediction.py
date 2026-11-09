@@ -334,10 +334,10 @@ def test_plots():
     # One trace per single-channel prediction; the multi-channel one is not plotted.
     expected_trace_names = sorted(
         [
-            "Call Center (PREDICTOUTBOUNDCALLCENTERPROPENSITY)",
-            "Mobile (PREDICTMOBILEPROPENSITY)",
-            "E-mail (PREDICTOUTBOUNDEMAILPROPENSITY)",
-            "Web (PREDICTWEBPROPENSITY)",
+            "Call Center<br>(PREDICTOUTBOUNDCALLCENTER<br>PROPENSITY)",
+            "Mobile<br>(PREDICTMOBILE<br>PROPENSITY)",
+            "E-mail<br>(PREDICTOUTBOUNDEMAIL<br>PROPENSITY)",
+            "Web<br>(PREDICTWEB<br>PROPENSITY)",
         ]
     )
 

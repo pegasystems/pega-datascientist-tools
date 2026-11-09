@@ -137,6 +137,10 @@ class PredictionPlots(LazyNamespace):
             **kwargs,
         )
 
+        for trace in plt.data:
+            if trace.name is not None:
+                trace.name = trace.name.replace(" (", "<br>(").replace("PROPENSITY)", "<br>PROPENSITY)")
+
         plt.for_each_annotation(lambda a: a.update(text="")).update_layout(
             legend_title_text="Channel",
         )
