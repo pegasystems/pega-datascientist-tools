@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import traceback
 from pathlib import Path
+from typing import Any
 
 from packaging.version import InvalidVersion, Version
 
@@ -308,6 +309,7 @@ def _write_analysis_metadata(qmd_file: Path, analysis: dict) -> None:
     qmd = qmd_file.read_text()
     front_matter = re.match(r"\A---\r?\n(.*?)\r?\n---\r?\n", qmd, re.DOTALL)
 
+    metadata: dict[str, Any]
     if front_matter is None:
         metadata = {}
         body = qmd
