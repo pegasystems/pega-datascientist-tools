@@ -3,6 +3,10 @@ title: "ADM Health Check"
 title-block-banner: true
 author: "Pega Data Scientist tools"
 date: today
+analysis:
+  models: true
+  predictions: true
+  predictors: true
 subtitle: >
   Summary of all ADM Models
 execute:
@@ -70,7 +74,7 @@ disclaimer = ""
 subtitle = "Sample Data"
 
 # Insert the paths to your data files here to run the notebook from your IDE.
-# Edit the _quarto.yml to enable/disable specific sections of the quarto output.
+# The report generator updates the analysis metadata when optional data is missing.
 # Parameters will be overriden by quarto when a parameters yaml is provided
 
 model_file_path = None

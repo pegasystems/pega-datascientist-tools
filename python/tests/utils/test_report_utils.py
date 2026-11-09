@@ -425,7 +425,6 @@ def test_write_params_files_full_embed(tmp_path):
         config = yaml.safe_load(f)
     assert config["format"]["html"]["embed-resources"] is True
     assert config["format"]["html"]["plotly-connected"] is True
-
     # full_embed=False (default) - load plotly from CDN, disable embed-resources to avoid esbuild (#620)
     report_utils._write_params_files(
         tmp_path,
@@ -436,6 +435,22 @@ def test_write_params_files_full_embed(tmp_path):
         config = yaml.safe_load(f)
     assert config["format"]["html"]["plotly-connected"] is False
     assert config["format"]["html"]["embed-resources"] is False
+
+
+def test_write_analysis_metadata_updates_document_front_matter(tmp_path):
+    import yaml
+    from pdstools.utils.report_utils._quarto import _write_analysis_metadata
+
+    qmd_file = tmp_path / "HealthCheck.qmd"
+    qmd_file.write_text("---\ntitle: Test\nanalysis:\n  predictions: true\n---\nBody\n")
+    _write_analysis_metadata(
+        qmd_file,
+        {"predictions": False, "predictors": True},
+    )
+
+    front_matter = qmd_file.read_text().split("---\n", 2)[1]
+    metadata = yaml.safe_load(front_matter)
+    assert metadata["analysis"] == {"predictors": True}
 
 
 def test_run_quarto_sets_plotly_renderer_env(tmp_path, monkeypatch):
