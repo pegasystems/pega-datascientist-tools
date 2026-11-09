@@ -223,7 +223,7 @@ class _PerformancePlotsMixin(_PlotsBase):
             line_kwargs["category_orders"] = {facet: facet_values}
 
         fig = px.line(final_df, **line_kwargs)
-        fig.update_xaxes(hoverformat="%b %d, %Y")
+        fig.update_xaxes(hoverformat="%b %d, %Y", title="")
 
         if plot_metric == "Performance":
             fig.update_yaxes(range=[50, 100])

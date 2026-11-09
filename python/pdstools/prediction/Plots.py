@@ -145,10 +145,9 @@ class PredictionPlots(LazyNamespace):
             legend_title_text="Channel",
         )
 
-        # Update axis titles if faceting is used
         if kwargs.get("facet_row") is not None:
             plt.update_yaxes(title="")
-        if kwargs.get("facet_col") is not None:
+        if kwargs.get("facet_col") is not None or "Date" not in (kwargs.get("labels") or {}):
             plt.update_xaxes(title="")
 
         return plt, plot_df

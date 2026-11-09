@@ -344,7 +344,6 @@ def test_plots():
     perf_fig = prediction.plot.performance_trend()
     assert sorted(t.name for t in perf_fig.data) == expected_trace_names
     assert perf_fig.layout.yaxis.title.text == "Performance (AUC)"
-    assert perf_fig.layout.xaxis.title.text == "Date"
 
     lift_fig = prediction.plot.lift_trend()
     assert sorted(t.name for t in lift_fig.data) == expected_trace_names
@@ -357,6 +356,10 @@ def test_plots():
     ctr_fig = prediction.plot.ctr_trend()
     assert sorted(t.name for t in ctr_fig.data) == expected_trace_names
     assert ctr_fig.layout.yaxis.title.text == "CTR"
+
+    for fig in (perf_fig, lift_fig, rc_fig, ctr_fig):
+        assert fig.layout.xaxis.title.text == ""
+        assert all("Date=%{x}" in trace.hovertemplate for trace in fig.data)
 
     # Period overrides bucket the data via dt.truncate, which aligns to the
     # Unix epoch — so the exact bucket count for a 70-day window depends on
@@ -391,6 +394,22 @@ def test_plots():
         df = method(return_df=True).collect()
         assert df.shape == (350, 29)
         assert sorted(df["Channel"].unique().to_list()) == ["Call Center", "E-mail", "Mobile", "Multi-channel", "Web"]
+
+
+@pytest.mark.parametrize("facet", ["facet_col", "facet_row"])
+def test_prediction_trend_hides_date_title_on_facets(preds_singleday, facet):
+    fig = preds_singleday.plot.performance_trend(**{facet: "Channel"})
+
+    assert len(list(fig.select_xaxes())) == 2
+    assert all(axis.title.text == "" for axis in fig.select_xaxes())
+    assert all("Date=%{x}" in trace.hovertemplate for trace in fig.data)
+
+
+def test_prediction_trend_preserves_explicit_date_label(preds_singleday):
+    fig = preds_singleday.plot.performance_trend(labels={"Date": "Observation date"})
+
+    assert fig.layout.xaxis.title.text == "Observation date"
+    assert all("Observation date=%{x}" in trace.hovertemplate for trace in fig.data)
 
 
 # New tests to improve coverage

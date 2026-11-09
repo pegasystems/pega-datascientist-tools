@@ -192,7 +192,7 @@ def test_over_time_metric_limits_only_for_performance(sample2: ADMDatamart):
 def test_over_time(sample2: ADMDatamart):
     fig = sample2.plot.over_time(metric="Performance", by="ModelID")
     assert isinstance(fig, Figure)
-    assert fig.layout.xaxis.title.text == "SnapshotTime"
+    assert fig.layout.xaxis.title.text == ""
     assert fig.layout.xaxis.hoverformat == "%b %d, %Y"
     assert fig.layout.yaxis.title.text == "Performance (AUC)"
     assert fig.layout.yaxis.range == (50, 100)
@@ -234,6 +234,7 @@ def test_over_time(sample2: ADMDatamart):
     # Faceting on Group splits into 2 subplots (A, B); each ModelID lives in one.
     assert {t.name for t in fig_faceted.data} == {"1", "2"}
     assert "xaxis2" in fig_faceted.layout and "yaxis2" in fig_faceted.layout
+    assert all(axis.title.text == "" for axis in fig_faceted.select_xaxes())
 
     fig_success_rate = sample2.plot.over_time(
         metric="SuccessRate",
