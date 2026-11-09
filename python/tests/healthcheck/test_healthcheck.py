@@ -1,12 +1,13 @@
 import pathlib
 import re
+import shutil
 import zipfile
 from html.parser import HTMLParser
 
 import pytest
 from openpyxl import load_workbook
-from pdstools import ADMDatamart, Prediction, demo_data
-from pdstools.utils.report_utils import check_report_for_errors
+from pdstools import ADMDatamart, Prediction, __reports__, demo_data
+from pdstools.utils.report_utils import check_report_for_errors, copy_quarto_file, run_quarto
 
 PLOTLY_CDN_LOAD_RE = re.compile(r"(?:src=|import\s+)[\"']https://cdn\.plot\.ly/")
 CSS_URL_RE = re.compile(r"url\(\s*([\"']?)([^\"')]+)\1\s*\)", re.IGNORECASE)
@@ -137,6 +138,28 @@ def test_GenerateHealthCheck(sample: ADMDatamart, tmp_path):
     assert "Weekly Success Rate" in html
     assert "Actions over Time (weekly)" in html
     assert "Performance (AUC)" in html
+    assert not re.search(r">\s*Prediction Overview\s*<", html)
+
+
+@pytest.mark.skipif(
+    shutil.which("quarto") is None or shutil.which("pandoc") is None,
+    reason="Quarto and Pandoc are required to render the Health Check template",
+)
+def test_GenerateHealthCheck_full_embed_no_parameters_uses_all_demo_views(tmp_path):
+    copy_quarto_file("HealthCheck.qmd", tmp_path)
+    shutil.copy(__reports__ / "_quarto.yml", tmp_path)
+    run_quarto(qmd_file="HealthCheck.qmd", output_filename="HealthCheck.html", temp_dir=tmp_path, full_embed=True)
+
+    report = tmp_path / "HealthCheck.html"
+    errors = check_report_for_errors(report)
+    assert not errors, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
+    html = _read_report_html(report)
+    assert re.search(r">\s*Model Overview\s*<", html)
+    assert "Analysis of Predictors" in html
+    assert re.search(r">\s*Prediction Overview\s*<", html)
+    assert "Prediction Lift" in html
+    assert "Prediction Responses" in html
+    assert "Prediction Data is not available." not in html
 
 
 def test_GenerateHealthCheck_default_cdn_is_djs_copy_safe(sample: ADMDatamart, tmp_path, monkeypatch):
@@ -264,6 +287,7 @@ def test_GenerateHealthCheck_PredictionData(
     _assert_report_path(hc, tmp_path, "HealthCheck_WithPredictions")
     errors = check_report_for_errors(hc)
     assert len(errors) == 0, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
+    assert re.search(r">\s*Prediction Overview\s*<", _read_report_html(hc))
 
 
 def test_ExportTables_ModelDataOnly(sample_without_predictor_binning: ADMDatamart, tmp_path, monkeypatch):

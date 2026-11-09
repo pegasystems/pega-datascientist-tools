@@ -25,6 +25,17 @@ as Pega dataset export zips, for example to try the command line or the
 Streamlit upload flows with real files. The reproducibility foundations,
 catalogs and world object are internal.
 
+To include the matching prediction view in a report generated from the bundle,
+pass it explicitly:
+
+.. code-block:: python
+
+    demo.datamart.generate.health_check(prediction=demo.prediction)
+
+Rendering the Health Check template without input paths uses all three demo
+views. Reports generated from supplied model data do not substitute synthetic
+predictions when prediction data is absent.
+
 Maintained specification
 ------------------------
 
