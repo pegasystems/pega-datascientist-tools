@@ -17,7 +17,7 @@ def ih():
 
 
 def test_mockdata(ih):
-    assert ih.data.collect().height == 125886  # interactions (n=100000 + multi-outcome rows)
+    assert ih.data.collect().height == 126792  # interactions (n=100000 + multi-outcome rows)
     assert ih.data.collect().width == 22  # nr of IH properties in the sample data
 
     summary = ih.aggregates.summarize_by_interaction().collect()
@@ -66,7 +66,7 @@ def test_summarize_by_interaction_with_every(ih):
     # ih fixture pins the canonical end date.
     result_daily = ih.aggregates.summarize_by_interaction(every="1d").collect()
     assert result_daily.columns[0] == "OutcomeTime"
-    assert result_daily.height == 101955
+    assert result_daily.height == 102007
 
     # Test with timedelta — must produce identical result to "1d"
     result_td = ih.aggregates.summarize_by_interaction(
@@ -103,7 +103,7 @@ def test_summarize_by_interaction_complex(ih):
     ).collect()
 
     assert {"Channel", "Direction", "OutcomeTime", "Outcomes"}.issubset(result.columns)
-    assert result.height == 100332
+    assert result.height == 100324
 
 
 def test_summary_success_rates_basic(ih):
@@ -148,7 +148,7 @@ def test_summary_success_rates_with_by(ih):
 
 def test_summary_success_rates_with_every(ih):
     """Test summary_success_rates with 'every' parameter"""
-    # Roughly 90 days of mock data; deterministic given the frozen "now".
+    # The 182-day window includes delayed outcomes on the following day.
     result_daily = ih.aggregates.summary_success_rates(every="1d").collect()
     assert "OutcomeTime" in result_daily.columns
     assert result_daily.height == 183
@@ -202,9 +202,9 @@ def test_summary_success_rates_complex(ih):
     ).collect()
 
     assert {"PropensityBin", "Channel", "Direction", "OutcomeTime", "Outcomes"}.issubset(result.columns)
-    # 10 propensity bins × ~14 weeks × 2 channel/direction combos, with some
-    # bins empty in some weeks. Deterministic under the frozen "now".
-    assert result.height == 948
+    # 10 propensity bins × ~26 weeks × 4 channel/direction combinations, with
+    # some bins empty in some weeks. The canonical window is deterministic.
+    assert result.height == 939
 
     # Verify calculations
     for metric in ih.positive_outcome_labels.keys():
@@ -231,11 +231,11 @@ def test_summary_outcomes_basic(ih):
     assert result.columns == ["Outcome", "Count"]
     assert result.height == 6
     assert dict(zip(result["Outcome"].to_list(), result["Count"].to_list(), strict=True)) == {
-        "Accepted": 640,
-        "Clicked": 2169,
-        "Conversion": 794,
-        "Impression": 84375,
-        "Opened": 4774,
+        "Accepted": 657,
+        "Clicked": 2492,
+        "Conversion": 888,
+        "Impression": 84746,
+        "Opened": 4875,
         "Pending": 33134,
     }
 
@@ -258,7 +258,7 @@ def test_summary_outcomes_with_every(ih):
     # ~6 outcomes × 182 days, minus some (outcome, day) combos that don't appear.
     result_daily = ih.aggregates.summary_outcomes(every="1d").collect()
     assert {"OutcomeTime", "Outcome"}.issubset(result_daily.columns)
-    assert result_daily.height == 1083
+    assert result_daily.height == 1084
 
     # timedelta must produce identical result
     result_td = ih.aggregates.summary_outcomes(every=timedelta(days=1)).collect()
@@ -268,7 +268,7 @@ def test_summary_outcomes_with_every(ih):
 
 def test_summary_outcomes_with_query(ih):
     """Test summary_outcomes with 'query' parameter"""
-    # Test with simple query — Web subset has Impression/Clicked/Pending only.
+    # Test with simple query — Web subset has Impression/Clicked/Conversion only.
     result_web = ih.aggregates.summary_outcomes(
         query=pl.col("Channel") == "Web",
     ).collect()

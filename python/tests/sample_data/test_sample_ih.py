@@ -111,6 +111,29 @@ def test_conversions_favour_test_group(exposures):
     control, test = rates["pyOutcome"].to_list()
     assert test > control > 0
 
+    by_channel = exposures.group_by("pyChannel", "ExperimentGroup").agg(
+        pl.col("pyOutcome").list.contains("Conversion").sum().alias("conversions"),
+        pl.len().alias("exposures"),
+    )
+    counts = {
+        (row["pyChannel"], row["ExperimentGroup"]): (row["conversions"], row["exposures"])
+        for row in by_channel.to_dicts()
+    }
+    assert counts == {
+        ("Call Center", "Conversion-Control"): (3, 199),
+        ("Call Center", "Conversion-Test"): (20, 828),
+        ("Email", "Conversion-Control"): (23, 6403),
+        ("Email", "Conversion-Test"): (127, 25704),
+        ("Mobile", "Conversion-Control"): (28, 4710),
+        ("Mobile", "Conversion-Test"): (125, 18261),
+        ("Web", "Conversion-Control"): (76, 12316),
+        ("Web", "Conversion-Test"): (486, 49459),
+    }
+    for channel in ("Call Center", "Email", "Mobile", "Web"):
+        control_conversions, control_exposures = counts[channel, "Conversion-Control"]
+        test_conversions, test_exposures = counts[channel, "Conversion-Test"]
+        assert 0 < control_conversions / control_exposures < test_conversions / test_exposures
+
 
 def test_impact_groups_are_shared_and_stable(raw):
     share = ia_shares()
@@ -188,8 +211,17 @@ def test_mobile_challenger_mixes_techniques(world, raw):
     challenger = world.dates[world.challenger_day]
     before = set(mobile.filter(pl.col("day") < challenger)["pyModelTechnique"].unique())
     after = set(mobile.filter(pl.col("day") > challenger)["pyModelTechnique"].unique())
-    assert len(before) == 1
+    assert before == {"NaiveBayes"}
     assert after == {"NaiveBayes", "GradientBoost"}
+
+    traffic = (
+        mobile.filter(pl.col("day") > challenger, pl.col("pyOutcome").is_in(["Impression", "Pending"]))
+        .group_by("pyModelTechnique")
+        .len()
+    )
+    counts = dict(traffic.iter_rows())
+    assert counts == {"NaiveBayes": 6262, "GradientBoost": 6160}
+    assert counts["GradientBoost"] / sum(counts.values()) == pytest.approx(0.5, abs=0.01)
 
 
 def test_ih_from_mock_data_wraps_generator(raw):
