@@ -36,12 +36,23 @@ def exposures(raw):
 
 
 def test_canonical_shape(raw):
-    assert raw.shape == (125886, 22)
+    assert raw.shape == (126792, 22)
     assert raw["pxInteractionID"].n_unique() == 100000
     assert raw["pySubjectID"].n_unique() == 31715
     shown = raw.filter(pl.col("pyOutcome").is_in(["Impression", "Pending"]))["pxOutcomeTime"].dt.date()
     assert shown.min() == datetime.date(2000, 1, 3)
     assert shown.max() == datetime.date(2000, 7, 2)
+
+
+def test_exposures_are_spread_across_issues(raw):
+    counts = (
+        raw.filter(pl.col("pyOutcome").is_in(["Impression", "Pending"]), pl.col("pyChannel") != "Call Center")
+        .group_by("pyChannel", "pyIssue")
+        .len()
+    )
+    for channel in ("Web", "Mobile", "Email"):
+        issues = {row["pyIssue"]: row["len"] for row in counts.filter(pl.col("pyChannel") == channel).to_dicts()}
+        assert min(issues["Sales"], issues["Service"]) > max(issues["Retention"], issues["Risk"])
 
 
 def test_reproducible_and_seed_sensitive(world, raw):
@@ -150,9 +161,16 @@ def test_repeated_subject_decisions_across_months(raw):
         pl.col("pyOutcome").is_in(["Impression", "Pending"]),
     ).select("pxInteractionID", "pxOutcomeTime", "pyChannel", "pyName", "MktValue")
     assert decisions.rows() == [
-        ("100000000000016369", datetime.datetime(2000, 2, 2, 7, 25, 55), "Email", "VehicleLoan", "NBAHealth_NBA"),
-        ("100000000000017419", datetime.datetime(2000, 2, 3, 22, 56, 47), "Web", "RegularInvestment", "NBAHealth_NBA"),
-        ("100000000000050838", datetime.datetime(2000, 4, 5, 10, 15, 6), "Email", "FlexibleCard", "NBAHealth_NBA"),
+        ("100000000000016369", datetime.datetime(2000, 2, 2, 7, 25, 55), "Email", "LoanRefinance", "NBAHealth_NBA"),
+        (
+            "100000000000017419",
+            datetime.datetime(2000, 2, 3, 22, 56, 47),
+            "Web",
+            "VariableRateMortgage",
+            "NBAHealth_NBA",
+        ),
+        ("100000000000017419", datetime.datetime(2000, 2, 3, 22, 56, 48), "Web", "PersonalLoan", "NBAHealth_NBA"),
+        ("100000000000050838", datetime.datetime(2000, 4, 5, 10, 15, 6), "Email", "DigitalCard", "NBAHealth_NBA"),
     ]
 
 

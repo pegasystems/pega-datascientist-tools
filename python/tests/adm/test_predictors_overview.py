@@ -50,8 +50,8 @@ def test_predictors_overview(dm_aggregates):
         "EntryType",
     ).to_dict(as_series=False) == {
         "PredictorName": ["Classifier", "Customer.AnnualIncome"],
-        "Responses": [114460, 114460],
-        "Positives": [3916, 3916],
+        "Responses": [191509, 191509],
+        "Positives": [6539, 6539],
         "EntryType": ["Classifier", "Inactive"],
     }
 

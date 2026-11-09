@@ -21,7 +21,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.017325,
-                volume_weight=0.149697792,
+                volume_weight=0.044100149,
                 treatment_ids=("Sales/CreditCards/EverydayCard/Web/Hero", "Sales/CreditCards/EverydayCard/Web/Inline"),
             ),
             ActionChannel(
@@ -30,7 +30,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0086625,
-                volume_weight=0.059041398,
+                volume_weight=0.008346445,
                 treatment_ids=(
                     "Sales/CreditCards/EverydayCard/Email/Short",
                     "Sales/CreditCards/EverydayCard/Email/Detail",
@@ -56,7 +56,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.020475,
-                volume_weight=0.011500741,
+                volume_weight=0.004379247,
                 treatment_ids=(
                     "Sales/CreditCards/CashbackCard/Web/Hero",
                     "Sales/CreditCards/CashbackCard/Web/Inline",
@@ -83,7 +83,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.023625,
-                volume_weight=0.027528417,
+                volume_weight=0.009606149,
                 treatment_ids=("Sales/CreditCards/TravelCard/Web/Hero", "Sales/CreditCards/TravelCard/Web/Inline"),
             ),
             ActionChannel(
@@ -92,7 +92,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01575,
-                volume_weight=0.085971364,
+                volume_weight=0.019128366,
                 treatment_ids=("Sales/CreditCards/TravelCard/Mobile/Card",),
             ),
             ActionChannel(
@@ -101,7 +101,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0118125,
-                volume_weight=0.010639581,
+                volume_weight=0.001785224,
                 treatment_ids=("Sales/CreditCards/TravelCard/Email/Short", "Sales/CreditCards/TravelCard/Email/Detail"),
             ),
         ),
@@ -124,7 +124,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01785,
-                volume_weight=0.018071613,
+                volume_weight=0.004699554,
                 treatment_ids=("Sales/CreditCards/RewardsCard/Mobile/Card",),
             ),
             ActionChannel(
@@ -133,7 +133,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0133875,
-                volume_weight=0.441351498,
+                volume_weight=0.051023082,
                 treatment_ids=(
                     "Sales/CreditCards/RewardsCard/Email/Short",
                     "Sales/CreditCards/RewardsCard/Email/Detail",
@@ -160,7 +160,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.029925,
-                volume_weight=0.006763291,
+                volume_weight=0.002715742,
                 treatment_ids=("Sales/CreditCards/LowRateCard/Web/Hero", "Sales/CreditCards/LowRateCard/Web/Inline"),
             ),
             ActionChannel(
@@ -169,7 +169,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01995,
-                volume_weight=0.006649428,
+                volume_weight=0.001911020,
                 treatment_ids=("Sales/CreditCards/LowRateCard/Mobile/Card",),
             ),
             ActionChannel(
@@ -178,7 +178,7 @@ ACTIONS = (
                 configuration="CallCenterAcceptRateOutbound",
                 challenger_configuration=None,
                 baseline_probability=0.09975,
-                volume_weight=0.100643171,
+                volume_weight=0.048547675,
                 treatment_ids=("Sales/CreditCards/LowRateCard/Call Center/Script",),
             ),
         ),
@@ -201,7 +201,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.033075,
-                volume_weight=0.004365158,
+                volume_weight=0.001831244,
                 treatment_ids=(
                     "Sales/CreditCards/BalanceTransferCard/Web/Hero",
                     "Sales/CreditCards/BalanceTransferCard/Web/Inline",
@@ -214,7 +214,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.02205,
-                volume_weight=0.008301469,
+                volume_weight=0.002333452,
                 treatment_ids=("Sales/CreditCards/BalanceTransferCard/Mobile/Card",),
             ),
         ),
@@ -237,7 +237,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.036225,
-                volume_weight=0.074815889,
+                volume_weight=0.023623305,
                 treatment_ids=("Sales/CreditCards/PremiumCard/Web/Hero", "Sales/CreditCards/PremiumCard/Web/Inline"),
             ),
             ActionChannel(
@@ -246,7 +246,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.02415,
-                volume_weight=0.010639581,
+                volume_weight=0.002917370,
                 treatment_ids=("Sales/CreditCards/PremiumCard/Mobile/Card",),
             ),
             ActionChannel(
@@ -255,7 +255,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0181125,
-                volume_weight=0.009233247,
+                volume_weight=0.001571374,
                 treatment_ids=(
                     "Sales/CreditCards/PremiumCard/Email/Short",
                     "Sales/CreditCards/PremiumCard/Email/Detail",
@@ -281,7 +281,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.02625,
-                volume_weight=0.012869723,
+                volume_weight=0.003462356,
                 treatment_ids=("Sales/CreditCards/DigitalCard/Mobile/Card",),
             ),
             ActionChannel(
@@ -290,7 +290,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0196875,
-                volume_weight=0.053280235,
+                volume_weight=0.007609744,
                 treatment_ids=(
                     "Sales/CreditCards/DigitalCard/Email/Short",
                     "Sales/CreditCards/DigitalCard/Email/Detail",
@@ -303,7 +303,7 @@ ACTIONS = (
                 configuration="CallCenterAcceptRateOutbound",
                 challenger_configuration=None,
                 baseline_probability=0.13125,
-                volume_weight=0.120720639,
+                volume_weight=0.057182867,
                 treatment_ids=("Sales/CreditCards/DigitalCard/Call Center/Script",),
             ),
         ),
@@ -326,7 +326,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.042525,
-                volume_weight=0.009233247,
+                volume_weight=0.003593894,
                 treatment_ids=("Sales/CreditCards/FamilyCard/Web/Hero", "Sales/CreditCards/FamilyCard/Web/Inline"),
             ),
         ),
@@ -349,7 +349,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.045675,
-                volume_weight=0.00576501,
+                volume_weight=0.002352157,
                 treatment_ids=("Sales/CreditCards/FlexibleCard/Web/Hero", "Sales/CreditCards/FlexibleCard/Web/Inline"),
             ),
             ActionChannel(
@@ -358,7 +358,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.03045,
-                volume_weight=0.007257085,
+                volume_weight=0.002067500,
                 treatment_ids=("Sales/CreditCards/FlexibleCard/Mobile/Card",),
             ),
             ActionChannel(
@@ -367,7 +367,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0228375,
-                volume_weight=1.0,
+                volume_weight=0.106527207,
                 treatment_ids=(
                     "Sales/CreditCards/FlexibleCard/Email/Short",
                     "Sales/CreditCards/FlexibleCard/Email/Detail",
@@ -393,7 +393,7 @@ ACTIONS = (
                 configuration="Web_Loans_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.014025,
-                volume_weight=0.035324032,
+                volume_weight=0.012022906,
                 treatment_ids=("Sales/Loans/PersonalLoan/Web/Hero", "Sales/Loans/PersonalLoan/Web/Inline"),
             ),
             ActionChannel(
@@ -402,7 +402,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.00935,
-                volume_weight=0.100643171,
+                volume_weight=0.022042727,
                 treatment_ids=("Sales/Loans/PersonalLoan/Mobile/Card",),
             ),
             ActionChannel(
@@ -411,7 +411,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0070125,
-                volume_weight=0.020464011,
+                volume_weight=0.003216268,
                 treatment_ids=("Sales/Loans/PersonalLoan/Email/Short", "Sales/Loans/PersonalLoan/Email/Detail"),
             ),
         ),
@@ -434,7 +434,7 @@ ACTIONS = (
                 configuration="Web_Loans_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.016575,
-                volume_weight=0.009662004,
+                volume_weight=0.003743749,
                 treatment_ids=(
                     "Sales/Loans/HomeImprovementLoan/Web/Hero",
                     "Sales/Loans/HomeImprovementLoan/Web/Inline",
@@ -446,7 +446,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01105,
-                volume_weight=0.011817,
+                volume_weight=0.003206387,
                 treatment_ids=("Sales/Loans/HomeImprovementLoan/Mobile/Card",),
             ),
             ActionChannel(
@@ -455,7 +455,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0082875,
-                volume_weight=0.012869723,
+                volume_weight=0.002118716,
                 treatment_ids=(
                     "Sales/Loans/HomeImprovementLoan/Email/Short",
                     "Sales/Loans/HomeImprovementLoan/Email/Detail",
@@ -482,7 +482,7 @@ ACTIONS = (
                 configuration="Web_Loans_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.019125,
-                volume_weight=0.04847824,
+                volume_weight=0.015985947,
                 treatment_ids=("Sales/Loans/VehicleLoan/Web/Hero", "Sales/Loans/VehicleLoan/Web/Inline"),
             ),
             ActionChannel(
@@ -491,7 +491,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0095625,
-                volume_weight=0.149697792,
+                volume_weight=0.019282103,
                 treatment_ids=("Sales/Loans/VehicleLoan/Email/Short", "Sales/Loans/VehicleLoan/Email/Detail"),
             ),
         ),
@@ -514,7 +514,7 @@ ACTIONS = (
                 configuration="Web_Loans_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.021675,
-                volume_weight=0.023515311,
+                volume_weight=0.008336080,
                 treatment_ids=(
                     "Sales/Loans/DebtConsolidationLoan/Web/Hero",
                     "Sales/Loans/DebtConsolidationLoan/Web/Inline",
@@ -527,7 +527,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0108375,
-                volume_weight=0.015066061,
+                volume_weight=0.002441520,
                 treatment_ids=(
                     "Sales/Loans/DebtConsolidationLoan/Email/Short",
                     "Sales/Loans/DebtConsolidationLoan/Email/Detail",
@@ -553,7 +553,7 @@ ACTIONS = (
                 configuration="Web_Loans_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.024225,
-                volume_weight=0.010378518,
+                volume_weight=0.003992712,
                 treatment_ids=(
                     "Sales/Loans/EducationLoan/Web/Hero",
                     "Sales/Loans/EducationLoan/Web/Inline",
@@ -566,7 +566,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0121125,
-                volume_weight=0.100643171,
+                volume_weight=0.013488586,
                 treatment_ids=("Sales/Loans/EducationLoan/Email/Short", "Sales/Loans/EducationLoan/Email/Detail"),
             ),
             ActionChannel(
@@ -575,7 +575,7 @@ ACTIONS = (
                 configuration="CallCenterAcceptRateOutbound",
                 challenger_configuration=None,
                 baseline_probability=0.08075,
-                volume_weight=0.066069345,
+                volume_weight=0.033240118,
                 treatment_ids=("Sales/Loans/EducationLoan/Call Center/Script",),
             ),
         ),
@@ -598,7 +598,7 @@ ACTIONS = (
                 configuration="Web_Loans_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.026775,
-                volume_weight=0.273524932,
+                volume_weight=0.075865344,
                 treatment_ids=("Sales/Loans/EnergyUpgradeLoan/Web/Hero", "Sales/Loans/EnergyUpgradeLoan/Web/Inline"),
             ),
             ActionChannel(
@@ -607,7 +607,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01785,
-                volume_weight=0.008473594,
+                volume_weight=0.002376952,
                 treatment_ids=("Sales/Loans/EnergyUpgradeLoan/Mobile/Card",),
             ),
             ActionChannel(
@@ -616,7 +616,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0133875,
-                volume_weight=0.035324032,
+                volume_weight=0.005256828,
                 treatment_ids=(
                     "Sales/Loans/EnergyUpgradeLoan/Email/Short",
                     "Sales/Loans/EnergyUpgradeLoan/Email/Detail",
@@ -642,7 +642,7 @@ ACTIONS = (
                 configuration="Web_Loans_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.029325,
-                volume_weight=0.007002155,
+                volume_weight=0.002801914,
                 treatment_ids=(
                     "Sales/Loans/FlexibleRepaymentLoan/Web/Hero",
                     "Sales/Loans/FlexibleRepaymentLoan/Web/Inline",
@@ -654,7 +654,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01955,
-                volume_weight=0.074815889,
+                volume_weight=0.016879279,
                 treatment_ids=("Sales/Loans/FlexibleRepaymentLoan/Mobile/Card",),
             ),
             ActionChannel(
@@ -663,7 +663,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0146625,
-                volume_weight=0.014109836,
+                volume_weight=0.002301602,
                 treatment_ids=(
                     "Sales/Loans/FlexibleRepaymentLoan/Email/Short",
                     "Sales/Loans/FlexibleRepaymentLoan/Email/Detail",
@@ -689,7 +689,7 @@ ACTIONS = (
                 configuration="Web_Loans_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.031875,
-                volume_weight=0.004943037,
+                volume_weight=0.002048051,
                 treatment_ids=(
                     "Sales/Loans/SmallPurchaseLoan/Web/Hero",
                     "Sales/Loans/SmallPurchaseLoan/Web/Inline",
@@ -716,7 +716,7 @@ ACTIONS = (
                 configuration="Web_Loans_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.034425,
-                volume_weight=0.007127515,
+                volume_weight=0.002847020,
                 treatment_ids=(
                     "Sales/Loans/FixedRateLoan/Web/Hero",
                     "Sales/Loans/FixedRateLoan/Web/Inline",
@@ -729,7 +729,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0172125,
-                volume_weight=0.008135694,
+                volume_weight=0.001402218,
                 treatment_ids=("Sales/Loans/FixedRateLoan/Email/Short", "Sales/Loans/FixedRateLoan/Email/Detail"),
             ),
         ),
@@ -752,7 +752,7 @@ ACTIONS = (
                 configuration="Web_Loans_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.036975,
-                volume_weight=0.013260007,
+                volume_weight=0.004977779,
                 treatment_ids=("Sales/Loans/LoanRefinance/Web/Hero", "Sales/Loans/LoanRefinance/Web/Inline"),
             ),
             ActionChannel(
@@ -761,7 +761,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.02465,
-                volume_weight=0.01674646,
+                volume_weight=0.004388238,
                 treatment_ids=("Sales/Loans/LoanRefinance/Mobile/Card",),
             ),
             ActionChannel(
@@ -770,7 +770,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0184875,
-                volume_weight=0.010129048,
+                volume_weight=0.001707939,
                 treatment_ids=("Sales/Loans/LoanRefinance/Email/Short", "Sales/Loans/LoanRefinance/Email/Detail"),
             ),
         ),
@@ -793,7 +793,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.010725,
-                volume_weight=0.004580574,
+                volume_weight=0.001912380,
                 treatment_ids=(
                     "Sales/Mortgages/FirstHomeMortgage/Web/Hero",
                     "Sales/Mortgages/FirstHomeMortgage/Web/Inline",
@@ -806,7 +806,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.00715,
-                volume_weight=0.059041398,
+                volume_weight=0.013639562,
                 treatment_ids=("Sales/Mortgages/FirstHomeMortgage/Mobile/Card",),
             ),
             ActionChannel(
@@ -815,7 +815,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0053625,
-                volume_weight=0.017385741,
+                volume_weight=0.002777374,
                 treatment_ids=(
                     "Sales/Mortgages/FirstHomeMortgage/Email/Short",
                     "Sales/Mortgages/FirstHomeMortgage/Email/Detail",
@@ -827,7 +827,7 @@ ACTIONS = (
                 configuration="CallCenterAcceptRateOutbound",
                 challenger_configuration=None,
                 baseline_probability=0.03575,
-                volume_weight=0.441351498,
+                volume_weight=0.183640599,
                 treatment_ids=("Sales/Mortgages/FirstHomeMortgage/Call Center/Script",),
             ),
         ),
@@ -850,7 +850,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.012675,
-                volume_weight=0.013672734,
+                volume_weight=0.005117007,
                 treatment_ids=(
                     "Sales/Mortgages/HomeMoverMortgage/Web/Hero",
                     "Sales/Mortgages/HomeMoverMortgage/Web/Inline",
@@ -863,7 +863,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0063375,
-                volume_weight=0.018071613,
+                volume_weight=0.002875794,
                 treatment_ids=(
                     "Sales/Mortgages/HomeMoverMortgage/Email/Short",
                     "Sales/Mortgages/HomeMoverMortgage/Email/Detail",
@@ -890,7 +890,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.014625,
-                volume_weight=0.006227397,
+                volume_weight=0.002521286,
                 treatment_ids=(
                     "Sales/Mortgages/FixedRateMortgage/Web/Hero",
                     "Sales/Mortgages/FixedRateMortgage/Web/Inline",
@@ -903,7 +903,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.00975,
-                volume_weight=0.011199773,
+                volume_weight=0.003055257,
                 treatment_ids=("Sales/Mortgages/FixedRateMortgage/Mobile/Card",),
             ),
         ),
@@ -926,7 +926,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.016575,
-                volume_weight=0.006034482,
+                volume_weight=0.002450881,
                 treatment_ids=(
                     "Sales/Mortgages/VariableRateMortgage/Web/Hero",
                     "Sales/Mortgages/VariableRateMortgage/Web/Inline",
@@ -939,7 +939,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01105,
-                volume_weight=0.01091304,
+                volume_weight=0.002984768,
                 treatment_ids=("Sales/Mortgages/VariableRateMortgage/Mobile/Card",),
             ),
             ActionChannel(
@@ -948,7 +948,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0082875,
-                volume_weight=0.012149708,
+                volume_weight=0.002011730,
                 treatment_ids=(
                     "Sales/Mortgages/VariableRateMortgage/Email/Short",
                     "Sales/Mortgages/VariableRateMortgage/Email/Detail",
@@ -975,7 +975,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.018525,
-                volume_weight=0.009443132,
+                volume_weight=0.003667336,
                 treatment_ids=(
                     "Sales/Mortgages/MortgageRefinance/Web/Hero",
                     "Sales/Mortgages/MortgageRefinance/Web/Inline",
@@ -988,7 +988,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01235,
-                volume_weight=0.019604399,
+                volume_weight=0.005056821,
                 treatment_ids=("Sales/Mortgages/MortgageRefinance/Mobile/Card",),
             ),
         ),
@@ -1011,7 +1011,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.020475,
-                volume_weight=0.014573473,
+                volume_weight=0.005419422,
                 treatment_ids=(
                     "Sales/Mortgages/GreenHomeMortgage/Web/Hero",
                     "Sales/Mortgages/GreenHomeMortgage/Web/Inline",
@@ -1024,7 +1024,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01365,
-                volume_weight=0.040946078,
+                volume_weight=0.009811841,
                 treatment_ids=("Sales/Mortgages/GreenHomeMortgage/Mobile/Card",),
             ),
         ),
@@ -1047,7 +1047,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.022425,
-                volume_weight=0.008473594,
+                volume_weight=0.003326650,
                 treatment_ids=(
                     "Sales/Mortgages/MortgageRateReview/Web/Hero",
                     "Sales/Mortgages/MortgageRateReview/Web/Inline",
@@ -1059,7 +1059,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0112125,
-                volume_weight=0.009890435,
+                volume_weight=0.001671685,
                 treatment_ids=(
                     "Sales/Mortgages/MortgageRateReview/Email/Short",
                     "Sales/Mortgages/MortgageRateReview/Email/Detail",
@@ -1086,7 +1086,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.024375,
-                volume_weight=0.015590315,
+                volume_weight=0.005758583,
                 treatment_ids=(
                     "Sales/Mortgages/MortgageConsultation/Web/Hero",
                     "Sales/Mortgages/MortgageConsultation/Web/Inline",
@@ -1099,7 +1099,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01625,
-                volume_weight=0.015590315,
+                volume_weight=0.004114612,
                 treatment_ids=("Sales/Mortgages/MortgageConsultation/Mobile/Card",),
             ),
             ActionChannel(
@@ -1108,7 +1108,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0121875,
-                volume_weight=0.013260007,
+                volume_weight=0.002176456,
                 treatment_ids=(
                     "Sales/Mortgages/MortgageConsultation/Email/Short",
                     "Sales/Mortgages/MortgageConsultation/Email/Detail",
@@ -1134,7 +1134,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01265,
-                volume_weight=0.015066061,
+                volume_weight=0.003989874,
                 treatment_ids=("Sales/Savings/EverydaySavings/Mobile/Card",),
             ),
             ActionChannel(
@@ -1143,7 +1143,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0094875,
-                volume_weight=0.033020105,
+                volume_weight=0.004947219,
                 treatment_ids=(
                     "Sales/Savings/EverydaySavings/Email/Short",
                     "Sales/Savings/EverydaySavings/Email/Detail",
@@ -1170,7 +1170,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0112125,
-                volume_weight=0.040946078,
+                volume_weight=0.006004151,
                 treatment_ids=(
                     "Sales/Savings/EasyAccessSavings/Email/Short",
                     "Sales/Savings/EasyAccessSavings/Email/Detail",
@@ -1196,7 +1196,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.025875,
-                volume_weight=0.006880809,
+                volume_weight=0.002758175,
                 treatment_ids=(
                     "Sales/Savings/RegularSavings/Web/Hero",
                     "Sales/Savings/RegularSavings/Web/Inline",
@@ -1223,7 +1223,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0146625,
-                volume_weight=0.007821874,
+                volume_weight=0.001353444,
                 treatment_ids=(
                     "Sales/Savings/FixedTermSavings/Email/Short",
                     "Sales/Savings/FixedTermSavings/Email/Detail",
@@ -1249,7 +1249,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.032775,
-                volume_weight=0.033020105,
+                volume_weight=0.011314798,
                 treatment_ids=(
                     "Sales/Savings/GoalSavings/Web/Hero",
                     "Sales/Savings/GoalSavings/Web/Inline",
@@ -1262,7 +1262,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.02185,
-                volume_weight=0.194791145,
+                volume_weight=0.039936659,
                 treatment_ids=("Sales/Savings/GoalSavings/Mobile/Card",),
             ),
             ActionChannel(
@@ -1271,7 +1271,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0163875,
-                volume_weight=0.005852324,
+                volume_weight=0.001042452,
                 treatment_ids=(
                     "Sales/Savings/GoalSavings/Email/Short",
                     "Sales/Savings/GoalSavings/Email/Detail",
@@ -1284,7 +1284,7 @@ ACTIONS = (
                 configuration="CallCenterAcceptRateOutbound",
                 challenger_configuration=None,
                 baseline_probability=0.10925,
-                volume_weight=0.053280235,
+                volume_weight=0.027388741,
                 treatment_ids=("Sales/Savings/GoalSavings/Call Center/Script",),
             ),
         ),
@@ -1307,7 +1307,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.036225,
-                volume_weight=0.012500145,
+                volume_weight=0.004720302,
                 treatment_ids=("Sales/Savings/EmergencySavings/Web/Hero", "Sales/Savings/EmergencySavings/Web/Inline"),
             ),
             ActionChannel(
@@ -1316,7 +1316,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0181125,
-                volume_weight=0.030979239,
+                volume_weight=0.004671154,
                 treatment_ids=(
                     "Sales/Savings/EmergencySavings/Email/Short",
                     "Sales/Savings/EmergencySavings/Email/Detail",
@@ -1342,7 +1342,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.039675,
-                volume_weight=0.004524904,
+                volume_weight=0.001891449,
                 treatment_ids=("Sales/Savings/BonusSavings/Web/Hero", "Sales/Savings/BonusSavings/Web/Inline"),
             ),
             ActionChannel(
@@ -1351,7 +1351,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.02645,
-                volume_weight=0.008652431,
+                volume_weight=0.002422054,
                 treatment_ids=("Sales/Savings/BonusSavings/Mobile/Card",),
             ),
             ActionChannel(
@@ -1360,7 +1360,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0198375,
-                volume_weight=0.066069345,
+                volume_weight=0.009235503,
                 treatment_ids=(
                     "Sales/Savings/BonusSavings/Email/Short",
                     "Sales/Savings/BonusSavings/Email/Detail",
@@ -1387,7 +1387,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.043125,
-                volume_weight=0.017385741,
+                volume_weight=0.006352140,
                 treatment_ids=("Sales/Savings/NoticeSavings/Web/Hero", "Sales/Savings/NoticeSavings/Web/Inline"),
             ),
             ActionChannel(
@@ -1396,7 +1396,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.02875,
-                volume_weight=0.03794359,
+                volume_weight=0.009161868,
                 treatment_ids=("Sales/Savings/NoticeSavings/Mobile/Card",),
             ),
             ActionChannel(
@@ -1405,7 +1405,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0215625,
-                volume_weight=0.194791145,
+                volume_weight=0.024438404,
                 treatment_ids=(
                     "Sales/Savings/NoticeSavings/Email/Short",
                     "Sales/Savings/NoticeSavings/Email/Detail",
@@ -1432,7 +1432,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.046575,
-                volume_weight=0.006539057,
+                volume_weight=0.002634570,
                 treatment_ids=("Sales/Savings/DigitalSavings/Web/Hero", "Sales/Savings/DigitalSavings/Web/Inline"),
             ),
             ActionChannel(
@@ -1441,7 +1441,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.03105,
-                volume_weight=0.007127515,
+                volume_weight=0.002034247,
                 treatment_ids=("Sales/Savings/DigitalSavings/Mobile/Card",),
             ),
             ActionChannel(
@@ -1450,7 +1450,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0232875,
-                volume_weight=0.008652431,
+                volume_weight=0.001482125,
                 treatment_ids=(
                     "Sales/Savings/DigitalSavings/Email/Short",
                     "Sales/Savings/DigitalSavings/Email/Detail",
@@ -1477,7 +1477,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.050025,
-                volume_weight=0.059041398,
+                volume_weight=0.019089176,
                 treatment_ids=("Sales/Savings/SavingsReview/Web/Hero", "Sales/Savings/SavingsReview/Web/Inline"),
             ),
             ActionChannel(
@@ -1486,7 +1486,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.03335,
-                volume_weight=1.0,
+                volume_weight=0.174084235,
                 treatment_ids=("Sales/Savings/SavingsReview/Mobile/Card",),
             ),
             ActionChannel(
@@ -1495,7 +1495,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0250125,
-                volume_weight=0.006227397,
+                volume_weight=0.001102393,
                 treatment_ids=(
                     "Sales/Savings/SavingsReview/Email/Short",
                     "Sales/Savings/SavingsReview/Email/Detail",
@@ -1522,7 +1522,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.012375,
-                volume_weight=0.006328183,
+                volume_weight=0.002557981,
                 treatment_ids=(
                     "Sales/Investments/StarterInvestment/Web/Hero",
                     "Sales/Investments/StarterInvestment/Web/Inline",
@@ -1548,7 +1548,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.014625,
-                volume_weight=0.004637524,
+                volume_weight=0.001933765,
                 treatment_ids=(
                     "Sales/Investments/ManagedPortfolio/Web/Hero",
                     "Sales/Investments/ManagedPortfolio/Web/Inline",
@@ -1560,7 +1560,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.00975,
-                volume_weight=0.010129048,
+                volume_weight=0.002791073,
                 treatment_ids=("Sales/Investments/ManagedPortfolio/Mobile/Card",),
             ),
             ActionChannel(
@@ -1569,7 +1569,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0073125,
-                volume_weight=0.007529708,
+                volume_weight=0.001307859,
                 treatment_ids=(
                     "Sales/Investments/ManagedPortfolio/Email/Short",
                     "Sales/Investments/ManagedPortfolio/Email/Detail",
@@ -1595,7 +1595,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.016875,
-                volume_weight=0.011817,
+                volume_weight=0.004487482,
                 treatment_ids=(
                     "Sales/Investments/IndexInvestment/Web/Hero",
                     "Sales/Investments/IndexInvestment/Web/Inline",
@@ -1607,7 +1607,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0084375,
-                volume_weight=0.03794359,
+                volume_weight=0.005606413,
                 treatment_ids=(
                     "Sales/Investments/IndexInvestment/Email/Short",
                     "Sales/Investments/IndexInvestment/Email/Detail",
@@ -1634,7 +1634,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.019125,
-                volume_weight=0.066069345,
+                volume_weight=0.021122543,
                 treatment_ids=(
                     "Sales/Investments/RegularInvestment/Web/Hero",
                     "Sales/Investments/RegularInvestment/Web/Inline",
@@ -1647,7 +1647,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01275,
-                volume_weight=0.013260007,
+                volume_weight=0.003556713,
                 treatment_ids=("Sales/Investments/RegularInvestment/Mobile/Card",),
             ),
         ),
@@ -1670,7 +1670,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.021375,
-                volume_weight=0.011199773,
+                volume_weight=0.004275969,
                 treatment_ids=(
                     "Sales/Investments/RetirementInvestment/Web/Hero",
                     "Sales/Investments/RetirementInvestment/Web/Inline",
@@ -1682,7 +1682,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01425,
-                volume_weight=0.149697792,
+                volume_weight=0.031510355,
                 treatment_ids=("Sales/Investments/RetirementInvestment/Mobile/Card",),
             ),
             ActionChannel(
@@ -1691,7 +1691,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0106875,
-                volume_weight=0.027528417,
+                volume_weight=0.004200139,
                 treatment_ids=(
                     "Sales/Investments/RetirementInvestment/Email/Short",
                     "Sales/Investments/RetirementInvestment/Email/Detail",
@@ -1717,7 +1717,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.023625,
-                volume_weight=0.005680072,
+                volume_weight=0.002320944,
                 treatment_ids=(
                     "Sales/Investments/InvestmentReview/Web/Hero",
                     "Sales/Investments/InvestmentReview/Web/Inline",
@@ -1730,7 +1730,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01575,
-                volume_weight=0.021395944,
+                volume_weight=0.005470887,
                 treatment_ids=("Sales/Investments/InvestmentReview/Mobile/Card",),
             ),
             ActionChannel(
@@ -1739,7 +1739,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0118125,
-                volume_weight=0.029159804,
+                volume_weight=0.004423507,
                 treatment_ids=(
                     "Sales/Investments/InvestmentReview/Email/Short",
                     "Sales/Investments/InvestmentReview/Email/Detail",
@@ -1766,7 +1766,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.025875,
-                volume_weight=0.00528793,
+                volume_weight=0.002176223,
                 treatment_ids=(
                     "Sales/Investments/InvestmentEducation/Web/Hero",
                     "Sales/Investments/InvestmentEducation/Web/Inline",
@@ -1778,7 +1778,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0129375,
-                volume_weight=0.012500145,
+                volume_weight=0.002063878,
                 treatment_ids=(
                     "Sales/Investments/InvestmentEducation/Email/Short",
                     "Sales/Investments/InvestmentEducation/Email/Detail",
@@ -1804,7 +1804,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.028125,
-                volume_weight=0.007975934,
+                volume_weight=0.003150283,
                 treatment_ids=(
                     "Sales/Investments/PortfolioRebalance/Web/Hero",
                     "Sales/Investments/PortfolioRebalance/Web/Inline",
@@ -1817,7 +1817,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01875,
-                volume_weight=0.011500741,
+                volume_weight=0.003129051,
                 treatment_ids=("Sales/Investments/PortfolioRebalance/Mobile/Card",),
             ),
             ActionChannel(
@@ -1826,7 +1826,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0140625,
-                volume_weight=0.019604399,
+                volume_weight=0.003094416,
                 treatment_ids=(
                     "Sales/Investments/PortfolioRebalance/Email/Short",
                     "Sales/Investments/PortfolioRebalance/Email/Detail",
@@ -1853,7 +1853,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.0132,
-                volume_weight=0.00447047,
+                volume_weight=0.001870958,
                 treatment_ids=(
                     "Sales/Insurance/HomeInsurance/Web/Hero",
                     "Sales/Insurance/HomeInsurance/Web/Inline",
@@ -1866,7 +1866,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0088,
-                volume_weight=0.023515311,
+                volume_weight=0.005956280,
                 treatment_ids=("Sales/Insurance/HomeInsurance/Mobile/Card",),
             ),
             ActionChannel(
@@ -1875,7 +1875,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0066,
-                volume_weight=0.010378518,
+                volume_weight=0.001745751,
                 treatment_ids=(
                     "Sales/Insurance/HomeInsurance/Email/Short",
                     "Sales/Insurance/HomeInsurance/Email/Detail",
@@ -1902,7 +1902,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.0156,
-                volume_weight=0.024726415,
+                volume_weight=0.008721501,
                 treatment_ids=(
                     "Sales/Insurance/ContentsInsurance/Web/Hero",
                     "Sales/Insurance/ContentsInsurance/Web/Inline",
@@ -1914,7 +1914,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0078,
-                volume_weight=0.007002155,
+                volume_weight=0.001225093,
                 treatment_ids=(
                     "Sales/Insurance/ContentsInsurance/Email/Short",
                     "Sales/Insurance/ContentsInsurance/Email/Detail",
@@ -1940,7 +1940,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.018,
-                volume_weight=0.026058009,
+                volume_weight=0.009143097,
                 treatment_ids=(
                     "Sales/Insurance/VehicleInsurance/Web/Hero",
                     "Sales/Insurance/VehicleInsurance/Web/Inline",
@@ -1967,7 +1967,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.0204,
-                volume_weight=0.005852324,
+                volume_weight=0.002384195,
                 treatment_ids=(
                     "Sales/Insurance/TravelInsurance/Web/Hero",
                     "Sales/Insurance/TravelInsurance/Web/Inline",
@@ -1980,7 +1980,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0136,
-                volume_weight=0.016149294,
+                volume_weight=0.004247150,
                 treatment_ids=("Sales/Insurance/TravelInsurance/Mobile/Card",),
             ),
         ),
@@ -2003,7 +2003,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.0228,
-                volume_weight=0.005075869,
+                volume_weight=0.002097517,
                 treatment_ids=(
                     "Sales/Insurance/DeviceInsurance/Web/Hero",
                     "Sales/Insurance/DeviceInsurance/Web/Inline",
@@ -2016,7 +2016,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0114,
-                volume_weight=0.007975934,
+                volume_weight=0.001377412,
                 treatment_ids=(
                     "Sales/Insurance/DeviceInsurance/Email/Short",
                     "Sales/Insurance/DeviceInsurance/Email/Detail",
@@ -2043,7 +2043,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0168,
-                volume_weight=0.030979239,
+                volume_weight=0.007633490,
                 treatment_ids=("Sales/Insurance/InsuranceReview/Mobile/Card",),
             ),
             ActionChannel(
@@ -2052,7 +2052,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0126,
-                volume_weight=0.006129538,
+                volume_weight=0.001086790,
                 treatment_ids=(
                     "Sales/Insurance/InsuranceReview/Email/Short",
                     "Sales/Insurance/InsuranceReview/Email/Detail",
@@ -2078,7 +2078,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.020625,
-                volume_weight=0.018071613,
+                volume_weight=0.002063844,
                 treatment_ids=(
                     "Retention/Loyalty/LoyaltyWelcome/Web/Hero",
                     "Retention/Loyalty/LoyaltyWelcome/Web/Inline",
@@ -2091,7 +2091,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01375,
-                volume_weight=0.029159804,
+                volume_weight=0.008359074,
                 treatment_ids=("Retention/Loyalty/LoyaltyWelcome/Mobile/Card",),
             ),
             ActionChannel(
@@ -2100,7 +2100,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0103125,
-                volume_weight=0.014573473,
+                volume_weight=0.006149518,
                 treatment_ids=(
                     "Retention/Loyalty/LoyaltyWelcome/Email/Short",
                     "Retention/Loyalty/LoyaltyWelcome/Email/Detail",
@@ -2127,7 +2127,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.024375,
-                volume_weight=0.005597417,
+                volume_weight=0.000718735,
                 treatment_ids=(
                     "Retention/Loyalty/RelationshipReview/Web/Hero",
                     "Retention/Loyalty/RelationshipReview/Web/Inline",
@@ -2139,7 +2139,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01625,
-                volume_weight=0.273524932,
+                volume_weight=0.062682926,
                 treatment_ids=("Retention/Loyalty/RelationshipReview/Mobile/Card",),
             ),
         ),
@@ -2162,7 +2162,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.028125,
-                volume_weight=0.008135694,
+                volume_weight=0.001006317,
                 treatment_ids=("Retention/Loyalty/LoyaltyBonus/Web/Hero", "Retention/Loyalty/LoyaltyBonus/Web/Inline"),
             ),
             ActionChannel(
@@ -2171,7 +2171,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01875,
-                volume_weight=0.017385741,
+                volume_weight=0.005248388,
                 treatment_ids=("Retention/Loyalty/LoyaltyBonus/Mobile/Card",),
             ),
             ActionChannel(
@@ -2180,7 +2180,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0140625,
-                volume_weight=0.015590315,
+                volume_weight=0.006534370,
                 treatment_ids=(
                     "Retention/Loyalty/LoyaltyBonus/Email/Short",
                     "Retention/Loyalty/LoyaltyBonus/Email/Detail",
@@ -2207,7 +2207,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0159375,
-                volume_weight=0.006880809,
+                volume_weight=0.003129752,
                 treatment_ids=(
                     "Retention/Loyalty/FeeReview/Email/Short",
                     "Retention/Loyalty/FeeReview/Email/Detail",
@@ -2234,7 +2234,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.035625,
-                volume_weight=0.012869723,
+                volume_weight=0.001520519,
                 treatment_ids=(
                     "Retention/Loyalty/ServiceUpgrade/Web/Hero",
                     "Retention/Loyalty/ServiceUpgrade/Web/Inline",
@@ -2247,7 +2247,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.02375,
-                volume_weight=0.027528417,
+                volume_weight=0.007936978,
                 treatment_ids=("Retention/Loyalty/ServiceUpgrade/Mobile/Card",),
             ),
         ),
@@ -2270,7 +2270,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.039375,
-                volume_weight=0.004816487,
+                volume_weight=0.000627823,
                 treatment_ids=(
                     "Retention/Loyalty/AnniversaryBenefit/Web/Hero",
                     "Retention/Loyalty/AnniversaryBenefit/Web/Inline",
@@ -2283,7 +2283,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.02625,
-                volume_weight=0.035324032,
+                volume_weight=0.009933797,
                 treatment_ids=("Retention/Loyalty/AnniversaryBenefit/Mobile/Card",),
             ),
             ActionChannel(
@@ -2292,7 +2292,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0196875,
-                volume_weight=0.085971364,
+                volume_weight=0.030377552,
                 treatment_ids=(
                     "Retention/Loyalty/AnniversaryBenefit/Email/Short",
                     "Retention/Loyalty/AnniversaryBenefit/Email/Detail",
@@ -2319,7 +2319,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.043125,
-                volume_weight=0.007391075,
+                volume_weight=0.000923032,
                 treatment_ids=(
                     "Retention/Loyalty/LoyaltyCheckIn/Web/Hero",
                     "Retention/Loyalty/LoyaltyCheckIn/Web/Inline",
@@ -2332,7 +2332,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.02875,
-                volume_weight=0.010378518,
+                volume_weight=0.003298936,
                 treatment_ids=("Retention/Loyalty/LoyaltyCheckIn/Mobile/Card",),
             ),
             ActionChannel(
@@ -2341,7 +2341,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0215625,
-                volume_weight=0.013672734,
+                volume_weight=0.005806363,
                 treatment_ids=(
                     "Retention/Loyalty/LoyaltyCheckIn/Email/Short",
                     "Retention/Loyalty/LoyaltyCheckIn/Email/Detail",
@@ -2368,7 +2368,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.046875,
-                volume_weight=0.005942114,
+                volume_weight=0.000758449,
                 treatment_ids=(
                     "Retention/Loyalty/MemberBenefit/Web/Hero",
                     "Retention/Loyalty/MemberBenefit/Web/Inline",
@@ -2380,7 +2380,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0234375,
-                volume_weight=0.008838367,
+                volume_weight=0.003920750,
                 treatment_ids=(
                     "Retention/Loyalty/MemberBenefit/Email/Short",
                     "Retention/Loyalty/MemberBenefit/Email/Detail",
@@ -2406,7 +2406,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.022275,
-                volume_weight=0.01674646,
+                volume_weight=0.001927127,
                 treatment_ids=(
                     "Retention/Rewards/RewardsEnrollment/Web/Hero",
                     "Retention/Rewards/RewardsEnrollment/Web/Inline",
@@ -2419,7 +2419,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01485,
-                volume_weight=0.066069345,
+                volume_weight=0.017452275,
                 treatment_ids=("Retention/Rewards/RewardsEnrollment/Mobile/Card",),
             ),
             ActionChannel(
@@ -2428,7 +2428,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0111375,
-                volume_weight=0.024726415,
+                volume_weight=0.009896449,
                 treatment_ids=(
                     "Retention/Rewards/RewardsEnrollment/Email/Short",
                     "Retention/Rewards/RewardsEnrollment/Email/Detail",
@@ -2454,7 +2454,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.026325,
-                volume_weight=1.0,
+                volume_weight=0.076450385,
                 treatment_ids=(
                     "Retention/Rewards/PointsReminder/Web/Hero",
                     "Retention/Rewards/PointsReminder/Web/Inline",
@@ -2466,7 +2466,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01755,
-                volume_weight=0.009031822,
+                volume_weight=0.002911051,
                 treatment_ids=("Retention/Rewards/PointsReminder/Mobile/Card",),
             ),
             ActionChannel(
@@ -2475,7 +2475,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0131625,
-                volume_weight=0.006328183,
+                volume_weight=0.002902588,
                 treatment_ids=(
                     "Retention/Rewards/PointsReminder/Email/Short",
                     "Retention/Rewards/PointsReminder/Email/Detail",
@@ -2501,7 +2501,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.030375,
-                volume_weight=0.012149708,
+                volume_weight=0.001443740,
                 treatment_ids=(
                     "Retention/Rewards/RewardsRedemption/Web/Hero",
                     "Retention/Rewards/RewardsRedemption/Web/Inline",
@@ -2514,7 +2514,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.02025,
-                volume_weight=0.026058009,
+                volume_weight=0.007554386,
                 treatment_ids=("Retention/Rewards/RewardsRedemption/Mobile/Card",),
             ),
             ActionChannel(
@@ -2523,7 +2523,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0151875,
-                volume_weight=0.273524932,
+                volume_weight=0.086085808,
                 treatment_ids=(
                     "Retention/Rewards/RewardsRedemption/Email/Short",
                     "Retention/Rewards/RewardsRedemption/Email/Detail",
@@ -2549,7 +2549,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.034425,
-                volume_weight=0.120720639,
+                volume_weight=0.011402053,
                 treatment_ids=(
                     "Retention/Rewards/PartnerReward/Web/Hero",
                     "Retention/Rewards/PartnerReward/Web/Inline",
@@ -2562,7 +2562,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.02295,
-                volume_weight=0.022409429,
+                volume_weight=0.006595379,
                 treatment_ids=("Retention/Rewards/PartnerReward/Mobile/Card",),
             ),
             ActionChannel(
@@ -2571,7 +2571,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0172125,
-                volume_weight=0.021395944,
+                volume_weight=0.008688257,
                 treatment_ids=(
                     "Retention/Rewards/PartnerReward/Email/Short",
                     "Retention/Rewards/PartnerReward/Email/Detail",
@@ -2598,7 +2598,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.038475,
-                volume_weight=0.021395944,
+                volume_weight=0.002402581,
                 treatment_ids=(
                     "Retention/Rewards/SeasonalReward/Web/Hero",
                     "Retention/Rewards/SeasonalReward/Web/Inline",
@@ -2625,7 +2625,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.02835,
-                volume_weight=0.044419014,
+                volume_weight=0.012208549,
                 treatment_ids=("Retention/Rewards/RewardsBoost/Mobile/Card",),
             ),
             ActionChannel(
@@ -2634,7 +2634,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0212625,
-                volume_weight=0.007257085,
+                volume_weight=0.003283374,
                 treatment_ids=(
                     "Retention/Rewards/RewardsBoost/Email/Short",
                     "Retention/Rewards/RewardsBoost/Email/Detail",
@@ -2660,7 +2660,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.046575,
-                volume_weight=0.00500864,
+                volume_weight=0.000650321,
                 treatment_ids=(
                     "Retention/Rewards/RewardsReview/Web/Hero",
                     "Retention/Rewards/RewardsReview/Web/Inline",
@@ -2672,7 +2672,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0232875,
-                volume_weight=0.01674646,
+                volume_weight=0.006968913,
                 treatment_ids=(
                     "Retention/Rewards/RewardsReview/Email/Short",
                     "Retention/Rewards/RewardsReview/Email/Detail",
@@ -2685,7 +2685,7 @@ ACTIONS = (
                 configuration="CallCenterAcceptRateOutbound",
                 challenger_configuration=None,
                 baseline_probability=0.15525,
-                volume_weight=0.273524932,
+                volume_weight=0.047989081,
                 treatment_ids=("Retention/Rewards/RewardsReview/Call Center/Script",),
             ),
         ),
@@ -2708,7 +2708,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.050625,
-                volume_weight=0.010129048,
+                volume_weight=0.001225720,
                 treatment_ids=(
                     "Retention/Rewards/DigitalReward/Web/Hero",
                     "Retention/Rewards/DigitalReward/Web/Inline",
@@ -2720,7 +2720,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0253125,
-                volume_weight=0.011817,
+                volume_weight=0.005092029,
                 treatment_ids=(
                     "Retention/Rewards/DigitalReward/Email/Short",
                     "Retention/Rewards/DigitalReward/Email/Detail",
@@ -2732,7 +2732,7 @@ ACTIONS = (
                 configuration="CallCenterAcceptRateOutbound",
                 challenger_configuration=None,
                 baseline_probability=0.16875,
-                volume_weight=0.149697792,
+                volume_weight=0.027895815,
                 treatment_ids=("Retention/Rewards/DigitalReward/Call Center/Script",),
             ),
         ),
@@ -2755,7 +2755,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.01485,
-                volume_weight=0.018809202,
+                volume_weight=0.002139504,
                 treatment_ids=(
                     "Retention/WinBack/ReengagementCheckIn/Web/Hero",
                     "Retention/WinBack/ReengagementCheckIn/Web/Inline",
@@ -2767,7 +2767,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0099,
-                volume_weight=0.012500145,
+                volume_weight=0.003900099,
                 treatment_ids=("Retention/WinBack/ReengagementCheckIn/Mobile/Card",),
             ),
         ),
@@ -2790,7 +2790,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.01755,
-                volume_weight=0.004755434,
+                volume_weight=0.000620656,
                 treatment_ids=(
                     "Retention/WinBack/AccountReactivation/Web/Hero",
                     "Retention/WinBack/AccountReactivation/Web/Inline",
@@ -2816,7 +2816,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.02025,
-                volume_weight=0.009031822,
+                volume_weight=0.001105548,
                 treatment_ids=(
                     "Retention/WinBack/DigitalReturn/Web/Hero",
                     "Retention/WinBack/DigitalReturn/Web/Inline",
@@ -2829,7 +2829,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0135,
-                volume_weight=0.006880809,
+                volume_weight=0.002278912,
                 treatment_ids=("Retention/WinBack/DigitalReturn/Mobile/Card",),
             ),
             ActionChannel(
@@ -2838,7 +2838,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.010125,
-                volume_weight=0.011500741,
+                volume_weight=0.004969213,
                 treatment_ids=(
                     "Retention/WinBack/DigitalReturn/Email/Short",
                     "Retention/WinBack/DigitalReturn/Email/Detail",
@@ -2865,7 +2865,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.02295,
-                volume_weight=0.100643171,
+                volume_weight=0.009680227,
                 treatment_ids=(
                     "Retention/WinBack/ServiceFeedback/Web/Hero",
                     "Retention/WinBack/ServiceFeedback/Web/Inline",
@@ -2877,7 +2877,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0153,
-                volume_weight=0.033020105,
+                volume_weight=0.009348731,
                 treatment_ids=("Retention/WinBack/ServiceFeedback/Mobile/Card",),
             ),
             ActionChannel(
@@ -2886,7 +2886,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.011475,
-                volume_weight=0.007673223,
+                volume_weight=0.003452346,
                 treatment_ids=(
                     "Retention/WinBack/ServiceFeedback/Email/Short",
                     "Retention/WinBack/ServiceFeedback/Email/Detail",
@@ -2913,7 +2913,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.02565,
-                volume_weight=0.006129538,
+                volume_weight=0.000779946,
                 treatment_ids=(
                     "Retention/WinBack/RelationshipRefresh/Web/Hero",
                     "Retention/WinBack/RelationshipRefresh/Web/Inline",
@@ -2925,7 +2925,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0171,
-                volume_weight=0.009233247,
+                volume_weight=0.002969416,
                 treatment_ids=("Retention/WinBack/RelationshipRefresh/Mobile/Card",),
             ),
         ),
@@ -2948,7 +2948,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.02835,
-                volume_weight=0.005362292,
+                volume_weight=0.000691505,
                 treatment_ids=(
                     "Retention/WinBack/WelcomeBackBenefit/Web/Hero",
                     "Retention/WinBack/WelcomeBackBenefit/Web/Inline",
@@ -2961,7 +2961,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0189,
-                volume_weight=0.013672734,
+                volume_weight=0.004227872,
                 treatment_ids=("Retention/WinBack/WelcomeBackBenefit/Mobile/Card",),
             ),
             ActionChannel(
@@ -2970,7 +2970,7 @@ ACTIONS = (
                 configuration="CallCenterAcceptRateOutbound",
                 challenger_configuration=None,
                 baseline_probability=0.0945,
-                volume_weight=1.0,
+                volume_weight=0.154115104,
                 treatment_ids=("Retention/WinBack/WelcomeBackBenefit/Call Center/Script",),
             ),
         ),
@@ -2993,7 +2993,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.03105,
-                volume_weight=0.010639581,
+                volume_weight=0.001281185,
                 treatment_ids=(
                     "Retention/WinBack/ChannelPreferenceReview/Web/Hero",
                     "Retention/WinBack/ChannelPreferenceReview/Web/Inline",
@@ -3005,7 +3005,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0207,
-                volume_weight=0.009662004,
+                volume_weight=0.003093232,
                 treatment_ids=("Retention/WinBack/ChannelPreferenceReview/Mobile/Card",),
             ),
             ActionChannel(
@@ -3014,7 +3014,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.015525,
-                volume_weight=0.005942114,
+                volume_weight=0.002742718,
                 treatment_ids=(
                     "Retention/WinBack/ChannelPreferenceReview/Email/Short",
                     "Retention/WinBack/ChannelPreferenceReview/Email/Detail",
@@ -3040,7 +3040,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.03375,
-                volume_weight=0.004417235,
+                volume_weight=0.000580785,
                 treatment_ids=(
                     "Retention/WinBack/ValueReminder/Web/Hero",
                     "Retention/WinBack/ValueReminder/Web/Inline",
@@ -3066,7 +3066,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.023925,
-                volume_weight=0.007821874,
+                volume_weight=0.005366323,
                 treatment_ids=("Service/Digital/AppEnrollment/Web/Hero", "Service/Digital/AppEnrollment/Web/Inline"),
             ),
             ActionChannel(
@@ -3075,7 +3075,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.01595,
-                volume_weight=0.007821874,
+                volume_weight=0.010477645,
                 treatment_ids=("Service/Digital/AppEnrollment/Mobile/Card",),
             ),
         ),
@@ -3098,7 +3098,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.028275,
-                volume_weight=0.022409429,
+                volume_weight=0.013838366,
                 treatment_ids=(
                     "Service/Digital/PaperlessStatements/Web/Hero",
                     "Service/Digital/PaperlessStatements/Web/Inline",
@@ -3110,7 +3110,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0141375,
-                volume_weight=0.074815889,
+                volume_weight=0.083874998,
                 treatment_ids=(
                     "Service/Digital/PaperlessStatements/Email/Short",
                     "Service/Digital/PaperlessStatements/Email/Detail",
@@ -3136,7 +3136,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.032625,
-                volume_weight=0.006432024,
+                volume_weight=0.004499974,
                 treatment_ids=(
                     "Service/Digital/DigitalWallet/Web/Hero",
                     "Service/Digital/DigitalWallet/Web/Inline",
@@ -3149,7 +3149,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.02175,
-                volume_weight=0.009443132,
+                volume_weight=0.012413332,
                 treatment_ids=("Service/Digital/DigitalWallet/Mobile/Card",),
             ),
         ),
@@ -3172,7 +3172,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.036975,
-                volume_weight=0.008301469,
+                volume_weight=0.005661566,
                 treatment_ids=(
                     "Service/Digital/OnlineBanking/Web/Hero",
                     "Service/Digital/OnlineBanking/Web/Inline",
@@ -3199,7 +3199,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0206625,
-                volume_weight=0.007127515,
+                volume_weight=0.010108399,
                 treatment_ids=(
                     "Service/Digital/BiometricLoginGuide/Email/Short",
                     "Service/Digital/BiometricLoginGuide/Email/Detail",
@@ -3226,7 +3226,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.045675,
-                volume_weight=0.03794359,
+                volume_weight=0.022229089,
                 treatment_ids=(
                     "Service/Digital/NotificationSetup/Web/Hero",
                     "Service/Digital/NotificationSetup/Web/Inline",
@@ -3239,7 +3239,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0228375,
-                volume_weight=0.009443132,
+                volume_weight=0.013020945,
                 treatment_ids=(
                     "Service/Digital/NotificationSetup/Email/Short",
                     "Service/Digital/NotificationSetup/Email/Detail",
@@ -3266,7 +3266,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.050025,
-                volume_weight=0.004879004,
+                volume_weight=0.003509095,
                 treatment_ids=(
                     "Service/Digital/DigitalTutorial/Web/Hero",
                     "Service/Digital/DigitalTutorial/Web/Inline",
@@ -3278,7 +3278,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.03335,
-                volume_weight=0.018809202,
+                volume_weight=0.023079015,
                 treatment_ids=("Service/Digital/DigitalTutorial/Mobile/Card",),
             ),
             ActionChannel(
@@ -3287,7 +3287,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0250125,
-                volume_weight=0.006539057,
+                volume_weight=0.009354093,
                 treatment_ids=(
                     "Service/Digital/DigitalTutorial/Email/Short",
                     "Service/Digital/DigitalTutorial/Email/Detail",
@@ -3313,7 +3313,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.054375,
-                volume_weight=0.014109836,
+                volume_weight=0.009125714,
                 treatment_ids=(
                     "Service/Digital/SecureMessageEnrollment/Web/Hero",
                     "Service/Digital/SecureMessageEnrollment/Web/Inline",
@@ -3325,7 +3325,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0271875,
-                volume_weight=0.026058009,
+                volume_weight=0.032462740,
                 treatment_ids=(
                     "Service/Digital/SecureMessageEnrollment/Email/Short",
                     "Service/Digital/SecureMessageEnrollment/Email/Detail",
@@ -3352,7 +3352,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.02145,
-                volume_weight=0.005144786,
+                volume_weight=0.003680677,
                 treatment_ids=(
                     "Service/Payments/DirectDebitSetup/Web/Hero",
                     "Service/Payments/DirectDebitSetup/Web/Inline",
@@ -3378,7 +3378,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.02535,
-                volume_weight=0.01091304,
+                volume_weight=0.007241829,
                 treatment_ids=(
                     "Service/Payments/RecurringPayment/Web/Hero",
                     "Service/Payments/RecurringPayment/Web/Inline",
@@ -3405,7 +3405,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.02925,
-                volume_weight=0.008652431,
+                volume_weight=0.005876536,
                 treatment_ids=(
                     "Service/Payments/BillPayment/Web/Hero",
                     "Service/Payments/BillPayment/Web/Inline",
@@ -3418,7 +3418,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0195,
-                volume_weight=0.020464011,
+                volume_weight=0.024898640,
                 treatment_ids=("Service/Payments/BillPayment/Mobile/Card",),
             ),
             ActionChannel(
@@ -3427,7 +3427,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.014625,
-                volume_weight=0.008473594,
+                volume_weight=0.011811334,
                 treatment_ids=("Service/Payments/BillPayment/Email/Short", "Service/Payments/BillPayment/Email/Detail"),
             ),
         ),
@@ -3450,7 +3450,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.03315,
-                volume_weight=0.007673223,
+                volume_weight=0.005274449,
                 treatment_ids=(
                     "Service/Payments/PaymentReminder/Web/Hero",
                     "Service/Payments/PaymentReminder/Web/Inline",
@@ -3463,7 +3463,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0221,
-                volume_weight=0.012149708,
+                volume_weight=0.015573750,
                 treatment_ids=("Service/Payments/PaymentReminder/Mobile/Card",),
             ),
             ActionChannel(
@@ -3472,7 +3472,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.016575,
-                volume_weight=0.018809202,
+                volume_weight=0.024208696,
                 treatment_ids=(
                     "Service/Payments/PaymentReminder/Email/Short",
                     "Service/Payments/PaymentReminder/Email/Detail",
@@ -3498,7 +3498,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.03705,
-                volume_weight=0.053280235,
+                volume_weight=0.030172175,
                 treatment_ids=(
                     "Service/Payments/TransferGuide/Web/Hero",
                     "Service/Payments/TransferGuide/Web/Inline",
@@ -3511,7 +3511,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0247,
-                volume_weight=0.008135694,
+                volume_weight=0.010855231,
                 treatment_ids=("Service/Payments/TransferGuide/Mobile/Card",),
             ),
             ActionChannel(
@@ -3520,7 +3520,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.018525,
-                volume_weight=0.009662004,
+                volume_weight=0.013292252,
                 treatment_ids=(
                     "Service/Payments/TransferGuide/Email/Short",
                     "Service/Payments/TransferGuide/Email/Detail",
@@ -3546,7 +3546,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.04095,
-                volume_weight=0.029159804,
+                volume_weight=0.017538936,
                 treatment_ids=(
                     "Service/Payments/PaymentAlertSetup/Web/Hero",
                     "Service/Payments/PaymentAlertSetup/Web/Inline",
@@ -3559,7 +3559,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0273,
-                volume_weight=0.014573473,
+                volume_weight=0.018343858,
                 treatment_ids=("Service/Payments/PaymentAlertSetup/Mobile/Card",),
             ),
             ActionChannel(
@@ -3568,7 +3568,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.020475,
-                volume_weight=0.00576501,
+                volume_weight=0.008351378,
                 treatment_ids=(
                     "Service/Payments/PaymentAlertSetup/Email/Short",
                     "Service/Payments/PaymentAlertSetup/Email/Detail",
@@ -3594,7 +3594,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.04485,
-                volume_weight=0.015066061,
+                volume_weight=0.009680479,
                 treatment_ids=(
                     "Service/Payments/ContactlessGuide/Web/Hero",
                     "Service/Payments/ContactlessGuide/Web/Inline",
@@ -3606,7 +3606,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0299,
-                volume_weight=0.024726415,
+                volume_weight=0.029520858,
                 treatment_ids=("Service/Payments/ContactlessGuide/Mobile/Card",),
             ),
             ActionChannel(
@@ -3615,7 +3615,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.022425,
-                volume_weight=0.007391075,
+                volume_weight=0.010444194,
                 treatment_ids=(
                     "Service/Payments/ContactlessGuide/Email/Short",
                     "Service/Payments/ContactlessGuide/Email/Detail",
@@ -3642,7 +3642,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.04875,
-                volume_weight=0.00521545,
+                volume_weight=0.003726145,
                 treatment_ids=(
                     "Service/Payments/PaymentReview/Web/Hero",
                     "Service/Payments/PaymentReview/Web/Inline",
@@ -3655,7 +3655,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.024375,
-                volume_weight=0.011199773,
+                volume_weight=0.015181908,
                 treatment_ids=(
                     "Service/Payments/PaymentReview/Email/Short",
                     "Service/Payments/PaymentReview/Email/Detail",
@@ -3667,7 +3667,7 @@ ACTIONS = (
                 configuration="CallCenterAcceptRateOutbound",
                 challenger_configuration=None,
                 baseline_probability=0.1625,
-                volume_weight=0.059041398,
+                volume_weight=0.081466360,
                 treatment_ids=("Service/Payments/PaymentReview/Call Center/Script",),
             ),
         ),
@@ -3690,7 +3690,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.0198,
-                volume_weight=0.044419014,
+                volume_weight=0.025615870,
                 treatment_ids=(
                     "Service/Support/HelpCenterGuide/Web/Hero",
                     "Service/Support/HelpCenterGuide/Web/Inline",
@@ -3703,7 +3703,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0132,
-                volume_weight=0.008838367,
+                volume_weight=0.011695499,
                 treatment_ids=("Service/Support/HelpCenterGuide/Mobile/Card",),
             ),
             ActionChannel(
@@ -3712,7 +3712,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0099,
-                volume_weight=0.005680072,
+                volume_weight=0.008240556,
                 treatment_ids=(
                     "Service/Support/HelpCenterGuide/Email/Short",
                     "Service/Support/HelpCenterGuide/Email/Detail",
@@ -3739,7 +3739,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.0234,
-                volume_weight=0.030979239,
+                volume_weight=0.018520844,
                 treatment_ids=(
                     "Service/Support/AppointmentBooking/Web/Hero",
                     "Service/Support/AppointmentBooking/Web/Inline",
@@ -3751,7 +3751,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0156,
-                volume_weight=0.007002155,
+                volume_weight=0.009484020,
                 treatment_ids=("Service/Support/AppointmentBooking/Mobile/Card",),
             ),
             ActionChannel(
@@ -3760,7 +3760,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0117,
-                volume_weight=0.006432024,
+                volume_weight=0.009216180,
                 treatment_ids=(
                     "Service/Support/AppointmentBooking/Email/Short",
                     "Service/Support/AppointmentBooking/Email/Detail",
@@ -3787,7 +3787,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.027,
-                volume_weight=0.005438609,
+                volume_weight=0.003869333,
                 treatment_ids=(
                     "Service/Support/SecureChatGuide/Web/Hero",
                     "Service/Support/SecureChatGuide/Web/Inline",
@@ -3799,7 +3799,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0135,
-                volume_weight=0.006034482,
+                volume_weight=0.008701899,
                 treatment_ids=(
                     "Service/Support/SecureChatGuide/Email/Short",
                     "Service/Support/SecureChatGuide/Email/Detail",
@@ -3826,7 +3826,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.0306,
-                volume_weight=0.441351498,
+                volume_weight=0.202303427,
                 treatment_ids=(
                     "Service/Support/ContactDetailsReview/Web/Hero",
                     "Service/Support/ContactDetailsReview/Web/Inline",
@@ -3839,7 +3839,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0204,
-                volume_weight=0.120720639,
+                volume_weight=0.122994957,
                 treatment_ids=("Service/Support/ContactDetailsReview/Mobile/Card",),
             ),
             ActionChannel(
@@ -3848,7 +3848,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0153,
-                volume_weight=0.044419014,
+                volume_weight=0.052462634,
                 treatment_ids=(
                     "Service/Support/ContactDetailsReview/Email/Short",
                     "Service/Support/ContactDetailsReview/Email/Detail",
@@ -3861,7 +3861,7 @@ ACTIONS = (
                 configuration="CallCenterAcceptRateOutbound",
                 challenger_configuration=None,
                 baseline_probability=0.102,
-                volume_weight=0.194791145,
+                volume_weight=0.238533640,
                 treatment_ids=("Service/Support/ContactDetailsReview/Call Center/Script",),
             ),
         ),
@@ -3884,7 +3884,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0171,
-                volume_weight=0.04847824,
+                volume_weight=0.056758411,
                 treatment_ids=(
                     "Service/Support/AccessibilitySupport/Email/Short",
                     "Service/Support/AccessibilitySupport/Email/Detail",
@@ -3910,7 +3910,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.0378,
-                volume_weight=0.019604399,
+                volume_weight=0.012269173,
                 treatment_ids=(
                     "Service/Support/ServiceSurvey/Web/Hero",
                     "Service/Support/ServiceSurvey/Web/Inline",
@@ -3923,7 +3923,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0252,
-                volume_weight=0.007975934,
+                volume_weight=0.010663194,
                 treatment_ids=("Service/Support/ServiceSurvey/Mobile/Card",),
             ),
             ActionChannel(
@@ -3932,7 +3932,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.0189,
-                volume_weight=0.009031822,
+                volume_weight=0.012509383,
                 treatment_ids=(
                     "Service/Support/ServiceSurvey/Email/Short",
                     "Service/Support/ServiceSurvey/Email/Detail",
@@ -3959,7 +3959,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.01155,
-                volume_weight=0.007529708,
+                volume_weight=0.002305351,
                 treatment_ids=(
                     "Risk/Collections/PaymentSupportInformation/Web/Hero",
                     "Risk/Collections/PaymentSupportInformation/Web/Inline",
@@ -3971,7 +3971,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0077,
-                volume_weight=0.04847824,
+                volume_weight=0.010291569,
                 treatment_ids=("Risk/Collections/PaymentSupportInformation/Mobile/Card",),
             ),
             ActionChannel(
@@ -3980,7 +3980,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.005775,
-                volume_weight=0.120720639,
+                volume_weight=0.055955581,
                 treatment_ids=(
                     "Risk/Collections/PaymentSupportInformation/Email/Short",
                     "Risk/Collections/PaymentSupportInformation/Email/Detail",
@@ -4007,7 +4007,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.01365,
-                volume_weight=0.008838367,
+                volume_weight=0.002663002,
                 treatment_ids=(
                     "Risk/Collections/RepaymentOptionsGuide/Web/Hero",
                     "Risk/Collections/RepaymentOptionsGuide/Web/Inline",
@@ -4033,7 +4033,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.01575,
-                volume_weight=0.194791145,
+                volume_weight=0.043077346,
                 treatment_ids=(
                     "Risk/Collections/SupportAppointment/Web/Hero",
                     "Risk/Collections/SupportAppointment/Web/Inline",
@@ -4046,7 +4046,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0105,
-                volume_weight=0.014109836,
+                volume_weight=0.003388903,
                 treatment_ids=("Risk/Collections/SupportAppointment/Mobile/Card",),
             ),
         ),
@@ -4069,7 +4069,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.01785,
-                volume_weight=0.020464011,
+                volume_weight=0.005669286,
                 treatment_ids=(
                     "Risk/Collections/BudgetingGuide/Web/Hero",
                     "Risk/Collections/BudgetingGuide/Web/Inline",
@@ -4081,7 +4081,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0119,
-                volume_weight=0.007529708,
+                volume_weight=0.001925705,
                 treatment_ids=("Risk/Collections/BudgetingGuide/Mobile/Card",),
             ),
         ),
@@ -4104,7 +4104,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.01995,
-                volume_weight=0.007257085,
+                volume_weight=0.002230091,
                 treatment_ids=(
                     "Risk/Collections/PaymentPlanReminder/Web/Hero",
                     "Risk/Collections/PaymentPlanReminder/Web/Inline",
@@ -4116,7 +4116,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0133,
-                volume_weight=0.441351498,
+                volume_weight=0.075126915,
                 treatment_ids=("Risk/Collections/PaymentPlanReminder/Mobile/Card",),
             ),
             ActionChannel(
@@ -4125,7 +4125,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.009975,
-                volume_weight=0.01091304,
+                volume_weight=0.006432669,
                 treatment_ids=(
                     "Risk/Collections/PaymentPlanReminder/Email/Short",
                     "Risk/Collections/PaymentPlanReminder/Email/Detail",
@@ -4152,7 +4152,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.02205,
-                volume_weight=0.005516958,
+                volume_weight=0.001742474,
                 treatment_ids=(
                     "Risk/Collections/SupportFollowUp/Web/Hero",
                     "Risk/Collections/SupportFollowUp/Web/Inline",
@@ -4165,7 +4165,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0147,
-                volume_weight=0.009890435,
+                volume_weight=0.002461406,
                 treatment_ids=("Risk/Collections/SupportFollowUp/Mobile/Card",),
             ),
             ActionChannel(
@@ -4174,7 +4174,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.011025,
-                volume_weight=0.008301469,
+                volume_weight=0.005028975,
                 treatment_ids=(
                     "Risk/Collections/SupportFollowUp/Email/Short",
                     "Risk/Collections/SupportFollowUp/Email/Detail",
@@ -4201,7 +4201,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.01815,
-                volume_weight=0.004695795,
+                volume_weight=0.001507214,
                 treatment_ids=(
                     "Risk/FraudAwareness/ScamAwareness/Web/Hero",
                     "Risk/FraudAwareness/ScamAwareness/Web/Inline",
@@ -4214,7 +4214,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0121,
-                volume_weight=0.006763291,
+                volume_weight=0.001748363,
                 treatment_ids=("Risk/FraudAwareness/ScamAwareness/Mobile/Card",),
             ),
             ActionChannel(
@@ -4223,7 +4223,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.009075,
-                volume_weight=0.006763291,
+                volume_weight=0.004181983,
                 treatment_ids=(
                     "Risk/FraudAwareness/ScamAwareness/Email/Short",
                     "Risk/FraudAwareness/ScamAwareness/Email/Detail",
@@ -4249,7 +4249,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.02145,
-                volume_weight=0.009890435,
+                volume_weight=0.002946663,
                 treatment_ids=(
                     "Risk/FraudAwareness/CardSecurityGuide/Web/Hero",
                     "Risk/FraudAwareness/CardSecurityGuide/Web/Inline",
@@ -4262,7 +4262,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.010725,
-                volume_weight=0.006649428,
+                volume_weight=0.004118565,
                 treatment_ids=(
                     "Risk/FraudAwareness/CardSecurityGuide/Email/Short",
                     "Risk/FraudAwareness/CardSecurityGuide/Email/Detail",
@@ -4289,7 +4289,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.02475,
-                volume_weight=0.085971364,
+                volume_weight=0.020632653,
                 treatment_ids=(
                     "Risk/FraudAwareness/PhishingAwareness/Web/Hero",
                     "Risk/FraudAwareness/PhishingAwareness/Web/Inline",
@@ -4316,7 +4316,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.02805,
-                volume_weight=0.016149294,
+                volume_weight=0.004581153,
                 treatment_ids=(
                     "Risk/FraudAwareness/TransactionAlertGuide/Web/Hero",
                     "Risk/FraudAwareness/TransactionAlertGuide/Web/Inline",
@@ -4328,7 +4328,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0187,
-                volume_weight=0.053280235,
+                volume_weight=0.011204666,
                 treatment_ids=("Risk/FraudAwareness/TransactionAlertGuide/Mobile/Card",),
             ),
             ActionChannel(
@@ -4337,7 +4337,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.014025,
-                volume_weight=0.023515311,
+                volume_weight=0.012836768,
                 treatment_ids=(
                     "Risk/FraudAwareness/TransactionAlertGuide/Email/Short",
                     "Risk/FraudAwareness/TransactionAlertGuide/Email/Detail",
@@ -4350,7 +4350,7 @@ ACTIONS = (
                 configuration="CallCenterAcceptRateOutbound",
                 challenger_configuration=None,
                 baseline_probability=0.0935,
-                volume_weight=0.074815889,
+                volume_weight=0.046876931,
                 treatment_ids=("Risk/FraudAwareness/TransactionAlertGuide/Call Center/Script",),
             ),
         ),
@@ -4373,7 +4373,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.03135,
-                volume_weight=0.006649428,
+                volume_weight=0.002061306,
                 treatment_ids=(
                     "Risk/FraudAwareness/SecureBankingTips/Web/Hero",
                     "Risk/FraudAwareness/SecureBankingTips/Web/Inline",
@@ -4386,7 +4386,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0209,
-                volume_weight=0.007673223,
+                volume_weight=0.001958707,
                 treatment_ids=("Risk/FraudAwareness/SecureBankingTips/Mobile/Card",),
             ),
             ActionChannel(
@@ -4395,7 +4395,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.015675,
-                volume_weight=0.022409429,
+                volume_weight=0.012292147,
                 treatment_ids=(
                     "Risk/FraudAwareness/SecureBankingTips/Email/Short",
                     "Risk/FraudAwareness/SecureBankingTips/Email/Detail",
@@ -4421,7 +4421,7 @@ ACTIONS = (
                 configuration="Web_Click_Through_Rate_GB",
                 challenger_configuration=None,
                 baseline_probability=0.03465,
-                volume_weight=0.040946078,
+                volume_weight=0.010583461,
                 treatment_ids=(
                     "Risk/FraudAwareness/FraudReportingGuide/Web/Hero",
                     "Risk/FraudAwareness/FraudReportingGuide/Web/Inline",
@@ -4433,7 +4433,7 @@ ACTIONS = (
                 configuration="Mobile_Click_Through_Rate",
                 challenger_configuration="Mobile_Click_Through_Rate_GB",
                 baseline_probability=0.0231,
-                volume_weight=0.007391075,
+                volume_weight=0.001893766,
                 treatment_ids=("Risk/FraudAwareness/FraudReportingGuide/Mobile/Card",),
             ),
             ActionChannel(
@@ -4442,7 +4442,7 @@ ACTIONS = (
                 configuration="Email_Click_Through_Rate",
                 challenger_configuration=None,
                 baseline_probability=0.017325,
-                volume_weight=0.016149294,
+                volume_weight=0.009153311,
                 treatment_ids=(
                     "Risk/FraudAwareness/FraudReportingGuide/Email/Short",
                     "Risk/FraudAwareness/FraudReportingGuide/Email/Detail",
@@ -4454,7 +4454,7 @@ ACTIONS = (
                 configuration="CallCenterAcceptRateOutbound",
                 challenger_configuration=None,
                 baseline_probability=0.1155,
-                volume_weight=0.085971364,
+                volume_weight=0.053123069,
                 treatment_ids=("Risk/FraudAwareness/FraudReportingGuide/Call Center/Script",),
             ),
         ),

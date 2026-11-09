@@ -126,8 +126,8 @@ def test_summary_by_channel(dm_aggregates):
         "Web/Inbound",
     ]
     assert summary_by_channel["Actions"].to_list() == [12, 80, 70, 101]
-    assert summary_by_channel["Positives"].to_list() == [157.0, 562090.0, 456974.0, 1435383.0]
-    assert summary_by_channel["Responses"].to_list() == [1438.0, 36097320.0, 21592492.0, 54030772.0]
+    assert summary_by_channel["Positives"].to_list() == [157.0, 530964.0, 451274.0, 1475265.0]
+    assert summary_by_channel["Responses"].to_list() == [1398.0, 35975052.0, 21522296.0, 53914988.0]
     assert summary_by_channel["Used Actions"].to_list() == [12, 80, 70, 101]
     assert summary_by_channel["Treatments"].to_list() == [12, 200, 70, 250]
     assert summary_by_channel["Used Treatments"].to_list() == [12, 200, 70, 250]

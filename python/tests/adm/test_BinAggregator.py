@@ -37,31 +37,31 @@ def test_overall_num_rollup(sample_binaggregator):
     assert rolled_up_binning["BinCoverage"].to_list() == pytest.approx([46] * 10)
     assert rolled_up_binning["Lift"].to_list() == pytest.approx(
         [
-            -0.059064,
-            -0.081487,
-            -0.029937,
-            -0.024209,
-            -0.024209,
-            -0.002950,
-            0.018309,
-            0.018309,
-            0.018309,
-            0.018309,
+            -0.019028,
+            -0.021609,
+            -0.041880,
+            -0.044132,
+            -0.044132,
+            -0.008921,
+            0.026291,
+            0.026291,
+            0.026291,
+            0.026291,
         ],
         abs=1e-6,
     )
     assert rolled_up_binning["BinResponses"].to_list() == pytest.approx(
         [
-            9333052.773046,
-            892034.140518,
-            709398.237429,
-            689105.359308,
-            689105.359308,
-            574207.951958,
-            459310.544608,
-            459310.544608,
-            459310.544608,
-            459310.544608,
+            8892386.217975,
+            1781672.606452,
+            1313828.408653,
+            1261845.720008,
+            1261845.720008,
+            1211439.134104,
+            1161032.548200,
+            1161032.548200,
+            1161032.548200,
+            1161032.548200,
         ],
         1e-8,
     )
@@ -85,20 +85,20 @@ def test_overall_sym_rollup(sample_binaggregator):
         "Models",
         "Topic",
     ]
-    assert rolled_up_binning["Models"].to_list() == [44] * 5
-    assert rolled_up_binning["BinCoverage"].to_list() == [44, 44, 44, 0, 44]
+    assert rolled_up_binning["Models"].to_list() == [27] * 5
+    assert rolled_up_binning["BinCoverage"].to_list() == [27, 27, 0, 27, 27]
     assert rolled_up_binning["BinSymbol"].to_list() == [
         "Residual",
         "Short",
-        "Medium",
         "Not Known",
         "Long",
+        "Medium",
     ]
     lift = rolled_up_binning["Lift"].to_list()
     assert lift[0] is None
-    assert lift[1:] == pytest.approx([0.029705, 0.001830, 0.0, -0.113383], abs=1e-6)
+    assert lift[1:] == pytest.approx([0.023952, 0.0, -0.007091, -0.048932], abs=1e-6)
     assert rolled_up_binning["BinResponses"].to_list() == pytest.approx(
-        [0.0, 6642550.0, 5060328.0, 0.0, 3481862.0],
+        [0.0, 5711976.0, 0.0, 2705312.0, 3922267.0],
         1e-5,
     )
 
@@ -135,8 +135,8 @@ def test_get_source_numbinning(sample_binaggregator):
         NUM_PREDICTOR,
         "05085857-c52c-5daa-b51b-0af576a038af",
     )
-    assert binning.shape[0] == 3
-    assert binning["BinResponses"].sum() == 108806
+    assert binning.shape[0] == 7
+    assert binning["BinResponses"].sum() == 181827
 
 
 def test_combine_two_numbinnings(sample_binaggregator):

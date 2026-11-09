@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from math import isnan
 
 import plotly.express as px
 import polars as pl
@@ -37,16 +38,48 @@ def sample2():
 def test_bubble_chart(sample: ADMDatamart):
     df = sample.plot.bubble_chart(return_df=True)
 
-    assert df.select(pl.col("Performance").top_k(1)).collect().item() == 89.4546
-    assert round(df.select(pl.col("SuccessRate").top_k(1)).collect().item(), 2) == 0.4
+    assert df.select(pl.col("Performance").top_k(1)).collect().item() == 91.2878
+    assert round(df.select(pl.col("SuccessRate").top_k(1)).collect().item(), 2) == 0.25
     assert df.select(
         pl.col("ResponseCount").top_k(1),
-    ).collect().item() == pytest.approx(17083982, abs=1e-6)
+    ).collect().item() == pytest.approx(5489786, abs=1e-6)
     plot = sample.plot.bubble_chart()
     assert isinstance(plot, Figure)
-    assert plot.layout.xaxis.title.text == "Performance"
-    assert plot.layout.yaxis.title.text == "SuccessRate"
+    assert plot.layout.xaxis.title.text == "Model Performance (AUC)"
+    assert plot.layout.yaxis.title.text == "Success rate"
     assert len(plot.data) == 1
+
+
+@pytest.mark.parametrize("color,faceted", [("Performance", False), ("Channel", True)])
+def test_bubble_chart_hover_formats_values_and_hides_facet(color, faceted):
+    models = pl.DataFrame(
+        {
+            "ModelID": ["a"],
+            "SnapshotTime": ["20250101"],
+            "Configuration": ["Web"],
+            "Channel": ["Web"],
+            "Direction": ["Inbound"],
+            "Issue": ["Sales"],
+            "Group": ["Cards"],
+            "Name": ["Card"],
+            "Performance": [0.75],
+            "ResponseCount": [1_234_567],
+            "Positives": [12_345],
+        }
+    ).lazy()
+    dm = ADMDatamart(model_df=models)
+    facet = pl.concat_str("Channel", "Direction", separator="/").alias("Facet") if faceted else None
+    (trace,) = dm.plot.bubble_chart(color=color, facet=facet).data
+
+    assert "Success rate=%{y:.3%}" in trace.hovertemplate
+    assert "Model Performance (AUC)=%{" in trace.hovertemplate and ":.2f}" in trace.hovertemplate
+    assert "Responses=%{customdata" in trace.hovertemplate
+    assert "Name=%{" not in trace.hovertemplate
+    assert "Facet=" not in trace.hovertemplate
+    assert "ResponseCount=" not in trace.hovertemplate
+    assert "1M" in trace.customdata[0]
+    assert trace.x[0] == pytest.approx(75.0)
+    assert trace.y[0] == pytest.approx(12_345 / 1_234_567)
 
 
 def test_bubble_chart_with_empty_query_returns_annotated_figure(sample: ADMDatamart):
@@ -194,7 +227,7 @@ def test_over_time(sample2: ADMDatamart):
     assert isinstance(fig, Figure)
     assert fig.layout.xaxis.title.text == ""
     assert fig.layout.xaxis.hoverformat == "%b %d, %Y"
-    assert fig.layout.yaxis.title.text == "Performance (AUC)"
+    assert fig.layout.yaxis.title.text == "Model Performance (AUC)"
     assert fig.layout.yaxis.range == (50, 100)
     # One trace per ModelID; values are pyValue * 100 (Pega-scale display).
     by_name = {t.name: list(t.y) for t in fig.data}
@@ -254,6 +287,20 @@ def test_over_time(sample2: ADMDatamart):
         match="The given query resulted in an empty dataframe",
     ):
         sample2.plot.over_time(query=pl.col("ModelID") == "3")
+
+
+def test_over_time_hover_formats_string_groups_and_metrics(sample2: ADMDatamart):
+    performance = sample2.plot.over_time(metric="Performance", by="Group")
+    responses = sample2.plot.over_time(metric="ResponseCount", by="Group")
+    success = sample2.plot.over_time(metric="SuccessRate", by="Group")
+
+    assert {trace.name for trace in performance.data} == {"A", "B"}
+    for trace in performance.data:
+        assert "Group=%{customdata[0]}" in trace.hovertemplate
+        assert "Model Performance (AUC)=%{y:.2f}" in trace.hovertemplate
+        assert "Group=%{customdata[0]:.d}" not in trace.hovertemplate
+    assert all("Responses=%{y:,.0f}" in trace.hovertemplate for trace in responses.data)
+    assert all("Success rate=%{y:.3%}" in trace.hovertemplate for trace in success.data)
 
 
 def test_over_time_multi_by(sample2: ADMDatamart):
@@ -772,7 +819,7 @@ def test_over_time_cumulative_performance_uses_every(every, expected_performance
     assert trend.get_column("Performance").to_list() == pytest.approx(expected_performance)
 
     fig = datamart.plot.over_time(metric="Performance", by="Channel", every=every)
-    assert fig.layout.yaxis.title.text == "Performance (AUC)"
+    assert fig.layout.yaxis.title.text == "Model Performance (AUC)"
 
 
 def test_over_time_success_rate_marks_rates_above_100_percent():
@@ -1055,10 +1102,12 @@ def test_predictor_performance(sample: ADMDatamart):
     df = sample.plot.predictor_performance(return_df=True)
     assert "PredictorName" in df.collect_schema().names()
     assert "median" in df.collect_schema().names()
-    assert round(df.select(pl.col("median").top_k(1)).item(), 2) == 60.29
+    assert round(df.select(pl.col("median").top_k(1)).item(), 2) == 57.43
 
     plot = sample.plot.predictor_performance()
     assert isinstance(plot, Figure)
+    assert plot.layout.xaxis.title.text == "Predictor Performance (AUC)"
+    assert plot.layout.xaxis.hoverformat == ".2f"
 
 
 def test_predictor_performance_handles_null_predictor_category_after_custom_categorization():
@@ -1168,10 +1217,12 @@ def test_predictor_category_performance(sample: ADMDatamart):
     assert df.shape == (6, 10)
     assert "PredictorCategory" in df.columns
     assert "mean" in df.columns
-    assert round(df.select(pl.col("mean").top_k(1)).item(), 2) == 51.70
+    assert round(df.select(pl.col("mean").top_k(1)).item(), 2) == 48.84
 
     plot = sample.plot.predictor_category_performance()
     assert isinstance(plot, Figure)
+    assert plot.layout.xaxis.title.text == "Predictor Performance (AUC)"
+    assert plot.layout.xaxis.hoverformat == ".2f"
 
 
 def test_predictor_category_performance_empty_query(sample: ADMDatamart):
@@ -1201,7 +1252,7 @@ def test_predictor_contribution(sample: ADMDatamart):
             .item(),
             2,
         )
-        == 2.57
+        == 13.48
     )
 
     plot = sample.plot.predictor_contribution()
@@ -1211,7 +1262,7 @@ def test_predictor_contribution(sample: ADMDatamart):
 def test_predictor_performance_heatmap(sample: ADMDatamart):
     model_id = "05085857-c52c-5daa-b51b-0af576a038af"
     query = pl.col("ModelID") == model_id
-    predictor = "IH.Web.Inbound.Clicked.pxLastOutcomeTime.DaysSince"
+    predictor = "IH.Web.Inbound.Clicked.pxLastGroupID"
     df = sample.plot.predictor_performance_heatmap(query=query, return_df=True)
 
     assert (
@@ -1219,7 +1270,7 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
             df.filter(Name=predictor).select("FixedRateLoan").collect().item(),
             5,
         )
-        == 0.58682
+        == 0.57535
     )
     assert df.select(pl.col("*").exclude("Name")).collect().to_numpy().max() <= 1.0
     assert "Name" in df.collect().columns
@@ -1227,6 +1278,10 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
 
     plot = sample.plot.predictor_performance_heatmap(query=query)
     assert isinstance(plot, Figure)
+    assert plot.data[0].hovertemplate == (
+        "Name=%{x}<br>Predictor=%{y}<br>Predictor Performance (AUC)=%{z:.2f}<extra></extra>"
+    )
+    assert plot.data[0].hoverongaps is False
     # Plotted on the Pega AUC scale (50-100); return_df keeps the 0-1 scale.
     assert (plot.layout.coloraxis.cmin, plot.layout.coloraxis.cmax) == (50, 100)
     assert (
@@ -1234,7 +1289,7 @@ def test_predictor_performance_heatmap(sample: ADMDatamart):
             float(plot.data[0].z[list(plot.data[0].y).index(predictor)][list(plot.data[0].x).index("FixedRateLoan")]),
             3,
         )
-        == 58.682
+        == 57.535
     )
 
     df = sample.plot.predictor_performance_heatmap(
@@ -1276,6 +1331,176 @@ def test_tree_map(sample: ADMDatamart):
     assert df.sort("Total number of positives").row(0)[-1] == 2.0
     plot = sample.plot.tree_map()
     assert isinstance(plot, Figure)
+
+
+@pytest.fixture
+def treemap_datamart():
+    models = pl.DataFrame(
+        {
+            "ModelID": ["a", "b", "c", "d", "e"],
+            "SnapshotTime": [_utc_datetime(2025, 1, 1)] * 5,
+            "Channel": ["Web", "Web", "Web", "Email", "Web"],
+            "Direction": ["Inbound", "Inbound", "Inbound", "Outbound", "Inbound"],
+            "Issue": ["Sales", "Sales", "Risk", "Service", "Sales"],
+            "Group": ["Cards", "Loans", "Security", "Support", "Deposits"],
+            "Name": ["A", "B", "C", "D", "E"],
+            "Performance": [0.6, 0.8, 0.9, 0.5, None],
+            "ResponseCount": [100, 300, 200, 0, 1000],
+            "Positives": [10, 6, 50, 0, 20],
+        }
+    )
+    return ADMDatamart(model_df=models.lazy())
+
+
+@pytest.mark.parametrize(("show_fraction", "expected_format"), [(True, ".1%"), (False, ",.0f")])
+def test_action_overlap_hover_formats_fraction_and_count(treemap_datamart, show_fraction, expected_format):
+    fig = treemap_datamart.plot.action_overlap(show_fraction=show_fraction)
+    trace = fig.data[0]
+    assert trace.hovertemplate == f"%{{x}} / %{{y}}<br>Overlap=%{{z:{expected_format}}}<extra></extra>"
+    assert trace.hoverongaps is False
+    web = list(trace.x).index("Web")
+    email = list(trace.y).index("Email")
+    if show_fraction:
+        assert isnan(trace.z[web][web])
+    else:
+        assert trace.z[web][web] == 4
+    assert trace.z[email][web] == 0
+
+
+@pytest.mark.parametrize(("value", "by"), [("ResponseCount", None), ("Positives", "Channel")])
+def test_gains_chart_hover_formats_percentages(treemap_datamart, value, by):
+    fig = treemap_datamart.plot.gains_chart(value=value, by=by, query=pl.col("Channel") == "Web")
+    metric_label = "Responses" if value == "ResponseCount" else "Positives"
+    assert all(
+        trace.hovertemplate == f"Population=%{{x:.1%}}<br>{metric_label}=%{{y:.1%}}<extra>%{{fullData.name}}</extra>"
+        for trace in fig.data
+    )
+    assert all(trace.x[-1] == pytest.approx(1.0) and trace.y[-1] == pytest.approx(1.0) for trace in fig.data)
+
+
+@pytest.mark.parametrize(
+    ("metric", "sales_color", "root_color", "no_response_color"),
+    [
+        ("Performance", 75.0, 80.0, None),
+        ("SuccessRate", 36 / 1400, 86 / 1600, None),
+        ("ResponseCount", 1400, 1600, 0),
+        ("Positives", 36, 86, 0),
+        ("percentage_without_responses", 0, 0.2, 1),
+    ],
+)
+def test_tree_map_hover_metrics_at_every_level(treemap_datamart, metric, sales_color, root_color, no_response_color):
+    fig = treemap_datamart.plot.tree_map(metric, by="Group")
+    trace = fig.data[0]
+    nodes = {
+        identifier: (count, color, list(details))
+        for identifier, count, color, details in zip(
+            trace.ids, trace.values, trace.marker.colors, trace.customdata, strict=True
+        )
+    }
+
+    sales = nodes["All contexts/Web/Inbound/Sales"]
+    assert sales[0] == 3
+    assert sales[1] == pytest.approx(sales_color)
+    assert sales[2] == ["0%", "36", "1K", "2.571%", "75.00"]
+
+    root = nodes["All contexts"]
+    assert root[0] == 5
+    assert root[1] == pytest.approx(root_color)
+    assert root[2] == ["20%", "86", "2K", "5.375%", "80.00"]
+    assert nodes["All contexts/Web"][2] == ["0%", "86", "2K", "5.375%", "80.00"]
+    assert nodes["All contexts/Web/Inbound"][2] == ["0%", "86", "2K", "5.375%", "80.00"]
+    assert nodes["All contexts/Email/Outbound/Service"][1] == no_response_color
+    assert nodes["All contexts/Email/Outbound/Service"][2] == ["100%", "0", "0", "N/A", "N/A"]
+
+    assert "<br>Success rate=%{customdata[3]}" in trace.hovertemplate
+    assert "<br>Weighted average Model Performance (AUC)=%{customdata[4]}" in trace.hovertemplate
+    assert "<br>Positives=%{customdata[1]}" in trace.hovertemplate
+    assert "<br>Responses=%{customdata[2]}" in trace.hovertemplate
+    assert "Weighted average Success Rate" not in trace.hovertemplate
+    assert "%{customdata[4]}%" not in trace.hovertemplate
+    if metric == "SuccessRate":
+        assert fig.layout.title.text == "Success rate by Group"
+        assert fig.layout.coloraxis.colorbar.title.text == "Success rate"
+    elif metric == "Performance":
+        assert fig.layout.title.text == "Weighted average Model Performance (AUC) by Group"
+        assert fig.layout.coloraxis.colorbar.title.text == "Weighted average Model Performance (AUC)"
+        assert (fig.layout.coloraxis.cmin, fig.layout.coloraxis.cmax) == (50, 100)
+        assert fig.layout.coloraxis.colorbar.tickformat == ".2f"
+
+
+def test_tree_map_hover_respects_queries_and_model_id(treemap_datamart):
+    query = pl.col("Group") == "Cards"
+    fig = treemap_datamart.plot.tree_map(by="Group", query=query)
+    trace = fig.data[0]
+    root = list(trace.ids).index("All contexts")
+    assert trace.values[root] == 1
+    assert list(trace.customdata[root]) == ["0%", "10", "100", "10.000%", "60.00"]
+    assert float(trace.marker.colors[root]) == pytest.approx(60.0)
+
+    by_model = treemap_datamart.plot.tree_map(by="ModelID", query=query).data[0]
+    model = list(by_model.ids).index("All contexts/a")
+    assert list(by_model.customdata[model]) == ["0%", "10", "100", "10.000%", "60.00"]
+
+
+def test_tree_map_only_unobserved_models_and_root_only(treemap_datamart):
+    fig = treemap_datamart.plot.tree_map(by="Channel", query=pl.col("ModelID") == "d")
+    trace = fig.data[0]
+    assert list(trace.ids) == ["All contexts"]
+    assert list(trace.marker.colors) == [None]
+    assert list(trace.customdata[0]) == ["100%", "0", "0", "N/A", "N/A"]
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [(234, "234"), (1234, "1K"), (3_456_789, "3M"), (float("nan"), "N/A"), (float("inf"), "N/A"), (None, "N/A")],
+)
+def test_treemap_compact_counts(value, expected):
+    from pdstools.adm.Plots._overview import _format_hover_count
+
+    assert _format_hover_count(value) == expected
+
+
+@pytest.mark.parametrize(("metric", "risk_relative"), [("ResponseCount", 200 / 1400), ("Positives", 1.0)])
+def test_tree_map_colors_counts_relative_to_siblings(treemap_datamart, metric, risk_relative):
+    fig = treemap_datamart.plot.tree_map(metric, by="Group", relative_color=True)
+    trace = fig.data[0]
+    nodes = {
+        identifier: (color, list(details))
+        for identifier, color, details in zip(trace.ids, trace.marker.colors, trace.customdata, strict=True)
+    }
+    assert nodes["All contexts"][0] == 1
+    assert nodes["All contexts/Web/Inbound/Sales"][0] == (1 if metric == "ResponseCount" else pytest.approx(36 / 50))
+    assert nodes["All contexts/Web/Inbound/Risk"][0] == pytest.approx(risk_relative)
+    assert nodes["All contexts/Email/Outbound/Service"][0] == 0
+    assert nodes["All contexts/Web/Inbound/Sales"][1][2] == "1K"
+    assert (fig.layout.coloraxis.cmin, fig.layout.coloraxis.cmax) == (0, 1)
+    assert fig.layout.coloraxis.colorbar.title.text == "Relative to largest sibling"
+    assert fig.layout.coloraxis.colorbar.tickformat == ".0%"
+
+    with pytest.raises(ValueError, match="only available for ResponseCount and Positives"):
+        treemap_datamart.plot.tree_map(metric="Performance", relative_color=True)
+
+
+def test_tree_map_return_df_remains_a_group_summary(treemap_datamart):
+    df = treemap_datamart.plot.tree_map(by="Group", return_df=True)
+    assert isinstance(df, pl.LazyFrame)  # quality-guard: allow-weak-assert -- the lazy return type is part of the API.
+    assert df.collect_schema().names() == [
+        "Channel",
+        "Direction",
+        "Issue",
+        "Model Count",
+        "Percentage without responses",
+        "Total number of responses",
+        "Weighted average Success Rate",
+        "Weighted average Performance",
+        "Total number of positives",
+    ]
+    cards = df.filter(pl.col("Total number of responses") == 100).collect().row(0, named=True)
+    assert cards["Issue"] == "Sales"
+    assert cards["Model Count"] == 1
+    assert cards["Total number of positives"] == 10
+    assert cards["Weighted average Success Rate"] == pytest.approx(0.1)
+    assert cards["Weighted average Performance"] == pytest.approx(0.6)
 
 
 def test_tree_map_with_empty_query_returns_annotated_figure(sample: ADMDatamart):
@@ -1429,7 +1654,7 @@ def test_performance_volume_distribution_return_df(sample: ADMDatamart):
     assert collected["PerformanceBinned"].null_count() == 0
     # Proportions across all bins must sum to 1.0
     assert collected["Proportion"].sum() == pytest.approx(1.0, abs=1e-5)
-    assert collected["ResponseCount"].sum() == pytest.approx(26501937152.0, rel=1e-6)
+    assert collected["ResponseCount"].sum() == pytest.approx(26205663232.0, rel=1e-6)
 
 
 def test_performance_volume_distribution_with_grouping(sample: ADMDatamart):
@@ -1446,7 +1671,7 @@ def test_performance_volume_distribution_bin_width(sample: ADMDatamart):
     collected = df.collect()
     # Verify binning created expected number of bins
     num_bins = collected["PerformanceBinned"].drop_nulls().n_unique()
-    assert num_bins == 7
+    assert num_bins == 8
 
 
 def test_performance_volume_distribution_with_query(sample: ADMDatamart):
@@ -1455,8 +1680,8 @@ def test_performance_volume_distribution_with_query(sample: ADMDatamart):
     collected = df.collect()
     # Same non-empty bins, but lower total response count after the query.
     assert collected.height == 12
-    assert collected["ResponseCount"].sum() == pytest.approx(26501844992.0, rel=1e-6)
-    assert collected["ResponseCount"].sum() < 26501937152.0
+    assert collected["ResponseCount"].sum() == pytest.approx(26205577216.0, rel=1e-6)
+    assert collected["ResponseCount"].sum() < 26205663232.0
 
 
 # ---------------------------------------------------------------------------

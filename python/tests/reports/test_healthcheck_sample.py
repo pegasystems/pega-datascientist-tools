@@ -6,11 +6,13 @@ from types import SimpleNamespace
 from unittest.mock import Mock, sentinel
 
 import plotly.express as px
+import plotly.graph_objects as go
 import polars as pl
 import pytest
+from pdstools import ADMDatamart
 from pdstools.adm.Plots._helpers import add_metric_limit_lines
-from pdstools.utils import pega_template
-from pdstools.utils.plot_utils import fig_update_facet
+from pdstools.utils import cdh_utils, pega_template
+from pdstools.utils.plot_utils import fig_update_facet, hide_metric_annotations_on_non_rightmost
 
 
 @pytest.fixture(scope="module")
@@ -131,6 +133,95 @@ def test_action_hierarchy_collapses_whitespace_group_variants(action_hierarchy_c
 
     hierarchy = report_utils.create_metric_gttable.call_args.args[0]
     assert hierarchy.select("Group", "Models").rows() == [("CreditCards", 2), ("Loans", 1)]
+
+
+def test_success_rate_bars_use_readable_hover_labels(monkeypatch):
+    from pdstools.utils import report_utils as real_report_utils
+
+    template = Path(__file__).parents[2] / "pdstools" / "reports" / "HealthCheck.qmd"
+    cells = re.findall(r"```\{python\}\n(.*?)\n```", template.read_text(encoding="utf-8"), re.DOTALL)
+    cell = next(cell for cell in cells if "df_success_rates = " in cell)
+    data = pl.DataFrame(
+        {
+            "ModelID": ["one", "two"],
+            "Channel": ["Web", "Web"],
+            "Direction": ["Inbound", "Inbound"],
+            "Issue": ["Sales", "Service"],
+            "Group": ["Cards", "Help"],
+            "Name": ["Card", "Support"],
+            "Treatment": ["Banner", None],
+            "ResponseCount": [1000, 1200],
+            "SuccessRate": [0.1234, 0.0456],
+        }
+    )
+    report_utils = Mock(polars_subset_to_existing_cols=real_report_utils.polars_subset_to_existing_cols)
+    shown = []
+    monkeypatch.setattr(go.Figure, "show", lambda self: shown.append(self))
+    namespace = {
+        "pl": pl,
+        "px": px,
+        "last_data": data,
+        "datamart_all_columns": data.columns,
+        "active_models_filter_expr": pl.lit(True),
+        "active_models_threshold_date_string": "2026-01-01",
+        "responsecount_analysis_threshold": 0,
+        "barchart_max_bars": 10,
+        "fig_update_facet": fig_update_facet,
+        "report_utils": report_utils,
+    }
+    exec(compile(cell, "HealthCheck.qmd", "exec"), namespace)
+
+    report_utils.quarto_plot_exception.assert_not_called()
+    (fig,) = shown
+    (trace,) = fig.data
+    assert list(trace.hovertext) == ["Card/Banner", "Support"]
+    assert "Success rate=%{marker.color:.3%}" in trace.hovertemplate
+    assert "Issue=%{customdata" in trace.hovertemplate
+    assert "Group=%{customdata" in trace.hovertemplate
+    assert ":.d}" not in trace.hovertemplate
+    assert "Label=" not in trace.hovertemplate
+    assert "ModelID=" not in trace.hovertemplate
+
+
+@pytest.mark.parametrize("marker", ['"metric": "SuccessRate"', 'metric="Performance"'])
+def test_faceted_trends_share_y_labels_and_space_date_ticks(marker, monkeypatch):
+    template = Path(__file__).parents[2] / "pdstools" / "reports" / "HealthCheck.qmd"
+    cells = re.findall(r"```\{python\}\n(.*?)\n```", template.read_text(encoding="utf-8"), re.DOTALL)
+    cell = next(cell for cell in cells if marker in cell and "trend_datamart.plot.over_time" in cell)
+    models = pl.DataFrame(
+        {
+            "ModelID": ["a", "a", "b", "b"],
+            "SnapshotTime": ["20250101", "20250108"] * 2,
+            "ModelTechnique": ["NaiveBayes"] * 2 + ["GradientBoost"] * 2,
+            "Channel": ["Web"] * 4,
+            "Direction": ["Inbound"] * 4,
+            "Performance": [0.6, 0.7, 0.8, 0.9],
+            "ResponseCount": [100, 200, 100, 200],
+            "Positives": [10, 20, 10, 20],
+        }
+    ).lazy()
+    report_utils = Mock()
+    shown = []
+    monkeypatch.setattr(go.Figure, "show", lambda self: shown.append(self))
+    namespace = {
+        "pl": pl,
+        "cdh_utils": cdh_utils,
+        "trend_datamart": ADMDatamart(model_df=models),
+        "safe_facet_col_wrap": lambda n_facets, max_rows: 2,
+        "fig_update_facet": fig_update_facet,
+        "hide_metric_annotations_on_non_rightmost": hide_metric_annotations_on_non_rightmost,
+        "report_utils": report_utils,
+    }
+
+    exec(compile(cell, "HealthCheck.qmd", "exec"), namespace)
+
+    report_utils.quarto_plot_exception.assert_not_called()
+    (fig,) = shown
+    assert fig.layout.yaxis.showticklabels is not False
+    assert fig.layout.yaxis2.showticklabels is False
+    assert fig.layout.yaxis2.matches == "y"
+    assert fig.layout.xaxis2.domain[0] - fig.layout.xaxis.domain[1] == pytest.approx(0.08)
+    assert all(axis.tickangle == -45 and axis.automargin for axis in fig.select_xaxes())
 
 
 @pytest.mark.parametrize(

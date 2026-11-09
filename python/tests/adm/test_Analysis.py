@@ -1269,7 +1269,7 @@ class TestCheckTaxonomyExceptionPaths:
     def test_predictor_count_exception_is_swallowed(self):
         """Lines 619-620: exception in predictor-count block is swallowed."""
         dm = ADMDatamart.from_mock_data(end="canonical")
-        assert dm.predictor_data.select(pl.len()).collect().item() == 246470
+        assert dm.predictor_data.select(pl.len()).collect().item() == 247757
         # combined_data must work for schema check (line 529) but fail on .filter() (line 594)
         mock_cd = MagicMock()
         mock_cd.collect_schema.return_value.names.return_value = ["Configuration", "EntryType", "PredictorName"]

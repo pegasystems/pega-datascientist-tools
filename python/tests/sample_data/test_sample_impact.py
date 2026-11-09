@@ -108,7 +108,7 @@ def test_delayed_and_repeated_outcomes_count_each_exposure_once():
 
 
 def test_totals_and_groups(ia):
-    assert ia["Impressions"].sum() == 117509
+    assert ia["Impressions"].sum() == 117880
     assert set(ia["ControlGroup"].unique()) == {
         "NBA",
         "EngagementPolicy",

@@ -15,6 +15,7 @@ from pdstools.sample_data._adm import (
 )
 from pdstools.sample_data._spec import DEFAULT_SPEC
 from pdstools.sample_data._world import sample_world
+from pdstools.utils.metric_limits import MetricLimits
 
 VALID_CHANNELS = ["Web", "Mobile", "Email"]
 
@@ -90,6 +91,69 @@ def test_maturity_budget(datamart, last_active):
     assert shares["never_used"] + shares["responses_no_positives"] <= 0.01
 
 
+@pytest.mark.parametrize(
+    ("seed", "expected_email", "expected_web"),
+    [(42, 0.53947, 0.54076), (7, 0.53459, 0.54285)],
+)
+def test_health_check_performance_treemap_has_a_few_orange_contexts(datamart, seed, expected_email, expected_web):
+    dm = datamart if seed == 42 else ADMDatamart(model_df=model_snapshots(sample_world(seed=seed)))
+    query = dm.analysis.health_check_active_filter() & pl.col("Channel").is_in(VALID_CHANNELS)
+    fig = dm.plot.tree_map(metric="Performance", by="Group", query=query)
+    trace = fig.data[0]
+    issue_performance = {
+        identifier: float(performance) / 100
+        for identifier, performance in zip(trace.ids, trace.marker.colors, strict=True)
+        if identifier.count("/") == 3
+    }
+
+    email = "All contexts/Email/Outbound/Service"
+    web = "All contexts/Web/Inbound/Risk"
+    assert len(issue_performance) == 12
+    assert issue_performance[email] == pytest.approx(expected_email, abs=0.00005)
+    assert issue_performance[web] == pytest.approx(expected_web, abs=0.00005)
+
+    minimum = MetricLimits.minimum("ModelPerformance")
+    best_min = MetricLimits.best_practice_min("ModelPerformance")
+    best_max = MetricLimits.best_practice_max("ModelPerformance")
+    assert isinstance(minimum, float) and isinstance(best_min, float) and isinstance(best_max, float)
+    assert {context for context, performance in issue_performance.items() if minimum < performance < best_min} == {
+        email,
+        web,
+    }
+    assert all(
+        best_min <= performance <= best_max
+        for context, performance in issue_performance.items()
+        if context not in {email, web}
+    )
+
+    coloraxis = fig.layout.coloraxis
+    assert (coloraxis.cmin, coloraxis.cmax) == (50, 100)
+    orange_low, orange_high, green_low = coloraxis.colorscale[2:5]
+    assert orange_low == (pytest.approx((minimum - 0.5) / 0.5), "#F76923")
+    assert orange_high == (pytest.approx((best_min - 0.5) / 0.5), "#F76923")
+    assert green_low == (pytest.approx((best_min - 0.5) / 0.5), "#20aa50")
+
+
+@pytest.mark.parametrize("seed", [42, 7])
+def test_health_check_response_counts_are_spread_across_issues(datamart, seed):
+    dm = datamart if seed == 42 else ADMDatamart(model_df=model_snapshots(sample_world(seed=seed)))
+    last = dm.analysis._get_last_data().filter(
+        dm.analysis.health_check_active_filter() & pl.col("Channel").is_in(VALID_CHANNELS)
+    )
+    counts = (
+        last.group_by("Channel", "Issue")
+        .agg(pl.col("ResponseCount").sum())
+        .with_columns((pl.col("ResponseCount") / pl.col("ResponseCount").sum().over("Channel")).alias("share"))
+    )
+    for channel in VALID_CHANNELS:
+        shares = {row["Issue"]: row["share"] for row in counts.filter(pl.col("Channel") == channel).to_dicts()}
+        assert 0.35 <= shares["Sales"] <= 0.47
+        assert 0.25 <= shares["Service"] <= 0.35
+        assert 0.15 <= shares["Retention"] <= 0.23
+        assert 0.07 <= shares["Risk"] <= 0.17
+        assert min(shares["Sales"], shares["Service"]) > max(shares["Retention"], shares["Risk"])
+
+
 def test_call_center_is_not_a_valid_channel(last_active):
     totals = last_active.group_by("Channel").agg(pl.col("Positives").sum(), pl.col("ResponseCount").sum())
     call_center = totals.filter(pl.col("Channel") == "Call Center").row(0, named=True)
@@ -120,7 +184,11 @@ def test_positive_only_weeks(datamart):
     ]
 
 
-def test_seeded_quality_cases(world, datamart):
+@pytest.mark.parametrize("seed", [42, 7])
+def test_seeded_quality_cases(world, datamart, seed):
+    if seed != 42:
+        world = sample_world(seed=seed)
+        datamart = ADMDatamart(model_df=model_snapshots(world))
     cases = seeded_cases(world)
     assert sorted(cases.values()).count("stuck") == 12
     assert sorted(cases.values()).count("weak") == 12

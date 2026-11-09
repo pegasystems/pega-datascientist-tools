@@ -460,6 +460,10 @@ def apply_report_layout(
     return fig.update_layout(**layout)
 
 
+# Model performance is displayed on the 50--100 AUC scale in plots.
+MODEL_PERFORMANCE_LABEL = "Model Performance (AUC)"
+MODEL_PERFORMANCE_HOVER_FORMAT = ":.2f"
+
 # Standard hovertemplate fragments for common metrics. Use as building blocks
 # when composing plot-specific hovertemplates so formatting (decimal count,
 # percent vs ratio) stays consistent across reports.

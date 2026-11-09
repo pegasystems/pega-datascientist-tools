@@ -131,6 +131,7 @@ class _PredictorPlotsMixin(_PlotsBase):
             automargin=True,
             autorange="reversed",
         )
+        fig.update_xaxes(hoverformat=".2f")
         return fig
 
     @requires(
@@ -231,7 +232,7 @@ class _PredictorPlotsMixin(_PlotsBase):
         )
 
         if fig is not None and not return_df:
-            fig.update_xaxes(title="Performance")
+            fig.update_xaxes(title="Predictor Performance (AUC)" if metric == "PredictorPerformance" else metric)
             fig.update_layout(title="Predictor Performance by Predictor Category")
 
         return fig
@@ -315,7 +316,7 @@ class _PredictorPlotsMixin(_PlotsBase):
             return_df=return_df,
         )
         if fig is not None and not return_df:
-            fig.update_xaxes(title="Performance")
+            fig.update_xaxes(title="Predictor Performance (AUC)")
 
         return fig
 
@@ -506,6 +507,10 @@ class _PredictorPlotsMixin(_PlotsBase):
             range_color=[50, 100],
             y=collected[by_name],
         )
+        fig.update_traces(
+            hoverongaps=False,
+            hovertemplate=f"{by_name}=%{{x}}<br>Predictor=%{{y}}<br>Predictor Performance (AUC)=%{{z:.2f}}<extra></extra>",
+        )
 
         fig.update_yaxes(dtick=1, automargin=True)
         fig.update_xaxes(
@@ -588,7 +593,7 @@ class _PredictorPlotsMixin(_PlotsBase):
             color_discrete_map=(
                 self.datamart.predictor_category_color_map if by_list[0] == "PredictorCategory" else None
             ),
-            labels={"PredictorCategory": "Predictor Category"},
+            labels={"PredictorCategory": "Predictor Category", "_Type": "Predictor type", "Count": "Predictors"},
             custom_data=custom_data,
             template="pega",
         )
@@ -711,9 +716,13 @@ class _PredictorPlotsMixin(_PlotsBase):
             y="PredictorName",
             color="PredictorCategory",
             color_discrete_map=self.datamart.predictor_category_color_map,
-            labels={"PredictorCategory": "Predictor Category"},
+            labels={
+                "PredictorCategory": "Predictor Category",
+                "PredictorName": "Predictor",
+                "Importance %": "Importance (%)",
+            },
             orientation="h",
-            hover_data={"Active Predictors": False},
+            hover_data={"Active Predictors": False, "Importance %": ":.2f"},
             title=f"Top {collapsed.height} predictors by share of model importance",
             template="pega",
         )
@@ -797,9 +806,9 @@ class _PredictorPlotsMixin(_PlotsBase):
             y="Model configuration",
             color="PredictorCategory",
             color_discrete_map=self.datamart.predictor_category_color_map,
-            labels={"PredictorCategory": "Predictor Category"},
+            labels={"PredictorCategory": "Predictor Category", "Importance %": "Importance (%)"},
             orientation="h",
-            hover_data=["Models", "Active Predictors"],
+            hover_data={"Models": ":,.0f", "Active Predictors": ":.1f", "Importance %": ":.2f"},
             title="Share of model importance per predictor category",
             template="pega",
         )

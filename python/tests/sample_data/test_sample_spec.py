@@ -38,6 +38,25 @@ def test_channel_volumes_and_rates():
     ]
 
 
+def test_action_volume_weights_by_channel_and_issue():
+    expected = {
+        "Web": {"Sales": 0.37, "Service": 0.41, "Retention": 0.12, "Risk": 0.10},
+        "Mobile": {"Sales": 0.42, "Service": 0.30, "Retention": 0.17, "Risk": 0.11},
+        "Email": {"Sales": 0.32, "Service": 0.38, "Retention": 0.19, "Risk": 0.11},
+        "Call Center": {"Sales": 0.35, "Service": 0.32, "Retention": 0.23, "Risk": 0.10},
+    }
+    for channel, targets in expected.items():
+        for issue, target in targets.items():
+            total = sum(
+                membership.volume_weight
+                for action in DEFAULT_SPEC.actions
+                if action.issue == issue
+                for membership in action.channels
+                if membership.channel == channel
+            )
+            assert total == pytest.approx(target, abs=1e-7)
+
+
 def test_exact_lifecycle_and_channel_memberships():
     actions = DEFAULT_SPEC.actions
     assert sum(a.start_day == 0 for a in actions) == 80

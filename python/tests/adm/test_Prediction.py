@@ -343,7 +343,7 @@ def test_plots():
 
     perf_fig = prediction.plot.performance_trend()
     assert sorted(t.name for t in perf_fig.data) == expected_trace_names
-    assert perf_fig.layout.yaxis.title.text == "Performance (AUC)"
+    assert perf_fig.layout.yaxis.title.text == "Prediction Performance (AUC)"
 
     lift_fig = prediction.plot.lift_trend()
     assert sorted(t.name for t in lift_fig.data) == expected_trace_names
@@ -410,6 +410,40 @@ def test_prediction_trend_preserves_explicit_date_label(preds_singleday):
 
     assert fig.layout.xaxis.title.text == "Observation date"
     assert all("Observation date=%{x}" in trace.hovertemplate for trace in fig.data)
+
+
+@pytest.mark.parametrize(
+    ("method", "metric_label", "metric_format"),
+    [
+        ("performance_trend", "Prediction Performance (AUC)", ".2f"),
+        ("lift_trend", "Engagement lift", ".2%"),
+        ("ctr_trend", "CTR", ".3%"),
+        ("responsecount_trend", "Responses", ",.0f"),
+    ],
+)
+def test_prediction_trend_consolidates_hover_and_preserves_overrides(
+    preds_singleday, method, metric_label, metric_format
+):
+    plot = getattr(preds_singleday.plot, method)
+    fig = plot()
+
+    for trace in fig.data:
+        assert f"{metric_label}=%{{y:{metric_format}}}" in trace.hovertemplate
+        assert "Period=%{customdata" in trace.hovertemplate
+        assert "Positives=%{customdata" in trace.hovertemplate
+        assert "Test positives=" not in trace.hovertemplate
+        if method in {"lift_trend", "ctr_trend"}:
+            assert "Test success rate=%{customdata" in trace.hovertemplate
+            assert "Control success rate=%{customdata" in trace.hovertemplate
+        else:
+            assert "Test success rate=" not in trace.hovertemplate
+
+    custom = plot(
+        hover_data={"Positives": False, "Positives_Test": ":,.0f"},
+        labels={"Positives_Test": "Test responses"},
+    )
+    assert all("Positives=%" not in trace.hovertemplate for trace in custom.data)
+    assert all("Test responses=%{customdata" in trace.hovertemplate for trace in custom.data)
 
 
 # New tests to improve coverage

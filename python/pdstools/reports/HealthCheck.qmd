@@ -305,7 +305,7 @@ try:
             autosize=True,
             height=400,
             title=f"ADM Models across all Channels<br><sup>showing {filtered_size} models updated since {active_models_threshold_date_string}</sup>",
-            xaxis_title="Model Performance",
+            xaxis_title="Model Performance (AUC)",
             yaxis_title="Success Rate",
         )
         .for_each_xaxis(lambda xaxis: xaxis.update(showticklabels=True, visible=True))
@@ -314,7 +314,7 @@ try:
                 dict(tickmode="array", tickvals=[x for x in range(50, 110, 10)])
             )
         )
-        .update_xaxes(title="Model Performance", showticklabels=True, visible=True)
+        .update_xaxes(title="Model Performance (AUC)", showticklabels=True, visible=True)
         .update_yaxes(tickformat=",.2%")
         .update_coloraxes(showscale=False)
     )
@@ -916,6 +916,7 @@ df_success_rates = (
         pl.concat_str(
             report_utils.polars_subset_to_existing_cols(datamart_all_columns, ["Name", "Treatment"]),
             separator="/",
+            ignore_nulls=True,
         ).alias("Label"),
     )
     .sort(["Channel/Direction", "SuccessRate"], descending=True)
@@ -926,9 +927,12 @@ df_success_rates = (
 
 hover_data = {
     "SuccessRate": ":.3%",
+    "ModelID": False,
+    "Label": False,
 }
 for col in hover_columns:
-    hover_data[col] = ":.d"
+    if col not in ("Name", "Treatment"):
+        hover_data[col] = True
 
 facet = "Channel/Direction"
 facet_cols = 3
@@ -943,6 +947,7 @@ try:
         facet_col_wrap=facet_cols,
         template="pega",
         text="Label",
+        hover_name="Label",
         title=(
             "Success Rates per Channel/Direction<br><sup>%s — models updated since %s</sup>"
             % (
@@ -951,6 +956,7 @@ try:
             )
         ),
         hover_data=hover_data,
+        labels={"SuccessRate": "Success rate"},
     )
 
     fig = fig_update_facet(fig, facet_cols, 200, 250)  # 200/250
@@ -1029,9 +1035,11 @@ else:
         fig = trend_datamart.plot.over_time(**plot_kwargs)
         if facet_col_wrap is not None:
             fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
+        if n_model_techniques > 1:
+            fig.update_xaxes(tickangle=-45, automargin=True)
         fig = (
-            fig.update_yaxes(showticklabels=True, tickformat=".2%")
-            .update_xaxes(showticklabels=True, title="")
+            fig.update_yaxes(tickformat=".2%")
+            .update_xaxes(title="")
             .update_layout(
                 title="Success Rate over Time by Channel/Direction"
                 + (" and Model Technique" if facet_col_wrap is not None else ""),
@@ -1376,16 +1384,18 @@ else:
             every="auto",
             cumulative=True,
             show_metric_limits=True,
+            facet_col_spacing=0.08 if facet_col_wrap is not None else None,
         )
         if facet_col_wrap is not None:
             fig = fig_update_facet(fig, facet_col_wrap, 200, 250)
+        if n_model_techniques > 1:
+            fig.update_xaxes(tickangle=-45, automargin=True)
         fig = (
             fig.update_layout(
                 title="Model Performance over Time by Channel/Direction"
                 + (" and Model Technique" if facet_col_wrap is not None else ""),
                 margin=dict(t=70),
             )
-            .update_yaxes(showticklabels=True)
             .update_xaxes(title="")
         )
         hide_metric_annotations_on_non_rightmost(fig)
@@ -1433,7 +1443,7 @@ except Exception as e:
 
 Using an interactive treemap to visualize the response counts. Different channels will have very different numbers but within one channel the relative differences in response counts give an indication how skewed the distribution is.
 
-Warning : Currently treemap calculates mean response count moving upwards in the hierarchy.
+Response counts are summed at each hierarchy level; the tile area represents the number of models. Colors compare each tile with the highest response count among its siblings: green is the highest, while orange and red indicate relatively lower counts. Colors do not imply that a lower count is bad.
 
 ```{python}
 try:
@@ -1441,6 +1451,7 @@ try:
         metric="ResponseCount",
         by="Group" if ("Group" in datamart.context_keys) else datamart.context_keys[-1],
         query=active_models_filter_expr,
+        relative_color=True,
     )
 
     fig = fig.update_layout(
@@ -1946,6 +1957,7 @@ else:
 If a predictor is low performing: are there too many missing values? This could point to a technical problem. IH fields often have missing values so they are excluded. We only list predictors that have \> 10% missing values.
 
 Only Naive Bayes models are included, because the datamart only holds missing-value bins for Naive Bayes predictors.
+Category colors and hover details use response-weighted missing rates for the predictors shown.
 
 ```{python}
 if datamart.predictor_data is not None:
@@ -1988,29 +2000,50 @@ if datamart.predictor_data is not None:
             f"{n_complete / n_predictors:.0%} of the Naive Bayes predictors ({n_complete} of {n_predictors}) have 10% or less missing values and are not shown. The plot only shows the {missing.height} predictors with more than 10% missing values."
         )
 
-    hover_data = {
-        "Percentage without responses": ":.2%",
-        "PredictorResponseCount": ":d",
-    }
-
     try:
-        # TODO see about this warning that we're getting
-        # The default of observed=False is deprecated...
+        if missing.is_empty():
+            report_utils.quarto_callout_info("No Naive Bayes predictors have more than 10% missing values.")
+        else:
+            from pdstools.utils.metric_limits import MetricFormats
 
-        fig = px.treemap(
-            missing,
-            path=[px.Constant("All Predictors")] + gb_cols,
-            color="Percentage without responses",
-            template="pega",
-            hover_data=hover_data,
-            title=f"Missing Naive Bayes Predictor Data<br><sup>models updated since {active_models_threshold_date_string}</sup>",
-            range_color=[0, 1]
-        )
+            missing = missing.with_columns(pl.col(gb_cols).cast(pl.String).fill_null("Missing"))
+            fig = px.treemap(
+                missing,
+                path=[px.Constant("All Predictors")] + gb_cols,
+                color="Percentage without responses",
+                template="pega",
+                title=f"Missing Naive Bayes Predictor Data<br><sup>models updated since {active_models_threshold_date_string}</sup>",
+                range_color=[0, 1]
+            )
 
-        fig.layout.coloraxis.colorscale = pega_template.positive_negative
-        fig.update_coloraxes(showscale=False)
+            summaries = {}
+            for depth in range(len(gb_cols) + 1):
+                keys = gb_cols[:depth]
+                counts = [pl.sum("MissingCount"), pl.sum("PredictorResponseCount")]
+                level = missing.group_by(keys).agg(counts) if keys else missing.select(counts)
+                for row in level.iter_rows(named=True):
+                    node_id = "/".join(["All Predictors", *(row[key] for key in keys)])
+                    summaries[node_id] = row
 
-        fig.show()
+            trace = fig.data[0]
+            node_rows = [summaries[node_id] for node_id in trace.ids]
+            trace.marker.colors = [row["MissingCount"] / row["PredictorResponseCount"] for row in node_rows]
+            trace.customdata = [
+                [
+                    f'{row["MissingCount"] / row["PredictorResponseCount"]:.2%}',
+                    MetricFormats.DEFAULT_FORMAT.format_value(row["MissingCount"]),
+                    MetricFormats.DEFAULT_FORMAT.format_value(row["PredictorResponseCount"]),
+                ]
+                for row in node_rows
+            ]
+            trace.hovertemplate = (
+                "<b>%{label}</b><br>Missing rate=%{customdata[0]}"
+                "<br>Missing values=%{customdata[1]}"
+                "<br>Predictor observations=%{customdata[2]}<extra></extra>"
+            )
+            fig.layout.coloraxis.colorscale = pega_template.positive_negative
+            fig.update_coloraxes(showscale=False)
+            fig.show()
     except Exception as e:
         report_utils.quarto_plot_exception("Missing Predictor Data", e)
 else:

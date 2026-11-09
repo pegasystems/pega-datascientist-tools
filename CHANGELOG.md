@@ -45,6 +45,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Shared sample action weights spread response volumes across issues, with
+  Sales and Service receiving the largest shares in the main channels.
+  The ADM, Interaction History and Impact Analyzer views use the same catalog.
+- Synthetic customer predictors now appear among interaction history and
+  parameter predictors in Naive Bayes and AGB importance plots.
+- The synthetic `Param.CallToActionStyle` predictor is deliberately 100% missing
+  and inactive, while `Param.CreativeFormat` has some missing values, illustrating
+  data-quality issues in the ADM Health Check.
+- `ADMDatamart.plot.tree_map(relative_color=True)` can compare response or
+  positive counts against the largest sibling. The Health Check response
+  overview uses this scale, while hover details retain actual totals.
 - `Prediction.from_mock_data()` now samples the shared synthetic world (#999):
   five standard predictions (Web, Mobile, E-mail, Call Center and the
   multi-channel `PredictActionPropensity`) in the real snapshot shape, with
@@ -102,6 +113,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- ADM treemap hover details now show correct totals and response-weighted
+  metrics at every hierarchy level, including the 50–100 performance scale,
+  and display compact rounded response and positive counts.
 - AGB configuration-summary rows (#667) are now also removed when model data
   is loaded with `ADMDatamart.from_ds_export()`. `read_ds_export()` no longer
   fills null `Channel`, `Direction`, `Issue`, `Group` and `Name` values with

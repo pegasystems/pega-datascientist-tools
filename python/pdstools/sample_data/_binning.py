@@ -37,23 +37,24 @@ _MOBILE_SHARED = (
 )
 """Predictors that rank on top of both Mobile configurations, for the NB/GB comparison."""
 _NEVER_ACTIVE_SHARE = 0.08
-_FAMILY_BOOST = {"ih": 1.5, "param": 1.3}
-_OWN_CHANNEL_BOOST = 1.4
+_FAMILY_BOOST = {"customer": 3.2, "clickstream": 2.65, "ih": 1.5, "param": 1.3, "external_model": 1.07}
+_OWN_CHANNEL_BOOST = 1.2
 _RANK_NOISE = 0.35
-_AUC_SLOPE = 0.105
+_AUC_SLOPE = 0.09
 _AUC_NOISE = 0.3
 _AUC_RANGE = (0.503, 0.78)
 _INACTIVE_SCALE = 0.08
-_AGB_FAMILY_IMPORTANCE_BOOST = {"external_model": 1.3}
 _MOBILE_SHARED_AGB_BOOST = 1.18
 """Keep the shared Mobile comparison signals among the leading predictors."""
+_AGB_CUSTOMER_IMPORTANCE_BOOST = 1.15
+"""Balance customer-derived gain against interaction-history importance."""
 _NUMERIC_BIN_COUNTS = (3, 4, 5, 6, 7)
 _NUMERIC_BIN_WEIGHTS = (0.25, 0.35, 0.2, 0.12, 0.08)
 _CUT_QUANTILES = tuple(q / 10 for q in range(1, 10))
 _NB_CLASSIFIER_BINS = (12, 21)
 _GB_CLASSIFIER_BINS = (15, 19)
 _POSITIVES_PER_CLASSIFIER_BIN = 10
-_CONTEXT_KEY_WEIGHT = {"Name": 0.9, "Treatment": 0.7, "Group": 0.35, "Issue": 0.25}
+_CONTEXT_KEY_WEIGHT = {"Name": 0.9, "Treatment": 0.85, "Group": 0.35, "Issue": 0.25}
 
 _SCHEMA = {
     "pyModelID": pl.Utf8,
@@ -239,6 +240,9 @@ def _symbols(predictor: Predictor) -> list[str]:
 
 
 def _missing_share(predictor: Predictor, rng: Random) -> float:
+    """Vary ordinary missing rates while preserving a fully missing predictor."""
+    if predictor.missing_probability == 1.0:
+        return 1.0
     return min(0.95, (predictor.missing_probability or 0.0) * exp(rng.gauss(0.0, 0.15)))
 
 
@@ -284,6 +288,9 @@ def _active_bins(predictor: Predictor, rng: Random) -> tuple[list[_Bin], str]:
 
 def _inactive_bins(predictor: Predictor, rng: Random) -> tuple[list[_Bin], str]:
     missing = _missing_share(predictor, rng)
+    if missing == 1.0:
+        contents = "Range : []" if predictor.data_type == "numeric" else "No. symbols = 0"
+        return [_Bin("MISSING", "MISSING", None, None, 1.0, 0.0)], contents
     if predictor.data_type == "numeric":
         edges = _distribution(predictor).edges
         contents = f"Range : [{_format(edges[0])}, {_format(edges[-1])}]"
@@ -325,9 +332,7 @@ def _never_active(spec: SampleSpec, seed: int) -> dict[str, frozenset[str]]:
         candidates = [
             p
             for p in configuration.predictor_ids
-            if predictors[p].family not in _FAMILY_BOOST
-            and predictors[p].family != "external_model"
-            and p not in _MOBILE_SHARED
+            if predictors[p].family not in ("ih", "param", "external_model") and p not in _MOBILE_SHARED
         ]
         size = round(len(configuration.predictor_ids) * _NEVER_ACTIVE_SHARE)
         never[configuration.name] = frozenset(rng.sample(sorted(candidates), min(size, len(candidates))))
@@ -352,7 +357,9 @@ def _ranking(world: SampleWorld, model: AdmModel, rng: Random) -> list[str]:
         for p in configuration.predictor_ids
         if p not in never
     }
-    return sorted(scores, key=lambda p: (-scores[p], p))
+    # Score first to keep the random stream stable when a predictor is unavailable.
+    available = (p for p in scores if predictors[p].missing_probability != 1.0)
+    return sorted(available, key=lambda p: (-scores[p], p))
 
 
 def _last_totals(world: SampleWorld) -> dict[str, _Totals]:
@@ -495,8 +502,12 @@ def _gradient_boost(
     active = ranking[: totals.active]
     raw = {
         p: _strength(predictors[p], model.context.channel) ** 2
-        * _AGB_FAMILY_IMPORTANCE_BOOST.get(predictors[p].family, 1.0)
         * (_MOBILE_SHARED_AGB_BOOST if configuration.name.startswith("Mobile_") and p in _MOBILE_SHARED else 1.0)
+        * (
+            _AGB_CUSTOMER_IMPORTANCE_BOOST
+            if predictors[p].family in ("customer", "clickstream", "external_model")
+            else 1.0
+        )
         * exp(rng.gauss(0.0, 0.5))
         for p in active
     }

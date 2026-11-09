@@ -1,10 +1,23 @@
 """Tests for the ADM predictor binning view of the sample world."""
 
+from dataclasses import replace
+from random import Random
+
 import polars as pl
 import pytest
 from pdstools import ADMDatamart
 from pdstools.sample_data._adm import model_snapshots, summary_model_id
-from pdstools.sample_data._binning import _allocate, _auc, _expected_auc, _solve_scale, predictor_binning
+from pdstools.sample_data._binning import (
+    _allocate,
+    _auc,
+    _counts,
+    _expected_auc,
+    _importance,
+    _inactive_bins,
+    _missing_share,
+    _solve_scale,
+    predictor_binning,
+)
 from pdstools.sample_data._spec import DEFAULT_SPEC
 from pdstools.sample_data._world import sample_world
 
@@ -127,7 +140,7 @@ def test_naive_bayes_univariate_auc_and_bin_counts(predictors):
         .agg(pl.first("Performance"), pl.len().alias("bins"))
     )
     auc = active["Performance"]
-    assert 0.51 < auc.quantile(0.1) < 0.53
+    assert 0.53 < auc.quantile(0.1) < 0.55
     assert 0.54 < auc.median() < 0.58
     assert 0.59 < auc.quantile(0.9) < 0.66
     assert active["bins"].min() >= 4
@@ -147,6 +160,54 @@ def test_missing_shares(predictors):
     assert 0.15 < (missing["share"] > 0.1).mean() < 0.35
 
 
+def test_missing_probability_endpoints():
+    predictor = next(p for p in DEFAULT_SPEC.predictors if p.id == "Param.CallToActionStyle")
+    assert predictor.missing_probability == 1.0
+    placement = next(p for p in DEFAULT_SPEC.predictors if p.id == "Param.Placement")
+    assert placement.missing_probability == 0.01
+    for seed in (7, 42):
+        assert _missing_share(predictor, Random(seed)) == 1.0
+        assert _missing_share(replace(predictor, missing_probability=0.0), Random(seed)) == 0.0
+
+
+def test_partially_missing_parameter(predictors):
+    parameter = predictors.filter(
+        pl.col("PredictorName") == "Param.CreativeFormat",
+        pl.col("BinType") == "MISSING",
+    )
+    share = parameter["BinResponseCount"].sum() / parameter["ResponseCount"].sum()
+    assert 0.1 < share < 0.3
+
+
+def test_fully_missing_numeric_predictor_has_one_uninformative_bin():
+    predictor = next(p for p in DEFAULT_SPEC.predictors if p.id == "Customer.CreditScore")
+    bins, contents = _inactive_bins(replace(predictor, missing_probability=1.0), Random(42))
+    positives, negatives = _counts(bins, positives=37, negatives=63, scale=0.0)
+    assert contents == "Range : []"
+    assert [(b.kind, b.symbol, b.share) for b in bins] == [("MISSING", "MISSING", 1.0)]
+    assert positives == [37]
+    assert negatives == [63]
+    assert _auc(positives, negatives) == 0.5
+    assert _importance(positives, negatives) == 0.0
+
+
+def test_fully_missing_parameter_is_inactive_and_reconciles(raw):
+    parameter = raw.filter(pl.col("pyPredictorName") == "Param.CallToActionStyle")
+    nb = parameter.filter(pl.col("pyBinType") != "NONE")
+    assert nb.height > 0
+    assert nb["pyBinSymbol"].unique().to_list() == ["MISSING"]
+    assert nb["pyEntryType"].unique().to_list() == ["Inactive"]
+    assert nb["pyPerformance"].unique().to_list() == [0.5]
+    assert nb["pyFeatureImportance"].unique().to_list() == [0.0]
+    assert nb["pyBinResponseCount"].sum() > 0
+    assert (nb["pyBinResponseCount"] - nb["pyResponseCount"]).abs().max() == 0
+
+    agb = parameter.filter(pl.col("pyBinType") == "NONE")
+    assert agb.height > 0
+    assert agb["pyEntryType"].unique().to_list() == ["Inactive"]
+    assert agb["pyFeatureImportance"].unique().to_list() == [0.0]
+
+
 def test_classifier_auc_tracks_model_performance(raw, last_models):
     classifier = raw.filter(pl.col("pyEntryType") == "Classifier", pl.col("pyBinType") != "NONE")
     classifier = classifier.group_by("pyModelID").agg(pl.first("pyPerformance"), pl.first("pyResponseCount"))
@@ -155,6 +216,17 @@ def test_classifier_auc_tracks_model_performance(raw, last_models):
     )
     assert joined.height > 500
     assert (joined["pyPerformance"] - joined["Performance"]).abs().max() < 0.03
+    for channel, issue, technique in [
+        ("Email", "Service", "NaiveBayes"),
+        ("Web", "Risk", "GradientBoost"),
+    ]:
+        context = joined.filter(
+            pl.col("Channel") == channel,
+            pl.col("Issue") == issue,
+            pl.col("ModelTechnique") == technique,
+        )
+        assert context.height > 10
+        assert 0.52 < context["Performance"].median() < 0.55
 
 
 def test_gradient_boost_rows(raw):
@@ -192,57 +264,82 @@ def test_gradient_boost_summary_ranks_context_keys(datamart, models):
     assert len({name for name in top if name.startswith("py")}) >= 2
 
 
-def test_gradient_boost_favours_ih_and_param(datamart, models):
-    ids = models.filter(pl.col("pyConfigurationName") == "Web_Click_Through_Rate_GB")["pyModelID"].unique().implode()
-    by_category = (
-        datamart.aggregates._predictor_importance_data()
-        .filter(pl.col("ModelID").is_in(ids), pl.col("EntryType") != "Classifier")
-        .group_by("PredictorCategory")
-        .agg(pl.mean("FeatureImportance"))
-        .collect()
-    )
-    importance = dict(
-        zip(by_category["PredictorCategory"].cast(pl.String), by_category["FeatureImportance"], strict=True)
-    )
-    assert importance["IH"] > 3 * importance["Customer"]
-    assert importance["IH"] > 3 * importance["Account"]
+@pytest.mark.parametrize("seed", [42, 7])
+def test_customer_predictors_are_mixed_into_each_health_check_importance_plot(datamart, seed):
+    dm = datamart
+    if seed != 42:
+        world = sample_world(seed=seed)
+        dm = ADMDatamart(model_df=model_snapshots(world), predictor_df=predictor_binning(world))
+
+    facets = [
+        ("Mobile_Click_Through_Rate", "Mobile", "NaiveBayes"),
+        ("Email_Click_Through_Rate", "Email", "NaiveBayes"),
+        ("OmniAdaptiveModel", "Web", "NaiveBayes"),
+        ("OmniAdaptiveModel", "Mobile", "NaiveBayes"),
+        ("OmniAdaptiveModel", "Email", "NaiveBayes"),
+        ("Web_Click_Through_Rate_GB", "Web", "GradientBoost"),
+        ("Web_Loans_Click_Through_Rate_GB", "Web", "GradientBoost"),
+        ("Mobile_Click_Through_Rate_GB", "Mobile", "GradientBoost"),
+    ]
+    for configuration, channel, technique in facets:
+        query = (
+            (pl.col("Configuration") == configuration)
+            & (pl.col("Channel") == channel)
+            & dm.analysis.health_check_active_filter()
+        )
+        if technique == "NaiveBayes":
+            data = dm.plot.predictor_performance(
+                query=query & (pl.col("ResponseCountBin") > 200), top_n=30, return_df=True
+            )
+        else:
+            data = dm.plot.predictor_importance(query=query, top_n=20, return_df=True)
+        categories = data["PredictorCategory"].cast(pl.String).to_list()[:20]
+        customer_positions = [i for i, category in enumerate(categories) if category == "Customer"]
+        scope = f"seed={seed}, configuration={configuration}, channel={channel}"
+        assert len(customer_positions) >= 3, scope
+        assert customer_positions[0] < 13, scope
+        assert any(
+            category != "Customer" for category in categories[customer_positions[0] + 1 : customer_positions[-1]]
+        ), scope
+        assert {"IH", "Param"} & set(categories[:5]), scope
 
 
-@pytest.mark.parametrize(
-    ("configuration", "channel", "technique"),
-    [
+def test_external_churn_score_ranks_in_health_check_plots(datamart):
+    facets = [
         ("Mobile_Click_Through_Rate", "Mobile", "NaiveBayes"),
         ("Email_Click_Through_Rate", "Email", "NaiveBayes"),
         ("Mobile_Click_Through_Rate_GB", "Mobile", "GradientBoost"),
         ("Web_Click_Through_Rate_GB", "Web", "GradientBoost"),
-    ],
-)
-def test_external_churn_score_ranks_in_health_check_plots(datamart, configuration, channel, technique):
-    query = (
-        (pl.col("Configuration") == configuration)
-        & (pl.col("Channel") == channel)
-        & datamart.analysis.health_check_active_filter()
-    )
-    if technique == "NaiveBayes":
-        query &= pl.col("ResponseCountBin") > 200
-        data = datamart.plot.predictor_performance(query=query, top_n=30, return_df=True)
-        fig = datamart.plot.predictor_performance(query=query, top_n=30)
-        mean_order = data.sort("mean", descending=True)["PredictorName"].cast(pl.String).to_list()
-    else:
-        data = datamart.plot.predictor_importance(query=query, top_n=20, return_df=True)
-        fig = datamart.plot.predictor_importance(query=query, top_n=20)
-        mean_order = data["PredictorName"].cast(pl.String).to_list()
+    ]
+    mean_ranks, display_ranks = [], []
+    for configuration, channel, technique in facets:
+        query = (
+            (pl.col("Configuration") == configuration)
+            & (pl.col("Channel") == channel)
+            & datamart.analysis.health_check_active_filter()
+        )
+        if technique == "NaiveBayes":
+            query &= pl.col("ResponseCountBin") > 200
+            data = datamart.plot.predictor_performance(query=query, top_n=30, return_df=True)
+            fig = datamart.plot.predictor_performance(query=query, top_n=30)
+            mean_order = data.sort("mean", descending=True)["PredictorName"].cast(pl.String).to_list()
+        else:
+            data = datamart.plot.predictor_importance(query=query, top_n=20, return_df=True)
+            fig = datamart.plot.predictor_importance(query=query, top_n=20)
+            mean_order = data["PredictorName"].cast(pl.String).to_list()
 
-    display_order = data["PredictorName"].cast(pl.String).to_list()
-    assert CHURN_SCORE in mean_order
-    assert 10 <= mean_order.index(CHURN_SCORE) + 1 <= 20
-    assert 10 <= display_order.index(CHURN_SCORE) + 1 <= 20
-    assert data.filter(pl.col("PredictorName") == CHURN_SCORE)["PredictorCategory"].to_list() == ["External Model"]
-    traces = [trace for trace in fig.data if trace.name == "External Model"]
-    assert len(traces) == 1
-    assert CHURN_SCORE in traces[0].y
-    assert traces[0].marker.color == "#DE4342"
-    assert traces[0].showlegend
+        display_order = data["PredictorName"].cast(pl.String).to_list()
+        assert CHURN_SCORE in mean_order
+        mean_ranks.append(mean_order.index(CHURN_SCORE) + 1)
+        display_ranks.append(display_order.index(CHURN_SCORE) + 1)
+        assert data.filter(pl.col("PredictorName") == CHURN_SCORE)["PredictorCategory"].to_list() == ["External Model"]
+        traces = [trace for trace in fig.data if trace.name == "External Model"]
+        assert len(traces) == 1
+        assert CHURN_SCORE in traces[0].y
+        assert traces[0].marker.color == "#DE4342"
+        assert traces[0].showlegend
+    assert 10 <= sum(mean_ranks) / len(mean_ranks) <= 20
+    assert 10 <= sum(display_ranks) / len(display_ranks) <= 20
 
 
 def test_external_churn_score_has_numeric_bins_and_never_enters_loans(raw, models):

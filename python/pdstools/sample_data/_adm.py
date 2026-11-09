@@ -37,10 +37,13 @@ _PLATEAU = {
 }
 _PLATEAU_SD = 4.5
 _PLATEAU_RANGE = (53.0, 82.0)
+_LOW_SIGNAL_PLATEAU = {("Web", "Risk"): 54.0, ("Email", "Service"): 54.0}
+_LOW_SIGNAL_PLATEAU_SD = 1.5
 _ACTIVE_SHARE = {"NaiveBayes": (0.20, 0.03, 0.45), "GradientBoost": (0.40, 0.20, 0.80)}
 _PREHISTORY_DAYS = (90.0, 270.0)
 _SHORT_PREHISTORY_DAYS = (7.0, 28.0)
 _SEEDED_CASES = {"stuck": 12, "weak": 12, "overfit": 4}
+_SEEDED_MIN_EXPECTED_POSITIVES = 250
 _DEFAULT_REPORT_ACTIVE = 30
 _NOVELTY_BOOST = 3.0
 _NOVELTY_DAYS = 14.0
@@ -236,15 +239,32 @@ def seeded_cases(world: SampleWorld) -> dict[str, str]:
     Cases are drawn from models with prehistory in valid channels that run
     for the whole window, so their counts make them mature.
     """
+    models = adm_models(world.spec)
+    initial_totals: dict[str, float] = {}
+    for model in models:
+        start, stop = _window_bounds(world, model.context)
+        if start == 0 and stop > 0:
+            pool, _ = _pool(world, model, 0)
+            initial_totals[pool] = initial_totals.get(pool, 0.0) + _weight(model, start, 0)
+
     eligible = sorted(
         (
             m
-            for m in adm_models(world.spec)
+            for m in models
             if _has_prehistory(m)
             and m.context.channel in ("Web", "Email")
             and _runs_to_end(m.context.stop_day)
             and m.naming_case is None
             and m.model_id != default_report_model(world.spec).model_id
+            and (
+                world.channel_days(m.context.channel)[0].volume
+                / world.scale
+                * (world.days + _PREHISTORY_DAYS[0])
+                * m.weight
+                / initial_totals[_pool(world, m, 0)[0]]
+                * m.rate
+                >= _SEEDED_MIN_EXPECTED_POSITIVES
+            )
         ),
         key=lambda m: (m.weight, m.model_id),
     )
@@ -308,7 +328,10 @@ def model_snapshots(world: SampleWorld) -> pl.LazyFrame:
         feedback = world.feedback(context.channel, model.technique)
         baseline = world.baseline(context.channel)
         low, high = _PLATEAU_RANGE
-        plateau = min(high, max(low, rng.gauss(_PLATEAU[context.configuration], _PLATEAU_SD)))
+        context_plateau = _LOW_SIGNAL_PLATEAU.get((context.channel, model.issue))
+        mean = _PLATEAU[context.configuration] if context_plateau is None else context_plateau
+        deviation = _PLATEAU_SD if context_plateau is None else _LOW_SIGNAL_PLATEAU_SD
+        plateau = min(high, max(low, rng.gauss(mean, deviation)))
         median, floor_, ceiling = _ACTIVE_SHARE[model.technique]
         share = min(ceiling, max(floor_, median * exp(rng.gauss(0.0, 0.55))))
         active = round(model.total_predictors * share)

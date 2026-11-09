@@ -54,6 +54,9 @@ copy of the catalog.
 These are synthetic metadata tables, not generated model snapshots or private
 source-document audit records. Predictor distributions describe marginal shapes;
 they are not instructions to sample correlated fields independently.
+Action-channel volume weights give Sales and Service the largest response
+shares in the main channels, with smaller Retention and Risk shares. Actual
+shares vary with action lifetimes, model histories and sampled decisions.
 
 Calendar contract
 -----------------
@@ -101,16 +104,21 @@ The model snapshot view has one row per model per day for the 864 action-level
 models, plus AGB configuration-summary rows that the loader drops after using
 their importance. Actions launch and retire during the window; Mobile models
 mature from about 1.2 to 2 percent success rate. A few models are seeded as
-stuck (no active predictors), weak, or overfitting.
+stuck (no active predictors), weak, or overfitting. Web Risk and Email Service
+also have weaker, but generally not failed, models so the Health Check shows a
+few lower-performing contexts alongside the stronger ones.
 
 The predictor binning view describes the last snapshot. Its bin totals
 reconcile exactly with the model snapshots, and each stored Performance is the
 AUC of the emitted bins. Naive Bayes predictors have about five bins and a
 median univariate AUC of about 0.56; numeric bins use one cut grid per
-predictor, so aggregation can align bins across models. Interaction History and
-Param predictors rank highest, and three shared predictors lead both Mobile
-configurations. AGB models carry feature importance only; their context keys
-are inactive at model level but ranked in the configuration summary.
+predictor, so aggregation can align bins across models. Customer and clickstream
+signals appear alongside Interaction History and Param predictors, and three
+shared predictors lead both Mobile configurations. ``Param.CallToActionStyle`` is
+deliberately missing from every observation, so it remains inactive and appears
+as a 100% missing predictor in the Health Check; ``Param.CreativeFormat`` has
+some missing values. AGB models carry feature importance only; their context
+keys are inactive at model level but ranked in the configuration summary.
 
 Standard configurations also include ``Customer.ChurnRiskModelScore``, a
 synthetic, precomputed customer churn-risk score. By default, a naming-pattern

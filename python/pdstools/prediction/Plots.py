@@ -108,21 +108,36 @@ class PredictionPlots(LazyNamespace):
             .lazy()
         )
 
-        # plt = px.bar(
-        #     plot_df.filter(pl.col("isMultiChannelPrediction").not_())
-        #     .filter(pl.col("Channel") != "Unknown")
-        #     .sort("Date")
-        #     .collect(),
-        #     x="Date",
-        #     y=metric,
-        #     barmode="group",
-        #     facet_row=facet_row,
-        #     facet_col=facet_col,
-        #     color="Prediction",
-        #     title=f"{title}<br><sub>{date_range}</sub>",
-        #     template="pega",
-        #     hover_data=hover_data,
-        # )
+        metric_formats = {
+            "Performance": ":.2f",
+            "Lift": ":.2%",
+            "CTR": ":.3%",
+            "Responses": ":,.0f",
+        }
+        hover_data = {
+            "Period": True,
+            "Positives": ":,.0f",
+            "Negatives": ":,.0f",
+            metric: metric_formats[metric],
+        }
+        if metric in {"Lift", "CTR"}:
+            hover_data.update({"CTR_Test": ":.3%", "CTR_Control": ":.3%", "CTR_NBA": ":.3%"})
+        hover_data.update(kwargs.pop("hover_data", {}))
+        labels = {
+            "Performance": "Prediction Performance (AUC)",
+            "Lift": "Engagement lift",
+            "CTR_Test": "Test success rate",
+            "CTR_Control": "Control success rate",
+            "CTR_NBA": "NBA success rate",
+            "Positives_Test": "Test positives",
+            "Negatives_Test": "Test negatives",
+            "Positives_Control": "Control positives",
+            "Negatives_Control": "Control negatives",
+            "Positives_NBA": "NBA positives",
+            "Negatives_NBA": "NBA negatives",
+        }
+        labels.update(kwargs.pop("labels", None) or {})
+
         plt = px.line(
             plot_df.filter(pl.col("isMultiChannel").not_())
             .filter(pl.col("Channel") != "Unknown")
@@ -134,6 +149,8 @@ class PredictionPlots(LazyNamespace):
             title=f"{title}<br><sub>{date_range}</sub>",
             template="pega",
             markers=True,
+            hover_data=hover_data,
+            labels=labels,
             **kwargs,
         )
 
@@ -147,7 +164,7 @@ class PredictionPlots(LazyNamespace):
 
         if kwargs.get("facet_row") is not None:
             plt.update_yaxes(title="")
-        if kwargs.get("facet_col") is not None or "Date" not in (kwargs.get("labels") or {}):
+        if kwargs.get("facet_col") is not None or "Date" not in labels:
             plt.update_xaxes(title="")
 
         return plt, plot_df
@@ -216,32 +233,11 @@ class PredictionPlots(LazyNamespace):
         >>> data = pred.plot.performance_trend(return_df=True)
 
         """
-        # Default hover data for performance plots
-        hover_data = {
-            "Period": True,
-            "Positives": True,
-            "Negatives": True,
-            "Positives_Test": True,
-            "Negatives_Test": True,
-            "CTR_Test": ":.3%",
-            "Positives_Control": True,
-            "Negatives_Control": True,
-            "CTR_Control": ":.3%",
-            "Positives_NBA": True,
-            "Negatives_NBA": True,
-            "CTR_NBA": ":.3%",
-        }
-
-        # Merge default hover_data with any provided in kwargs
-        if "hover_data" in kwargs:
-            hover_data.update(kwargs.pop("hover_data"))
-
         plt, plt_data = self._prediction_trend(
             query=query,
             period=period,
             metric="Performance",
             title="Prediction Performance",
-            hover_data=hover_data,
             **kwargs,
         )
         if return_df:
@@ -252,7 +248,7 @@ class PredictionPlots(LazyNamespace):
             if hasattr(trace, "y") and trace.y is not None:
                 trace.y = tuple(y * 100 if y is not None else None for y in trace.y)
 
-        plt.update_yaxes(range=[50, 100], title="Performance (AUC)")
+        plt.update_yaxes(range=[50, 100], title="Prediction Performance (AUC)")
         return plt
 
     @overload
@@ -319,32 +315,11 @@ class PredictionPlots(LazyNamespace):
         >>> data = pred.plot.lift_trend(return_df=True)
 
         """
-        # Default hover data for lift plots
-        hover_data = {
-            "Period": True,
-            "Positives": True,
-            "Negatives": True,
-            "Positives_Test": True,
-            "Negatives_Test": True,
-            "CTR_Test": ":.3%",
-            "Positives_Control": True,
-            "Negatives_Control": True,
-            "CTR_Control": ":.3%",
-            "Positives_NBA": True,
-            "Negatives_NBA": True,
-            "CTR_NBA": ":.3%",
-        }
-
-        # Merge default hover_data with any provided in kwargs
-        if "hover_data" in kwargs:
-            hover_data.update(kwargs.pop("hover_data"))
-
         plt, plt_data = self._prediction_trend(
             period=period,
             query=query,
             metric="Lift",
             title="Prediction Lift",
-            hover_data=hover_data,
             **kwargs,
         )
         if return_df:
@@ -427,26 +402,6 @@ class PredictionPlots(LazyNamespace):
         >>> data = pred.plot.ctr_trend(return_df=True)
 
         """
-        # Default hover data for CTR plots
-        hover_data = {
-            "Period": True,
-            "Positives": True,
-            "Negatives": True,
-            "Positives_Test": True,
-            "Negatives_Test": True,
-            "CTR_Test": ":.3%",
-            "Positives_Control": True,
-            "Negatives_Control": True,
-            "CTR_Control": ":.3%",
-            "Positives_NBA": True,
-            "Negatives_NBA": True,
-            "CTR_NBA": ":.3%",
-        }
-
-        # Merge default hover_data with any provided in kwargs
-        if "hover_data" in kwargs:
-            hover_data.update(kwargs.pop("hover_data"))
-
         # Handle facetting
         facet_kwargs = {}
         if facetting:
@@ -460,7 +415,6 @@ class PredictionPlots(LazyNamespace):
             query=query,
             metric="CTR",
             title="Prediction CTR",
-            hover_data=hover_data,
             **kwargs,
         )
         if return_df:
@@ -538,26 +492,6 @@ class PredictionPlots(LazyNamespace):
         >>> data = pred.plot.responsecount_trend(return_df=True)
 
         """
-        # Default hover data for response count plots
-        hover_data = {
-            "Period": True,
-            "Positives": True,
-            "Negatives": True,
-            "Positives_Test": True,
-            "Negatives_Test": True,
-            "CTR_Test": ":.3%",
-            "Positives_Control": True,
-            "Negatives_Control": True,
-            "CTR_Control": ":.3%",
-            "Positives_NBA": True,
-            "Negatives_NBA": True,
-            "CTR_NBA": ":.3%",
-        }
-
-        # Merge default hover_data with any provided in kwargs
-        if "hover_data" in kwargs:
-            hover_data.update(kwargs.pop("hover_data"))
-
         # Handle facetting
         facet_kwargs = {}
         if facetting:
@@ -571,7 +505,6 @@ class PredictionPlots(LazyNamespace):
             query=query,
             metric="Responses",
             title="Prediction Responses",
-            hover_data=hover_data,
             **kwargs,
         )
         if return_df:
