@@ -301,7 +301,8 @@ class IH:
         end : date, "canonical" or None, default None
             Last day of the window, resolved to the Sunday on or before it.
             ``None`` uses the most recent completed Sunday, ``"canonical"``
-            pins Sunday 2000-07-02.
+            pins Sunday 2000-07-02. Experiment assignments follow calendar
+            months, so changing the end date can also change sampled decisions.
         scale : float, default 1.0
             Multiplier on world response volumes.
 

@@ -256,6 +256,10 @@ def outcome_labels(world: SampleWorld) -> dict[str, dict[str, list[str]]]:
 def interaction_history(world: SampleWorld, n: int) -> pl.LazyFrame:
     """Sample raw Interaction History rows in the ``pxStrategyResult`` export shape.
 
+    Experiment assignments and policy draws follow the actual calendar month
+    of each exposure. Changing the window's end date can therefore change
+    the sampled decisions, not just their timestamps.
+
     Parameters
     ----------
     world : SampleWorld

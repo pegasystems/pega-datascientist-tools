@@ -152,7 +152,8 @@ def demo_data(
     end : date, "canonical" or None, default None
         Last day of the window, resolved to the Sunday on or before it.
         ``None`` uses the most recent completed Sunday, ``"canonical"`` pins
-        Sunday 2000-07-02.
+        Sunday 2000-07-02. IH experiment assignments follow calendar months,
+        so changing the end date can also change the sampled interactions.
     scale : float, default 1.0
         Multiplier on response volumes.
     interactions : int, default 100000

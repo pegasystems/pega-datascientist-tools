@@ -23,11 +23,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   for lending offers), plus the predictor binning of the last snapshot. Use
   `seed`, `end` and `scale` like `Prediction.from_mock_data()`.
 - `ImpactAnalyzer.from_mock_data()` aggregates the exposures of
-  `IH.from_mock_data()` with the same arguments, so the counts reconcile
-  exactly with that Interaction History (#999). All five stock experiments
-  are present; each control group holds about 1 percent of customers per
-  month, so small channels and short windows can leave arms sparse. Pass
-  `return_df=True` for the aggregated frame.
+  `IH.from_mock_data()` with matching arguments and a fixed seed and window,
+  so the counts reconcile exactly with that Interaction History (#999). The
+  five experiment types each hold about 1 percent of customers per month,
+  with model control split between two arms; small channels and short windows
+  can leave arms sparse. Pass `return_df=True` for the aggregated frame.
 - `pdstools.utils.cdh_utils.resolve_trend_interval()` and
   `trend_interval_label()` provide shared date-range-based trend cadence
   selection and display labels.
@@ -63,7 +63,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and Accepted. `outcome_labels_used` declares the labels per channel. The
   defaults are now `days=182` and `seed=42`, so the data is deterministic;
   pass `seed=None` for a random world. New keyword arguments `end` and `scale`
-  behave as in `Prediction.from_mock_data()`.
+  behave as in `Prediction.from_mock_data()`. Experiment assignments follow
+  actual calendar months, so changing `end` can also change IH decisions and
+  Impact Analyzer aggregates.
 - `IH.get_sequences()` orders each customer's interactions by `OutcomeTime`
   instead of relying on the input row order.
 

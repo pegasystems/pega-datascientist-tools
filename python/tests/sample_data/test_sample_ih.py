@@ -7,6 +7,7 @@ from pdstools.sample_data._ih import (
     IMPRESSION_OUTCOME,
     POSITIVE_OUTCOME,
     action_value,
+    ia_group,
     ia_shares,
     interaction_history,
 )
@@ -112,6 +113,35 @@ def test_impact_groups_are_shared_and_stable(raw):
     observed = subjects["MktValue"].value_counts(normalize=True)
     for group, fraction in observed.iter_rows():
         assert fraction == pytest.approx(share[group.removeprefix("NBAHealth_")], abs=0.004)
+
+
+def test_shifted_impact_groups_follow_actual_calendar_months():
+    shifted_world = sample_world(days=60, end=datetime.date(2026, 11, 8))
+    shifted = interaction_history(shifted_world, 5_000).collect()
+    assert interaction_history(shifted_world, 5_000).collect().equals(shifted)
+
+    impressions = shifted.filter(pl.col("pyOutcome").is_in(["Impression", "Pending"]))
+    assignments = impressions.select(
+        "pySubjectID", "MktValue", Month=pl.col("pxOutcomeTime").dt.strftime("%Y-%m")
+    ).unique()
+    assert assignments.group_by("pySubjectID", "Month").len()["len"].max() == 1
+    for subject, group, month in assignments.iter_rows():
+        assert group == f"NBAHealth_{ia_group(shifted_world.seed, subject, month)}"
+
+    subjects = assignments.group_by("pySubjectID").agg(
+        months=pl.col("Month").n_unique(), groups=pl.col("MktValue").n_unique()
+    )
+    assert subjects.filter((pl.col("months") > 1) & (pl.col("groups") > 1)).height > 0
+
+    canonical = interaction_history(sample_world(days=60, end="canonical"), 5_000).collect()
+    canonical_groups = (
+        canonical.filter(pl.col("pyOutcome").is_in(["Impression", "Pending"]))
+        .select("pxInteractionID", "MktValue")
+        .unique()
+    )
+    shifted_groups = impressions.select("pxInteractionID", "MktValue").unique()
+    matched = canonical_groups.join(shifted_groups, on="pxInteractionID")
+    assert matched.filter(pl.col("MktValue") != pl.col("MktValue_right")).height > 0
 
 
 def test_repeated_subject_decisions_across_months(raw):

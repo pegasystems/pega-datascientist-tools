@@ -58,15 +58,22 @@ they are not instructions to sample correlated fields independently.
 Calendar contract
 -----------------
 
-All views will use a canonical window ending on Sunday, July 2, 2000. The default
-window contains 182 dates, starting on Monday, January 3. Windows contain exactly
-the requested number of dates, with a minimum of 56; a 60-day window consequently
-has a partial first week.
+The canonical window ends on Sunday, July 2, 2000. Its default 182 dates start
+on Monday, January 3. Windows contain exactly the requested number of dates,
+with a minimum of 56; a 60-day window consequently has a partial first week.
 
 An explicit end date is normalized to the Sunday on or before that date. Without
 an explicit end date, the most recent completed Sunday in UTC is used. Every
 timestamp shift is a whole number of weeks, preserving weekdays and weekly
-stories. The canonical calendar is available for reproducible checks.
+stories. ADM model/predictor and Prediction views change only their timestamps
+when the end date shifts.
+
+Interaction History assigns experiment groups and policy decisions by the
+actual calendar month of each exposure. Changing the end date can therefore
+also change IH decisions and Impact Analyzer aggregates. With matching
+arguments, including a fixed seed and window, the Impact Analyzer mock
+reconciles with the corresponding IH sample. Separate calls with ``seed=None``
+draw independent worlds.
 
 Shared world
 ------------

@@ -569,13 +569,15 @@ class ImpactAnalyzer:
         """Create an ImpactAnalyzer from the shared synthetic sample world.
 
         Aggregates the exposures of :meth:`pdstools.ih.IH.from_mock_data`
-        with the same arguments, so the counts reconcile exactly with that
-        Interaction History. All five stock experiments are present, each
-        control group holding about 1 percent of the customers per month;
-        small channels and short windows can leave arms empty or without
-        accepts. Impressions are Impression (inbound) or Pending (outbound)
-        outcomes, accepts are Clicked (inbound) or Accepted (outbound), and
-        each exposure counts once on the day it was offered.
+        with matching arguments and a fixed seed and window, so the counts
+        reconcile exactly with that Interaction History. Separate calls with
+        ``seed=None`` draw independent worlds. Each of the five experiment
+        types holds about 1 percent of customers per month, with model control
+        split between two arms; small channels and short windows can leave
+        arms empty or without accepts. Impressions are Impression (inbound)
+        or Pending (outbound) outcomes, accepts are Clicked (inbound) or
+        Accepted (outbound), and each exposure counts once on the day it was
+        offered.
 
         Parameters
         ----------
@@ -588,7 +590,8 @@ class ImpactAnalyzer:
         end : date, "canonical" or None, default None
             Last day of the window, resolved to the Sunday on or before it.
             ``None`` uses the most recent completed Sunday, ``"canonical"``
-            pins Sunday 2000-07-02.
+            pins Sunday 2000-07-02. Experiment assignments follow calendar
+            months, so changing the end date can also change the aggregates.
         scale : float, default 1.0
             Multiplier on world response volumes.
         return_df : bool, default False

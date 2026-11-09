@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 import polars as pl
 import pytest
@@ -141,9 +141,10 @@ def test_from_mock_data_return_df_matches_analyzer():
     assert summary.height > 0
 
 
-def test_mock_data_reconciles_with_the_public_demo_interactions():
+@pytest.mark.parametrize("end", ["canonical", date(2026, 11, 8)])
+def test_mock_data_reconciles_with_the_public_demo_interactions(end):
     ih = (
-        demo_data(end="canonical", interactions=5_000)
+        demo_data(days=60, end=end, interactions=5_000)
         .ih.data.rename(
             {
                 "Channel": "pyChannel",
@@ -155,6 +156,6 @@ def test_mock_data_reconciles_with_the_public_demo_interactions():
         )
         .collect()
     )
-    impact = ImpactAnalyzer.from_mock_data(n=5_000, end="canonical", return_df=True).collect()
+    impact = ImpactAnalyzer.from_mock_data(days=60, n=5_000, end=end, return_df=True).collect()
 
     _assert_reconciles(ih, impact)
