@@ -127,7 +127,7 @@ def test_hc_subpage_warns_when_autoload_fails(hc_app_dir: Path, monkeypatch: pyt
     st.cache_resource.clear()
 
     def _broken_sample():
-        raise RuntimeError("sample bundle unavailable")
+        raise RuntimeError("sample generation failed")
 
     monkeypatch.setattr(
         "pdstools.app.health_check.hc_streamlit_utils.cached_sample",
