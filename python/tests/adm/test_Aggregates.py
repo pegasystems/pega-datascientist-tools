@@ -129,8 +129,8 @@ def test_summary_by_channel(dm_aggregates):
     assert summary_by_channel["Positives"].to_list() == [157.0, 562090.0, 456974.0, 1435383.0]
     assert summary_by_channel["Responses"].to_list() == [1438.0, 36097320.0, 21592492.0, 54030772.0]
     assert summary_by_channel["Used Actions"].to_list() == [12, 80, 70, 101]
-    assert summary_by_channel["Treatments"].to_list() == [1673, 31885, 17920, 38871]
-    assert summary_by_channel["Used Treatments"].to_list() == [545, 30642, 16868, 37261]
+    assert summary_by_channel["Treatments"].to_list() == [12, 200, 70, 250]
+    assert summary_by_channel["Used Treatments"].to_list() == [12, 200, 70, 250]
     assert summary_by_channel["Duration"].to_list() == [15638400] * 4
     omni_channel = summary_by_channel["OmniChannel"].to_list()
     assert omni_channel[0] is None
@@ -232,9 +232,81 @@ def test_used_actions():
 
     summary = dm_used.aggregates.summary_by_channel().collect()
     assert summary["Used Actions"].to_list() == [2]
+    assert summary["Treatments"].to_list() == [2]
+    assert summary["Used Treatments"].to_list() == [2]
 
     summary = dm_used.aggregates.summary_by_channel(every="1mo").collect()
     assert summary["Used Actions"].to_list() == [1, 0, 2]
+    assert summary["Treatments"].to_list() == [2, 2, 2]
+    assert summary["Used Treatments"].to_list() == [2, 0, 2]
+
+
+def test_treatment_counts_are_unique_across_models_and_snapshots():
+    dates = [datetime(2026, 1, 1), datetime(2026, 2, 1), datetime(2026, 2, 8)]
+    models = [
+        ("m1", "Web A", "Web", "A", "T1", [10, 10, 20]),
+        ("m2", "Web B", "Web", "A", "T1", [10, 10, 10]),
+        ("m3", "Web A", "Web", "B", "T2", [10, 10, 10]),
+        ("m4", "Web A", "Web", "C", "", [10, 10, 20]),
+        ("m5", "Web A", "Web", "D", None, [10, 10, 20]),
+        ("m6", "Mobile", "Mobile", "E", "T1", [10, 10, 20]),
+        ("m7", "Email", "Email", "F", "", [10, 10, 20]),
+        ("m8", "Email", "Email", "G", None, [10, 10, 20]),
+    ]
+    model_data = pl.DataFrame(
+        [
+            {
+                "ModelID": model_id,
+                "Configuration": configuration,
+                "Channel": channel,
+                "Direction": "Inbound",
+                "Name": action,
+                "Treatment": treatment,
+                "SnapshotTime": snapshot,
+                "ResponseCount": responses,
+                "Positives": responses // 10,
+                "Performance": 0.6,
+            }
+            for model_id, configuration, channel, action, treatment, response_counts in models
+            for snapshot, responses in zip(dates, response_counts, strict=True)
+        ],
+    ).lazy()
+    datamart = ADMDatamart(model_df=model_data)
+
+    february = (
+        datamart.aggregates.summary_by_channel(
+            start_date=dates[1],
+            end_date=dates[2],
+        )
+        .select("Channel", "Treatments", "Used Treatments")
+        .collect()
+    )
+    assert february.to_dicts() == [
+        {"Channel": "Email", "Treatments": 0, "Used Treatments": 0},
+        {"Channel": "Mobile", "Treatments": 1, "Used Treatments": 1},
+        {"Channel": "Web", "Treatments": 2, "Used Treatments": 1},
+    ]
+
+    monthly = (
+        datamart.aggregates.summary_by_channel(every="1mo", debug=True)
+        .select("Channel", "DateRange Min", "Treatments", "Used Treatments")
+        .collect()
+    )
+    assert monthly.to_dicts() == [
+        {"Channel": "Email", "DateRange Min": date(2026, 1, 1), "Treatments": 0, "Used Treatments": 0},
+        {"Channel": "Email", "DateRange Min": date(2026, 2, 1), "Treatments": 0, "Used Treatments": 0},
+        {"Channel": "Mobile", "DateRange Min": date(2026, 1, 1), "Treatments": 1, "Used Treatments": 1},
+        {"Channel": "Mobile", "DateRange Min": date(2026, 2, 1), "Treatments": 1, "Used Treatments": 1},
+        {"Channel": "Web", "DateRange Min": date(2026, 1, 1), "Treatments": 2, "Used Treatments": 2},
+        {"Channel": "Web", "DateRange Min": date(2026, 2, 1), "Treatments": 2, "Used Treatments": 1},
+    ]
+
+    overall = (
+        datamart.aggregates.overall_summary(start_date=dates[1], end_date=dates[2])
+        .select("Treatments", "Used Treatments")
+        .collect()
+    )
+    assert overall.to_dicts() == [{"Treatments": 2, "Used Treatments": 1}]
 
 
 def test_custom_channel_mapping(dm_aggregates):
@@ -271,7 +343,7 @@ def test_aggregate_overall_summary(dm_aggregates):
     assert overall_summary.width == 22
     assert overall_summary["Number of Valid Channels"].item() == 3
     assert overall_summary["Actions"].item() == 111
-    assert overall_summary["Treatments"].item() == 90349
+    assert overall_summary["Treatments"].item() == 532
 
     assert round(overall_summary["OmniChannel"].item(), 5) == 0.76444
 

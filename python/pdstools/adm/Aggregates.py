@@ -667,8 +667,8 @@ class Aggregates:
                 .filter(pl.col("Treatment").is_not_null())
                 .group_by(grouping)
                 .agg(
-                    pl.len().alias("Treatments"),
-                    pl.sum("IsUpdated").alias("Used Treatments"),
+                    pl.col("Treatment").n_unique().alias("Treatments"),
+                    pl.col("Treatment").filter("IsUpdated").n_unique().alias("Used Treatments"),
                 )
             )
 
@@ -827,7 +827,7 @@ class Aggregates:
 
             Treatment Statistics:
             - Treatments - The total number of unique treatments
-            - Used Treatments - The number of unique treatments
+            - Used Treatments - The number of unique treatments with updated models
 
             Omnichannel Metrics:
             - OmniChannel - The overlap of actions with other channels (measure of Omni Channel capability)
@@ -836,6 +836,11 @@ class Aggregates:
             - usesNBAD - Boolean indicating whether any standard NBAD configurations are used
             - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
             - AGB Configurations - Comma-separated names of the configurations that contain AGB models (empty if none)
+
+        Notes
+        -----
+        Each nonempty treatment name is counted once per channel and period,
+        even when it appears in multiple models or snapshots.
 
         """
         start_date, end_date = cdh_utils._get_start_end_date_args(
@@ -1824,7 +1829,7 @@ class Aggregates:
 
             Treatment Statistics:
             - Treatments - The total number of unique treatments
-            - Used Treatments - The number of unique treatments that have been used
+            - Used Treatments - The number of unique treatments with updated models
 
             Channel Statistics:
             - Number of Valid Channels - The count of valid channels (channels with sufficient data)
@@ -1836,7 +1841,11 @@ class Aggregates:
             - usesNBAD - Boolean indicating whether standard NBAD configurations are used
             - usesAGB - Boolean indicating whether any Adaptive Gradient Boosting (AGB) models are used
 
-            Note: A channel is considered "valid" if it has at least 200 positives and 1000 responses
+        Notes
+        -----
+        Each nonempty treatment name is counted once across channels, models,
+        and snapshots in the period. A channel is considered valid if it has
+        at least 200 positives and 1000 responses.
 
         """
         start_date, end_date = cdh_utils._get_start_end_date_args(
