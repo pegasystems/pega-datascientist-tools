@@ -65,7 +65,7 @@ interactive visuals and an Excel export for further exploration.
 
     # Auto-load on first visit so the app is immediately usable —
     # matches DA / IA first-run UX. Delegates the priority chain
-    # (``--data-path`` → bundled sample) to the shared helper so
+    # (``--data-path`` → synthetic demo data) to the shared helper so
     # data-required sub-pages can do the same on deep-link.
     # ``st.rerun()`` rebuilds the script with ``dm`` set so the rest of
     # the home page (data summary, etc.) renders in the same user action.
