@@ -20,6 +20,8 @@ Welcome to the PDS Tools Python documentation
    :caption: Examples
 
    articles/Example_ADM_Analysis
+   example_health_check
+   example_model_report
    articles/Example_IH_Analysis
    articles/Predictions
    articles/vf_analysis
@@ -33,8 +35,8 @@ Welcome to the PDS Tools Python documentation
    :caption: Articles
 
    articles/AGBExplained
-   articles/thompsonsampling
    articles/ADMExplained
+   articles/thompsonsampling
    articles/agb_global_explanations
    articles/ConversionModeling
 

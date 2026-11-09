@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Documentation examples of the ADM Health Check and Naive Bayes Model Report,
+  regenerated from the shared synthetic sample during HTML documentation builds.
 - Internal canonical-calendar, per-entity random streams and validated immutable
   catalogs for the shared synthetic sample generator (#999). The catalogs include
   explicit action/treatment baselines, predictor policies, model contexts and
