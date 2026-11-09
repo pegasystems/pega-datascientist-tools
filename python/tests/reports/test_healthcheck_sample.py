@@ -5,8 +5,12 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, sentinel
 
+import plotly.express as px
 import polars as pl
 import pytest
+from pdstools.adm.Plots._helpers import add_metric_limit_lines
+from pdstools.utils import pega_template
+from pdstools.utils.plot_utils import fig_update_facet
 
 
 @pytest.fixture(scope="module")
@@ -26,6 +30,14 @@ def action_hierarchy_cell():
     start = source.index('if "Issue" in datamart_all_columns and "Group" in datamart_all_columns:')
     end = source.index("\n```", start)
     return compile(source[start:end], str(template), "exec")
+
+
+@pytest.fixture(scope="module")
+def bubble_chart_cell():
+    template = Path(__file__).parents[2] / "pdstools" / "reports" / "HealthCheck.qmd"
+    cells = re.findall(r"```\{python\}\n(.*?)\n```", template.read_text(encoding="utf-8"), re.DOTALL)
+    cell = next(cell for cell in cells if "# Check number of unique Configuration/Channel/Direction" in cell)
+    return compile(cell, str(template), "exec")
 
 
 @pytest.mark.parametrize(
@@ -119,3 +131,86 @@ def test_action_hierarchy_collapses_whitespace_group_variants(action_hierarchy_c
 
     hierarchy = report_utils.create_metric_gttable.call_args.args[0]
     assert hierarchy.select("Group", "Models").rows() == [("CreditCards", 2), ("Loans", 1)]
+
+
+@pytest.mark.parametrize(
+    ("facet_count", "expected_height", "configurations_max", "technique", "title_detail"),
+    [
+        (1, 465, 100, "GradientBoost", "Configuration and Channel/Direction"),
+        (3, 680, 100, "GradientBoost", "Configuration and Channel/Direction"),
+        (8, 1110, 100, "GradientBoost", "Configuration and Channel/Direction"),
+        (3, 680, 1, "GradientBoost", "Channel/Direction and Model Technique"),
+        (3, 680, 1, None, "Channel/Direction"),
+    ],
+)
+def test_bubble_chart_compacts_facets_without_overlapping_labels(
+    bubble_chart_cell, monkeypatch, facet_count, expected_height, configurations_max, technique, title_detail
+):
+    configs = [f"Configuration{i}" for i in range(facet_count)]
+    channels = [f"Channel{i}" for i in range(facet_count)]
+    plot_data = pl.DataFrame(
+        {
+            "Performance": [60 + i for i in range(facet_count)],
+            "SuccessRate": [0.01] * facet_count,
+            "Facet": [f"{config}/{channel}/Inbound" for config, channel in zip(configs, channels, strict=True)],
+        }
+    )
+    fig = px.scatter(
+        plot_data,
+        x="Performance",
+        y="SuccessRate",
+        color="Performance",
+        facet_col="Facet",
+        facet_col_wrap=2,
+    )
+    add_metric_limit_lines(fig)
+    monkeypatch.setattr(type(fig), "show", lambda self: None)
+    report_utils = Mock()
+    datamart = SimpleNamespace(
+        model_data=pl.DataFrame(
+            {
+                "Configuration": configs,
+                "Channel": channels,
+                "Direction": ["Inbound"] * facet_count,
+                "ModelTechnique": [technique] * facet_count,
+            }
+        ).lazy(),
+        plot=SimpleNamespace(bubble_chart=Mock(return_value=fig)),
+    )
+    namespace = {
+        "pl": pl,
+        "datamart": datamart,
+        "active_models_filter_expr": pl.lit(True),
+        "configurations_max": configurations_max,
+        "active_models_threshold_date_string": "2026-01-01",
+        "report_utils": report_utils,
+        "fig_update_facet": fig_update_facet,
+        "pega_template": pega_template,
+    }
+
+    exec(bubble_chart_cell, namespace)
+
+    report_utils.quarto_plot_exception.assert_not_called()
+    assert fig.layout.height == expected_height
+    assert fig.layout.width == 900
+    assert fig.layout.title.text.startswith(f"ADM Models by {title_detail}")
+    assert len(fig.data) == facet_count
+    assert len(fig.layout.shapes) == 7 * facet_count
+    html = fig.to_html(full_html=False, include_plotlyjs=False)
+    graph_heights = re.findall(r'class="plotly-graph-div"[^>]*style="[^"]*\bheight:\s*(\d+)px', html)
+    assert graph_heights == [str(expected_height)]
+    titles = [a for a in fig.layout.annotations if a.xref == "paper" and a.yref == "paper"]
+    assert len(titles) == facet_count
+    assert all(a.visible is not False for a in titles)
+
+    limits = [a for a in fig.layout.annotations if a.yref and a.yref.endswith(" domain")]
+    assert len(limits) == 4 * facet_count
+    bottom_labels = 0
+    for annotation in limits:
+        axis_name = annotation.yref.split(" ", 1)[0].replace("y", "yaxis", 1)
+        if fig.layout[axis_name].domain[0] == 0:
+            assert annotation.visible is not False
+            bottom_labels += 1
+        else:
+            assert annotation.visible is False
+    assert bottom_labels == 4 * (1 if facet_count % 2 else 2)

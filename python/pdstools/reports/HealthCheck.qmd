@@ -1298,7 +1298,7 @@ The data contains many ({n_configs}) model configurations. To limit the size of 
 
     fig = datamart.plot.bubble_chart(facet=facet, query=active_models_filter_expr, show_metric_limits=True)
     fig = (
-        fig_update_facet(fig, step_height=430)
+        fig_update_facet(fig, step_height=215)
         .update_layout(
             title=f"ADM Models by {bubble_title_detail}<br><sup>updated since {active_models_threshold_date_string}</sup>",
             font=dict(size=9),
@@ -1317,6 +1317,16 @@ The data contains many ({n_configs}) model configurations. To limit the size of 
         .update_yaxes(tickformat=",.2%", title="")
         .update_coloraxes(showscale=False)
     )
+    # Keep shared threshold labels on the bottom row so they do not overlap facet titles.
+    for annotation in fig.layout.annotations:
+        if (
+            annotation.xref and annotation.xref.startswith("x")
+            and annotation.yref and annotation.yref.endswith(" domain")
+            and annotation.y == 0
+        ):
+            axis_name = annotation.yref.split(" ", 1)[0].replace("y", "yaxis", 1)
+            if fig.layout[axis_name].domain and fig.layout[axis_name].domain[0] > 0:
+                annotation.update(visible=False)
     fig.layout.coloraxis.colorscale = pega_template.success
     fig.show()
 
@@ -1325,7 +1335,7 @@ except Exception as e:
 
 ```
 
-The x-axis shows model performance measured in AUC-ROC; the y-axis shows success rate (#positives / #responses).
+The x-axis shows model performance measured in AUC-ROC; the y-axis shows success rate (#positives / #responses). The threshold lines and bands apply to every panel; their labels appear under the bottom row.
 
 ::: {.callout-tip title="Guidance"}
 -   Bubbles near the left-hand vertical axis indicate low model performance. The model may still be ramping up or may not have enough useful features: consider whether better predictors can be added.
