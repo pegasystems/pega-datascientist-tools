@@ -31,4 +31,4 @@ example-reports:
 	cp ../../examples/prediction_studio/Predictions.ipynb ../../examples/datamart/Example_ADM_Analysis.ipynb ../../examples/ih/Example_IH_Analysis.ipynb ../../examples/valuefinder/* ../../examples/adm/ADMBinningInsights.ipynb ../../examples/articles/*.ipynb  ../../examples/explainability_extract/explainability_extract.ipynb ../../examples/decision_analyzer/decision_analyzer.ipynb  ../../examples/hds/hds_analysis.ipynb ../../examples/articles/explanations/agb_global_explanations.ipynb source/articles
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	rm -rf source/articles/output
-	rm source/articles/*
+	rm -rf source/articles/*

@@ -45,7 +45,7 @@ def test_generates_standalone_reports_from_one_shared_sample(tmp_path, reports):
 
     example_reports.generate_example_reports(output_dir)
 
-    demo_data.assert_called_once_with(end="canonical")
+    demo_data.assert_called_once_with()
     generate = sample.datamart.generate
     work_dir = generate.health_check.call_args.kwargs["output_dir"]
     generate.health_check.assert_called_once_with(

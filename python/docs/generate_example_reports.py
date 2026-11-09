@@ -29,7 +29,7 @@ def generate_example_reports(output_dir: Path) -> None:
     ValueError
         If a report is not standalone HTML or contains rendering errors.
     """
-    sample = demo_data(end="canonical")
+    sample = demo_data()
     output_dir.mkdir(parents=True, exist_ok=True)
 
     with TemporaryDirectory(prefix="pdstools-docs-reports-") as work_dir:
