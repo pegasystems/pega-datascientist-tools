@@ -52,11 +52,15 @@ def test_generates_standalone_reports_from_one_shared_sample(tmp_path, reports):
         prediction=sample.prediction,
         output_dir=work_dir,
         full_embed=False,
+        title="ADM Health Check example",
+        subtitle="All data is synthetic and generated from pdstools.demo_data().",
     )
     generate.model_reports.assert_called_once_with(
         "05085857-c52c-5daa-b51b-0af576a038af",
         output_dir=work_dir,
         full_embed=False,
+        title="Naive Bayes Model Report example",
+        subtitle="All data is synthetic. This report uses the Fixed Rate Loan model for Web.",
     )
     assert sorted(p.name for p in output_dir.iterdir()) == [
         "health-check.html",

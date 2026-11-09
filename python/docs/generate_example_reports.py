@@ -39,12 +39,16 @@ def generate_example_reports(output_dir: Path) -> None:
             prediction=sample.prediction,
             output_dir=report_dir,
             full_embed=False,
+            title="ADM Health Check example",
+            subtitle="All data is synthetic and generated from pdstools.demo_data().",
         )
         logger.info("Generating the example Naive Bayes Model Report")
         model_report = sample.datamart.generate.model_reports(
             NAIVE_BAYES_MODEL_ID,
             output_dir=report_dir,
             full_embed=False,
+            title="Naive Bayes Model Report example",
+            subtitle=("All data is synthetic. This report uses the Fixed Rate Loan model for Web."),
         )
 
         for report, filename in (
