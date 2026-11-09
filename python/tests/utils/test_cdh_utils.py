@@ -964,8 +964,13 @@ def test_PredictorCategorization():
                     "pyOther",
                     "ExternalModel.CustomerChurnRiskScore",
                     "ExternalModel.AnotherScore",
+                    "Customer.ChurnRiskModelScore",
+                    "Customer.MODEL_SCORE",
+                    "IH.Web.PredictionModelScore",
                     "ExternalModelled.Score",
                     "Customer.CreditScore",
+                    "Customer.ChurnRiskScore",
+                    "Customer.ChurnRiskModelScoreThreshold",
                 ],
             }
         )
@@ -980,7 +985,12 @@ def test_PredictorCategorization():
         "Primary",
         "External Model",
         "External Model",
+        "External Model",
+        "External Model",
+        "External Model",
         "ExternalModelled",
+        "Customer",
+        "Customer",
         "Customer",
     ]
 

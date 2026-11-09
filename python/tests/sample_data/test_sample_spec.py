@@ -119,7 +119,7 @@ def test_configured_predictor_counts_and_loans_subset():
 
 
 def test_external_churn_score_is_excluded_from_the_loans_policy():
-    name = "ExternalModel.CustomerChurnRiskScore"
+    name = "Customer.ChurnRiskModelScore"
     predictor = next(p for p in DEFAULT_SPEC.predictors if p.id == name)
     assert (predictor.family, predictor.data_type, predictor.baseline_eligible, predictor.loan_allowed) == (
         "external_model",

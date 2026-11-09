@@ -73,7 +73,7 @@ def test_write_ds_export_round_trip(demo, tmp_path):
     assert_frame_equal(dm.model_data.collect(), demo.datamart.model_data.collect())
     assert_frame_equal(dm.predictor_data.collect(), demo.datamart.predictor_data.collect())
     score_categories = (
-        dm.predictor_data.filter(pl.col("PredictorName") == "ExternalModel.CustomerChurnRiskScore")
+        dm.predictor_data.filter(pl.col("PredictorName") == "Customer.ChurnRiskModelScore")
         .select(pl.col("PredictorCategory").unique())
         .collect()["PredictorCategory"]
         .to_list()

@@ -1386,10 +1386,18 @@ def test_agb_context_key_predictors_have_dedicated_category(rich_model: ADMTrees
 def test_agb_external_model_predictor_has_dedicated_category(rich_model: ADMTreesModel):
     import polars as pl
 
-    df = pl.DataFrame({"predictor": ["ExternalModel.CustomerChurnRiskScore", "Customer.SomeOtherScore"]}).with_columns(
-        rich_model.plot.predictor_category_expr,
-    )
-    assert df["PredictorCategory"].to_list() == ["External Model", "Customer"]
+    predictors = [
+        "Customer.ChurnRiskModelScore",
+        "Customer.MODEL_SCORE",
+        "ExternalModel.AnotherScore",
+        "Customer.SomeOtherScore",
+        "Customer.ChurnRiskModelScoreThreshold",
+    ]
+    df = pl.DataFrame({"predictor": predictors}).with_columns(rich_model.plot.predictor_category_expr)
+    categories = ["External Model", "External Model", "External Model", "Customer", "Customer"]
+    assert df["PredictorCategory"].to_list() == categories
+    assert [rich_model.predictor_categorization(name) for name in predictors] == categories
+    assert rich_model.predictor_categorization(predictors[0], context_keys=[predictors[0]]) == "Context Keys"
 
 
 # ---------------------------------------------------------------------------

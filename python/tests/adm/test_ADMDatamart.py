@@ -197,7 +197,8 @@ def test_predictor_categorization_default(sample):
     assert default_cats == ["Account", "Context Keys", "Customer", "External Model", "IH", "Param"]
     assert _check_cat(sample, "Account.AccountBalance") == "Account"
     assert _check_cat(sample, "IH.Web.Inbound.Clicked.pxLastOutcomeTime.DaysSince") == "IH"
-    assert _check_cat(sample, "ExternalModel.CustomerChurnRiskScore") == "External Model"
+    assert _check_cat(sample, "Customer.ChurnRiskModelScore") == "External Model"
+    assert _check_cat(sample, "Customer.CreditScore") == "Customer"
     assert _check_cat(sample, "Classifier") is None
 
 
@@ -243,8 +244,8 @@ def test_predictor_categorization_fills_null_source_categories():
             "PredictorName": [
                 "Customer.Score",
                 "Classifier",
-                "ExternalModel.CustomerChurnRiskScore",
-                "ExternalModel.UserScore",
+                "Customer.ChurnRiskModelScore",
+                "Customer.UserModelScore",
             ],
             "PredictorCategory": [None, None, None, "User category"],
             "EntryType": ["Active", "Classifier", "Active", "Active"],
@@ -268,11 +269,11 @@ def test_predictor_categorization_fills_null_source_categories():
     assert categories == {
         "PredictorName": [
             "Classifier",
+            "Customer.ChurnRiskModelScore",
             "Customer.Score",
-            "ExternalModel.CustomerChurnRiskScore",
-            "ExternalModel.UserScore",
+            "Customer.UserModelScore",
         ],
-        "PredictorCategory": [None, "Customer", "External Model", "User category"],
+        "PredictorCategory": [None, "External Model", "Customer", "User category"],
     }
 
 
@@ -374,6 +375,18 @@ def test_predictor_categorization_dictionary_regexps(sample):
         .to_list()
     )
     assert "XGBoost Model" in cats
+
+
+def test_predictor_categorization_regex_can_override_model_score_without_relabeling_credit_score(sample):
+    sample.apply_predictor_categorization(
+        {"Custom Model": r"(?i)^Customer\..*model_?score$"},
+        use_regexp=True,
+    )
+
+    assert _check_cat(sample, "Customer.ChurnRiskModelScore") == "Custom Model"
+    assert _check_cat(sample, "Customer.CreditScore") == "Customer"
+    assert _check_cat(sample, "IH.Web.Inbound.Clicked.pxLastOutcomeTime.DaysSince") == "IH"
+    assert _check_cat(sample, "Classifier") is None
 
 
 def test_get_last_data_for_report(sample: ADMDatamart):

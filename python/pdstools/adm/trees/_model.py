@@ -1317,12 +1317,15 @@ class ADMTreesModel:
         """Default predictor categorisation function.
 
         Context keys (from ``context_keys``, the model's configured context
-        keys, or the standard ADM context keys) map to "Context Keys"; dotted
-        names map to their prefix; anything else is "Primary".
+        keys, or the standard ADM context keys) map to "Context Keys"; model
+        score names map to "External Model"; other dotted names map to their
+        prefix; anything else is "Primary".
         """
         context_keys = context_keys if context_keys is not None else self.context_keys
         if x in cdh_utils.CONTEXT_KEY_PREDICTORS or x in (context_keys or []):
             return cdh_utils.CONTEXT_KEYS_CATEGORY
+        if cdh_utils._is_external_model_predictor(x):
+            return "External Model"
         if len(x.split(".")) > 1:
             return x.split(".")[0]
         return "Primary"

@@ -105,11 +105,13 @@ Param predictors rank highest, and three shared predictors lead both Mobile
 configurations. AGB models carry feature importance only; their context keys
 are inactive at model level but ranked in the configuration summary.
 
-Standard configurations also include a synthetic, precomputed customer
-churn-risk model score. Predictors in the ``ExternalModel.`` namespace are
-automatically categorized as ``External Model`` in both Naive Bayes and AGB
-plots. The score is not included in the stricter Web Loans configuration; no
-external model is downloaded or run.
+Standard configurations also include ``Customer.ChurnRiskModelScore``, a
+synthetic, precomputed customer churn-risk score. By default, a naming-pattern
+match categorizes names ending in ``ModelScore`` as ``External Model`` in both
+Naive Bayes and AGB plots; ordinary fields such as ``Customer.CreditScore`` keep
+their ``Customer`` category. Custom categorization can override the default.
+The score is not included in the stricter Web Loans configuration; no external
+model is downloaded or run.
 
 Interaction History and Impact Analyzer views
 ---------------------------------------------

@@ -13,7 +13,7 @@ MOBILE_SHARED = {
     "Param.MessageLengthBand",
     "IH.Mobile.Inbound.Clicked.pxLastOutcomeTime.DaysSince",
 }
-CHURN_SCORE = "ExternalModel.CustomerChurnRiskScore"
+CHURN_SCORE = "Customer.ChurnRiskModelScore"
 
 
 @pytest.fixture(scope="module")

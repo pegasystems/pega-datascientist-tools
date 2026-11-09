@@ -3525,7 +3525,7 @@ PREDICTORS = (
         distribution=_DISTRIBUTIONS[26],
     ),
     Predictor(
-        id="ExternalModel.CustomerChurnRiskScore",
+        id="Customer.ChurnRiskModelScore",
         family="external_model",
         data_type="numeric",
         baseline_eligible=True,
