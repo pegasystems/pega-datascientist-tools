@@ -264,7 +264,7 @@ def test_default_model_report_uses_the_generator_default_model():
         "python/docs/generate_example_reports.py",
         "examples/datamart/create_single_model_report_python.sh",
     ):
-        assert expected in (root / path).read_text(), path
+        assert expected in (root / path).read_text(encoding="utf-8"), path
 
 
 def test_stopped_models_keep_their_last_counts(world, raw):
