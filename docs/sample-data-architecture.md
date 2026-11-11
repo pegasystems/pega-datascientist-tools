@@ -53,7 +53,7 @@ Test paths are relative to `python/tests/`.
 | Customer predictors interleave with IH and Param predictors in importance | Predictor importance and category plots | `_binning._FAMILY_BOOST`, `_AGB_CUSTOMER_IMPORTANCE_BOOST` | `test_sample_binning.py::test_customer_predictors_are_mixed_into_each_health_check_importance_plot` |
 | `Param.CallToActionStyle` is 100% missing; `Param.CreativeFormat` is partially missing | Missing-predictor diagnostics | `_predictors` distributions | `test_sample_binning.py::test_fully_missing_parameter_is_inactive_and_reconciles`, `test_partially_missing_parameter` |
 | `Customer.ChurnRiskModelScore` external score, never in Web Loans | "External Model" predictor category | `_predictors`, `_configurations` | `test_sample_binning.py::test_external_churn_score_*`, `test_sample_spec.py::test_external_churn_score_is_excluded_from_the_loans_policy` |
-| Mature Mobile NB model with about 30 active predictors | A rich single-model report | `_adm.default_report_model`, `_DEFAULT_REPORT_ACTIVE` | `test_sample_adm.py::test_default_report_model` |
+| Mature Mobile NB `SavingsReview` model with about 30 active predictors, including the week-8 positive-only marker | Default `ModelReport.qmd` render and the docs Model Report example | `_adm.default_report_model`, `_DEFAULT_REPORT_ACTIVE` | `test_sample_adm.py::test_default_report_model`, `test_default_model_report_uses_the_generator_default_model` |
 | Conversion-Test converts better than Conversion-Control | Conversion Reporting notebook | `_ih._CONVERSION` | `test_sample_ih.py::test_conversions_favour_test_group` |
 | Five Impact Analyzer experiments, about 1% each, sharing the NBA test arm; assigned per customer per calendar month | Impact Analyzer comparisons | `_ih.IA_GROUPS`, `IA_TARGET_FRACTION`, `_impact` | `test_sample_impact.py::test_reconciles_exactly_with_ih`, `test_sample_ih.py::test_impact_groups_are_shared_and_stable`, `test_shifted_impact_groups_follow_actual_calendar_months` |
 
@@ -65,19 +65,12 @@ Test paths are relative to `python/tests/`.
 - Impact Analyzer mock counts reconcile exactly with IH for matching arguments.
 - Predictor bin totals reconcile with model snapshots, and stored Performance is
   the AUC of the emitted bins.
-- Model IDs are stable UUIDs, so documented IDs such as the Fixed Rate Loan
-  example keep working.
+- Model IDs are stable UUIDs. The default Model Report hardcodes the
+  generator's `default_report_model` ID in `ModelReport.qmd`, the docs example
+  generator and the shell example; a test keeps them in sync.
 - Windows are at least 56 days, end on a Sunday and preserve weekdays.
 - Default `demo_data()` stays under 15 s and 1 GiB; prediction-only generation
   stays under 1 s.
-
-## Known divergence
-
-`ModelReport.qmd` and the documentation examples default to the Omni NB
-`FixedRateLoan` model for Web (`05085857-…`). The generator's
-`default_report_model` is a different model: Mobile NB `SavingsReview`. The
-`mobile_positive_only` story rationale still refers to the Mobile model.
-Align them before relying on either as "the" default report model.
 
 ## When changing a story
 

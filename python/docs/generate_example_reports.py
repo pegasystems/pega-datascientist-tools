@@ -13,7 +13,7 @@ from pdstools.utils.report_utils import check_report_for_errors
 
 logger = logging.getLogger(__name__)
 
-NAIVE_BAYES_MODEL_ID = "05085857-c52c-5daa-b51b-0af576a038af"
+NAIVE_BAYES_MODEL_ID = "bd72621c-78af-5a37-997b-0a7f4d214132"
 
 
 def generate_example_reports(output_dir: Path) -> None:
@@ -48,7 +48,7 @@ def generate_example_reports(output_dir: Path) -> None:
             output_dir=report_dir,
             full_embed=False,
             title="Naive Bayes Model Report example",
-            subtitle=("All data is synthetic. This report uses the Fixed Rate Loan model for Web."),
+            subtitle=("All data is synthetic. This report uses the Savings Review model for Mobile."),
         )
 
         for report, filename in (

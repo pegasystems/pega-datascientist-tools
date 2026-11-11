@@ -23,7 +23,7 @@ offlinemodelreport_notebook_python="${pdstools_root_folder}/python/pdstools/repo
 
 # The ID of model that you are interested in. You can find this model ID in
 # Pega Prediction Studio or select another model ID from your own data.
-modelid="05085857-c52c-5daa-b51b-0af576a038af"
+modelid="bd72621c-78af-5a37-997b-0a7f4d214132"
 
 # Generated file
 output="$(pwd)/ADM Model Report.html"

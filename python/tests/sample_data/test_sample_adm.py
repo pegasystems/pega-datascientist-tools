@@ -254,6 +254,19 @@ def test_default_report_model(datamart):
     assert last["Performance"] > 0.6
 
 
+def test_default_model_report_uses_the_generator_default_model():
+    from pathlib import Path
+
+    expected = default_report_model(DEFAULT_SPEC).model_id
+    root = Path(__file__).parents[3]
+    for path in (
+        "python/pdstools/reports/ModelReport.qmd",
+        "python/docs/generate_example_reports.py",
+        "examples/datamart/create_single_model_report_python.sh",
+    ):
+        assert expected in (root / path).read_text(), path
+
+
 def test_stopped_models_keep_their_last_counts(world, raw):
     stopped = next(m for m in adm_models(DEFAULT_SPEC) if m.context.stop_day is not None and m.context.stop_day < 182)
     rows = raw.filter(pl.col("pyModelID") == stopped.model_id).sort("pySnapshotTime")
