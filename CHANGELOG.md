@@ -8,6 +8,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Documentation examples of the ADM Health Check and Naive Bayes Model Report,
+  regenerated from the shared synthetic sample during HTML documentation builds.
+- Internal canonical-calendar, per-entity random streams and validated immutable
+  catalogs for the shared synthetic sample generator (#999). The catalogs include
+  explicit action/treatment baselines, predictor policies, model contexts and
+  timed stories.
+- `pdstools.demo_data()` returns the datamart, prediction and Interaction
+  History views of one seeded synthetic world (#999), built lazily and cached
+  per process. `demo_data().write_ds_export(path)` writes the model, predictor
+  and prediction views as Pega dataset export zips that the readers, the CLI
+  and the app upload flows accept.
+- `ADMDatamart.from_mock_data()` builds a datamart from the shared synthetic
+  sample world (#999). It has daily snapshots for 864 action-level models in
+  seven configurations (Naive Bayes and AGB, including a specialized Web model
+  for lending offers), plus the predictor binning of the last snapshot. Use
+  `seed`, `end` and `scale` like `Prediction.from_mock_data()`.
+- `ImpactAnalyzer.from_mock_data()` aggregates the exposures of
+  `IH.from_mock_data()` with matching arguments and a fixed seed and window,
+  so the counts reconcile exactly with that Interaction History (#999). The
+  five experiment types each hold about 1 percent of customers per month,
+  with model control split between two arms; small channels and short windows
+  can leave arms sparse. Pass `return_df=True` for the aggregated frame.
 - `pdstools.utils.cdh_utils.resolve_trend_interval()` and
   `trend_interval_label()` provide shared date-range-based trend cadence
   selection and display labels.
@@ -25,11 +47,44 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Shared sample action weights spread response volumes across issues, with
+  Sales and Service receiving the largest shares in the main channels.
+  The ADM, Interaction History and Impact Analyzer views use the same catalog.
+- Synthetic customer predictors now appear among interaction history and
+  parameter predictors in Naive Bayes and AGB importance plots.
+- The synthetic `Param.CallToActionStyle` predictor is deliberately 100% missing
+  and inactive, while `Param.CreativeFormat` has some missing values, illustrating
+  data-quality issues in the ADM Health Check.
+- `ADMDatamart.plot.tree_map(relative_color=True)` can compare response or
+  positive counts against the largest sibling. The Health Check response
+  overview uses this scale, while hover details retain actual totals.
+- `Prediction.from_mock_data()` now samples the shared synthetic world (#999):
+  five standard predictions (Web, Mobile, E-mail, Call Center and the
+  multi-channel `PredictActionPropensity`) in the real snapshot shape, with
+  Daily AUC rows plus Test, Control and NBA rows. New keyword arguments
+  `seed`, `end` and `scale`; `days` must be at least 56. By default the window
+  ends on the most recent completed Sunday; pass `end="canonical"` for fixed
+  dates. The Call Center prediction is deliberately invalid (tiny model-control
+  arms), so `is_valid` is `False` for the default mock.
+
+- `IH.from_mock_data()` now samples the shared synthetic world (#999): Web,
+  Mobile, Email and a small Call Center, with one exposure per offered
+  action and Impact Analyzer control groups in `MktValue`, `MktType` and
+  `ModelControlGroup`. New columns include `ExposureID`, `SubjectID`,
+  `Treatment`, `ModelPropensity` and `Value`; `BasePropensity` is gone.
+  Email uses Pending, Opened and Accepted outcomes; Call Center uses Pending
+  and Accepted. `outcome_labels_used` declares the labels per channel. The
+  defaults are now `days=182` and `seed=42`, so the data is deterministic;
+  pass `seed=None` for a random world. New keyword arguments `end` and `scale`
+  behave as in `Prediction.from_mock_data()`. Experiment assignments follow
+  actual calendar months, so changing `end` can also change IH decisions and
+  Impact Analyzer aggregates.
+- `IH.get_sequences()` orders each customer's interactions by `OutcomeTime`
+  instead of relying on the input row order.
+
 - ADM Health Check trend plots now use date-range-based daily, weekly, or
   monthly intervals. Success rate and response counts show per-interval
   changes, while performance (AUC) uses the latest value in each interval.
-  `cdh_sample()` uses repository data in source checkouts and falls back to
-  the canonical URL when those files are unavailable.
 - `plot.over_time()` now applies `every` to all metrics, cumulative or not,
   with the same meaning as in Polars `group_by_dynamic`: each model's last
   snapshot per interval is used and `SnapshotTime` is the interval start.
@@ -41,17 +96,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   automatic range. `add_metric_limit_lines()` (also used by
   `bubble_chart(show_metric_limits=True)`) adds subtle background bands for
   the threshold ranges.
-- The CDH sample data now spans 18 days (October 13–30, 2026), with model
-  and predictor snapshots sharing the same snapshot times, and includes
-  more actions. Most actions now receive responses every day, so the daily
-  number of used actions stays above the Health Check minimum.
+- The legacy CDH sample archives retained for compatibility span 18 days
+  (October 13–30, 2026), with aligned model and predictor snapshot times.
+  Most actions receive responses every day, so the daily number of used
+  actions stays above the Health Check minimum.
 - **Breaking:** `Analysis.health_check_maturity_overview()` now returns
   `"Number of Action/Treatment Records"` instead of `"Number of Models"`,
   and its category labels describe action/treatment records. Update callers
   that select the previous column name.
 
+### Removed
+
+- `pdstools.cdh_sample()` and `pdstools.datasets.cdh_sample()` are removed
+  (#999). Use `pdstools.demo_data().datamart`, or
+  `ADMDatamart.from_mock_data()`, for a synthetic datamart that needs no
+  download. The Health Check and model report fallbacks and the Streamlit
+  sample now use the same synthetic world.
+
 ### Fixed
 
+- ADM treemap hover details now show correct totals and response-weighted
+  metrics at every hierarchy level, including the 50–100 performance scale,
+  and display compact rounded response and positive counts.
 - AGB configuration-summary rows (#667) are now also removed when model data
   is loaded with `ADMDatamart.from_ds_export()`. `read_ds_export()` no longer
   fills null `Channel`, `Direction`, `Issue`, `Group` and `Name` values with

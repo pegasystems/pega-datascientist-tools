@@ -133,8 +133,8 @@ class Analysis:
 
     Examples
     --------
-    >>> from pdstools import datasets
-    >>> dm = datasets.cdh_sample()
+    >>> from pdstools import demo_data
+    >>> dm = demo_data().datamart
     >>> for f in dm.analysis.findings():
     ...     print(f)
     """

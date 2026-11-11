@@ -12,9 +12,10 @@ from .ih.IH import IH
 from .impactanalyzer.ImpactAnalyzer import ImpactAnalyzer
 from .pega_io import Anonymization, read_ds_export
 from .prediction.Prediction import Prediction
+from .sample_data import demo_data
 from .utils import datasets
 from .utils.cdh_utils import default_predictor_categorization
-from .utils.datasets import cdh_sample, sample_explanations, sample_value_finder
+from .utils.datasets import sample_explanations, sample_value_finder
 from .utils.show_versions import show_versions
 from .valuefinder.ValueFinder import ValueFinder
 
@@ -32,9 +33,9 @@ __all__ = [
     "Infinity",
     "Prediction",
     "ValueFinder",
-    "cdh_sample",
     "datasets",
     "default_predictor_categorization",
+    "demo_data",
     "read_ds_export",
     "sample_explanations",
     "sample_value_finder",

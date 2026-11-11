@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import traceback
 from pathlib import Path
+from typing import Any
 
 from packaging.version import InvalidVersion, Version
 
@@ -43,7 +44,6 @@ def _write_params_files(
     temp_dir: Path,
     params: dict | None = None,
     project: dict | None = None,
-    analysis: dict | None = None,
     full_embed: bool = False,
 ) -> None:
     """Write parameters to YAML files for Quarto processing.
@@ -56,8 +56,6 @@ def _write_params_files(
         Parameters to write to params.yml, by default None
     project : dict, optional
         Project configuration to write to _quarto.yml, by default {"type": "default"}
-    analysis : dict, optional
-        Analysis configuration to write to _quarto.yml, by default None
     full_embed : bool, default=False
         When True, embeds all resources (JavaScript libraries like Plotly,
         itables, etc.) for a fully standalone HTML.
@@ -73,7 +71,6 @@ def _write_params_files(
     import yaml
 
     params = params or {}
-    analysis = analysis or {}
     if project is None:
         project = {"type": "default"}
 
@@ -99,7 +96,6 @@ def _write_params_files(
 
     quarto_config: dict = {
         "project": project,
-        "analysis": analysis,
         "format": {
             "html": html_format,
         },
@@ -135,7 +131,7 @@ def run_quarto(
     project : dict, optional
         Project configuration settings, by default {"type": "default"}
     analysis : dict, optional
-        Analysis configuration settings, by default None
+        Availability flags written to the QMD front matter, by default None
     temp_dir : Path, optional
         Temporary directory for processing, by default Path(".")
     full_embed : bool, default=False
@@ -183,9 +179,14 @@ def run_quarto(
             temp_dir,
             params=params,
             project=project,
-            analysis=analysis,
             full_embed=full_embed,
         )
+
+    if analysis is not None:
+        if qmd_file is None:
+            raise ValueError("A QMD file is required when analysis metadata is provided.")
+        qmd_path = temp_dir / Path(qmd_file).name
+        _write_analysis_metadata(qmd_path, analysis)
 
     # render file or render project with options
     command = get_command()
@@ -299,6 +300,28 @@ def _set_command_options(
         options.append("--execute-params")
         options.append("params.yml")
     return options
+
+
+def _write_analysis_metadata(qmd_file: Path, analysis: dict) -> None:
+    """Write available-analysis flags into a QMD document's front matter."""
+    import yaml
+
+    qmd = qmd_file.read_text()
+    front_matter = re.match(r"\A---\r?\n(.*?)\r?\n---\r?\n", qmd, re.DOTALL)
+
+    metadata: dict[str, Any]
+    if front_matter is None:
+        metadata = {}
+        body = qmd
+    else:
+        metadata = yaml.safe_load(front_matter.group(1)) or {}
+        body = qmd[front_matter.end() :]
+    if not isinstance(metadata, dict):
+        raise TypeError(f"QMD front matter must contain a YAML mapping: {qmd_file}")
+
+    metadata["analysis"] = {key: True for key, available in analysis.items() if available}
+    updated_front_matter = yaml.safe_dump(metadata, sort_keys=False).rstrip()
+    qmd_file.write_text(f"---\n{updated_front_matter}\n---\n{body}")
 
 
 def _get_cmd_output(args: list[str]) -> list[str]:

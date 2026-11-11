@@ -36,7 +36,7 @@ def _level_two_headings(notebook: dict[str, Any]) -> list[str]:
 
 
 def _intro_toc_entries(notebook: dict[str, Any]) -> list[tuple[str, str]]:
-    intro = _markdown_cells(notebook)[0]
+    intro = next(cell for cell in _markdown_cells(notebook) if _source_lines(cell)[0].startswith("# "))
     entry_re = re.compile(r"^- \[(?P<label>[^\]]+)\]\(#(?P<anchor>[^)]+)\)")
     entries: list[tuple[str, str]] = []
     for line in _source_lines(intro):

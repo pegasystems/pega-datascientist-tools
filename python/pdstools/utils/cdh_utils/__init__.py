@@ -88,6 +88,7 @@ from ._namespacing import (
     CONTEXT_KEY_PREDICTORS,
     CONTEXT_KEYS_CATEGORY,
     _capitalize,
+    _is_external_model_predictor,
     default_predictor_categorization,
 )
 from ._polars import (

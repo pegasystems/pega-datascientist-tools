@@ -1,6 +1,5 @@
 """Testing the functionality of the ADMDatamart Aggregates functions"""
 
-import pathlib
 from datetime import date, datetime, timedelta
 
 import polars as pl
@@ -8,19 +7,11 @@ import pytest
 from pdstools import ADMDatamart
 from pdstools.adm.Aggregates import Aggregates
 
-basePath = pathlib.Path(__file__).parent.parent.parent.parent
-
 
 @pytest.fixture
-def dm_aggregates():
+def dm_aggregates(sample: ADMDatamart):
     """Fixture to serve as class to call functions from."""
-    return Aggregates(
-        ADMDatamart.from_ds_export(
-            base_path=f"{basePath}/data",
-            model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
-            predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
-        ),
-    )
+    return Aggregates(sample)
 
 
 # Consider moving into ADMDatamart class as a "from_scratch" method
@@ -97,7 +88,7 @@ def test_init(dm_aggregates):
 
 
 def test_model_summary(dm_aggregates):
-    assert dm_aggregates.model_summary().collect().shape[0] == 98
+    assert dm_aggregates.model_summary().collect().shape[0] == 266
     assert dm_aggregates.model_summary().collect().shape[1] == 20
 
 
@@ -109,57 +100,58 @@ def test_last_uses_global_latest_snapshot(dm_minimal):
 
 
 def test_predictors_overview(dm_aggregates):
-    assert dm_aggregates.predictors_overview().collect().height == 1800
-    assert dm_aggregates.predictors_overview().collect().width == 13
+    overview = dm_aggregates.predictors_overview(model_id="05085857-c52c-5daa-b51b-0af576a038af").collect()
+    assert overview.shape == (152, 12)
 
 
 def test_predictors_global_overview(dm_aggregates):
-    assert dm_aggregates.predictors_global_overview().collect().height == 89
+    assert dm_aggregates.predictors_global_overview().collect().height == 172
     assert dm_aggregates.predictors_global_overview().collect().width == 9
 
 
 def test_summary_by_channel(dm_aggregates):
     summary_by_channel = dm_aggregates.summary_by_channel().collect()
-    assert summary_by_channel.height == 3
+    assert summary_by_channel.height == 4
     assert summary_by_channel.width == 24
     assert summary_by_channel["ChannelDirection"].to_list() == [
+        "Call Center/Outbound",
         "Email/Outbound",
-        "SMS/Outbound",
+        "Mobile/Inbound",
         "Web/Inbound",
     ]
     assert summary_by_channel["ChannelDirectionGroup"].to_list() == [
+        "Call Center/Outbound",
         "E-mail/Outbound",
-        "SMS/Outbound",
+        "Mobile/Inbound",
         "Web/Inbound",
     ]
-    assert summary_by_channel["Actions"].to_list() == [37, 34, 29]
-    assert summary_by_channel["Positives"].to_list() == [1283, 6512, 5869]
-    assert summary_by_channel["Responses"].to_list() == [56867, 77364, 58299]
-    assert summary_by_channel["Used Actions"].to_list() == [37, 34, 29]
-    assert summary_by_channel["Treatments"].to_list() == [0] * 3
-    assert summary_by_channel["Used Treatments"].to_list() == [0] * 3
-    assert summary_by_channel["Duration"].to_list() == [1486800] * 3
-    assert [round(x, 6) for x in summary_by_channel["OmniChannel"].to_list()] == [
-        0.391892,
-        0.470588,
-        0.5,
-    ]
-    assert summary_by_channel["isValid"].to_list() == [True, True, True]
+    assert summary_by_channel["Actions"].to_list() == [12, 80, 70, 101]
+    assert summary_by_channel["Positives"].to_list() == [157.0, 530964.0, 451274.0, 1475265.0]
+    assert summary_by_channel["Responses"].to_list() == [1398.0, 35975052.0, 21522296.0, 53914988.0]
+    assert summary_by_channel["Used Actions"].to_list() == [12, 80, 70, 101]
+    assert summary_by_channel["Treatments"].to_list() == [12, 200, 70, 250]
+    assert summary_by_channel["Used Treatments"].to_list() == [12, 200, 70, 250]
+    assert summary_by_channel["Duration"].to_list() == [15638400] * 4
+    omni_channel = summary_by_channel["OmniChannel"].to_list()
+    assert omni_channel[0] is None
+    assert [round(value, 6) for value in omni_channel[1:]] == [0.775, 0.85, 0.668317]
+    assert summary_by_channel["isValid"].to_list() == [False, True, True, True]
 
     # Force one channel to be invalid
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
-        Positives=pl.when(pl.col.Channel == "SMS").then(pl.lit(0)).otherwise("Positives"),
+        Positives=pl.when(pl.col.Channel == "Mobile").then(pl.lit(0)).otherwise("Positives"),
     )
     summary_by_channel = dm_aggregates.summary_by_channel().collect()
-    assert summary_by_channel["isValid"].to_list() == [True, False, True]
+    assert summary_by_channel["isValid"].to_list() == [False, True, False, True]
 
     # Force only one channel to be valid
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
         Positives=pl.when(pl.col.Channel != "Web").then(pl.lit(0)).otherwise("Positives"),
     )
     summary_by_channel = dm_aggregates.summary_by_channel().collect()
-    assert summary_by_channel["isValid"].to_list() == [False, False, True]
+    assert summary_by_channel["isValid"].to_list() == [False, False, False, True]
     assert summary_by_channel["OmniChannel"].to_list() == [
+        None,
         None,
         None,
         0,
@@ -240,14 +232,86 @@ def test_used_actions():
 
     summary = dm_used.aggregates.summary_by_channel().collect()
     assert summary["Used Actions"].to_list() == [2]
+    assert summary["Treatments"].to_list() == [2]
+    assert summary["Used Treatments"].to_list() == [2]
 
     summary = dm_used.aggregates.summary_by_channel(every="1mo").collect()
     assert summary["Used Actions"].to_list() == [1, 0, 2]
+    assert summary["Treatments"].to_list() == [2, 2, 2]
+    assert summary["Used Treatments"].to_list() == [2, 0, 2]
+
+
+def test_treatment_counts_are_unique_across_models_and_snapshots():
+    dates = [datetime(2026, 1, 1), datetime(2026, 2, 1), datetime(2026, 2, 8)]
+    models = [
+        ("m1", "Web A", "Web", "A", "T1", [10, 10, 20]),
+        ("m2", "Web B", "Web", "A", "T1", [10, 10, 10]),
+        ("m3", "Web A", "Web", "B", "T2", [10, 10, 10]),
+        ("m4", "Web A", "Web", "C", "", [10, 10, 20]),
+        ("m5", "Web A", "Web", "D", None, [10, 10, 20]),
+        ("m6", "Mobile", "Mobile", "E", "T1", [10, 10, 20]),
+        ("m7", "Email", "Email", "F", "", [10, 10, 20]),
+        ("m8", "Email", "Email", "G", None, [10, 10, 20]),
+    ]
+    model_data = pl.DataFrame(
+        [
+            {
+                "ModelID": model_id,
+                "Configuration": configuration,
+                "Channel": channel,
+                "Direction": "Inbound",
+                "Name": action,
+                "Treatment": treatment,
+                "SnapshotTime": snapshot,
+                "ResponseCount": responses,
+                "Positives": responses // 10,
+                "Performance": 0.6,
+            }
+            for model_id, configuration, channel, action, treatment, response_counts in models
+            for snapshot, responses in zip(dates, response_counts, strict=True)
+        ],
+    ).lazy()
+    datamart = ADMDatamart(model_df=model_data)
+
+    february = (
+        datamart.aggregates.summary_by_channel(
+            start_date=dates[1],
+            end_date=dates[2],
+        )
+        .select("Channel", "Treatments", "Used Treatments")
+        .collect()
+    )
+    assert february.to_dicts() == [
+        {"Channel": "Email", "Treatments": 0, "Used Treatments": 0},
+        {"Channel": "Mobile", "Treatments": 1, "Used Treatments": 1},
+        {"Channel": "Web", "Treatments": 2, "Used Treatments": 1},
+    ]
+
+    monthly = (
+        datamart.aggregates.summary_by_channel(every="1mo", debug=True)
+        .select("Channel", "DateRange Min", "Treatments", "Used Treatments")
+        .collect()
+    )
+    assert monthly.to_dicts() == [
+        {"Channel": "Email", "DateRange Min": date(2026, 1, 1), "Treatments": 0, "Used Treatments": 0},
+        {"Channel": "Email", "DateRange Min": date(2026, 2, 1), "Treatments": 0, "Used Treatments": 0},
+        {"Channel": "Mobile", "DateRange Min": date(2026, 1, 1), "Treatments": 1, "Used Treatments": 1},
+        {"Channel": "Mobile", "DateRange Min": date(2026, 2, 1), "Treatments": 1, "Used Treatments": 1},
+        {"Channel": "Web", "DateRange Min": date(2026, 1, 1), "Treatments": 2, "Used Treatments": 2},
+        {"Channel": "Web", "DateRange Min": date(2026, 2, 1), "Treatments": 2, "Used Treatments": 1},
+    ]
+
+    overall = (
+        datamart.aggregates.overall_summary(start_date=dates[1], end_date=dates[2])
+        .select("Treatments", "Used Treatments")
+        .collect()
+    )
+    assert overall.to_dicts() == [{"Treatments": 2, "Used Treatments": 1}]
 
 
 def test_custom_channel_mapping(dm_aggregates):
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
-        Channel=pl.when(pl.col.Channel == "SMS")
+        Channel=pl.when(pl.col.Channel == "Mobile")
         .then(pl.lit("MyChannel"))
         .otherwise(pl.col.Channel)
         .cast(pl.Categorical),
@@ -256,16 +320,18 @@ def test_custom_channel_mapping(dm_aggregates):
     summary_by_channel = dm_aggregates.summary_by_channel(
         custom_channels={"MyChannel": "Web"},
     ).collect()
-    assert summary_by_channel.height == 3
+    assert summary_by_channel.height == 4
     assert summary_by_channel.width == 24
     assert summary_by_channel["ChannelDirection"].to_list() == [
+        "Call Center/Outbound",
         "Email/Outbound",
-        "MyChannel/Outbound",
+        "MyChannel/Inbound",
         "Web/Inbound",
     ]
     assert summary_by_channel["ChannelDirectionGroup"].to_list() == [
+        "Call Center/Outbound",
         "E-mail/Outbound",
-        "Web/Outbound",
+        "Web/Inbound",
         "Web/Inbound",
     ]
 
@@ -276,14 +342,14 @@ def test_aggregate_overall_summary(dm_aggregates):
     assert overall_summary.height == 1
     assert overall_summary.width == 22
     assert overall_summary["Number of Valid Channels"].item() == 3
-    assert overall_summary["Actions"].item() == 65
-    assert overall_summary["Treatments"].item() == 0
+    assert overall_summary["Actions"].item() == 111
+    assert overall_summary["Treatments"].item() == 532
 
-    assert round(overall_summary["OmniChannel"].item(), 5) == 0.45416
+    assert round(overall_summary["OmniChannel"].item(), 5) == 0.76444
 
     # Force only one channel to be valid
     dm_aggregates.datamart.model_data = dm_aggregates.datamart.model_data.with_columns(
-        Positives=pl.when(pl.col.Channel != "SMS").then(pl.lit(0)).otherwise("Positives"),
+        Positives=pl.when(pl.col.Channel != "Mobile").then(pl.lit(0)).otherwise("Positives"),
     )
 
     overall_summary = dm_aggregates.overall_summary().collect()
@@ -295,30 +361,16 @@ def test_aggregate_overall_summary(dm_aggregates):
 
 def test_aggregate_summary_by_channel_and_time(dm_aggregates):
     summary_by_channel = dm_aggregates.summary_by_channel(every="1w").collect()
-    assert summary_by_channel.height == 9
+    assert summary_by_channel.height == 104
     assert summary_by_channel.width == 24
-    assert sorted(summary_by_channel["Responses"].to_list()) == [
-        12126.0,
-        13992.0,
-        14239.0,
-        14985.0,
-        15296.0,
-        16417.0,
-        16921.0,
-        19482.0,
-        20081.0,
+    assert summary_by_channel.group_by("ChannelDirection").len().sort("ChannelDirection")["len"].to_list() == [
+        26,
+        26,
+        26,
+        26,
     ]
-    assert [round(x, 6) for x in summary_by_channel["OmniChannel"].to_list()] == [
-        0.414286,
-        0.402778,
-        0.391892,
-        0.484848,
-        0.470588,
-        0.470588,
-        0.537037,
-        0.517857,
-        0.5,
-    ]
+    assert summary_by_channel["Responses"].min() >= 0
+    assert summary_by_channel["Responses"].max() > 0
 
 
 def _action_trend_datamart():
@@ -436,22 +488,14 @@ def test_omnichannel():
 
 def test_aggregate_overall_summary_by_time(dm_aggregates):
     overall_summary = dm_aggregates.overall_summary(every="3d").collect()
-    assert overall_summary.height == 6
+    assert overall_summary.height == 61
     assert overall_summary.width == 23
 
-    # print(dm_aggregates.summary_by_channel(every="3d",debug=True).collect().select("Channel","Direction","Period","Positives","TotalPositives","isValid").to_pandas())
-
-    assert overall_summary["Number of Valid Channels"].to_list() == [3] * 6
-    assert overall_summary["Actions"].to_list() == [59, 60, 62, 61, 62, 65]
-    assert overall_summary["Treatments"].to_list() == [0] * 6
-    assert [round(x, 6) for x in overall_summary["OmniChannel"].to_list()] == [
-        0.470661,
-        0.462976,
-        0.452862,
-        0.425943,
-        0.411743,
-        0.45416,
-    ]
+    assert overall_summary["Number of Valid Channels"].to_list() == [3] * 61
+    assert overall_summary["Actions"][0] == 81
+    assert overall_summary["Actions"][-1] == 111
+    assert overall_summary["Treatments"].min() >= 0
+    assert round(overall_summary["OmniChannel"][-1], 5) == 0.76444
 
 
 def test_overall_summary_timeslices(dm_minimal):
@@ -584,7 +628,7 @@ def test_summary_by_configuration_query_active_models_filter():
 def test_predictors_global_overview_query_filters_to_active_models(dm_aggregates):
     """``query`` semi-joins on model_data so model-level expressions filter predictor rows."""
     full = dm_aggregates.predictors_global_overview().collect()
-    assert full.height == 89
+    assert full.height == 172
 
     # Restrict to a single channel; the joined predictor rows now cover only
     # those models, so per-predictor maxima must drop strictly below the

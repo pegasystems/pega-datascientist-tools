@@ -278,6 +278,6 @@ def getTrendChart(
         },
         labels={"customers": "Customers"},
     )
-    fig.update_layout(legend_title_text="Customers")
+    fig.update_layout(legend_title_text="Customers", xaxis_title="")
 
     return fig

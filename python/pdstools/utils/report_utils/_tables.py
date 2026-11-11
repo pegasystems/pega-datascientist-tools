@@ -244,6 +244,9 @@ def create_metric_gttable(
           Supports tuple keys for multiple values: {("Yes", "yes"): True}
 
         If a column is not in this dict, its name is used as the metric ID.
+        For callables, number formatting comes from ``MetricFormats`` for the
+        column name, falling back to the first column of a tuple key (so
+        ``("CTR", "CTR_Test")`` formats both columns like ``CTR``).
     column_descriptions : dict, optional
         Mapping from column names to tooltip descriptions. When provided,
         column headers will display the description as a tooltip on hover.
@@ -320,12 +323,15 @@ def create_metric_gttable(
         if label_kwargs:
             gt = gt.cols_label(**label_kwargs)  # type: ignore[arg-type]  # great_tables overload routes **kwargs to first positional
 
-    # Expand tuple keys to individual columns
+    # Expand tuple keys to individual columns. Columns grouped in a tuple key
+    # share the format of the tuple's first column (e.g. CTR_Test follows CTR).
     expanded_mapping = {}
+    format_fallback = {}
     for key, value in (column_to_metric or {}).items():
         if isinstance(key, tuple):
             for col in key:
                 expanded_mapping[col] = value
+                format_fallback[col] = key[0]
         else:
             expanded_mapping[key] = value
 
@@ -342,8 +348,11 @@ def create_metric_gttable(
                 formatted_cols.add(col)
         elif callable(metric_id):
             # When a callable is used for RAG, still apply formatting if
-            # the column name itself has a format defined in MetricFormats
+            # the column name (or its tuple group's first column) has a
+            # format defined in MetricFormats
             fmt = MetricFormats.get(col)
+            if fmt is None and col in format_fallback:
+                fmt = MetricFormats.get(format_fallback[col])
             if fmt is not None:
                 gt = fmt.apply_to_gt(gt, [col])
                 formatted_cols.add(col)

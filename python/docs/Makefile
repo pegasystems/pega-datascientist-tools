@@ -12,7 +12,12 @@ BUILDDIR      = build
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile
+.PHONY: help Makefile example-reports
+
+html: example-reports
+
+example-reports:
+	uv run python generate_example_reports.py --output-dir "$(SOURCEDIR)/_static/reports"
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
@@ -26,4 +31,4 @@ help:
 	cp ../../examples/prediction_studio/Predictions.ipynb ../../examples/datamart/Example_ADM_Analysis.ipynb ../../examples/ih/Example_IH_Analysis.ipynb ../../examples/valuefinder/* ../../examples/adm/ADMBinningInsights.ipynb ../../examples/articles/*.ipynb  ../../examples/explainability_extract/explainability_extract.ipynb ../../examples/decision_analyzer/decision_analyzer.ipynb  ../../examples/hds/hds_analysis.ipynb ../../examples/articles/explanations/agb_global_explanations.ipynb source/articles
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	rm -rf source/articles/output
-	rm source/articles/*
+	rm -rf source/articles/*

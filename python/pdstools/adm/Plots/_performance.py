@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 import polars as pl
 
 from ...utils import cdh_utils
+from ...utils.plot_utils import MODEL_PERFORMANCE_HOVER_FORMAT, MODEL_PERFORMANCE_LABEL
 from ..Aggregates import TREND_WEIGHTED_METRICS, trend_by_expression
 from ._base import _PlotsBase
 from ._helpers import add_full_success_rate_markers, add_metric_limit_lines, requires
@@ -119,10 +120,10 @@ class _PerformancePlotsMixin(_PlotsBase):
 
         """
         metric_formatting = {
-            "SuccessRate": ":.4%",
-            "Performance": ":.2",
-            "Positives": ":.d",
-            "ResponseCount": ":.d",
+            "SuccessRate": ":.3%",
+            "Performance": MODEL_PERFORMANCE_HOVER_FORMAT,
+            "Positives": ":,.0f",
+            "ResponseCount": ":,.0f",
         }
         by_col = trend_by_expression(by).meta.output_name()
 
@@ -202,8 +203,18 @@ class _PerformancePlotsMixin(_PlotsBase):
             "y": plot_metric,
             "color": by_col,
             "hover_data": {
-                by_col: ":.d",
+                by_col: True,
                 plot_metric: metric_formatting[metric.split("_")[0]],
+            },
+            "labels": {
+                "SnapshotTime": "Date",
+                "Performance": MODEL_PERFORMANCE_LABEL,
+                "Performance_change": "Model Performance change (AUC)",
+                "SuccessRate": "Success rate",
+                "ResponseCount": "Responses",
+                "ResponseCount_change": "Responses in interval",
+                "Positives": "Positives",
+                "Positives_change": "Positives in interval",
             },
             "markers": True,
             "title": f"{metric} over time, per {by_col} {title}",
@@ -212,9 +223,7 @@ class _PerformancePlotsMixin(_PlotsBase):
         }
         if is_success_rate_change:
             line_kwargs["hover_data"].update({"ResponseCount": False, "Positives": False, **success_rate_hover})
-            line_kwargs["labels"] = success_rate_labels
-        elif plot_metric == "Performance":
-            line_kwargs["labels"] = {"Performance": "Performance (AUC)"}
+            line_kwargs["labels"].update(success_rate_labels)
         if facet_col_wrap is not None:
             line_kwargs["facet_col_wrap"] = facet_col_wrap
         if facet_col_spacing is not None:
@@ -223,7 +232,7 @@ class _PerformancePlotsMixin(_PlotsBase):
             line_kwargs["category_orders"] = {facet: facet_values}
 
         fig = px.line(final_df, **line_kwargs)
-        fig.update_xaxes(hoverformat="%b %d, %Y")
+        fig.update_xaxes(hoverformat="%b %d, %Y", title="")
 
         if plot_metric == "Performance":
             fig.update_yaxes(range=[50, 100])
@@ -426,6 +435,11 @@ class _PerformancePlotsMixin(_PlotsBase):
             )
             fig = fig.update_layout(legend_title="/".join(by_as_list))
 
+        metric_label = {"ResponseCount": "Responses", "Positives": "Positives"}.get(value, value)
+        fig.update_traces(
+            hovertemplate=f"Population=%{{x:.1%}}<br>{metric_label}=%{{y:.1%}}<extra>%{{fullData.name}}</extra>"
+        )
+
         # Add diagonal reference line (represents perfect equality)
         fig.add_shape(
             type="line",
@@ -574,6 +588,7 @@ class _PerformancePlotsMixin(_PlotsBase):
                         y=group_df["Proportion"],
                         line_shape="spline",
                         name=group,
+                        hovertemplate=f"{MODEL_PERFORMANCE_LABEL}=%{{x}}<br>Responses=%{{y:.1%}}<extra>%{{fullData.name}}</extra>",
                     )
                 )
         else:
@@ -584,6 +599,7 @@ class _PerformancePlotsMixin(_PlotsBase):
                     y=collected_df["Proportion"],
                     line_shape="spline",
                     name="All Channels",
+                    hovertemplate=f"{MODEL_PERFORMANCE_LABEL}=%{{x}}<br>Responses=%{{y:.1%}}<extra>%{{fullData.name}}</extra>",
                 )
             )
 

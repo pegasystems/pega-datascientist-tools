@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Literal, overload
 
@@ -527,6 +527,98 @@ class ImpactAnalyzer:
 
         instance = ImpactAnalyzer(ia_data)
         instance.outcome_labels_used = outcome_labels
+        return instance
+
+    @classmethod
+    @overload
+    def from_mock_data(
+        cls,
+        days: int = ...,
+        n: int = ...,
+        *,
+        seed: int | None = ...,
+        end: date | Literal["canonical"] | None = ...,
+        scale: float = ...,
+        return_df: Literal[True],
+    ) -> pl.LazyFrame: ...
+
+    @classmethod
+    @overload
+    def from_mock_data(
+        cls,
+        days: int = ...,
+        n: int = ...,
+        *,
+        seed: int | None = ...,
+        end: date | Literal["canonical"] | None = ...,
+        scale: float = ...,
+        return_df: Literal[False] = ...,
+    ) -> ImpactAnalyzer: ...
+
+    @classmethod
+    def from_mock_data(
+        cls,
+        days: int = 182,
+        n: int = 100000,
+        *,
+        seed: int | None = 42,
+        end: date | Literal["canonical"] | None = None,
+        scale: float = 1.0,
+        return_df: bool = False,
+    ) -> ImpactAnalyzer | pl.LazyFrame:
+        """Create an ImpactAnalyzer from the shared synthetic sample world.
+
+        Aggregates the exposures of :meth:`pdstools.ih.IH.from_mock_data`
+        with matching arguments and a fixed seed and window, so the counts
+        reconcile exactly with that Interaction History. Separate calls with
+        ``seed=None`` draw independent worlds. Each of the five experiment
+        types holds about 1 percent of customers per month, with model control
+        split between two arms; small channels and short windows can leave
+        arms empty or without accepts. Impressions are Impression (inbound)
+        or Pending (outbound) outcomes, accepts are Clicked (inbound) or
+        Accepted (outbound), and each exposure counts once on the day it was
+        offered.
+
+        Parameters
+        ----------
+        days : int, default 182
+            Number of days in the window.
+        n : int, default 100000
+            Number of interactions (decisions) to sample.
+        seed : int or None, default 42
+            Seed for reproducible data; ``None`` draws a random seed.
+        end : date, "canonical" or None, default None
+            Last day of the window, resolved to the Sunday on or before it.
+            ``None`` uses the most recent completed Sunday, ``"canonical"``
+            pins Sunday 2000-07-02. Experiment assignments follow calendar
+            months, so changing the end date can also change the aggregates.
+        scale : float, default 1.0
+            Multiplier on world response volumes.
+        return_df : bool, default False
+            If True, return the aggregated LazyFrame instead.
+
+        Returns
+        -------
+        ImpactAnalyzer or pl.LazyFrame
+            Daily counts per control group, ``Channel/Direction``, action and
+            treatment.
+
+        Examples
+        --------
+        >>> ia = ImpactAnalyzer.from_mock_data(end="canonical")
+        >>> ia.summarize_experiments().collect()
+
+        """
+        from ..sample_data._ih import interaction_history, outcome_labels
+        from ..sample_data._impact import impact_analyzer_data
+        from ..sample_data._world import sample_world
+
+        world = sample_world(seed=seed, days=days, end=end, scale=scale)
+        ia_data = impact_analyzer_data(interaction_history(world, int(n)))
+        if return_df:
+            return ia_data
+        instance = cls(ia_data)
+        instance.outcome_labels_used = outcome_labels(world)
         return instance
 
     @classmethod

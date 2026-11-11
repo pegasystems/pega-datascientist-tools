@@ -736,6 +736,7 @@ class TestGetTrendChart:
         fig = getTrendChart(quality_data, stage="Output", level=da_v2.level)
 
         assert isinstance(fig, Figure)
+        assert fig.layout.xaxis.title.text == ""
 
     def test_return_df(self, da_v2):
         """Test with return_df."""
