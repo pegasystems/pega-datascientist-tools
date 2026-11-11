@@ -20,8 +20,9 @@ To generate a new version of the docs, simply navigate to the top-level folder a
 `(cd python/docs && make html SPHINXOPTS="-W --keep-going")`
 
 The resulting site is in `python/docs/build/html/`. The report HTML files
-are generated into `source/_static/reports/` and copied into the site's
-`_static/reports/` directory by Sphinx. They are HTML pages with local assets
+are generated into `source/_static/reports/`. After the build, they replace the
+`example_health_check.html` and `example_model_report.html` stub pages, so the
+Examples navigation opens the reports directly. They are HTML pages with local assets
 inlined and JavaScript libraries loaded from CDNs, not committed outputs or ZIP
 downloads. Viewing them requires an internet connection. Rendering errors fail
 the build.
