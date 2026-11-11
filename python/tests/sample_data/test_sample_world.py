@@ -93,6 +93,14 @@ def test_email_lift_is_negative_only_during_feed_dip():
     assert set(negative) <= set(range(min(dip), max(dip) + 1))
 
 
+@pytest.mark.parametrize(("channel", "factor"), [("Web", 0.92), ("Email", 0.92), ("Call Center", 1.0)])
+def test_weekend_dips_only_on_web_and_email(channel, factor):
+    friday, saturday, sunday = sample_world(end="canonical").channel_days(channel)[4:7]
+    assert (friday.date.weekday(), saturday.date.weekday(), sunday.date.weekday()) == (4, 5, 6)
+    assert saturday.ctr == pytest.approx(friday.ctr * factor)
+    assert sunday.ctr == pytest.approx(friday.ctr * factor)
+
+
 def test_mobile_learns_and_challenger_helps():
     world = sample_world(end="canonical")
     days = world.channel_days("Mobile")
