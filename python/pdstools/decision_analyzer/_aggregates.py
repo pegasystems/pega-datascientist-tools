@@ -855,9 +855,10 @@ class Aggregates:
                     "Passing Actions": [first_available],
                     "Decisions": [total_interactions],
                     "Filtered Actions": [0],
-                }
+                },
+                schema=summary.schema,
             )
-            summary = pl.concat([synthetic_row, summary], how="diagonal_relaxed")
+            summary = pl.concat([synthetic_row, summary])
 
         display_stage_order = [synthetic_label, *stages]
         display_stage_index = {name: idx for idx, name in enumerate(display_stage_order)}
