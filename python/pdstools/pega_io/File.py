@@ -79,7 +79,43 @@ def _local_repo_data_path(path: str) -> str | None:
         return None
     relative_path = normalized_path.removeprefix(_RAW_GITHUB_DATA_PREFIX).strip("/")
     local_path = _REPO_DATA_DIR / relative_path if relative_path else _REPO_DATA_DIR
-    return str(local_path) if local_path.is_dir() else None
+    return str(local_path) if local_path.exists() else None
+
+
+def _fetch_url_bytes(url: str) -> BytesIO:
+    """Download an ``http(s)://`` URL into an in-memory :class:`BytesIO` buffer.
+
+    Polars 2.0's Rust ``object_store`` HTTP client reads Parquet/IPC footers via
+    suffix byte-range requests (``Range: bytes=-N``), which CDNs such as
+    ``raw.githubusercontent.com`` (Varnish) reject with ``HTTP 501 Unsupported
+    client range``. Fetching the payload via a standard HTTP ``GET`` avoids
+    suffix-range requests so installed-package sample datasets and URL-backed
+    aggregates work across HTTP servers.
+    """
+    from urllib.error import HTTPError
+    from urllib.parse import urlparse
+    from urllib.request import urlopen
+
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError(f"Unsupported URL scheme: {parsed.scheme!r}")
+    try:
+        ssl_context = None
+        if parsed.scheme == "https":
+            try:
+                import ssl
+
+                import certifi
+
+                ssl_context = ssl.create_default_context(cafile=certifi.where())
+            except ImportError:  # pragma: no cover
+                ssl_context = None
+        with urlopen(url, context=ssl_context, timeout=60) as response:
+            return BytesIO(response.read())
+    except HTTPError as exc:
+        if exc.code == 404:
+            raise FileNotFoundError(f"Remote file not found (HTTP 404): {url}") from exc
+        raise OSError(f"Failed to fetch {url}: HTTP {exc.code} {exc.reason}") from exc
 
 
 def is_url(source: str | Path) -> bool:
@@ -240,9 +276,13 @@ def _scan_by_extension(
     ValueError
         If the extension is not supported.
     """
-    is_bytesio = isinstance(file, BytesIO)
     ext = (extension or "").lower()
     polars_options = dict(read_options or {})
+
+    if not isinstance(file, BytesIO) and is_url(file):
+        local_path = _local_repo_data_path(str(file))
+        if local_path is not None and Path(local_path).is_file():
+            file = local_path
 
     if ext in {".csv", ".tsv", ".txt"}:
         opts: dict = {
@@ -252,14 +292,14 @@ def _scan_by_extension(
         if ext in {".tsv", ".txt"}:
             opts["separator"] = "\t"
         opts.update(polars_options)
-        if is_bytesio:
-            cast(BytesIO, file).seek(0)
+        if isinstance(file, BytesIO):
+            file.seek(0)
             return pl.read_csv(file, **opts).lazy()
         return pl.scan_csv(file, **opts)
 
     if ext in {".json", ".ndjson", ".jsonl"}:
-        if is_bytesio:
-            cast(BytesIO, file).seek(0)
+        if isinstance(file, BytesIO):
+            file.seek(0)
             try:
                 return pl.read_ndjson(file, **polars_options).lazy()
             except (pl.exceptions.ComputeError, pl.exceptions.SchemaError, ValueError) as exc:
@@ -276,20 +316,24 @@ def _scan_by_extension(
                 return _json_pxresults_fallback(file)
 
     if ext == ".parquet":
-        if is_bytesio:
-            cast(BytesIO, file).seek(0)
+        if isinstance(file, BytesIO):
+            file.seek(0)
             return pl.read_parquet(file, **polars_options).lazy()
+        if is_url(file) and "storage_options" not in polars_options and "credential_provider" not in polars_options:
+            return pl.read_parquet(_fetch_url_bytes(str(file)), **polars_options).lazy()
         return pl.scan_parquet(file, **polars_options)
 
     if ext in {".arrow", ".feather", ".ipc"}:
-        if is_bytesio:
-            cast(BytesIO, file).seek(0)
+        if isinstance(file, BytesIO):
+            file.seek(0)
             return pl.read_ipc(file, **polars_options).lazy()
+        if is_url(file) and "storage_options" not in polars_options and "credential_provider" not in polars_options:
+            return pl.read_ipc(_fetch_url_bytes(str(file)), **polars_options).lazy()
         return pl.scan_ipc(file, **polars_options)
 
     if ext in {".xlsx", ".xls"}:
-        if is_bytesio:
-            cast(BytesIO, file).seek(0)
+        if isinstance(file, BytesIO):
+            file.seek(0)
         return _read_excel(file, **polars_options).lazy()
 
     raise ValueError(f"Unsupported file type: {extension}")

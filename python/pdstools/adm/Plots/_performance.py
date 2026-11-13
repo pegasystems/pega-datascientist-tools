@@ -525,14 +525,14 @@ class _PerformancePlotsMixin(_PlotsBase):
         performance = pl.col("Performance") * 100
         breaks = list(range(50, 100, bin_width))
         bin_intervals = getattr(performance, "bin_intervals", None)
-        if bin_intervals is not None:  # pragma: no cover - Polars 2 only; covered by the Polars 2 CI job
+        if bin_intervals is not None:
             labels = [
                 f"(-inf, {breaks[0]})",
                 *(f"[{left}, {right})" for left, right in pairwise(breaks)),
                 f"[{breaks[-1]}, inf)",
             ]
             performance_binned = bin_intervals(breaks, labels=labels)
-        else:
+        else:  # pragma: no cover - Polars 1.x fallback; covered by the floor CI job
             performance_binned = performance.cut(breaks=breaks, left_closed=True)
 
         # Bin performance and aggregate
