@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [5.1.1] — 2026-11-16
+
 ### Added
 
 - `ADMTreesModel.context_key_counts` counts distinct categorical values
