@@ -1,0 +1,77 @@
+pdstools.infinity.resources.prediction_studio.schemas.prediction
+================================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.schemas.prediction
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.schemas.prediction.PredictionData
+
+
+Module Contents
+---------------
+
+.. py:class:: PredictionData(/, **data: Any)
+
+   Bases: :py:obj:`pdstools.infinity.resources.prediction_studio.schemas._base.ResourceData`
+
+
+   Typed payload for a Prediction Studio prediction.
+
+   Fields use Pythonic snake_case names with Pega camelCase aliases. Unknown
+   fields from newer Pega releases are retained (``extra="allow"``) and surface
+   on ``model_dump()`` / attribute access.
+
+   :param prediction_id: Unique prediction identifier (alias ``predictionId``).
+   :type prediction_id: str
+   :param label: Human-readable prediction name.
+   :type label: str
+   :param objective: Objective of the prediction.
+   :type objective: str or None
+   :param subject: Subject of the prediction.
+   :type subject: str or None
+   :param status: Lifecycle status, e.g. ``"Completed"``.
+   :type status: str or None
+   :param last_update_time: Last modification time (alias ``lastUpdateTime``), parsed from the
+                            Pega timestamp format.
+   :type last_update_time: datetime or None
+
+
+   .. py:attribute:: prediction_id
+      :type:  str
+      :value: None
+
+
+
+   .. py:attribute:: label
+      :type:  str
+
+
+   .. py:attribute:: objective
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: subject
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: status
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: last_update_time
+      :type:  datetime.datetime | None
+      :value: None
+
+
+

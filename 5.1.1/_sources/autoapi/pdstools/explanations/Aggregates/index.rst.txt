@@ -1,0 +1,104 @@
+pdstools.explanations.Aggregates
+================================
+
+.. py:module:: pdstools.explanations.Aggregates
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.Aggregates.Aggregates
+
+
+Module Contents
+---------------
+
+.. py:class:: Aggregates(explanations: pdstools.explanations.Explanations.Explanations)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Aggregates.
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['polars']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'explanations'
+
+
+
+   .. py:attribute:: explanations
+
+
+   .. py:attribute:: context_operations
+
+
+   .. py:method:: predictor_contributions(context: dict[str, str] | None = None, top_n: int = 20, *, sort_by: pdstools.explanations._constants.ContributionType = 'contribution_abs', descending: bool = True, missing: bool = True, remaining: bool = True, include_numeric_single_bin: bool = False) -> polars.DataFrame
+
+      Get the top-n predictor contributions for a given context or overall.
+
+      :param context: The context to filter contributions by.
+                      If None, contributions for all contexts will be returned.
+      :type context: dict[str, str] | None
+      :param top_n: Number of top predictors.
+      :type top_n: int
+      :param sort_by: Column to rank/select top predictors. One of
+                      ``contribution``, ``contribution_abs``,
+                      ``contribution_weighted``, ``contribution_weighted_abs``.
+                      Default: ``"contribution_abs"``.
+      :type sort_by: str
+      :param descending: Sort most- or least-impactful first. Default: ``True``.
+      :type descending: bool
+      :param missing: Include missing-value bins. Default: ``True``.
+      :type missing: bool
+      :param remaining: Include an aggregated "remaining" row for predictors outside
+                        the top-n. Default: ``True``.
+      :type remaining: bool
+      :param include_numeric_single_bin: Include numeric predictors that have only a single bin.
+                                         Default: ``False``.
+      :type include_numeric_single_bin: bool
+
+
+
+   .. py:method:: predictor_value_contributions(predictors: list[str], context: dict[str, str] | None = None, top_k: int = 20, *, sort_by: pdstools.explanations._constants.ContributionType = 'contribution_abs', descending: bool = True, missing: bool = True, remaining: bool = True, include_numeric_single_bin: bool = False) -> polars.DataFrame
+
+      Get the top-k predictor value contributions for a given context or overall.
+
+      :param predictors: Required. list of predictors to get the contributions for.
+      :type predictors: list[str]
+      :param context: The context to filter contributions by.
+                      If None, contributions for all contexts will be returned.
+      :type context: dict[str, str] | None
+      :param top_k: Number of unique categorical predictor values to return.
+      :type top_k: int
+      :param sort_by: Column to rank/select top predictors. One of
+                      ``contribution``, ``contribution_abs``,
+                      ``contribution_weighted``, ``contribution_weighted_abs``.
+                      Default: ``"contribution_abs"``.
+      :type sort_by: str
+      :param descending: Sort most- or least-impactful first. Default: ``True``.
+      :type descending: bool
+      :param missing: Include missing-value bins. Default: ``True``.
+      :type missing: bool
+      :param remaining: Include an aggregated "remaining" row for values outside
+                        the top-k. Default: ``True``.
+      :type remaining: bool
+      :param include_numeric_single_bin: Include numeric predictors that have only a single bin.
+                                         Default: ``False``.
+      :type include_numeric_single_bin: bool
+
+
+
+   .. py:method:: unique_contexts(context_infos: list[dict[str, str]] | None = None, with_partition_col: bool = False) -> list[dict[str, str]]
+
+      Get unique contexts list.
+
+
+

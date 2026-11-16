@@ -1,0 +1,16 @@
+pdstools.infinity.resources
+===========================
+
+.. py:module:: pdstools.infinity.resources
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/infinity/resources/knowledge_buddy/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/index
+
+

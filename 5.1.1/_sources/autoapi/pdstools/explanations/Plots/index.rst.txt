@@ -1,0 +1,56 @@
+pdstools.explanations.Plots
+===========================
+
+.. py:module:: pdstools.explanations.Plots
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.Plots.Plots
+
+
+Module Contents
+---------------
+
+.. py:class:: Plots(explanations: pdstools.explanations.Explanations.Explanations)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Plots.
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['numpy', 'plotly']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'explanations'
+
+
+
+   .. py:attribute:: explanations
+
+
+   .. py:attribute:: aggregates
+
+
+   .. py:method:: contributions_overall(top_n: int = ..., top_k: int = ..., *, return_df: Literal[False] = ..., sort_by: pdstools.explanations._constants.ContributionType = ..., display_by: pdstools.explanations._constants.ContributionType = ..., descending: bool = ..., missing: bool = ..., remaining: bool = ..., include_numeric_single_bin: bool = ...) -> tuple[plotly.graph_objects.Figure, list[plotly.graph_objects.Figure]]
+                  contributions_overall(top_n: int = ..., top_k: int = ..., *, return_df: Literal[True], sort_by: pdstools.explanations._constants.ContributionType = ..., display_by: pdstools.explanations._constants.ContributionType = ..., descending: bool = ..., missing: bool = ..., remaining: bool = ..., include_numeric_single_bin: bool = ...) -> tuple[polars.DataFrame, polars.DataFrame]
+
+      Plot contributions for overall.
+
+
+
+   .. py:method:: contributions_by_context(context: dict[str, str], top_n: int = ..., top_k: int = ..., *, return_df: Literal[False] = ..., sort_by: pdstools.explanations._constants.ContributionType = ..., display_by: pdstools.explanations._constants.ContributionType = ..., descending: bool = ..., missing: bool = ..., remaining: bool = ..., include_numeric_single_bin: bool = ...) -> tuple[plotly.graph_objects.Figure, plotly.graph_objects.Figure, list[plotly.graph_objects.Figure]]
+                  contributions_by_context(context: dict[str, str], top_n: int = ..., top_k: int = ..., *, return_df: Literal[True], sort_by: pdstools.explanations._constants.ContributionType = ..., display_by: pdstools.explanations._constants.ContributionType = ..., descending: bool = ..., missing: bool = ..., remaining: bool = ..., include_numeric_single_bin: bool = ...) -> tuple[polars.DataFrame, polars.DataFrame]
+
+      Plot contributions by context.
+
+
+

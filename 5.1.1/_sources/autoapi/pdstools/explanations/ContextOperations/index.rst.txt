@@ -1,0 +1,121 @@
+pdstools.explanations.ContextOperations
+=======================================
+
+.. py:module:: pdstools.explanations.ContextOperations
+
+.. autoapi-nested-parse::
+
+   Context-related operations for querying the unique contexts in an aggregates set.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.explanations.ContextOperations.ContextOperations
+
+
+Module Contents
+---------------
+
+.. py:class:: ContextOperations(explanations: pdstools.explanations.Explanations.Explanations)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Context-related operations for querying unique contexts.
+
+   :param explanations: Parent instance providing the contextual data.
+   :type explanations: Explanations
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['polars']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'explanations'
+
+
+
+   .. py:attribute:: explanations
+
+
+   .. py:attribute:: file_batch_limit
+
+
+   .. py:property:: context_keys
+      :type: list[str]
+
+
+      Context key column names, for example ``["pyChannel", "pyDirection"]``.
+
+
+   .. py:method:: get_df(context_infos: list[dict[str, str]] | None = None, with_partition_col: bool = False) -> polars.DataFrame
+
+      Return unique contexts as a DataFrame, optionally filtered.
+
+      :param context_infos: Optional context filters. When provided, rows are filtered to the
+                            matching contexts.
+      :type context_infos: list[dict[str, str]] | None, default None
+      :param with_partition_col: Whether to include the raw ``context_partition`` column in the output.
+      :type with_partition_col: bool, default False
+
+      :returns: Unique contexts with one row per context.
+      :rtype: pl.DataFrame
+
+
+
+   .. py:method:: get_list(context_infos: list[dict[str, str]] | None = None, with_partition_col: bool = False) -> list[dict[str, str]]
+
+      Return unique contexts as dictionaries, optionally filtered.
+
+      :param context_infos: Optional context filters. When provided, rows are filtered to the
+                            matching contexts.
+      :type context_infos: list[dict[str, str]] | None, default None
+      :param with_partition_col: Whether to include the raw ``context_partition`` field in each dictionary.
+      :type with_partition_col: bool, default False
+
+      :returns: Unique contexts represented as dictionaries.
+      :rtype: list[dict[str, str]]
+
+
+
+   .. py:method:: write_batches(target_dir: str | pathlib.Path) -> None
+
+      Write the per-batch parquet files and the context-to-batch mapping.
+
+      The report renders one page per batch, so contexts are chunked into
+      groups of ``file_batch_limit``. Both artifacts come out of the same
+      assignment and cannot disagree: ``unique_contexts.json`` tells the
+      report subprocess which contexts belong on which page, and each
+      ``batches/BATCH_<n>.parquet`` holds exactly that page's rows.
+
+      Nothing is cached — the files are rewritten on every call, so a change
+      of dataset or of ``PDSTOOLS_FILE_BATCH_LIMIT`` takes effect.
+
+      :param target_dir: Directory to write ``unique_contexts.json`` and ``batches/`` into.
+      :type target_dir: str | Path
+
+
+
+   .. py:method:: get_context_info_str(context_info: dict[str, str], sep: str = '-') -> str
+      :staticmethod:
+
+
+      Format a context dictionary into a compact string.
+
+      :param context_info: Context dictionary to format.
+      :type context_info: dict[str, str]
+      :param sep: Separator inserted between values.
+      :type sep: str, default "-"
+
+      :returns: String containing context values joined by ``sep``.
+      :rtype: str
+
+
+

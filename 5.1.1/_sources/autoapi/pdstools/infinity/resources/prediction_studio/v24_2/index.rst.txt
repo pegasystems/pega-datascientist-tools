@@ -1,0 +1,21 @@
+pdstools.infinity.resources.prediction_studio.v24_2
+===================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_2
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/champion_challenger/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/datamart_export/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/model/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/model_upload/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/prediction/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/prediction_studio/index
+   /autoapi/pdstools/infinity/resources/prediction_studio/v24_2/repository/index
+
+

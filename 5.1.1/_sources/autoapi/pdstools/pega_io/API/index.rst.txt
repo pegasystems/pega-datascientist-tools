@@ -1,0 +1,45 @@
+pdstools.pega_io.API
+====================
+
+.. py:module:: pdstools.pega_io.API
+
+.. autoapi-nested-parse::
+
+   Pega Infinity OAuth2 helpers (credential-file based).
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.pega_io.API.get_url
+   pdstools.pega_io.API.get_token
+
+
+Module Contents
+---------------
+
+.. py:function:: get_url(credential_file: os.PathLike) -> str
+
+   Return the base URL of the Infinity instance in the credential file.
+
+
+.. py:function:: get_token(credential_file: os.PathLike, verify: bool = True) -> str
+
+   Fetch an OAuth2 access token for a Pega Platform instance.
+
+   After configuring OAuth2 in Dev Studio, download the credential
+   file and point this helper at it.
+
+   :param credential_file: Path to the credential file downloaded from Pega.
+   :type credential_file: PathLike
+   :param verify: Whether to verify TLS certificates.  Set to ``False`` only for
+                  unsecured test endpoints.
+   :type verify: bool, default=True
+
+   :returns: The bearer access token.
+   :rtype: str
+
+

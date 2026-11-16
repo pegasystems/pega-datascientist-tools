@@ -1,0 +1,19 @@
+pdstools.pega_io
+================
+
+.. py:module:: pdstools.pega_io
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/pega_io/API/index
+   /autoapi/pdstools/pega_io/Anonymization/index
+   /autoapi/pdstools/pega_io/File/index
+   /autoapi/pdstools/pega_io/S3/index
+   /autoapi/pdstools/pega_io/action_analysis/index
+
+

@@ -1,0 +1,15 @@
+pdstools.infinity.resources.knowledge_buddy
+===========================================
+
+.. py:module:: pdstools.infinity.resources.knowledge_buddy
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/infinity/resources/knowledge_buddy/knowledge_buddy/index
+
+

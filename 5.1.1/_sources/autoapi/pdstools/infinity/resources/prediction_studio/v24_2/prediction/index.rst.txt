@@ -1,0 +1,6 @@
+pdstools.infinity.resources.prediction_studio.v24_2.prediction
+==============================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_2.prediction
+
+

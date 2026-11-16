@@ -1,0 +1,201 @@
+pdstools.infinity.resources.knowledge_buddy.knowledge_buddy
+===========================================================
+
+.. py:module:: pdstools.infinity.resources.knowledge_buddy.knowledge_buddy
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.UnavailableBuddyError
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.NoAPIAccessError
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.TextInput
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.FilterAttributes
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AttributeValue
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.Attribute
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.Chunk
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.SearchResultValue
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.SearchResult
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.BuddyResponse
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.KnowledgeBuddy
+   pdstools.infinity.resources.knowledge_buddy.knowledge_buddy.AsyncKnowledgeBuddy
+
+
+Module Contents
+---------------
+
+.. py:class:: TextInput
+
+   Bases: :py:obj:`TypedDict`
+
+
+   Free-text input passed to a Knowledge Buddy variable.
+
+
+   .. py:attribute:: name
+      :type:  str
+
+
+   .. py:attribute:: value
+      :type:  str
+
+
+.. py:class:: FilterAttributes
+
+   Bases: :py:obj:`TypedDict`
+
+
+   Filter attribute payload used to restrict semantic search results.
+
+
+   .. py:attribute:: name
+      :type:  str
+
+
+   .. py:attribute:: values
+      :type:  list[dict[Literal['value'], str]]
+
+      D.values() -> an object providing a view on D's values
+
+
+.. py:class:: AttributeValue(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   A single attribute value returned in a search result chunk.
+
+
+   .. py:attribute:: value
+      :type:  str
+
+
+.. py:class:: Attribute(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   A named attribute attached to a search result chunk.
+
+
+   .. py:attribute:: values
+      :type:  list[AttributeValue]
+
+
+   .. py:attribute:: name
+      :type:  str
+
+
+.. py:class:: Chunk(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   A chunk of retrieved content plus its filterable attributes.
+
+
+   .. py:attribute:: attributes
+      :type:  list[Attribute]
+
+
+   .. py:attribute:: content
+      :type:  str
+
+
+.. py:class:: SearchResultValue(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   Structured search-result payload returned by Knowledge Buddy.
+
+
+   .. py:attribute:: chunks
+      :type:  list[Chunk]
+
+
+.. py:class:: SearchResult(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   A single search result entry returned by Knowledge Buddy.
+
+
+   .. py:attribute:: name
+      :type:  str
+
+
+   .. py:attribute:: value
+      :type:  pydantic.Json[SearchResultValue] | SearchResultValue | str
+
+
+.. py:class:: BuddyResponse(/, **data: Any)
+
+   Bases: :py:obj:`pydantic.BaseModel`
+
+
+   Response payload returned for a Knowledge Buddy question.
+
+
+   .. py:attribute:: question_id
+      :type:  str
+      :value: None
+
+
+
+   .. py:attribute:: answer
+      :type:  str
+
+
+   .. py:attribute:: status
+      :type:  str
+
+
+   .. py:attribute:: search_results
+      :type:  list[SearchResult] | None
+      :value: None
+
+
+
+.. py:exception:: UnavailableBuddyError(base_url: str, endpoint: str, params: dict, response: httpx.Response, override_message: str | None = None)
+
+   Bases: :py:obj:`pdstools.infinity.internal._exceptions.PegaException`
+
+
+   Request contains invalid inputs
+
+
+.. py:exception:: NoAPIAccessError(base_url: str, endpoint: str, params: dict, response: httpx.Response, override_message: str | None = None)
+
+   Bases: :py:obj:`pdstools.infinity.internal._exceptions.PegaException`
+
+
+   You do not have access to the API. Contact the administrator.
+
+
+.. py:class:: KnowledgeBuddy(client)
+
+   Bases: :py:obj:`_KnowledgeBuddyMixin`, :py:obj:`pdstools.infinity.internal._resource.SyncAPIResource`
+
+
+   Knowledge Buddy business logic — defined once.
+
+
+.. py:class:: AsyncKnowledgeBuddy(client)
+
+   Bases: :py:obj:`_KnowledgeBuddyMixin`, :py:obj:`pdstools.infinity.internal._resource.AsyncAPIResource`
+
+
+   Knowledge Buddy business logic — defined once.
+
+

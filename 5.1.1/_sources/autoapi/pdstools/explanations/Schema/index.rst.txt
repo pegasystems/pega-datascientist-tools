@@ -1,0 +1,51 @@
+pdstools.explanations.Schema
+============================
+
+.. py:module:: pdstools.explanations.Schema
+
+.. autoapi-nested-parse::
+
+   Expected schema of the pre-aggregated explanations parquet files.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.explanations.Schema.AGGREGATE_SCHEMA
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.explanations.Schema.apply_schema
+
+
+Module Contents
+---------------
+
+.. py:data:: AGGREGATE_SCHEMA
+   :type:  dict[str, polars.DataType]
+
+   Columns read from ``OVERVIEW.parquet`` / ``BY_CONTEXT.parquet``, and the
+   dtype each is cast to. Casting on read means every downstream aggregation
+   sees the same types regardless of how the exporting Pega version wrote the
+   file.
+
+.. py:function:: apply_schema(lf: polars.LazyFrame) -> polars.LazyFrame
+
+   Select the expected columns from *lf* and cast them to their dtypes.
+
+   :param lf: Scan over one of the aggregated parquet files.
+   :type lf: pl.LazyFrame
+
+   :returns: *lf* narrowed to :data:`AGGREGATE_SCHEMA` and cast to its dtypes.
+   :rtype: pl.LazyFrame
+
+   :raises ValueError: If *lf* is missing any of the expected columns.
+
+

@@ -1,0 +1,42 @@
+pdstools.utils
+==============
+
+.. py:module:: pdstools.utils
+
+.. autoapi-nested-parse::
+
+   Internal utility modules for pdstools.
+
+   Submodules (``cdh_utils``, ``datasets``, ``streamlit_utils``,
+   ``show_versions``, ``polars_ext`` …) are imported on demand via their
+   fully-qualified path. Nothing is re-exported at the package level — the
+   ``utils`` namespace is intentionally kept empty so that helpers stay
+   namespaced and don't leak into the public API surface.
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/utils/cdh_utils/index
+   /autoapi/pdstools/utils/color_mapping/index
+   /autoapi/pdstools/utils/datasets/index
+   /autoapi/pdstools/utils/errors/index
+   /autoapi/pdstools/utils/metric_limits/index
+   /autoapi/pdstools/utils/namespaces/index
+   /autoapi/pdstools/utils/number_format/index
+   /autoapi/pdstools/utils/pega_outcomes/index
+   /autoapi/pdstools/utils/pega_template/index
+   /autoapi/pdstools/utils/plot_utils/index
+   /autoapi/pdstools/utils/polars_ext/index
+   /autoapi/pdstools/utils/progress_utils/index
+   /autoapi/pdstools/utils/report_utils/index
+   /autoapi/pdstools/utils/show_versions/index
+   /autoapi/pdstools/utils/streamlit_utils/index
+   /autoapi/pdstools/utils/table_definitions/index
+   /autoapi/pdstools/utils/types/index
+
+

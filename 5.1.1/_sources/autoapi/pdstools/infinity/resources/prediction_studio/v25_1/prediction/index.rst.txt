@@ -1,0 +1,34 @@
+pdstools.infinity.resources.prediction_studio.v25_1.prediction
+==============================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v25_1.prediction
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v25_1.prediction.Prediction
+   pdstools.infinity.resources.prediction_studio.v25_1.prediction.AsyncPrediction
+
+
+Module Contents
+---------------
+
+.. py:class:: Prediction(client, *, predictionId: str, label: str, type: str | None = None, status: str | None = None, lastUpdateTime: str | None = None, objective: str | None = None, subject: str | None = None, **kwargs)
+
+   Bases: :py:obj:`_Predictionv25_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v26_1.prediction._sync.Prediction`
+
+
+   v25 sync Prediction — inherits all v26 methods, no performance fields.
+
+
+.. py:class:: AsyncPrediction(client, *, predictionId: str, label: str, type: str | None = None, status: str | None = None, lastUpdateTime: str | None = None, objective: str | None = None, subject: str | None = None, **kwargs)
+
+   Bases: :py:obj:`_Predictionv25_1Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.v26_1.prediction._async.AsyncPrediction`
+
+
+   v25 async Prediction — inherits all v26 methods, no performance fields.
+
+

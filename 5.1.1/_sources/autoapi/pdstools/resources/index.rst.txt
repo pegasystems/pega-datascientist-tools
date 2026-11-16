@@ -1,0 +1,31 @@
+pdstools.resources
+==================
+
+.. py:module:: pdstools.resources
+
+.. autoapi-nested-parse::
+
+   Resources module for pdstools configuration data.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   pdstools.resources.get_metric_limits_path
+
+
+Package Contents
+----------------
+
+.. py:function:: get_metric_limits_path() -> pathlib.Path
+
+   Get the path to the MetricLimits.csv file.
+
+   :returns: Path to the MetricLimits.csv resource file containing best practice
+             limits for various metrics used in pdstools.
+   :rtype: Path
+
+

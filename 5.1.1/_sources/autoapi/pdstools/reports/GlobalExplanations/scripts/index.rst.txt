@@ -1,0 +1,15 @@
+pdstools.reports.GlobalExplanations.scripts
+===========================================
+
+.. py:module:: pdstools.reports.GlobalExplanations.scripts
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/reports/GlobalExplanations/scripts/generate_report/index
+
+

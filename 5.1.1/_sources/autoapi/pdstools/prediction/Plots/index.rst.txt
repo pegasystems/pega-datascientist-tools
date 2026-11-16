@@ -1,0 +1,204 @@
+pdstools.prediction.Plots
+=========================
+
+.. py:module:: pdstools.prediction.Plots
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.prediction.Plots.logger
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.prediction.Plots.PredictionPlots
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:class:: PredictionPlots(prediction: pdstools.prediction.Prediction.Prediction)
+
+   Bases: :py:obj:`pdstools.utils.namespaces.LazyNamespace`
+
+
+   Plots for visualizing Prediction Studio data.
+
+   This class provides various plotting methods to visualize prediction performance,
+   lift, CTR, and response counts over time.
+
+
+   .. py:attribute:: dependencies
+      :type:  ClassVar[list[str]]
+      :value: ['plotly']
+
+
+
+   .. py:attribute:: dependency_group
+      :value: 'adm'
+
+
+
+   .. py:attribute:: prediction
+
+
+   .. py:method:: performance_trend(period: str = ..., *, query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[False] = ..., **kwargs) -> plotly.graph_objects.Figure
+                  performance_trend(period: str = ..., *, query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[True], **kwargs) -> polars.LazyFrame
+
+      Create a performance trend plot showing AUC over time.
+
+      Displays a line chart showing how prediction performance (AUC) changes over time,
+      with configurable time period aggregation and filtering capabilities.
+
+      :param period: Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d".
+                     Uses Polars truncate syntax for time period grouping.
+      :type period: str, optional
+      :param query: Query to filter the prediction data. See pdstools.utils.cdh_utils._apply_query for details.
+      :type query: Optional[QUERY], optional
+      :param return_df: If True, returns the underlying data instead of the plot, by default False.
+      :type return_df: bool, optional
+      :param \*\*kwargs: Additional keyword arguments passed directly to plotly.express.line.
+                         See plotly.express.line documentation for all available options.
+
+      :returns: A Plotly figure object or the underlying data if return_df is True.
+      :rtype: Union[plotly.graph_objects.Figure, polars.LazyFrame]
+
+      .. rubric:: Examples
+
+      >>> # Basic performance trend plot
+      >>> pred.plot.performance_trend()
+
+      >>> # Weekly aggregated performance trend
+      >>> pred.plot.performance_trend(period="1w")
+
+      >>> # Performance trend with faceting by prediction
+      >>> pred.plot.performance_trend(facet_row="Prediction")
+
+      >>> # Get underlying data for custom analysis
+      >>> data = pred.plot.performance_trend(return_df=True)
+
+
+
+   .. py:method:: lift_trend(period: str = ..., *, query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[False] = ..., **kwargs) -> plotly.graph_objects.Figure
+                  lift_trend(period: str = ..., *, query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[True], **kwargs) -> polars.LazyFrame
+
+      Create a lift trend plot showing engagement lift over time.
+
+      Displays a line chart showing how prediction engagement lift changes over time,
+      comparing test group performance against control group baseline.
+
+      :param period: Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d".
+                     Uses Polars truncate syntax for time period grouping.
+      :type period: str, optional
+      :param query: Query to filter the prediction data. See pdstools.utils.cdh_utils._apply_query for details.
+      :type query: Optional[QUERY], optional
+      :param return_df: If True, returns the underlying data instead of the plot, by default False.
+      :type return_df: bool, optional
+      :param \*\*kwargs: Additional keyword arguments passed directly to plotly.express.line.
+                         See plotly.express.line documentation for all available options.
+
+      :returns: A Plotly figure object or the underlying data if return_df is True.
+      :rtype: Union[plotly.graph_objects.Figure, polars.LazyFrame]
+
+      .. rubric:: Examples
+
+      >>> # Basic lift trend plot
+      >>> pred.plot.lift_trend()
+
+      >>> # Monthly aggregated lift trend
+      >>> pred.plot.lift_trend(period="1mo")
+
+      >>> # Lift trend with custom query
+      >>> pred.plot.lift_trend(query=pl.col("Channel") == "Email")
+
+      >>> # Get underlying data
+      >>> data = pred.plot.lift_trend(return_df=True)
+
+
+
+   .. py:method:: ctr_trend(period: str = ..., facetting: bool = ..., *, query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[False] = ..., **kwargs) -> plotly.graph_objects.Figure
+                  ctr_trend(period: str = ..., facetting: bool = ..., *, query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[True], **kwargs) -> polars.LazyFrame
+
+      Create a CTR (Click-Through Rate) trend plot over time.
+
+      Displays a line chart showing how prediction click-through rates change over time,
+      with optional faceting capabilities for comparing multiple predictions.
+
+      :param period: Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d".
+                     Uses Polars truncate syntax for time period grouping.
+      :type period: str, optional
+      :param facetting: Whether to create facets by prediction for side-by-side comparison, by default False.
+      :type facetting: bool, optional
+      :param query: Query to filter the prediction data. See pdstools.utils.cdh_utils._apply_query for details.
+      :type query: Optional[QUERY], optional
+      :param return_df: If True, returns the underlying data instead of the plot, by default False.
+      :type return_df: bool, optional
+      :param \*\*kwargs: Additional keyword arguments passed directly to plotly.express.line.
+                         See plotly.express.line documentation for all available options.
+
+      :returns: A Plotly figure object or the underlying data if return_df is True.
+      :rtype: Union[plotly.graph_objects.Figure, polars.LazyFrame]
+
+      .. rubric:: Examples
+
+      >>> # Basic CTR trend plot
+      >>> pred.plot.ctr_trend()
+
+      >>> # Weekly CTR trend with faceting
+      >>> pred.plot.ctr_trend(period="1w", facetting=True)
+
+      >>> # CTR trend with custom query
+      >>> pred.plot.ctr_trend(query=pl.col("Prediction").str.contains("Email"))
+
+      >>> # Get underlying data
+      >>> data = pred.plot.ctr_trend(return_df=True)
+
+
+
+   .. py:method:: responsecount_trend(period: str = ..., facetting: bool = ..., *, query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[False] = ..., **kwargs) -> plotly.graph_objects.Figure
+                  responsecount_trend(period: str = ..., facetting: bool = ..., *, query: pdstools.utils.types.QUERY | None = ..., return_df: Literal[True], **kwargs) -> polars.LazyFrame
+
+      Create a response count trend plot showing total responses over time.
+
+      Displays a line chart showing how total response volumes change over time,
+      useful for monitoring prediction usage and data volume trends.
+
+      :param period: Time period for aggregation (e.g., "1d", "1w", "1mo"), by default "1d".
+                     Uses Polars truncate syntax for time period grouping.
+      :type period: str, optional
+      :param facetting: Whether to create facets by prediction for side-by-side comparison, by default False.
+      :type facetting: bool, optional
+      :param query: Query to filter the prediction data. See pdstools.utils.cdh_utils._apply_query for details.
+      :type query: Optional[QUERY], optional
+      :param return_df: If True, returns the underlying data instead of the plot, by default False.
+      :type return_df: bool, optional
+      :param \*\*kwargs: Additional keyword arguments passed directly to plotly.express.line.
+                         See plotly.express.line documentation for all available options.
+
+      :returns: A Plotly figure object or the underlying data if return_df is True.
+      :rtype: Union[plotly.graph_objects.Figure, polars.LazyFrame]
+
+      .. rubric:: Examples
+
+      >>> # Basic response count trend plot
+      >>> pred.plot.responsecount_trend()
+
+      >>> # Monthly response count trend with faceting
+      >>> pred.plot.responsecount_trend(period="1mo", facetting=True)
+
+      >>> # Response count trend for specific predictions
+      >>> pred.plot.responsecount_trend(query=pl.col("Channel") == "Web")
+
+      >>> # Get underlying data for analysis
+      >>> data = pred.plot.responsecount_trend(return_df=True)
+
+
+

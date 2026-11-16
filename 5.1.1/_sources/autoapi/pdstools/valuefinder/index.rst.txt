@@ -1,0 +1,18 @@
+pdstools.valuefinder
+====================
+
+.. py:module:: pdstools.valuefinder
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/pdstools/valuefinder/Aggregates/index
+   /autoapi/pdstools/valuefinder/Plots/index
+   /autoapi/pdstools/valuefinder/Schema/index
+   /autoapi/pdstools/valuefinder/ValueFinder/index
+
+

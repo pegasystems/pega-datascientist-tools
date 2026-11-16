@@ -1,0 +1,68 @@
+pdstools.infinity.resources.prediction_studio.v24_2.model
+=========================================================
+
+.. py:module:: pdstools.infinity.resources.prediction_studio.v24_2.model
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.infinity.resources.prediction_studio.v24_2.model.Model
+   pdstools.infinity.resources.prediction_studio.v24_2.model.AsyncModel
+
+
+Module Contents
+---------------
+
+.. py:class:: Model(client, **payload)
+
+   Bases: :py:obj:`_ModelV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.Model`
+
+
+   v24.2 Model business logic — defined once.
+
+
+   .. py:method:: get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: Literal[False] = False) -> pdstools.infinity.internal._pagination.PaginatedList[pdstools.infinity.resources.prediction_studio.base.Notification]
+                  get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: Literal[True] = True) -> polars.DataFrame
+
+      Fetches a list of notifications for a specific model.
+
+      This function retrieves notifications related to a model. You can filter these notifications by their category.
+      Optionally, the notifications can be returned as a DataFrame for easier analysis and visualization.
+
+      :param category: The category of notifications to retrieve. If not specified, all notifications are fetched.
+      :type category: {"All", "Responses", "Performance", "Model approval", "Output", "Predictors", "Prediction deployment", "Generic"} or None, optional
+      :param return_df: If True, returns the notifications as a DataFrame. Otherwise, returns a list.
+      :type return_df: bool, default False
+
+      :returns: A list of notifications or a DataFrame containing the notifications, depending on the value of `return_df`.
+      :rtype: PaginatedList[Notification] or polars.DataFrame
+
+
+
+.. py:class:: AsyncModel(client, **payload)
+
+   Bases: :py:obj:`_ModelV24_2Mixin`, :py:obj:`pdstools.infinity.resources.prediction_studio.base.AsyncModel`
+
+
+   v24.2 Model business logic — defined once.
+
+
+   .. py:method:: get_notifications(category: pdstools.infinity.resources.prediction_studio.types.NotificationCategory | None = None, return_df: bool = False) -> pdstools.infinity.internal._pagination.AsyncPaginatedList[pdstools.infinity.resources.prediction_studio.base.AsyncNotification] | polars.DataFrame
+      :async:
+
+
+      Fetches a list of notifications for a specific model.
+
+      :param category: The category of notifications to retrieve. If not specified, all notifications are fetched.
+      :type category: {"All", "Responses", "Performance", "Model approval", "Output", "Predictors", "Prediction deployment", "Generic"} or None, optional
+      :param return_df: If True, returns the notifications as a DataFrame. Otherwise, returns a list.
+      :type return_df: bool, default False
+
+      :returns: A list of notifications or a DataFrame containing the notifications.
+      :rtype: AsyncPaginatedList[AsyncNotification] or polars.DataFrame
+
+
+
