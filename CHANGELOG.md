@@ -8,8 +8,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- The AGB Explained notebook counts distinct action and treatment names
-  referenced in model tree splits, for comparison across configurations.
+- `ADMTreesModel.context_key_counts` counts distinct categorical values
+  referenced in tree splits for all standard and configured context keys.
+  The AGB Explained notebook uses it to compare model configurations.
 - `pdstools.utils.cdh_utils.resolve_trend_interval()` and
   `trend_interval_label()` provide shared date-range-based trend cadence
   selection and display labels.

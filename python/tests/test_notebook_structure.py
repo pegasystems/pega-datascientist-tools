@@ -5,10 +5,7 @@ from __future__ import annotations
 import json
 import pathlib
 import re
-from types import SimpleNamespace
 from typing import Any
-
-import polars as pl
 
 BASE_PATH = pathlib.Path(__file__).parent.parent.parent
 AGB_EXPLAINED = BASE_PATH / "examples" / "articles" / "AGBExplained.ipynb"
@@ -64,32 +61,3 @@ def test_agb_explained_intro_toc_matches_level_two_headings():
     assert labels == headings
     assert anchors == [_toc_anchor(label) for label in labels]
     assert not any(re.match(r"\d+\.\s+", heading) for heading in headings)
-
-
-def test_agb_explained_counts_distinct_context_values():
-    notebook = json.loads(AGB_EXPLAINED.read_text(encoding="utf-8"))
-    cell = next(cell for cell in notebook["cells"] if cell.get("id") == "action-treatment-counts")
-    splits = pl.DataFrame(
-        {
-            "predictor": ["pyName", "pyName", "pyName", "pyTreatment", "pyTreatment", "Customer.Age"],
-            "split": [
-                "pyName in { A, B, }",
-                "pyName == A",
-                "pyName is Missing",
-                "pyTreatment in { T1, Missing }",
-                "pyTreatment is Missing",
-                "Customer.Age < 50",
-            ],
-        }
-    )
-    namespace = {"AGBModel": SimpleNamespace(gains_per_split=splits), "pl": pl}
-    exec("".join(cell["source"]), namespace)
-
-    assert namespace["context_value_counts"].to_dicts() == [
-        {"Predictor": "Action name (pyName)", "Distinct values in splits": 2},
-        {"Predictor": "Treatment name (pyTreatment)", "Distinct values in splits": 2},
-    ]
-
-    namespace["AGBModel"] = SimpleNamespace(gains_per_split=splits.head(0))
-    exec("".join(cell["source"]), namespace)
-    assert namespace["context_value_counts"]["Distinct values in splits"].to_list() == [0, 0]
