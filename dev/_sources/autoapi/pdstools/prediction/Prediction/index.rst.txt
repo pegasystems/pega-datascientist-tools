@@ -283,22 +283,38 @@ Module Contents
 
 
 
-   .. py:method:: from_mock_data(days=70)
+   .. py:method:: from_mock_data(days: int = 70, *, seed: int | None = 42, end: datetime.date | Literal['canonical'] | None = None, scale: float = 1.0) -> Prediction
       :classmethod:
 
 
-      Create a Prediction instance with mock data for testing and demonstration purposes.
+      Create a Prediction from the shared synthetic sample world.
 
-      :param days: Number of days of mock data to generate, by default 70
-      :type days: int, optional
+      Five standard predictions (Web, Mobile, Email, Call Center and the
+      multi-channel PredictActionPropensity) with daily AUC, Test, Control
+      and NBA rows. The data shows the stories of the demo world: Mobile
+      models learning, a Mobile AGB challenger, an Email feed problem that
+      briefly makes model lift negative, and weeks where only positive
+      feedback arrived. Call Center volumes are deliberately too small for
+      a meaningful lift.
 
-      :returns: The initialized Prediction class with mock data
+      :param days: Number of daily snapshots; at least 56.
+      :type days: int, default 70
+      :param seed: Seed for reproducible data; ``None`` draws a random seed.
+      :type seed: int or None, default 42
+      :param end: Last snapshot date, resolved to the Sunday on or before it.
+                  ``None`` uses the most recent completed Sunday, ``"canonical"``
+                  pins Sunday 2000-07-02.
+      :type end: date, "canonical" or None, default None
+      :param scale: Multiplier on response volumes.
+      :type scale: float, default 1.0
+
+      :returns: Prediction with exactly ``days`` snapshot dates per prediction.
       :rtype: Prediction
 
       .. rubric:: Examples
 
       >>> from pdstools import Prediction
-      >>> pred = Prediction.from_mock_data(days=30)
+      >>> pred = Prediction.from_mock_data(days=60)
       >>> pred.plot.performance_trend()
 
 

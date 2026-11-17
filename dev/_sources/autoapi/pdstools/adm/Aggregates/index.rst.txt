@@ -143,7 +143,7 @@ Module Contents
 
                 Treatment Statistics:
                 - Treatments - The total number of unique treatments
-                - Used Treatments - The number of unique treatments
+                - Used Treatments - The number of unique treatments with updated models
 
                 Omnichannel Metrics:
                 - OmniChannel - The overlap of actions with other channels (measure of Omni Channel capability)
@@ -153,6 +153,11 @@ Module Contents
                 - usesAGB - Boolean indicating whether any Adaptive Generic Boosting (AGB) models are used
                 - AGB Configurations - Comma-separated names of the configurations that contain AGB models (empty if none)
       :rtype: pl.LazyFrame
+
+      .. rubric:: Notes
+
+      Each nonempty treatment name is counted once per channel and period,
+      even when it appears in multiple models or snapshots.
 
 
 
@@ -511,7 +516,7 @@ Module Contents
 
                 Treatment Statistics:
                 - Treatments - The total number of unique treatments
-                - Used Treatments - The number of unique treatments that have been used
+                - Used Treatments - The number of unique treatments with updated models
 
                 Channel Statistics:
                 - Number of Valid Channels - The count of valid channels (channels with sufficient data)
@@ -522,9 +527,13 @@ Module Contents
                 Technology Usage Indicators:
                 - usesNBAD - Boolean indicating whether standard NBAD configurations are used
                 - usesAGB - Boolean indicating whether any Adaptive Gradient Boosting (AGB) models are used
-
-                Note: A channel is considered "valid" if it has at least 200 positives and 1000 responses
       :rtype: pl.LazyFrame
+
+      .. rubric:: Notes
+
+      Each nonempty treatment name is counted once across channels, models,
+      and snapshots in the period. A channel is considered valid if it has
+      at least 200 positives and 1000 responses.
 
 
 

@@ -198,6 +198,51 @@ Module Contents
 
 
 
+   .. py:method:: from_mock_data(days: int = ..., n: int = ..., *, seed: int | None = ..., end: datetime.date | Literal['canonical'] | None = ..., scale: float = ..., return_df: Literal[True]) -> polars.LazyFrame
+                  from_mock_data(days: int = ..., n: int = ..., *, seed: int | None = ..., end: datetime.date | Literal['canonical'] | None = ..., scale: float = ..., return_df: Literal[False] = ...) -> ImpactAnalyzer
+      :classmethod:
+
+
+      Create an ImpactAnalyzer from the shared synthetic sample world.
+
+      Aggregates the exposures of :meth:`pdstools.ih.IH.from_mock_data`
+      with matching arguments and a fixed seed and window, so the counts
+      reconcile exactly with that Interaction History. Separate calls with
+      ``seed=None`` draw independent worlds. Each of the five experiment
+      types holds about 1 percent of customers per month, with model control
+      split between two arms; small channels and short windows can leave
+      arms empty or without accepts. Impressions are Impression (inbound)
+      or Pending (outbound) outcomes, accepts are Clicked (inbound) or
+      Accepted (outbound), and each exposure counts once on the day it was
+      offered.
+
+      :param days: Number of days in the window.
+      :type days: int, default 182
+      :param n: Number of interactions (decisions) to sample.
+      :type n: int, default 100000
+      :param seed: Seed for reproducible data; ``None`` draws a random seed.
+      :type seed: int or None, default 42
+      :param end: Last day of the window, resolved to the Sunday on or before it.
+                  ``None`` uses the most recent completed Sunday, ``"canonical"``
+                  pins Sunday 2000-07-02. Experiment assignments follow calendar
+                  months, so changing the end date can also change the aggregates.
+      :type end: date, "canonical" or None, default None
+      :param scale: Multiplier on world response volumes.
+      :type scale: float, default 1.0
+      :param return_df: If True, return the aggregated LazyFrame instead.
+      :type return_df: bool, default False
+
+      :returns: Daily counts per control group, ``Channel/Direction``, action and
+                treatment.
+      :rtype: ImpactAnalyzer or pl.LazyFrame
+
+      .. rubric:: Examples
+
+      >>> ia = ImpactAnalyzer.from_mock_data()
+      >>> ia.summarize_experiments().collect()
+
+
+
    .. py:method:: from_ih(ih_source: os.PathLike | str, *, return_df: Literal[True]) -> polars.LazyFrame | None
                   from_ih(ih_source: os.PathLike | str) -> ImpactAnalyzer | None
       :classmethod:

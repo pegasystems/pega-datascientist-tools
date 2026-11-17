@@ -156,33 +156,44 @@ Module Contents
 
 
 
-   .. py:method:: from_mock_data(days: int = 90, n: int = 100000, seed: int | None = None) -> IH
+   .. py:method:: from_mock_data(days: int = 182, n: int = 100000, *, seed: int | None = 42, end: datetime.date | Literal['canonical'] | None = None, scale: float = 1.0) -> IH
       :classmethod:
 
 
-      Create an IH instance with synthetic sample data.
+      Create an IH instance from the shared synthetic sample world.
 
-      Generates realistic interaction history data for testing and
-      demonstration purposes. Includes inbound (Web) and outbound (Email)
-      channels with configurable propensities and model noise.
+      Samples ``n`` decisions from the same world as
+      :meth:`pdstools.adm.ADMDatamart.from_mock_data` and
+      :meth:`pdstools.prediction.Prediction.from_mock_data`, so engagement
+      per channel matches the model and prediction data. Web and Mobile
+      (inbound) record Impression and Clicked; Email and Call Center
+      (outbound) record Pending and Accepted, with Email Opened in between.
+      Every offered action is an exposure carrying its Impact Analyzer
+      control group (``MktValue``, ``MktType``), model-control cohort
+      (``ModelControlGroup``), propensities and accepted ``Value``. A
+      separate Conversion-Test/Control experiment adds Conversion outcomes.
 
-      :param days: Number of days of data to generate.
-      :type days: int, default 90
-      :param n: Number of interaction records to generate.
+      :param days: Number of days in the window.
+      :type days: int, default 182
+      :param n: Number of interactions (decisions) to sample.
       :type n: int, default 100000
-      :param seed: Optional seed for the random number generator. When provided,
-                   data generation becomes deterministic across runs — useful for
-                   tests and reproducible notebooks. When ``None`` (the default),
-                   results vary between invocations.
-      :type seed: int or None, default None
+      :param seed: Seed for reproducible data; ``None`` draws a random seed.
+      :type seed: int or None, default 42
+      :param end: Last day of the window, resolved to the Sunday on or before it.
+                  ``None`` uses the most recent completed Sunday, ``"canonical"``
+                  pins Sunday 2000-07-02. Experiment assignments follow calendar
+                  months, so changing the end date can also change sampled decisions.
+      :type end: date, "canonical" or None, default None
+      :param scale: Multiplier on world response volumes.
+      :type scale: float, default 1.0
 
-      :returns: IH instance with synthetic data.
+      :returns: IH instance with one row per outcome.
       :rtype: IH
 
       .. rubric:: Examples
 
-      >>> ih = IH.from_mock_data(days=30, n=10000, seed=42)
-      >>> ih.data.select("pyChannel").collect().unique()
+      >>> ih = IH.from_mock_data(n=10000)
+      >>> ih.aggregates.summary_by_channel().collect()
 
 
 

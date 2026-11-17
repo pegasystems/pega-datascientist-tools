@@ -323,6 +323,42 @@ Module Contents
 
 
 
+   .. py:method:: from_mock_data(days: int = 182, *, seed: int | None = 42, end: datetime.date | Literal['canonical'] | None = None, scale: float = 1.0) -> ADMDatamart
+      :classmethod:
+
+
+      Create an ADMDatamart from the shared synthetic sample world.
+
+      Daily model snapshots for 864 action-level models in seven model
+      configurations (Web, Mobile, Email, Call Center and Omni; Naive Bayes
+      and AGB), plus the predictor binning of the last snapshot. The data
+      shows the stories of the demo world: Mobile models learning, a Mobile
+      AGB challenger, a specialized Web model for lending offers with a
+      stricter predictor set, action launches and retirements, and a few
+      seeded stuck, weak and overfitting models.
+
+      :param days: Number of daily snapshots; at least 56.
+      :type days: int, default 182
+      :param seed: Seed for reproducible data; ``None`` draws a random seed.
+      :type seed: int or None, default 42
+      :param end: Last snapshot date, resolved to the Sunday on or before it.
+                  ``None`` uses the most recent completed Sunday, ``"canonical"``
+                  pins Sunday 2000-07-02.
+      :type end: date, "canonical" or None, default None
+      :param scale: Multiplier on response volumes.
+      :type scale: float, default 1.0
+
+      :returns: Datamart with model and predictor data.
+      :rtype: ADMDatamart
+
+      .. rubric:: Examples
+
+      >>> from pdstools import ADMDatamart
+      >>> dm = ADMDatamart.from_mock_data()
+      >>> dm.plot.bubble_chart()
+
+
+
    .. py:method:: apply_predictor_categorization(categorization: polars.Expr | collections.abc.Callable[Ellipsis, polars.Expr] | dict[str, str | list[str]] = cdh_utils.default_predictor_categorization, *, use_regexp: bool = False, df: polars.LazyFrame | None = None)
 
       Apply a new predictor categorization to the datamart tables

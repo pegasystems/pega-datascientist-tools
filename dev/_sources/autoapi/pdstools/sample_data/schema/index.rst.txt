@@ -1,0 +1,575 @@
+pdstools.sample_data.schema
+===========================
+
+.. py:module:: pdstools.sample_data.schema
+
+.. autoapi-nested-parse::
+
+   Immutable records for the synthetic sample specification, not sample rows.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   pdstools.sample_data.schema.Direction
+   pdstools.sample_data.schema.Technique
+   pdstools.sample_data.schema.Family
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   pdstools.sample_data.schema.Channel
+   pdstools.sample_data.schema.ActionChannel
+   pdstools.sample_data.schema.Action
+   pdstools.sample_data.schema.Treatment
+   pdstools.sample_data.schema.Distribution
+   pdstools.sample_data.schema.Predictor
+   pdstools.sample_data.schema.PredictorGroup
+   pdstools.sample_data.schema.Configuration
+   pdstools.sample_data.schema.ModelContext
+   pdstools.sample_data.schema.Story
+
+
+Module Contents
+---------------
+
+.. py:data:: Direction
+
+.. py:data:: Technique
+
+.. py:data:: Family
+
+.. py:class:: Channel
+
+   Define one channel's volume, baseline and demonstration purpose.
+
+
+   .. py:attribute:: name
+      :type:  str
+
+      Display name.
+
+
+   .. py:attribute:: direction
+      :type:  Direction
+
+      Interaction direction.
+
+
+   .. py:attribute:: baseline_probability
+      :type:  float
+
+      Mature positive-response probability.
+
+
+   .. py:attribute:: daily_responses
+      :type:  int | None
+
+      Daily opportunity target, absent for a window-total target.
+
+
+   .. py:attribute:: window_responses
+      :type:  int | None
+
+      Total opportunity target for the canonical window, if applicable.
+
+
+   .. py:attribute:: rationale
+      :type:  str
+
+      Reason this channel is in the demo.
+
+
+   .. py:attribute:: serves
+      :type:  tuple[str, Ellipsis]
+
+      Report sections or demonstrations exercised.
+
+
+.. py:class:: ActionChannel
+
+   Bind an action to a channel and exactly one primary configuration.
+
+
+   .. py:attribute:: channel
+      :type:  str
+
+      Channel name.
+
+
+   .. py:attribute:: direction
+      :type:  Direction
+
+      Direction for this membership.
+
+
+   .. py:attribute:: configuration
+      :type:  str
+
+      Primary configuration, never an unsafe fallback.
+
+
+   .. py:attribute:: challenger_configuration
+      :type:  str | None
+
+      Optional Mobile challenger.
+
+
+   .. py:attribute:: baseline_probability
+      :type:  float
+
+      Mature action-level response probability.
+
+
+   .. py:attribute:: volume_weight
+      :type:  float
+
+      Relative weight normalized across active actions.
+
+
+   .. py:attribute:: treatment_ids
+      :type:  tuple[str, Ellipsis]
+
+      Explicit treatments for this action/channel.
+
+
+.. py:class:: Action
+
+   Define a fictional action's taxonomy and canonical lifetime.
+
+
+   .. py:attribute:: id
+      :type:  str
+
+      Stable taxonomy identifier.
+
+
+   .. py:attribute:: issue
+      :type:  str
+
+      Business issue.
+
+
+   .. py:attribute:: group
+      :type:  str
+
+      Business group.
+
+
+   .. py:attribute:: name
+      :type:  str
+
+      Clean action name before export-only naming stories.
+
+
+   .. py:attribute:: start_day
+      :type:  int
+
+      Inclusive canonical launch day.
+
+
+   .. py:attribute:: stop_day
+      :type:  int | None
+
+      Exclusive canonical stop day; None means no stop.
+
+
+   .. py:attribute:: rate_multiplier
+      :type:  float
+
+      Multiplier on each channel's mature baseline.
+
+
+   .. py:attribute:: model_category
+      :type:  str | None
+
+      Native model-category proposal for the specialized route.
+
+
+   .. py:attribute:: channels
+      :type:  tuple[ActionChannel, Ellipsis]
+
+      Explicit channel memberships.
+
+
+   .. py:attribute:: rationale
+      :type:  str
+
+      Reason for this catalog row.
+
+
+   .. py:attribute:: serves
+      :type:  tuple[str, Ellipsis]
+
+      Demonstrations exercised by this action.
+
+
+.. py:class:: Treatment
+
+   Define one action/channel creative and its baseline probability.
+
+
+   .. py:attribute:: id
+      :type:  str
+
+      Stable treatment identifier.
+
+
+   .. py:attribute:: action_id
+      :type:  str
+
+      Owning action identifier.
+
+
+   .. py:attribute:: name
+      :type:  str
+
+      Exported treatment name.
+
+
+   .. py:attribute:: channel
+      :type:  str
+
+      Channel name.
+
+
+   .. py:attribute:: direction
+      :type:  Direction
+
+      Interaction direction.
+
+
+   .. py:attribute:: configuration
+      :type:  str
+
+      Primary configuration.
+
+
+   .. py:attribute:: rate_multiplier
+      :type:  float
+
+      Multiplier on the action/channel response probability.
+
+
+   .. py:attribute:: volume_share
+      :type:  float
+
+      Share within the action/channel; sibling shares total one.
+
+
+   .. py:attribute:: baseline_probability
+      :type:  float
+
+      Literal mature response probability.
+
+
+.. py:class:: Distribution
+
+   Describe synthetic numeric bins or categorical values.
+
+
+   .. py:attribute:: kind
+      :type:  Literal['binned_numeric', 'categorical']
+
+      Distribution vocabulary, not an instruction to sample independently.
+
+
+   .. py:attribute:: weights
+      :type:  tuple[float, Ellipsis]
+
+      Bin or category probabilities.
+
+
+   .. py:attribute:: edges
+      :type:  tuple[float, Ellipsis]
+      :value: ()
+
+
+      Numeric interval boundaries.
+
+
+   .. py:attribute:: values
+      :type:  tuple[str | bool, Ellipsis]
+      :value: ()
+
+
+      Symbolic category values.
+
+
+.. py:class:: Predictor
+
+   Define a feature's synthetic distribution and model-input policy.
+
+
+   .. py:attribute:: id
+      :type:  str
+
+      Python/export-facing predictor name.
+
+
+   .. py:attribute:: family
+      :type:  Family
+
+      Predictor family with shared rationale and latent drivers.
+
+
+   .. py:attribute:: data_type
+      :type:  Literal['numeric', 'symbolic']
+
+      Predictor data type.
+
+
+   .. py:attribute:: baseline_eligible
+      :type:  bool
+
+      Whether general configurations may use this field.
+
+
+   .. py:attribute:: exclusion_reason
+      :type:  str | None
+
+      Why the field is excluded from the general baseline.
+
+
+   .. py:attribute:: loan_allowed
+      :type:  bool
+
+      Membership in the stricter neutral Web Loans allowlist.
+
+
+   .. py:attribute:: distribution
+      :type:  Distribution | None
+
+      Synthetic marginal shape; correlations are modeled separately.
+
+
+   .. py:attribute:: missing_probability
+      :type:  float | None
+
+      Probability of a missing value.
+
+
+   .. py:attribute:: signal_role
+      :type:  str
+
+      Shared latent driver role.
+
+
+   .. py:attribute:: correlation_family
+      :type:  str
+
+      Driver family shared by related windows or financial attributes.
+
+
+   .. py:attribute:: latent_effect_size
+      :type:  float | None
+
+      Log-odds effect per standardized driver, not observed importance.
+
+
+.. py:class:: PredictorGroup
+
+   Explain a predictor family's contribution to the demo.
+
+
+   .. py:attribute:: name
+      :type:  Family
+
+      Family identifier.
+
+
+   .. py:attribute:: rationale
+      :type:  str
+
+      Why this family is configured.
+
+
+   .. py:attribute:: serves
+      :type:  tuple[str, Ellipsis]
+
+      Demonstrations exercised.
+
+
+.. py:class:: Configuration
+
+   Define model technique, configured inputs and lifecycle.
+
+
+   .. py:attribute:: name
+      :type:  str
+
+      Configuration name.
+
+
+   .. py:attribute:: technique
+      :type:  Technique
+
+      Adaptive modeling technique.
+
+
+   .. py:attribute:: context_keys
+      :type:  tuple[str, Ellipsis]
+
+      Context dimensions of a model.
+
+
+   .. py:attribute:: predictor_ids
+      :type:  tuple[str, Ellipsis]
+
+      Complete configured feature set.
+
+
+   .. py:attribute:: start_day
+      :type:  int
+
+      Inclusive canonical introduction day.
+
+
+   .. py:attribute:: prehistory
+      :type:  bool
+
+      Whether day-zero actions may have pre-window feedback.
+
+
+   .. py:attribute:: role
+      :type:  str
+
+      Standard, specialized or champion/challenger purpose.
+
+
+   .. py:attribute:: rationale
+      :type:  str
+
+      Why this configuration exists.
+
+
+   .. py:attribute:: serves
+      :type:  tuple[str, Ellipsis]
+
+      Report sections or demonstrations exercised.
+
+
+.. py:class:: ModelContext
+
+   Identify an action-level model before export-only perturbations.
+
+
+   .. py:attribute:: configuration
+      :type:  str
+
+      Configuration name.
+
+
+   .. py:attribute:: action_id
+      :type:  str
+
+      Clean action identifier.
+
+
+   .. py:attribute:: channel
+      :type:  str
+
+      Channel of the opportunity stream.
+
+
+   .. py:attribute:: direction
+      :type:  Direction
+
+      Direction of the opportunity stream.
+
+
+   .. py:attribute:: treatment_id
+      :type:  str | None
+
+      Treatment identifier; absent for Omni contexts.
+
+
+   .. py:attribute:: start_day
+      :type:  int
+
+      Later of the action and configuration launch.
+
+
+   .. py:attribute:: stop_day
+      :type:  int | None
+
+      Action stop day; snapshots continue with frozen counts.
+
+
+   .. py:attribute:: prehistory
+      :type:  bool
+
+      Whether this particular context has pre-window feedback.
+
+
+.. py:class:: Story
+
+   Define one timed effect on the canonical opportunity stream.
+
+
+   .. py:attribute:: name
+      :type:  str
+
+      Stable story identifier.
+
+
+   .. py:attribute:: channel
+      :type:  str
+
+      Affected channel.
+
+
+   .. py:attribute:: technique
+      :type:  Technique
+
+      Affected model technique.
+
+
+   .. py:attribute:: start_day
+      :type:  int
+
+      Inclusive canonical start day.
+
+
+   .. py:attribute:: duration_days
+      :type:  int
+
+      Duration of the event before recovery.
+
+
+   .. py:attribute:: recovery_days
+      :type:  int
+
+      Duration of recovery or delayed negative-feedback catch-up.
+
+
+   .. py:attribute:: ctr_multiplier
+      :type:  float
+
+      Multiplier on underlying response probability during the event.
+
+
+   .. py:attribute:: positive_only
+      :type:  bool
+
+      Whether negative outcomes are delayed while positives continue.
+
+
+   .. py:attribute:: rationale
+      :type:  str
+
+      Why the story is included.
+
+
+   .. py:attribute:: serves
+      :type:  tuple[str, Ellipsis]
+
+      Report sections or demonstrations exercised.
+
+

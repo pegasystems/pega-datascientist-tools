@@ -27,6 +27,7 @@ Submodules
    /autoapi/pdstools/prediction/index
    /autoapi/pdstools/reports/index
    /autoapi/pdstools/resources/index
+   /autoapi/pdstools/sample_data/index
    /autoapi/pdstools/utils/index
    /autoapi/pdstools/valuefinder/index
 

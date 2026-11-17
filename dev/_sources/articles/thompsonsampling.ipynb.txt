@@ -6,9 +6,7 @@
    "source": [
     "> **📦 Optional dependencies**\n",
     ">\n",
-    "> This article uses features from the pdstools `adm` extra. Install with your favorite package manager, e.g. `uv pip install \"pdstools[adm]\"`.\n",
-    ">\n",
-    "> The notebook also uses `scipy`, which is not shipped with pdstools — install it separately.\n"
+    "> This article does not use pdstools itself. It needs `plotly`, `numpy` and `scipy`; the pdstools `adm` extra provides the first two. Install with your favorite package manager, e.g. `uv pip install \"pdstools[adm]\" scipy`."
    ]
   },
   {

@@ -22,11 +22,14 @@ Attributes
    pdstools.utils.plot_utils.logger
    pdstools.utils.plot_utils.Figure
    pdstools.utils.plot_utils.DEFAULT_PLOT_POINTS_PER_GROUP
+   pdstools.utils.plot_utils.MODEL_TECHNIQUE_LABELS
    pdstools.utils.plot_utils.LIFT_DIRECTION_COLORS
    pdstools.utils.plot_utils.PERFORMANCE_RANGE_MIN
    pdstools.utils.plot_utils.PERFORMANCE_RANGE_MAX
    pdstools.utils.plot_utils.COLORSCALES
    pdstools.utils.plot_utils.DEFAULT_LABEL_MAX_LENGTH
+   pdstools.utils.plot_utils.MODEL_PERFORMANCE_LABEL
+   pdstools.utils.plot_utils.MODEL_PERFORMANCE_HOVER_FORMAT
    pdstools.utils.plot_utils.HOVER_PERFORMANCE_PCT
    pdstools.utils.plot_utils.HOVER_SUCCESS_RATE_PCT
    pdstools.utils.plot_utils.HOVER_RESPONSE_COUNT
@@ -61,6 +64,8 @@ Module Contents
 .. py:data:: DEFAULT_PLOT_POINTS_PER_GROUP
    :value: 250
 
+
+.. py:data:: MODEL_TECHNIQUE_LABELS
 
 .. py:function:: downsample_distribution(data: polars.DataFrame, value_column: str, max_points_per_group: int | None, group_column: str | None = None) -> polars.DataFrame
 
@@ -163,11 +168,12 @@ Module Contents
 
 .. py:function:: simplify_facet_titles(fig: Figure) -> Figure
 
-   Strip the ``column=`` prefix from Plotly facet annotations.
+   Simplify Plotly facet annotations and render known public labels.
 
    Plotly Express labels facets as ``"<column_name>=<value>"``; in our
    reports the column name is redundant context. This helper rewrites each
-   facet annotation to show only the value.
+   facet annotation to show only the value, using public labels for known
+   model techniques, including when a technique is the final path segment.
 
    :param fig: The faceted Plotly figure to update in place.
    :type fig: Figure
@@ -259,6 +265,14 @@ Module Contents
 
    :returns: The same figure with adjusted ``height`` (and ``width`` if provided).
    :rtype: Figure
+
+
+.. py:data:: MODEL_PERFORMANCE_LABEL
+   :value: 'Model Performance (AUC)'
+
+
+.. py:data:: MODEL_PERFORMANCE_HOVER_FORMAT
+   :value: ':.2f'
 
 
 .. py:data:: HOVER_PERFORMANCE_PCT
