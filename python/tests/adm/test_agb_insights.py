@@ -214,8 +214,13 @@ def test_predictor_importance_by_category_and_plots():
     assert dict(zip(cats["PredictorCategory"], cats["Importance %"], strict=True)) == pytest.approx(
         {"Customer": 62.5, "Param": 12.5, "IH": 25.0}
     )
-    assert dm.plot.predictor_importance().data[0].x[0] == pytest.approx(62.5)
-    assert [t.name for t in dm.plot.predictor_category_importance().data] == ["Customer", "IH", "Param"]
+    importance = dm.plot.predictor_importance()
+    assert importance.data[0].x[0] == pytest.approx(62.5)
+    assert all("Importance (%)=%{x:.2f}" in trace.hovertemplate for trace in importance.data)
+    categories = dm.plot.predictor_category_importance()
+    assert [t.name for t in categories.data] == ["Customer", "IH", "Param"]
+    assert all("Importance (%)=%{x:.2f}" in trace.hovertemplate for trace in categories.data)
+    assert all("Active Predictors=%{customdata[1]:.1f}" in trace.hovertemplate for trace in categories.data)
     assert dm.plot.predictor_importance(query=pl.col("Name") == "nothing") is None
 
 

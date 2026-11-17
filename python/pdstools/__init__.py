@@ -12,6 +12,7 @@ from .ih.IH import IH
 from .impactanalyzer.ImpactAnalyzer import ImpactAnalyzer
 from .pega_io import Anonymization, read_ds_export
 from .prediction.Prediction import Prediction
+from .sample_data import demo_data
 from .utils import datasets
 from .utils.cdh_utils import default_predictor_categorization
 from .utils.datasets import cdh_sample, sample_explanations, sample_value_finder
@@ -35,6 +36,7 @@ __all__ = [
     "cdh_sample",
     "datasets",
     "default_predictor_categorization",
+    "demo_data",
     "read_ds_export",
     "sample_explanations",
     "sample_value_finder",

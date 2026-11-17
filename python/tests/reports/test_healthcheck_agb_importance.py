@@ -3,8 +3,10 @@
 import re
 from html import unescape
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock
 
+import plotly.express as px
 import plotly.graph_objects as go
 import polars as pl
 import pytest
@@ -450,16 +452,20 @@ def test_predictor_performance_across_actions_is_naive_bayes_only(report_cells, 
     assert fig.layout.margin.t == 90
 
 
-def test_missing_values_is_naive_bayes_only(report_cells, mixed_technique_dm):
+def test_missing_values_is_naive_bayes_only(report_cells, mixed_technique_dm, monkeypatch):
+    from pdstools.utils import pega_template
+
+    shown = []
+    monkeypatch.setattr(go.Figure, "show", lambda self: shown.append(self))
     cell = next(cell for cell in report_cells if "Percentage without responses" in cell)
     namespace = _nb_section_namespace(mixed_technique_dm)
-    px = Mock()
-    namespace.update(px=px, pega_template=Mock())
+    namespace.update(px=px, pega_template=pega_template)
     exec(compile(cell, "HealthCheck.qmd", "exec"), namespace)
 
     namespace["report_utils"].quarto_plot_exception.assert_not_called()
-    missing = px.treemap.call_args.args[0]
-    assert px.treemap.call_args.kwargs["title"].startswith("Missing Naive Bayes Predictor Data")
+    missing = namespace["missing"]
+    (fig,) = shown
+    assert fig.layout.title.text.startswith("Missing Naive Bayes Predictor Data")
     # "NB.Only" has 5% missing (below the 10% threshold); AGB rows add no responses.
     assert missing.select("PredictorName", "MissingCount", "PredictorResponseCount").to_dicts() == [
         {"PredictorName": "Shared", "MissingCount": 400, "PredictorResponseCount": 1000}
@@ -469,4 +475,122 @@ def test_missing_values_is_naive_bayes_only(report_cells, mixed_technique_dm):
         namespace["report_utils"]
         .quarto_print.call_args.args[0]
         .startswith("50% of the Naive Bayes predictors (1 of 2) have 10% or less missing values")
+    )
+
+
+def test_missing_values_treemap_aggregates_node_rates_and_counts(report_cells, monkeypatch):
+    from pdstools.utils import pega_template
+    from pdstools.utils import report_utils as real_report_utils
+
+    models = pl.DataFrame({"ModelID": ["nb", "agb"], "ModelTechnique": ["NaiveBayes", "GradientBoost"]}).lazy()
+    predictors = pl.DataFrame(
+        {
+            "ModelID": ["nb"] * 12 + ["agb"] * 2,
+            "PredictorCategory": ["Customer"] * 6 + ["Other"] * 2 + ["Param"] * 2 + ["IH"] * 2 + ["Customer"] * 2,
+            "PredictorName": [
+                "Age",
+                "Age",
+                "Balance",
+                "Balance",
+                "Complete",
+                "Complete",
+                "Status",
+                "Status",
+                "Param.CallToActionStyle",
+                "Param.CallToActionStyle",
+                "IH.Clicks",
+                "IH.Clicks",
+                "Age",
+                "Age",
+            ],
+            "BinSymbol": ["MISSING", "A"] * 7,
+            "BinResponseCount": [40, 60, 200, 800, 5, 95, 10, 40, 100, 0, 50, 50, 9000, 1000],
+        }
+    ).lazy()
+    datamart = SimpleNamespace(
+        predictor_data=predictors,
+        aggregates=SimpleNamespace(last=lambda table: {"model_data": models, "predictor_data": predictors}[table]),
+    )
+    report_utils = Mock(polars_subset_to_existing_cols=real_report_utils.polars_subset_to_existing_cols)
+    namespace = {
+        "pl": pl,
+        "px": px,
+        "pega_template": pega_template,
+        "datamart": datamart,
+        "datamart_all_columns": predictors.collect_schema().names(),
+        "active_models_filter_expr": pl.lit(True),
+        "active_models_threshold_date_string": "2026-01-01",
+        "nb_query": pl.col("ModelTechnique") == "NaiveBayes",
+        "report_utils": report_utils,
+    }
+    shown = []
+    monkeypatch.setattr(go.Figure, "show", lambda self: shown.append(self))
+    cell = next(cell for cell in report_cells if "Percentage without responses" in cell)
+    exec(compile(cell, "HealthCheck.qmd", "exec"), namespace)
+
+    report_utils.quarto_plot_exception.assert_not_called()
+    (fig,) = shown
+    trace = fig.data[0]
+    nodes = {
+        node_id: (color, list(customdata))
+        for node_id, color, customdata in zip(trace.ids, trace.marker.colors, trace.customdata, strict=True)
+    }
+    assert nodes["All Predictors"] == (pytest.approx(350 / 1250), ["28.00%", "350", "1K"])
+    assert nodes["All Predictors/Customer"] == (pytest.approx(240 / 1100), ["21.82%", "240", "1K"])
+    assert nodes["All Predictors/Customer/Age"] == (pytest.approx(0.4), ["40.00%", "40", "100"])
+    assert nodes["All Predictors/Other/Status"] == (pytest.approx(0.2), ["20.00%", "10", "50"])
+    assert nodes["All Predictors/Param/Param.CallToActionStyle"] == (1.0, ["100.00%", "100", "100"])
+    assert not any(node.startswith("All Predictors/IH") for node in nodes)
+    assert fig.layout.coloraxis.cmin == 0
+    assert fig.layout.coloraxis.cmax == 1
+    assert fig.layout.coloraxis.colorscale[-1] == (1, "#DE4342")
+    assert "Missing rate=%{customdata[0]}" in trace.hovertemplate
+    assert "Predictor observations=%{customdata[2]}" in trace.hovertemplate
+
+
+def test_sample_missing_values_treemap_shows_all_missing_parameter(report_cells, monkeypatch):
+    from pdstools import demo_data
+    from pdstools.utils import pega_template
+
+    dm = demo_data(end="canonical").datamart
+    namespace = _nb_section_namespace(dm)
+    namespace.update(
+        px=px,
+        pega_template=pega_template,
+        active_models_filter_expr=dm.analysis.health_check_active_filter(),
+    )
+    shown = []
+    monkeypatch.setattr(go.Figure, "show", lambda self: shown.append(self))
+    cell = next(cell for cell in report_cells if "Percentage without responses" in cell)
+    exec(compile(cell, "HealthCheck.qmd", "exec"), namespace)
+
+    namespace["report_utils"].quarto_plot_exception.assert_not_called()
+    (fig,) = shown
+    trace = fig.data[0]
+    nodes = {
+        node_id: (color, list(customdata))
+        for node_id, color, customdata in zip(trace.ids, trace.marker.colors, trace.customdata, strict=True)
+    }
+    parameter = "All Predictors/Param/Param.CallToActionStyle"
+    assert nodes[parameter][0] == 1.0
+    assert nodes[parameter][1][0] == "100.00%"
+    assert 0.1 < nodes["All Predictors/Param/Param.CreativeFormat"][0] < 0.3
+    assert "All Predictors/Param/Param.Placement" not in nodes
+    assert [node_id for node_id, (color, _) in nodes.items() if node_id.count("/") == 2 and color == 1.0] == [parameter]
+
+
+def test_missing_values_treemap_empty_is_reported(report_cells, mixed_technique_dm, monkeypatch):
+    from pdstools.utils import pega_template
+
+    shown = []
+    monkeypatch.setattr(go.Figure, "show", lambda self: shown.append(self))
+    cell = next(cell for cell in report_cells if "Percentage without responses" in cell)
+    namespace = _nb_section_namespace(mixed_technique_dm)
+    namespace.update(px=px, pega_template=pega_template, active_models_filter_expr=pl.col("ModelID") == "agb")
+    exec(compile(cell, "HealthCheck.qmd", "exec"), namespace)
+
+    assert shown == []
+    namespace["report_utils"].quarto_plot_exception.assert_not_called()
+    namespace["report_utils"].quarto_callout_info.assert_called_once_with(
+        "No Naive Bayes predictors have more than 10% missing values."
     )

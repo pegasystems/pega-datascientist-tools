@@ -712,7 +712,7 @@ def ensure_dm_loaded(*, show_toast: bool = False) -> bool:
 
     1. If ``dm`` is already in session_state, return ``True`` immediately.
     2. Try the ``--data-path`` CLI flag via :func:`handle_data_path_hc`.
-    3. Fall back to the bundled CDH sample.
+    3. Fall back to the generated CDH demo data.
 
     Parameters
     ----------
@@ -726,8 +726,8 @@ def ensure_dm_loaded(*, show_toast: bool = False) -> bool:
     -------
     bool
         ``True`` when ``dm`` is in session_state on return, ``False`` when
-        every load attempt failed (no CLI path resolves, no sample bundled,
-        etc.). Callers fall back to a "please upload" warning on ``False``.
+        every load attempt failed (no CLI path resolves and sample generation
+        failed). Callers fall back to a "please upload" warning on ``False``.
     """
     if "dm" in st.session_state:
         return True
@@ -826,7 +826,7 @@ def handle_data_path_hc() -> ADMDatamart | None:
     Returns the loaded :class:`ADMDatamart` on success, or ``None`` when
     no path is configured, the path doesn't exist, or the path is an
     unsupported file type. The caller is expected to fall back to the
-    bundled sample in the latter cases.
+    generated demo data in the latter cases.
     """
     data_path = _strip_outer_path_quotes(get_data_path() or "")
     if not data_path:

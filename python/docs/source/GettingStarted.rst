@@ -218,9 +218,9 @@ To create a 'bubble chart' on sample ADM data that plots action Success Rates vs
 
 .. code-block:: python
 
-   from pdstools import cdh_sample
+   from pdstools import demo_data
 
-   cdh_sample().plot.bubble_chart()
+   demo_data().datamart.plot.bubble_chart()
 
 If you have exported your own Datamart data, you can load it and create a similar plot:
 

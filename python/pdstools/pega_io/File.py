@@ -727,8 +727,7 @@ def read_ds_export(
         except ImportError:
             warnings.warn(
                 "Unable to import `requests`, so not able to check for remote files. "
-                "If you're trying to read in a file from the internet (or, for "
-                "instance, using the built-in cdh_sample method), install the "
+                "If you're trying to read in a file from the internet, install the "
                 "'requests' package.",
                 ImportWarning,
                 stacklevel=2,

@@ -329,21 +329,21 @@ def test_overall_summary_ia(preds_singleday):
 
 
 def test_plots():
-    prediction = Prediction.from_mock_data()  # 70 days * 3 channels = 210 rows
+    prediction = Prediction.from_mock_data(end="canonical")  # 70 days * 5 predictions = 350 rows
 
-    # Each figure exposes one trace per channel (Mobile, E-mail, Web).
+    # One trace per single-channel prediction; the multi-channel one is not plotted.
     expected_trace_names = sorted(
         [
-            "Mobile (PREDICTMOBILEPROPENSITY)",
-            "E-mail (PREDICTOUTBOUNDEMAILPROPENSITY)",
-            "Web (PREDICTWEBPROPENSITY)",
+            "Call Center<br>(PREDICTOUTBOUNDCALLCENTER<br>PROPENSITY)",
+            "Mobile<br>(PREDICTMOBILE<br>PROPENSITY)",
+            "E-mail<br>(PREDICTOUTBOUNDEMAIL<br>PROPENSITY)",
+            "Web<br>(PREDICTWEB<br>PROPENSITY)",
         ]
     )
 
     perf_fig = prediction.plot.performance_trend()
     assert sorted(t.name for t in perf_fig.data) == expected_trace_names
-    assert perf_fig.layout.yaxis.title.text == "Performance (AUC)"
-    assert perf_fig.layout.xaxis.title.text == "Date"
+    assert perf_fig.layout.yaxis.title.text == "Prediction Performance (AUC)"
 
     lift_fig = prediction.plot.lift_trend()
     assert sorted(t.name for t in lift_fig.data) == expected_trace_names
@@ -357,15 +357,20 @@ def test_plots():
     assert sorted(t.name for t in ctr_fig.data) == expected_trace_names
     assert ctr_fig.layout.yaxis.title.text == "CTR"
 
+    for fig in (perf_fig, lift_fig, rc_fig, ctr_fig):
+        assert fig.layout.xaxis.title.text == ""
+        assert all("Date=%{x}" in trace.hovertemplate for trace in fig.data)
+
     # Period overrides bucket the data via dt.truncate, which aligns to the
     # Unix epoch — so the exact bucket count for a 70-day window depends on
     # which calendar day "today" lands on (35 vs 36 buckets for "2d", etc.).
     # Assert the row count matches the actual unique periods rather than a
     # hardcoded value that drifts with the calendar.
-    n_channels = 3
+    # return_df keeps the multi-channel prediction that the figures leave out.
+    n_predictions = 5
 
     def _expected_rows(df: pl.DataFrame) -> int:
-        return df["Date"].n_unique() * n_channels
+        return df["Date"].n_unique() * n_predictions
 
     perf_w = prediction.plot.performance_trend("1w", return_df=True).collect()
     assert perf_w.shape == (_expected_rows(perf_w), 29)
@@ -379,7 +384,7 @@ def test_plots():
     ctr_5d = prediction.plot.ctr_trend("5d", return_df=True).collect()
     assert ctr_5d.shape == (_expected_rows(ctr_5d), 29)
 
-    # Default period (1d): 70 days * 3 channels = 210 rows.
+    # Default period (1d): 70 days * 5 predictions = 350 rows.
     for method in (
         prediction.plot.performance_trend,
         prediction.plot.lift_trend,
@@ -387,30 +392,79 @@ def test_plots():
         prediction.plot.ctr_trend,
     ):
         df = method(return_df=True).collect()
-        assert df.shape == (210, 29)
-        assert sorted(df["Channel"].unique().to_list()) == ["E-mail", "Mobile", "Web"]
+        assert df.shape == (350, 29)
+        assert sorted(df["Channel"].unique().to_list()) == ["Call Center", "E-mail", "Mobile", "Multi-channel", "Web"]
+
+
+@pytest.mark.parametrize("facet", ["facet_col", "facet_row"])
+def test_prediction_trend_hides_date_title_on_facets(preds_singleday, facet):
+    fig = preds_singleday.plot.performance_trend(**{facet: "Channel"})
+
+    assert len(list(fig.select_xaxes())) == 2
+    assert all(axis.title.text == "" for axis in fig.select_xaxes())
+    assert all("Date=%{x}" in trace.hovertemplate for trace in fig.data)
+
+
+def test_prediction_trend_preserves_explicit_date_label(preds_singleday):
+    fig = preds_singleday.plot.performance_trend(labels={"Date": "Observation date"})
+
+    assert fig.layout.xaxis.title.text == "Observation date"
+    assert all("Observation date=%{x}" in trace.hovertemplate for trace in fig.data)
+
+
+@pytest.mark.parametrize(
+    ("method", "metric_label", "metric_format"),
+    [
+        ("performance_trend", "Prediction Performance (AUC)", ".2f"),
+        ("lift_trend", "Engagement lift", ".2%"),
+        ("ctr_trend", "CTR", ".3%"),
+        ("responsecount_trend", "Responses", ",.0f"),
+    ],
+)
+def test_prediction_trend_consolidates_hover_and_preserves_overrides(
+    preds_singleday, method, metric_label, metric_format
+):
+    plot = getattr(preds_singleday.plot, method)
+    fig = plot()
+
+    for trace in fig.data:
+        assert f"{metric_label}=%{{y:{metric_format}}}" in trace.hovertemplate
+        assert "Period=%{customdata" in trace.hovertemplate
+        assert "Positives=%{customdata" in trace.hovertemplate
+        assert "Test positives=" not in trace.hovertemplate
+        if method in {"lift_trend", "ctr_trend"}:
+            assert "Test success rate=%{customdata" in trace.hovertemplate
+            assert "Control success rate=%{customdata" in trace.hovertemplate
+        else:
+            assert "Test success rate=" not in trace.hovertemplate
+
+    custom = plot(
+        hover_data={"Positives": False, "Positives_Test": ":,.0f"},
+        labels={"Positives_Test": "Test responses"},
+    )
+    assert all("Positives=%" not in trace.hovertemplate for trace in custom.data)
+    assert all("Test responses=%{customdata" in trace.hovertemplate for trace in custom.data)
 
 
 # New tests to improve coverage
 
 
 def test_from_mock_data():
-    """Test the from_mock_data class method with different day parameters."""
-    # Test with default days
+    """The mock covers exactly the requested days and seeds a deliberately invalid channel."""
     pred_default = Prediction.from_mock_data()
     assert pred_default.is_available
-    assert pred_default.is_valid
+    # Call Center's model-control arms are too small to be valid, by design.
+    assert not pred_default.is_valid
+    assert pred_default.predictions.select(pl.col("SnapshotTime").n_unique()).collect().item() == 70
 
-    # Test with custom days
-    pred_custom = Prediction.from_mock_data(days=30)
-    assert pred_custom.is_available
-    assert pred_custom.is_valid
+    pred_custom = Prediction.from_mock_data(days=60, end=datetime.date(2024, 3, 6))
+    dates = pred_custom.predictions.select("SnapshotTime").unique().collect()["SnapshotTime"]
+    assert len(dates) == 60
+    assert dates.max() == datetime.date(2024, 3, 3)
+    assert dates.min() == datetime.date(2024, 1, 4)
 
-    # Verify the number of days in the data
-    unique_dates = pred_custom.predictions.select(
-        pl.col("SnapshotTime").unique(),
-    ).collect()
-    assert len(unique_dates) == 30
+    with pytest.raises(ValueError, match="at least 56"):
+        Prediction.from_mock_data(days=55)
 
 
 def test_from_databricks_view_transforms_data():
@@ -545,8 +599,8 @@ def test_prediction_plots_internal_method(preds_singleday):
     # Mobile and Web (Unknown / Multi-channel are filtered out).
     assert isinstance(plt, Figure)
     assert sorted(t.name for t in plt.data) == [
-        "Mobile (PREDICTMOBILEPROPENSITY)",
-        "Web (PREDICTWEBPROPENSITY)",
+        "Mobile<br>(PREDICTMOBILE<br>PROPENSITY)",
+        "Web<br>(PREDICTWEB<br>PROPENSITY)",
     ]
     assert plt.layout.title.text.startswith("Test Plot")
 
@@ -623,7 +677,7 @@ def test_from_processed_data():
     cached_data = read_ds_export(predictions_cache)
     loaded_pred = Prediction.from_processed_data(cached_data)
     assert loaded_pred.is_available
-    assert loaded_pred.is_valid
+    assert loaded_pred.is_valid == pred.is_valid
 
     original_df = pred.predictions.collect()
     loaded_df = loaded_pred.predictions.collect()
@@ -651,9 +705,9 @@ def test_performance_range_in_summary_methods(preds_singleday):
     overall_perf = overall_summary["Performance"].item()
     assert overall_perf == pytest.approx(0.6794117478763356, rel=1e-9)
 
-    # Mock data is deterministic (no RNG seed used in from_mock_data); these
-    # values were captured from the fixture and pin the per-channel AUC.
-    pred_mock = Prediction.from_mock_data(days=30)
+    # Mock data is seeded and pinned to the canonical calendar; these values
+    # were captured from it and pin the per-channel AUC.
+    pred_mock = Prediction.from_mock_data(end="canonical")
     mock_channel_summary = pred_mock.summary_by_channel().collect()
     mock_rows = dict(
         zip(
@@ -664,11 +718,13 @@ def test_performance_range_in_summary_methods(preds_singleday):
     )
     assert mock_rows == pytest.approx(
         {
-            "Mobile": 0.7150071889215354,
-            "E-mail": 0.625005832742956,
-            "Web": 0.6700169096404074,
+            "Multi-channel": 0.6586924799893247,
+            "Mobile": 0.65496452612483,
+            "Call Center": 0.557509616443089,
+            "E-mail": 0.6719626944646954,
+            "Web": 0.7564634897336598,
         },
-        rel=1e-9,
+        rel=1e-6,
     )
 
     # Secondary invariant: a non-degenerate AUC must sit in [0.5, 1.0].

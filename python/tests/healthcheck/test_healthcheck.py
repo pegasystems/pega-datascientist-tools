@@ -1,14 +1,13 @@
 import pathlib
 import re
+import shutil
 import zipfile
 from html.parser import HTMLParser
 
 import pytest
 from openpyxl import load_workbook
-from pdstools import ADMDatamart, Prediction, datasets, read_ds_export
-from pdstools.utils.report_utils import check_report_for_errors
-
-basePath = pathlib.Path(__file__).parent.parent.parent.parent
+from pdstools import ADMDatamart, Prediction, __reports__, demo_data
+from pdstools.utils.report_utils import check_report_for_errors, copy_quarto_file, run_quarto
 
 PLOTLY_CDN_LOAD_RE = re.compile(r"(?:src=|import\s+)[\"']https://cdn\.plot\.ly/")
 CSS_URL_RE = re.compile(r"url\(\s*([\"']?)([^\"')]+)\1\s*\)", re.IGNORECASE)
@@ -109,23 +108,22 @@ def _assert_full_embed_size_ratio(sizes: dict[str, int], *, report_label: str, m
 
 @pytest.fixture
 def sample() -> ADMDatamart:
-    return datasets.cdh_sample()
+    demo_datamart = demo_data(end="canonical").datamart
+    return ADMDatamart(
+        model_df=demo_datamart.model_data,
+        predictor_df=demo_datamart.predictor_data,
+    )
 
 
 @pytest.fixture
 def sample_without_predictor_binning() -> ADMDatamart:
-    """Fixture to serve as class to call functions from."""
-    # Using from_ds_export automaticaly detects predictor_snapshot.
-    model_df = read_ds_export(
-        filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
-        path=f"{basePath}/data",
-    )
-    return ADMDatamart(model_df=model_df)
+    """Demo-world datamart with model data only."""
+    return ADMDatamart(model_df=demo_data(end="canonical").datamart.model_data)
 
 
 @pytest.fixture
 def sample_prediction_data() -> Prediction:
-    return Prediction.from_mock_data(days=30)
+    return Prediction.from_mock_data(days=60)
 
 
 def test_GenerateHealthCheck(sample: ADMDatamart, tmp_path):
@@ -137,9 +135,31 @@ def test_GenerateHealthCheck(sample: ADMDatamart, tmp_path):
     html = _read_report_html(hc)
     assert "Success Rate over Time by Channel/Direction" in html
     assert "Model Performance over Time by Channel/Direction" in html
-    assert "Daily Success Rate" in html
-    assert "Actions over Time (daily)" in html
+    assert "Weekly Success Rate" in html
+    assert "Actions over Time (weekly)" in html
     assert "Performance (AUC)" in html
+    assert not re.search(r">\s*Prediction Overview\s*<", html)
+
+
+@pytest.mark.skipif(
+    shutil.which("quarto") is None or shutil.which("pandoc") is None,
+    reason="Quarto and Pandoc are required to render the Health Check template",
+)
+def test_GenerateHealthCheck_full_embed_no_parameters_uses_all_demo_views(tmp_path):
+    copy_quarto_file("HealthCheck.qmd", tmp_path)
+    shutil.copy(__reports__ / "_quarto.yml", tmp_path)
+    run_quarto(qmd_file="HealthCheck.qmd", output_filename="HealthCheck.html", temp_dir=tmp_path, full_embed=True)
+
+    report = tmp_path / "HealthCheck.html"
+    errors = check_report_for_errors(report)
+    assert not errors, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
+    html = _read_report_html(report)
+    assert re.search(r">\s*Model Overview\s*<", html)
+    assert "Analysis of Predictors" in html
+    assert re.search(r">\s*Prediction Overview\s*<", html)
+    assert "Prediction Lift" in html
+    assert "Prediction Responses" in html
+    assert "Prediction Data is not available." not in html
 
 
 def test_GenerateHealthCheck_default_cdn_is_djs_copy_safe(sample: ADMDatamart, tmp_path, monkeypatch):
@@ -267,6 +287,7 @@ def test_GenerateHealthCheck_PredictionData(
     _assert_report_path(hc, tmp_path, "HealthCheck_WithPredictions")
     errors = check_report_for_errors(hc)
     assert len(errors) == 0, "HealthCheck report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
+    assert re.search(r">\s*Prediction Overview\s*<", _read_report_html(hc))
 
 
 def test_ExportTables_ModelDataOnly(sample_without_predictor_binning: ADMDatamart, tmp_path, monkeypatch):
@@ -285,25 +306,25 @@ def test_ExportTables_ModelDataOnly(sample_without_predictor_binning: ADMDatamar
 
 def test_GenerateModelReport(sample: ADMDatamart, tmp_path):
     report = sample.generate.model_reports(
-        model_ids=["bd70a915-697a-5d43-ab2c-53b0557c85a0"],
+        model_ids=["05085857-c52c-5daa-b51b-0af576a038af"],
         output_dir=tmp_path,
         name="MyOrg",
         only_active_predictors=True,
     )
-    _assert_report_path(report, tmp_path, "ModelReport_MyOrg_bd70a915-697a-5d43-ab2c-53b0557c85a0")
+    _assert_report_path(report, tmp_path, "ModelReport_MyOrg_05085857-c52c-5daa-b51b-0af576a038af")
     errors = check_report_for_errors(report)
     assert len(errors) == 0, "Model report contains errors:\n" + "\n".join(f"  - {e}" for e in errors)
 
 
 def test_GenerateModelReport_confidence_level_override(sample: ADMDatamart, tmp_path):
     report = sample.generate.model_reports(
-        model_ids=["bd70a915-697a-5d43-ab2c-53b0557c85a0"],
+        model_ids=["05085857-c52c-5daa-b51b-0af576a038af"],
         output_dir=tmp_path,
         name="MyOrgCI90",
         only_active_predictors=True,
         confidence_level=0.90,
     )
-    _assert_report_path(report, tmp_path, "ModelReport_MyOrgCI90_bd70a915-697a-5d43-ab2c-53b0557c85a0")
+    _assert_report_path(report, tmp_path, "ModelReport_MyOrgCI90_05085857-c52c-5daa-b51b-0af576a038af")
     html = _read_report_html(report)
     assert "90.0% confidence interval" in html
 
@@ -311,7 +332,7 @@ def test_GenerateModelReport_confidence_level_override(sample: ADMDatamart, tmp_
 @pytest.mark.slow
 def test_ModelReport_full_embed(sample: ADMDatamart, tmp_path):
     """Test model report file sizes for full_embed options."""
-    model_id = "bd70a915-697a-5d43-ab2c-53b0557c85a0"
+    model_id = "05085857-c52c-5daa-b51b-0af576a038af"
     sizes = {}
 
     default = sample.generate.model_reports(
@@ -386,7 +407,7 @@ Model ID: {{< meta params.model_id >}}
 """)
 
     report = sample.generate.model_reports(
-        model_ids=["bd70a915-697a-5d43-ab2c-53b0557c85a0"],
+        model_ids=["05085857-c52c-5daa-b51b-0af576a038af"],
         output_dir=tmp_path,
         name="CustomModel",
         qmd_file=custom_qmd,
@@ -394,5 +415,5 @@ Model ID: {{< meta params.model_id >}}
     _assert_report_path(
         report,
         tmp_path,
-        "ModelReport_CustomModel_bd70a915-697a-5d43-ab2c-53b0557c85a0",
+        "ModelReport_CustomModel_05085857-c52c-5daa-b51b-0af576a038af",
     )

@@ -12,10 +12,22 @@ basePath = pathlib.Path(__file__).parent.parent.parent.parent
 
 
 @pytest.fixture
-def sample():
-    """Fixture to serve as class to call functions from."""
-    return ADMDatamart.from_ds_export(
-        base_path=f"{basePath}/data/active_range/CDHSample-Pega8",
+def sample(demo_bundle):
+    """Keep this algorithm suite small while using the canonical demo world."""
+    source = demo_bundle.datamart
+    latest_snapshot = source.model_data.select(pl.col("SnapshotTime").max()).collect().item()
+    latest_models = source.model_data.filter(pl.col("SnapshotTime") == latest_snapshot).collect()
+    selected_ids = (
+        latest_models.filter(pl.col("Configuration").is_in(["OmniAdaptiveModel", "Email_Click_Through_Rate"]))
+        .sort("ResponseCount", descending=True)
+        .group_by("Configuration", maintain_order=True)
+        .head(2)
+        .get_column("ModelID")
+        .to_list()
+    )
+    return ADMDatamart(
+        model_df=source.model_data.filter(pl.col("ModelID").is_in(selected_ids)),
+        predictor_df=source.predictor_data.filter(pl.col("ModelID").is_in(selected_ids)),
     )
 
 

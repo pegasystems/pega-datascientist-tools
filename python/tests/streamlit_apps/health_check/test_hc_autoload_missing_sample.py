@@ -1,9 +1,7 @@
-"""Auto-load failure path: missing sample must surface a graceful message.
+"""Auto-load failure path: sample generation errors must surface gracefully.
 
-If the bundled sample disappears (e.g. a packaging mistake leaves
-``data/`` out of the wheel, or the network is offline and the GitHub
-fallback fails), HC's auto-load should surface a user-facing
-"please configure your files" warning rather than crashing or
+If the generated demo data cannot be created, HC's auto-load should surface a
+user-facing "please configure your files" warning rather than crashing or
 silently rendering a blank page.
 
 Mocks ``cached_sample`` to raise so the auto-load goes through its
@@ -23,14 +21,14 @@ if TYPE_CHECKING:
 
 
 def _boom() -> object:
-    raise FileNotFoundError("simulated missing sample bundle")
+    raise RuntimeError("simulated sample generation failure")
 
 
 def test_hc_home_renders_when_sample_missing(
     hc_app_dir: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """HC Home must not crash when the bundled sample fails to load.
+    """HC Home must not crash when the sample fails to generate.
 
     ``ensure_dm_loaded`` catches the exception and returns False; the
     home page should therefore not have ``dm`` in session_state, and
