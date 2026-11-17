@@ -6,7 +6,7 @@ import zipfile
 
 import polars as pl
 import pytest
-from pdstools import datasets
+from pdstools import demo_data
 from pdstools.adm.Reports import Reports
 from pdstools.utils.report_utils import check_report_for_errors
 
@@ -26,7 +26,7 @@ def test_health_check_file_size_optimization():
     import tempfile
     from pathlib import Path
 
-    from pdstools import datasets
+    from pdstools import demo_data
     from pdstools.adm.Reports import Reports
 
     # Check if Quarto is available (common issue in CI environments)
@@ -38,7 +38,7 @@ def test_health_check_file_size_optimization():
         pytest.skip(f"Quarto not available in this environment: {e}")
 
     try:
-        datamart = datasets.cdh_sample()
+        datamart = demo_data(end="canonical").datamart
         reports = Reports(datamart)
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -99,7 +99,7 @@ def test_full_embed_integration():
     import tempfile
     from pathlib import Path
 
-    from pdstools import datasets
+    from pdstools import demo_data
     from pdstools.adm.Reports import Reports
 
     try:
@@ -110,7 +110,7 @@ def test_full_embed_integration():
         pytest.skip(f"Quarto not available: {e}")
 
     try:
-        datamart = datasets.cdh_sample()
+        datamart = demo_data(end="canonical").datamart
         reports = Reports(datamart)
     except Exception as e:
         pytest.skip(f"Could not initialize test environment: {e}")
@@ -152,7 +152,7 @@ def test_full_embed_integration():
 
 
 def test_health_check_markdown_writes_markdown(tmp_path):
-    datamart = datasets.cdh_sample()
+    datamart = demo_data(end="canonical").datamart
     reports = Reports(datamart)
 
     output_path = reports.health_check_markdown(
@@ -172,7 +172,7 @@ def test_health_check_markdown_writes_markdown(tmp_path):
 
 
 def test_health_check_markdown_respects_title_subtitle_and_disclaimer(tmp_path):
-    datamart = datasets.cdh_sample()
+    datamart = demo_data(end="canonical").datamart
     reports = Reports(datamart)
 
     output_path = reports.health_check_markdown(
@@ -189,7 +189,7 @@ def test_health_check_markdown_respects_title_subtitle_and_disclaimer(tmp_path):
 
 
 def test_health_check_markdown_accepts_preaggregates(tmp_path):
-    datamart = datasets.cdh_sample()
+    datamart = demo_data(end="canonical").datamart
     reports = Reports(datamart)
     preaggregates = datamart.analysis.compute_health_check_preaggregates()
 
@@ -203,7 +203,7 @@ def test_health_check_markdown_accepts_preaggregates(tmp_path):
 
 
 def test_health_check_markdown_rejects_query_with_preaggregates(tmp_path):
-    datamart = datasets.cdh_sample()
+    datamart = demo_data(end="canonical").datamart
     reports = Reports(datamart)
     preaggregates = datamart.analysis.compute_health_check_preaggregates()
 
@@ -216,7 +216,7 @@ def test_health_check_markdown_rejects_query_with_preaggregates(tmp_path):
 
 
 def test_health_check_query_consolidates_predictors_to_filter(tmp_path, monkeypatch, caplog):
-    datamart = datasets.cdh_sample()
+    datamart = demo_data(end="canonical").datamart
     reports = Reports(datamart)
     query = pl.col("Channel") == "Web"
 
@@ -249,7 +249,7 @@ def test_health_check_query_consolidates_predictors_to_filter(tmp_path, monkeypa
 
 
 def test_model_reports_logs_export_path(tmp_path, monkeypatch, caplog):
-    datamart = datasets.cdh_sample()
+    datamart = demo_data(end="canonical").datamart
     reports = Reports(datamart)
 
     def fake_copy_quarto_file(qmd_filename, temp_dir):
@@ -278,7 +278,7 @@ def test_model_reports_logs_export_path(tmp_path, monkeypatch, caplog):
 
 
 def test_multiple_model_reports_use_generic_zip_name(tmp_path, monkeypatch):
-    datamart = datasets.cdh_sample()
+    datamart = demo_data(end="canonical").datamart
     reports = Reports(datamart)
 
     def fake_copy_quarto_file(qmd_filename, temp_dir):

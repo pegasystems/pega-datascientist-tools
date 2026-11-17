@@ -1024,6 +1024,40 @@ class ADMTreesModel:
         return self.get_all_values_per_split()
 
     @cached_property
+    def context_key_counts(self) -> pl.DataFrame:
+        """Count distinct categorical values referenced by context-key splits.
+
+        Returns
+        -------
+        polars.DataFrame
+            Columns ``context_key`` (String) and ``distinct_values`` (Int64),
+            sorted by context key. Includes all standard ADM context keys and
+            any additional keys in ``context_keys``, with zero for keys that
+            have no categorical values in splits.
+
+        Notes
+        -----
+        Counts distinct non-empty values in membership and equality splits,
+        not combinations of keys. Missing-value checks and numeric thresholds
+        are excluded. These counts do not represent the full configured or
+        scored inventory: values can occur in the data without appearing in
+        splits. Zero therefore does not imply that no such values exist.
+        """
+        keys = sorted(cdh_utils.CONTEXT_KEY_PREDICTORS | set(self.context_keys or []))
+        values_by_key: dict[str, set[str]] = {key: set() for key in keys}
+        conditions = self.gains_per_split.filter(pl.col("predictor").is_in(keys)).get_column("split").unique()
+        for condition in conditions:
+            split = parse_split(condition)
+            if split.operator not in ("in", "=="):
+                continue
+            values = split.value if isinstance(split.value, tuple) else (split.value,)
+            values_by_key[split.variable].update(value for value in values if isinstance(value, str) and value)
+        return pl.DataFrame(
+            {"context_key": keys, "distinct_values": [len(values_by_key[key]) for key in keys]},
+            schema={"context_key": pl.String, "distinct_values": pl.Int64},
+        )
+
+    @cached_property
     def splits_per_variable_type(self) -> tuple[list[collections.Counter], list[float]]:
         """Per-tree counts of splits grouped by predictor category.
 
@@ -1317,12 +1351,15 @@ class ADMTreesModel:
         """Default predictor categorisation function.
 
         Context keys (from ``context_keys``, the model's configured context
-        keys, or the standard ADM context keys) map to "Context Keys"; dotted
-        names map to their prefix; anything else is "Primary".
+        keys, or the standard ADM context keys) map to "Context Keys"; model
+        score names map to "External Model"; other dotted names map to their
+        prefix; anything else is "Primary".
         """
         context_keys = context_keys if context_keys is not None else self.context_keys
         if x in cdh_utils.CONTEXT_KEY_PREDICTORS or x in (context_keys or []):
             return cdh_utils.CONTEXT_KEYS_CATEGORY
+        if cdh_utils._is_external_model_predictor(x):
+            return "External Model"
         if len(x.split(".")) > 1:
             return x.split(".")[0]
         return "Primary"

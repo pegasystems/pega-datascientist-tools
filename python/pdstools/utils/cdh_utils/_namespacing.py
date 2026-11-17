@@ -139,6 +139,13 @@ Not every model uses all of them (``pyTreatment`` is optional, for example);
 absent keys simply never match.
 """
 
+_EXTERNAL_MODEL_PREDICTOR_PATTERN = r"^ExternalModel\.|(?i:(?:^|\.)[^.]*model_?score$)"
+
+
+def _is_external_model_predictor(name: str) -> bool:
+    """Recognize the default external-model naming conventions."""
+    return bool(re.search(_EXTERNAL_MODEL_PREDICTOR_PATTERN, name))
+
 
 def default_predictor_categorization(
     x: str | pl.Expr = pl.col("PredictorName"),
@@ -154,8 +161,11 @@ def default_predictor_categorization(
     By default, this function returns "Context Keys" for the standard ADM
     context keys (``pyChannel``, ``pyDirection``, ``pyIssue``, ``pyGroup``,
     ``pyName`` and ``pyTreatment``, which Adaptive Gradient Boosting models
-    use as predictors), "Primary" whenever there is no '.' anywhere in the
-    name string, and otherwise the first string before the first period.
+    use as predictors), "External Model" for predictors in the
+    ``ExternalModel.`` namespace or names ending in ``ModelScore`` (case
+    insensitive, optionally separated by an underscore), "Primary" whenever
+    there is no '.' anywhere in the name string, and otherwise the first string
+    before the first period. Custom mappings can override these defaults.
 
     Parameters
     ----------
@@ -171,6 +181,8 @@ def default_predictor_categorization(
         .then(pl.lit(None).cast(pl.Utf8))
         .when(x.is_in(list(CONTEXT_KEY_PREDICTORS)))
         .then(pl.lit(CONTEXT_KEYS_CATEGORY))
+        .when(x.str.contains(_EXTERNAL_MODEL_PREDICTOR_PATTERN))
+        .then(pl.lit("External Model"))
         .when(x.str.split(".").list.len() > 1)
         .then(x.str.split(".").list.get(0))
         .otherwise(pl.lit("Primary"))

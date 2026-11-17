@@ -6,7 +6,9 @@
 
 import importlib.metadata
 import os
+import shutil
 from datetime import datetime
+from pathlib import Path
 
 import plotly.io as pio
 
@@ -248,8 +250,29 @@ def skip_member(app, what, name, obj, skip, options):
     return skip
 
 
+EXAMPLE_REPORT_PAGES = {
+    "example_health_check": "health-check.html",
+    "example_model_report": "naive-bayes-model-report.html",
+}
+"""Stub pages replaced by their generated report, so navigation opens the report directly."""
+
+
+def publish_example_reports(app, exception):
+    """Replace the example stub pages with the generated standalone reports."""
+    if exception is not None or app.builder.name != "html":
+        return
+    outdir = Path(app.outdir)
+    reports = outdir / "_static" / "reports"
+    if not all((reports / report).exists() for report in EXAMPLE_REPORT_PAGES.values()):
+        return
+    for page, report in EXAMPLE_REPORT_PAGES.items():
+        shutil.copyfile(reports / report, outdir / f"{page}.html")
+    shutil.rmtree(reports)
+
+
 def setup(app):
     app.connect("autodoc-skip-member", skip_member)
+    app.connect("build-finished", publish_example_reports)
     # Call the nbsphinx setup function to ensure it is set up correctly
     nbsphinx_setup(app)
 

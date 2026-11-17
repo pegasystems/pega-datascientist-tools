@@ -85,7 +85,7 @@ class TestPerformanceNormalization:
 
     def test_prediction_data_normalized(self):
         """Prediction mock data (50-100 scale) should be normalized to 0.5-1.0."""
-        pred = Prediction.from_mock_data(days=5)
+        pred = Prediction.from_mock_data(days=56)
         perfs = pred.predictions.select("Performance").collect()["Performance"]
         assert perfs.max() <= 1.0 and perfs.min() >= 0.5
 
