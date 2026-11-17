@@ -605,7 +605,7 @@ class ImpactAnalyzer:
 
         Examples
         --------
-        >>> ia = ImpactAnalyzer.from_mock_data(end="canonical")
+        >>> ia = ImpactAnalyzer.from_mock_data()
         >>> ia.summarize_experiments().collect()
 
         """

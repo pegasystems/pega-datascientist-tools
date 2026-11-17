@@ -313,7 +313,7 @@ class IH:
 
         Examples
         --------
-        >>> ih = IH.from_mock_data(n=10000, end="canonical")
+        >>> ih = IH.from_mock_data(n=10000)
         >>> ih.aggregates.summary_by_channel().collect()
 
         """

@@ -95,15 +95,17 @@ shares vary with action lifetimes, model histories and sampled decisions.
 Calendar contract
 -----------------
 
-The canonical window ends on Sunday, July 2, 2000. Its default 182 dates start
-on Monday, January 3. Windows contain exactly the requested number of dates,
-with a minimum of 56; a 60-day window consequently has a partial first week.
+Notebooks, articles and default reports omit the end date, so their generated
+data ends on the most recent completed Sunday in UTC. Windows contain exactly
+the requested number of dates (182 by default), with a minimum of 56; a 60-day
+window consequently has a partial first week.
 
-An explicit end date is normalized to the Sunday on or before that date. Without
-an explicit end date, the most recent completed Sunday in UTC is used. Every
-timestamp shift is a whole number of weeks, preserving weekdays and weekly
-stories. ADM model/predictor and Prediction views change only their timestamps
-when the end date shifts.
+An explicit end date is normalized to the Sunday on or before that date.
+The optional ``end="canonical"`` pins the reference window to Sunday,
+July 2, 2000, for deterministic comparisons and tests; its default 182 dates
+start on Monday, January 3. Every timestamp shift is a whole number of weeks,
+preserving weekdays and weekly stories. ADM model/predictor and Prediction
+views change only their timestamps when the end date shifts.
 
 Interaction History assigns experiment groups and policy decisions by the
 actual calendar month of each exposure. Changing the end date can therefore
@@ -173,7 +175,10 @@ Web and Mobile, Opened then Accepted on Email, or Accepted on Call Center.
 Conversion events are also generated for the conversion experiment. Accepts
 carry the action's synthetic value.
 Channel success rates track the world, and Mobile mixes Naive Bayes and AGB
-decisions after its challenger starts.
+decisions after its challenger starts. The Mobile AGB challenger has less noise
+in its propensity estimates, giving it a modest predictive advantage. AUC is
+still calculated from sampled outcomes, so weekly results can overlap or reverse;
+no smoothing or post-hoc performance adjustment is applied.
 
 Every customer belongs to one Impact Analyzer control group per month. The
 five stock experiments each hold about 1 percent of customers, sharing the NBA

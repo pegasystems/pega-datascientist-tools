@@ -32,7 +32,7 @@ else:
 
 
 DEFAULT_PLOT_POINTS_PER_GROUP = 250
-_FACET_VALUE_LABELS = {
+MODEL_TECHNIQUE_LABELS = {
     "NaiveBayes": "Naive Bayes",
     "GradientBoost": "Gradient Boosting",
 }
@@ -283,10 +283,10 @@ def simplify_facet_titles(fig: "Figure") -> "Figure":
 
         value = annotation.text.rsplit("=", 1)[-1]
         prefix, separator, final_segment = value.rpartition("/")
-        if final_segment in _FACET_VALUE_LABELS:
-            value = f"{prefix}{separator}{_FACET_VALUE_LABELS[final_segment]}"
+        if final_segment in MODEL_TECHNIQUE_LABELS:
+            value = f"{prefix}{separator}{MODEL_TECHNIQUE_LABELS[final_segment]}"
         else:
-            value = _FACET_VALUE_LABELS.get(value, value)
+            value = MODEL_TECHNIQUE_LABELS.get(value, value)
         return annotation.update(text=value)
 
     return fig.for_each_annotation(update_annotation)

@@ -61,3 +61,13 @@ def test_agb_explained_intro_toc_matches_level_two_headings():
     assert labels == headings
     assert anchors == [_toc_anchor(label) for label in labels]
     assert not any(re.match(r"\d+\.\s+", heading) for heading in headings)
+
+
+def test_notebook_examples_do_not_pin_the_canonical_calendar():
+    for path in sorted((BASE_PATH / "examples").rglob("*.ipynb")):
+        notebook = json.loads(path.read_text(encoding="utf-8"))
+        for index, cell in enumerate(notebook["cells"]):
+            source = "\n".join(_source_lines(cell))
+            assert not re.search(r"""\bend\s*=\s*["']canonical["']""", source), (
+                f"{path.relative_to(BASE_PATH)}, cell {index}: omit end to use the most recent completed Sunday"
+            )

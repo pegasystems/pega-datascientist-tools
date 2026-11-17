@@ -10,8 +10,9 @@ tools before building.
 The Makefile copies the example notebooks into the docs source tree, runs
 Sphinx, and removes the temporary notebook copies. HTML builds also run
 `generate_example_reports.py` to render the ADM Health Check and Naive Bayes
-Model Report from the shared synthetic sample. The report examples use the
-canonical end date for reproducibility and include no customer data.
+Model Report from the shared synthetic sample. The report examples omit the
+end date, so their data ends on the most recent completed Sunday in UTC.
+They include no customer data.
 
 ## Creating locally
 

@@ -17,7 +17,7 @@ def ih():
 
 
 def test_mockdata(ih):
-    assert ih.data.collect().height == 126792  # interactions (n=100000 + multi-outcome rows)
+    assert ih.data.collect().height == 126811  # interactions (n=100000 + multi-outcome rows)
     assert ih.data.collect().width == 22  # nr of IH properties in the sample data
 
     summary = ih.aggregates.summarize_by_interaction().collect()
@@ -66,7 +66,7 @@ def test_summarize_by_interaction_with_every(ih):
     # ih fixture pins the canonical end date.
     result_daily = ih.aggregates.summarize_by_interaction(every="1d").collect()
     assert result_daily.columns[0] == "OutcomeTime"
-    assert result_daily.height == 102007
+    assert result_daily.height == 101996
 
     # Test with timedelta — must produce identical result to "1d"
     result_td = ih.aggregates.summarize_by_interaction(
@@ -103,7 +103,7 @@ def test_summarize_by_interaction_complex(ih):
     ).collect()
 
     assert {"Channel", "Direction", "OutcomeTime", "Outcomes"}.issubset(result.columns)
-    assert result.height == 100324
+    assert result.height == 100325
 
 
 def test_summary_success_rates_basic(ih):
@@ -204,7 +204,7 @@ def test_summary_success_rates_complex(ih):
     assert {"PropensityBin", "Channel", "Direction", "OutcomeTime", "Outcomes"}.issubset(result.columns)
     # 10 propensity bins × ~26 weeks × 4 channel/direction combinations, with
     # some bins empty in some weeks. The canonical window is deterministic.
-    assert result.height == 939
+    assert result.height == 941
 
     # Verify calculations
     for metric in ih.positive_outcome_labels.keys():
@@ -231,11 +231,11 @@ def test_summary_outcomes_basic(ih):
     assert result.columns == ["Outcome", "Count"]
     assert result.height == 6
     assert dict(zip(result["Outcome"].to_list(), result["Count"].to_list(), strict=True)) == {
-        "Accepted": 657,
-        "Clicked": 2492,
-        "Conversion": 888,
-        "Impression": 84746,
-        "Opened": 4875,
+        "Accepted": 658,
+        "Clicked": 2487,
+        "Conversion": 887,
+        "Impression": 84805,
+        "Opened": 4840,
         "Pending": 33134,
     }
 
@@ -485,6 +485,36 @@ def test_plots(ih):
     assert isinstance(ih.plot.response_count(), Figure)
     assert isinstance(ih.plot.model_performance_trend(), Figure)
     assert isinstance(ih.plot.model_performance_trend(by="ModelTechnique"), Figure)
+
+
+@pytest.mark.parametrize(("by", "facet"), [("ModelTechnique", "Channel"), ("Channel", "ModelTechnique")])
+def test_model_performance_uses_friendly_technique_labels(by, facet):
+    techniques = ["NaiveBayes", "GradientBoost", "Other"]
+    ih = IH(
+        pl.LazyFrame(
+            {
+                "InteractionID": [f"{technique}-{index}" for technique in techniques for index in range(4)],
+                "Outcome": ["Impression", "Impression", "Clicked", "Clicked"] * 3,
+                "OutcomeTime": ["20261115T120000.000 GMT"] * 12,
+                "Propensity": [0.1, 0.4, 0.35, 0.8] * 3,
+                "ModelTechnique": [technique for technique in techniques for _ in range(4)],
+                "Channel": ["Mobile"] * 12,
+            },
+        ),
+    )
+
+    fig = ih.plot.model_performance_trend(by=by, facet=facet, every="1w")
+    labels = (
+        {trace.name for trace in fig.data}
+        if by == "ModelTechnique"
+        else {annotation.text for annotation in fig.layout.annotations}
+    )
+    assert labels == {"Naive Bayes", "Gradient Boosting", "Other"}
+    assert all(
+        "NaiveBayes" not in trace.hovertemplate and "GradientBoost" not in trace.hovertemplate for trace in fig.data
+    )
+    data = ih.plot.model_performance_trend(by=by, facet=facet, every="1w", return_df=True).collect()
+    assert dict(data.select("ModelTechnique", "Performance").iter_rows()) == dict.fromkeys(techniques, 75.0)
 
 
 # -------------------------------------------------------------------- #

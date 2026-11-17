@@ -44,6 +44,7 @@ _CALL_CENTER_SHARE = 0.01
 _CANDIDATES = 8
 _SECOND_OFFER = {"Web": 0.3, "Mobile": 0.2}
 _AFFINITY_SIGMA = {"Web": 0.9, "Mobile": 0.8, "Email": 0.6, "Call Center": 0.4}
+_MOBILE_AGB_NOISE_FACTOR = 0.55
 _CONVERSION = {"Conversion-Test": 0.3, "Conversion-Control": 0.2}
 _CONVERSION_CONTROL_SHARE = 0.2
 _SUBJECTS_PER_INTERACTION = 1 / 3
@@ -336,6 +337,8 @@ def interaction_history(world: SampleWorld, n: int) -> pl.LazyFrame:
             affinity = exp(sigma * rng.gauss(0.0, 1.0) - sigma * sigma / 2)
             probability = min(0.95, treatment.baseline_probability * scale * affinity)
             noise = _score_noise(state.auc, technique or candidate.technique)
+            if mobile_challenger and technique == "GradientBoost":
+                noise *= _MOBILE_AGB_NOISE_FACTOR
             offers.append(
                 _Offer(
                     candidate,

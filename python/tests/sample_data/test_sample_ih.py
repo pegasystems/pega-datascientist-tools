@@ -36,7 +36,7 @@ def exposures(raw):
 
 
 def test_canonical_shape(raw):
-    assert raw.shape == (126792, 22)
+    assert raw.shape == (126811, 22)
     assert raw["pxInteractionID"].n_unique() == 100000
     assert raw["pySubjectID"].n_unique() == 31715
     shown = raw.filter(pl.col("pyOutcome").is_in(["Impression", "Pending"]))["pxOutcomeTime"].dt.date()
@@ -120,14 +120,14 @@ def test_conversions_favour_test_group(exposures):
         for row in by_channel.to_dicts()
     }
     assert counts == {
-        ("Call Center", "Conversion-Control"): (3, 199),
-        ("Call Center", "Conversion-Test"): (20, 828),
-        ("Email", "Conversion-Control"): (23, 6403),
-        ("Email", "Conversion-Test"): (127, 25704),
-        ("Mobile", "Conversion-Control"): (28, 4710),
-        ("Mobile", "Conversion-Test"): (125, 18261),
-        ("Web", "Conversion-Control"): (76, 12316),
-        ("Web", "Conversion-Test"): (486, 49459),
+        ("Call Center", "Conversion-Control"): (2, 196),
+        ("Call Center", "Conversion-Test"): (22, 831),
+        ("Email", "Conversion-Control"): (23, 6414),
+        ("Email", "Conversion-Test"): (126, 25693),
+        ("Mobile", "Conversion-Control"): (29, 4722),
+        ("Mobile", "Conversion-Test"): (125, 18228),
+        ("Web", "Conversion-Control"): (71, 12398),
+        ("Web", "Conversion-Test"): (489, 49457),
     }
     for channel in ("Call Center", "Email", "Mobile", "Web"):
         control_conversions, control_exposures = counts[channel, "Conversion-Control"]
@@ -220,7 +220,7 @@ def test_mobile_challenger_mixes_techniques(world, raw):
         .len()
     )
     counts = dict(traffic.iter_rows())
-    assert counts == {"NaiveBayes": 6262, "GradientBoost": 6160}
+    assert counts == {"NaiveBayes": 6281, "GradientBoost": 6120}
     assert counts["GradientBoost"] / sum(counts.values()) == pytest.approx(0.5, abs=0.01)
 
 
@@ -230,3 +230,20 @@ def test_ih_from_mock_data_wraps_generator(raw):
     assert data.height > 2_000
     assert {"InteractionID", "Channel", "Outcome", "OutcomeTime", "SubjectID"}.issubset(data.columns)
     assert ih.outcome_labels_used["Email/Outbound"]["Impressions"] == ["Pending"]
+
+
+@pytest.mark.parametrize("end", ["canonical", datetime.date(2026, 11, 15)])
+def test_mobile_challenger_has_a_modest_auc_advantage(raw, end):
+    world = sample_world(end=end)
+    if end != "canonical":
+        raw = interaction_history(world, 100_000).collect()
+    mobile = raw.filter(
+        pl.col("pyChannel") == "Mobile",
+        pl.col("pxOutcomeTime").dt.date() >= world.dates[world.challenger_day],
+    )
+    performance = (
+        IH(mobile.lazy()).plot.model_performance_trend(by="ModelTechnique", every="1y", return_df=True).collect()
+    )
+    auc = dict(performance.select("ModelTechnique", "Performance").iter_rows())
+
+    assert 0 < auc["GradientBoost"] - auc["NaiveBayes"] < 8

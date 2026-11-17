@@ -138,7 +138,7 @@ class DemoData:
         Examples
         --------
         >>> from pdstools import demo_data
-        >>> files = demo_data(end="canonical").write_ds_export("exports")
+        >>> files = demo_data().write_ds_export("exports")
         >>> ADMDatamart.from_ds_export(files["model_data"].name, files["predictor_data"].name, "exports")
         """
         if self.world is None:

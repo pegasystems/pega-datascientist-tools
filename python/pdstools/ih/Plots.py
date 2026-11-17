@@ -9,7 +9,7 @@ import polars as pl
 
 from ..utils import cdh_utils
 from ..utils.namespaces import LazyNamespace
-from ..utils.plot_utils import Figure, simplify_facet_titles
+from ..utils.plot_utils import MODEL_TECHNIQUE_LABELS, Figure, simplify_facet_titles
 
 logger = logging.getLogger(__name__)
 
@@ -791,8 +791,12 @@ class Plots(LazyNamespace):
 
         import plotly.express as px
 
+        chart_data = plot_data.collect()
+        if "ModelTechnique" in (by, facet):
+            chart_data = chart_data.with_columns(pl.col("ModelTechnique").replace(MODEL_TECHNIQUE_LABELS))
+
         fig = px.line(
-            plot_data.collect(),
+            chart_data,
             y="Performance",
             x="OutcomeTime",
             color=by,

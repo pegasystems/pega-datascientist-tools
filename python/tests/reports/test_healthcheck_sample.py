@@ -1,4 +1,4 @@
-"""Verify sample and supplied data stay separate in the Health Check template."""
+"""Verify sample defaults and supplied data handling in report templates."""
 
 import re
 from pathlib import Path
@@ -104,6 +104,32 @@ def test_healthcheck_prediction_source(data_cells, model_path, prediction_path, 
         read_ds_export.assert_not_called()
         prediction_cls.assert_not_called()
         prediction_cls.from_processed_data.assert_not_called()
+
+
+def test_model_report_sample_uses_the_default_calendar():
+    template = Path(__file__).parents[2] / "pdstools" / "reports" / "ModelReport.qmd"
+    cells = re.findall(r"```\{python\}\n(.*?)\n```", template.read_text(encoding="utf-8"), re.DOTALL)
+    cell = next(cell for cell in cells if "# fall back to sample data" in cell)
+    demo_data = Mock()
+    datamart_cls = Mock()
+    namespace = {
+        "pl": pl,
+        "pio": SimpleNamespace(renderers=SimpleNamespace(default=None)),
+        "demo_data": demo_data,
+        "ADMDatamart": datamart_cls,
+        "model_file_path": None,
+        "predictor_file_path": None,
+        "query": None,
+        "model_id": None,
+        "full_embed": False,
+        "confidence_level": 0.95,
+        "only_active_predictors": True,
+    }
+
+    exec(compile(cell, str(template), "exec"), namespace)
+
+    demo_data.assert_called_once_with(source="generated")
+    datamart_cls.from_ds_export.assert_not_called()
 
 
 def test_action_hierarchy_collapses_whitespace_group_variants(action_hierarchy_cell):

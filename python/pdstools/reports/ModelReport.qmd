@@ -102,7 +102,7 @@ else:
     # fall back to sample data
     model_id = model_id or "bd72621c-78af-5a37-997b-0a7f4d214132"
     # Reports stay on generated data; the Health Check app uses source="snapshot".
-    sample = demo_data(source="generated", end="canonical").datamart
+    sample = demo_data(source="generated").datamart
     datamart = ADMDatamart(
         sample.model_data.filter(pl.col("ModelID") == model_id),
         sample.predictor_data.filter(pl.col("ModelID") == model_id),

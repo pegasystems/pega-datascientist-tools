@@ -645,7 +645,7 @@ class ADMDatamart:
         Examples
         --------
         >>> from pdstools import ADMDatamart
-        >>> dm = ADMDatamart.from_mock_data(end="canonical")
+        >>> dm = ADMDatamart.from_mock_data()
         >>> dm.plot.bubble_chart()
 
         """

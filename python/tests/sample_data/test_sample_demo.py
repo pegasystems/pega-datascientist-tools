@@ -149,7 +149,7 @@ def test_generated_demo_archives_load_with_standard_dataset_methods():
     assert datamart.model_data.collect().height == 131845
     assert datamart.predictor_data.collect().height == 247757
     assert prediction.predictions.collect().height == 910
-    assert ih.data.collect().height == 126788
+    assert ih.data.collect().height == 126918
 
 
 def test_snapshot_source_rejects_generation_options():
