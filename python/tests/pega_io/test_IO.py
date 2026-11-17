@@ -22,12 +22,18 @@ def test_data() -> pl.LazyFrame:
 
 
 # Tests for get_latest_file function
-def test_find_default_model():
-    file = pega_io.get_latest_file(path=f"{basePath}/data", target="model_data")
-    assert os.path.join(file) == os.path.join(
-        f"{basePath}/data",
-        "pr_data_dm_admmart_mdl_fact.csv",
-    )
+def test_find_default_model(tmp_path):
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    cache = cache_dir / "pr_data_dm_admmart_mdl_fact.csv"
+    cache.touch()
+    assert pega_io.get_latest_file(path=cache_dir, target="model_data") == str(cache)
+
+    older = tmp_path / "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210101T010000_GMT.zip"
+    newer = tmp_path / "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20261115T235959_GMT_GeneratedDemoData.zip"
+    older.touch()
+    newer.touch()
+    assert pega_io.get_latest_file(path=tmp_path, target="model_data") == str(newer)
 
 
 @pytest.mark.skip(reason="Unknown behaior of get_latest_files, to fix later.")
@@ -39,12 +45,14 @@ def test_find_default_predictors():
     )
 
 
-def test_find_default_predictions():
-    file = pega_io.get_latest_file(path=f"{basePath}/data", target="prediction_data")
-    assert os.path.join(file) == os.path.join(
-        f"{basePath}/data",
-        "Data-DM-Snapshot_pyGetSnapshot_20220323T101155_GMT.zip",
-    )
+def test_find_default_predictions(tmp_path):
+    older = tmp_path / "Data-DM-Snapshot_pyGetSnapshot_20220323T101155_GMT.zip"
+    newer = tmp_path / "Data-DM-Snapshot_pyGetSnapshot_20261115T235959_GMT_GeneratedDemoData.zip"
+    older.touch()
+    assert pega_io.get_latest_file(path=tmp_path, target="prediction_data") == str(older)
+
+    newer.touch()
+    assert pega_io.get_latest_file(path=tmp_path, target="prediction_data") == str(newer)
 
 
 def test_file_not_found():

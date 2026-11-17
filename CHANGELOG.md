@@ -32,6 +32,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   five experiment types each hold about 1 percent of customers per month,
   with model control split between two arms; small channels and short windows
   can leave arms sparse. Pass `return_df=True` for the aggregated frame.
+- `ADMTreesModel.context_key_counts` counts distinct categorical values
+  referenced in tree splits for all standard and configured context keys.
+  The AGB Explained notebook uses it to compare model configurations.
 - `pdstools.utils.cdh_utils.resolve_trend_interval()` and
   `trend_interval_label()` provide shared date-range-based trend cadence
   selection and display labels.

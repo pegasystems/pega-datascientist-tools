@@ -89,7 +89,7 @@ def test_healthcheck_prediction_source(data_cells, model_path, prediction_path, 
             query=None,
         )
     else:
-        demo_data.assert_called_once_with()
+        demo_data.assert_called_once_with(source="generated")
         datamart_cls.from_ds_export.assert_not_called()
 
     if prediction_path:

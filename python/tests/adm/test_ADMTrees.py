@@ -294,6 +294,74 @@ def test_sanity_check_handles_missing_response_counts():
     assert "Response counts are unavailable — volume-based stability checks were skipped." in result["flags"]
 
 
+@pytest.mark.parametrize("metadata_context_keys", [False, True])
+def test_context_key_counts(metadata_context_keys):
+    conditions = [
+        "pyChannel in { Web, Mobile }",
+        "pyDirection == Inbound",
+        "pyIssue in { Sales }",
+        "pyGroup in { Cards, Loans }",
+        "pyName in { A, B, }",
+        "pyName == A",
+        "pyName is Missing",
+        "pyTreatment in { T1, Missing }",
+        "pyTreatment is Missing",
+        "Custom.Region in { North, South }",
+        "Custom.Region == North",
+        "Custom.Number < 50",
+        "Customer.Age < 50",
+        "Customer.Segment in { Retail }",
+    ]
+    keys = ["Custom.Region", "Custom.Number", "Unused", "pyName"]
+    data = {
+        "model": {
+            "booster": {
+                "trees": [
+                    {
+                        "score": 0.0,
+                        "split": condition,
+                        "gain": 1.0,
+                        "left": {"score": 0.1},
+                        "right": {"score": -0.1},
+                    }
+                    for condition in conditions + conditions
+                ],
+            },
+        },
+    }
+    if metadata_context_keys:
+        data["configuration"] = {"contextKeys": keys}
+    model = ADMTreesModel.from_dict(data, context_keys=None if metadata_context_keys else keys)
+
+    assert model.context_key_counts.to_dicts() == [
+        {"context_key": "Custom.Number", "distinct_values": 0},
+        {"context_key": "Custom.Region", "distinct_values": 2},
+        {"context_key": "Unused", "distinct_values": 0},
+        {"context_key": "pyChannel", "distinct_values": 2},
+        {"context_key": "pyDirection", "distinct_values": 1},
+        {"context_key": "pyGroup", "distinct_values": 2},
+        {"context_key": "pyIssue", "distinct_values": 1},
+        {"context_key": "pyName", "distinct_values": 2},
+        {"context_key": "pyTreatment", "distinct_values": 2},
+    ]
+
+
+def test_context_key_counts_without_splits():
+    import polars as pl
+
+    model = ADMTreesModel(trees={}, model=[])
+
+    assert model.context_key_counts.to_dicts() == [
+        {"context_key": "pyChannel", "distinct_values": 0},
+        {"context_key": "pyDirection", "distinct_values": 0},
+        {"context_key": "pyGroup", "distinct_values": 0},
+        {"context_key": "pyIssue", "distinct_values": 0},
+        {"context_key": "pyName", "distinct_values": 0},
+        {"context_key": "pyTreatment", "distinct_values": 0},
+    ]
+    assert model.context_key_counts.schema == {"context_key": pl.String, "distinct_values": pl.Int64}
+
+
 def test_predictor_diagnostics_flags_symbolic_cardinality_and_numeric_like_values():
     postal_symbols = [f"PC{i:03d}={i}" for i in range(256)]
     price_symbols = ["44.95=0", "85.05=1", "94.95=2"]
