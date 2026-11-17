@@ -425,7 +425,6 @@ def test_write_params_files_full_embed(tmp_path):
         config = yaml.safe_load(f)
     assert config["format"]["html"]["embed-resources"] is True
     assert config["format"]["html"]["plotly-connected"] is True
-
     # full_embed=False (default) - load plotly from CDN, disable embed-resources to avoid esbuild (#620)
     report_utils._write_params_files(
         tmp_path,
@@ -436,6 +435,60 @@ def test_write_params_files_full_embed(tmp_path):
         config = yaml.safe_load(f)
     assert config["format"]["html"]["plotly-connected"] is False
     assert config["format"]["html"]["embed-resources"] is False
+
+
+def test_write_analysis_metadata_updates_document_front_matter(tmp_path):
+    import yaml
+    from pdstools.utils.report_utils._quarto import _write_analysis_metadata
+
+    qmd_file = tmp_path / "HealthCheck.qmd"
+    qmd_file.write_text("---\ntitle: Test\nanalysis:\n  predictions: true\n---\nBody\n")
+    _write_analysis_metadata(
+        qmd_file,
+        {"predictions": False, "predictors": True},
+    )
+
+    front_matter = qmd_file.read_text().split("---\n", 2)[1]
+    metadata = yaml.safe_load(front_matter)
+    assert metadata["analysis"] == {"predictors": True}
+
+
+def test_run_quarto_writes_analysis_metadata(tmp_path, monkeypatch):
+    import yaml
+
+    qmd_file = tmp_path / "HealthCheck.qmd"
+    qmd_file.write_text("---\ntitle: Test\nanalysis:\n  predictions: true\n---\nBody\n")
+
+    class FakeStdout:
+        def readline(self):
+            return ""
+
+    class FakeProcess:
+        stdout = FakeStdout()
+
+        def wait(self):
+            return 0
+
+    monkeypatch.setattr(
+        report_utils._quarto,
+        "get_quarto_with_version",
+        lambda: ("quarto", "1.4.0"),
+    )
+    monkeypatch.setattr(report_utils._quarto.subprocess, "Popen", lambda *_args, **_kwargs: FakeProcess())
+
+    assert (
+        report_utils.run_quarto(
+            qmd_file="HealthCheck.qmd",
+            params={"title": "Test"},
+            analysis={"predictions": False, "predictors": True},
+            temp_dir=tmp_path,
+        )
+        == 0
+    )
+
+    front_matter = qmd_file.read_text().split("---\n", 2)[1]
+    metadata = yaml.safe_load(front_matter)
+    assert metadata["analysis"] == {"predictors": True}
 
 
 def test_run_quarto_sets_plotly_renderer_env(tmp_path, monkeypatch):
@@ -558,6 +611,32 @@ def test_create_metric_gttable_callable_rag_with_metric_format():
     # Should NOT show raw decimal values
     assert "0.023456" not in html
     assert "0.00123" not in html
+
+
+def test_create_metric_gttable_tuple_callable_shares_first_column_format():
+    """Prediction overview CTR group columns must format like CTR, not round to 0."""
+    from pdstools.utils.metric_limits import exclusive_0_1_range_rag
+
+    df = pl.DataFrame(
+        {
+            "Channel": ["Web"],
+            "CTR": [0.02],
+            "CTR_Test": [0.024],
+            "CTR_Control": [0.016],
+            "CTR_NBA": [0.0201],
+        },
+    )
+
+    html = report_utils.create_metric_gttable(
+        df,
+        column_to_metric={
+            ("CTR", "CTR_Test", "CTR_Control", "CTR_NBA"): exclusive_0_1_range_rag,
+        },
+        strict_metric_validation=False,
+    ).as_raw_html()
+
+    for expected in ["2.000%", "2.400%", "1.600%", "2.010%"]:
+        assert expected in html
 
 
 def test_create_metric_gttable_callable_rag_without_format():

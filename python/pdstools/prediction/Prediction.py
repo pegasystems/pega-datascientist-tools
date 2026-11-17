@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import datetime
-import itertools
 import logging
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import polars as pl
 
@@ -576,105 +575,54 @@ class Prediction:
         return instance
 
     @classmethod
-    def from_mock_data(cls, days=70):
-        """Create a Prediction instance with mock data for testing and demonstration purposes.
+    def from_mock_data(
+        cls,
+        days: int = 70,
+        *,
+        seed: int | None = 42,
+        end: datetime.date | Literal["canonical"] | None = None,
+        scale: float = 1.0,
+    ) -> Prediction:
+        """Create a Prediction from the shared synthetic sample world.
+
+        Five standard predictions (Web, Mobile, Email, Call Center and the
+        multi-channel PredictActionPropensity) with daily AUC, Test, Control
+        and NBA rows. The data shows the stories of the demo world: Mobile
+        models learning, a Mobile AGB challenger, an Email feed problem that
+        briefly makes model lift negative, and weeks where only positive
+        feedback arrived. Call Center volumes are deliberately too small for
+        a meaningful lift.
 
         Parameters
         ----------
-        days : int, optional
-            Number of days of mock data to generate, by default 70
+        days : int, default 70
+            Number of daily snapshots; at least 56.
+        seed : int or None, default 42
+            Seed for reproducible data; ``None`` draws a random seed.
+        end : date, "canonical" or None, default None
+            Last snapshot date, resolved to the Sunday on or before it.
+            ``None`` uses the most recent completed Sunday, ``"canonical"``
+            pins Sunday 2000-07-02.
+        scale : float, default 1.0
+            Multiplier on response volumes.
 
         Returns
         -------
         Prediction
-            The initialized Prediction class with mock data
+            Prediction with exactly ``days`` snapshot dates per prediction.
 
         Examples
         --------
         >>> from pdstools import Prediction
-        >>> pred = Prediction.from_mock_data(days=30)
+        >>> pred = Prediction.from_mock_data(days=60)
         >>> pred.plot.performance_trend()
 
         """
-        n_conditions = 4  # can't change this
-        n_predictions = 3  # tied to the data below
-        now = datetime.datetime.now()
+        from ..sample_data._prediction import prediction_snapshots
+        from ..sample_data._world import sample_world
 
-        def _interpolate(min, max, i, n):
-            return min + (max - min) * i / (n - 1)
-
-        mock_prediction_data = (
-            pl.LazyFrame(
-                {
-                    "pySnapShotTime": sorted(
-                        [
-                            cdh_utils.to_prpc_date_time(
-                                now - datetime.timedelta(days=i),
-                            )[0:15]  # Polars doesn't like time zones like GMT+0200
-                            for i in range(days)
-                        ]
-                        * n_conditions
-                        * n_predictions,
-                    ),
-                    "pyModelId": (
-                        [
-                            "DATA-DECISION-REQUEST-CUSTOMER!PredictOutboundEmailPropensity",
-                        ]
-                        * n_conditions
-                        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTMOBILEPROPENSITY"] * n_conditions
-                        + ["DATA-DECISION-REQUEST-CUSTOMER!PREDICTWEBPROPENSITY"] * n_conditions
-                    )
-                    * days,
-                    "pyModelType": "PREDICTION",
-                    "pySnapshotType": ["Daily", "Daily", "Daily", None] * n_predictions * days,
-                    "pyDataUsage": ["Control", "Test", "NBA", ""] * n_predictions * days,  # Control=Random, Test=Model
-                    # "pyPositives": (
-                    #     [100, 160, 120, None] + [200, 420, 250, None] + [350, 700, 380, None]
-                    # )
-                    # * n_days,
-                    "pyPositives": list(
-                        itertools.chain.from_iterable(
-                            [
-                                [
-                                    _interpolate(100, 100, p, days),
-                                    _interpolate(160, 200, p, days),
-                                    _interpolate(120, 120, p, days),
-                                    None,
-                                    _interpolate(120, 120, p, days),
-                                    _interpolate(250, 300, p, days),
-                                    _interpolate(150, 150, p, days),
-                                    None,
-                                    _interpolate(1400, 1400, p, days),
-                                    _interpolate(2800, 4000, p, days),
-                                    _interpolate(1520, 1520, p, days),
-                                    None,
-                                ]
-                                for p in range(days)
-                            ],
-                        ),
-                    ),
-                    "pyNegatives": ([10000] * n_conditions + [6000] * n_conditions + [40000] * n_conditions) * days,
-                    "pyValue": list(
-                        itertools.chain.from_iterable(
-                            [
-                                [_interpolate(60.0, 65.0, p, days)] * n_conditions
-                                + [_interpolate(70.0, 73.0, p, days)] * n_conditions
-                                + [_interpolate(66.0, 68.0, p, days)] * n_conditions
-                                for p in range(days)
-                            ],
-                        ),
-                    ),
-                },
-            )
-            .sort(["pySnapShotTime", "pyModelId", "pySnapshotType"])
-            # .with_columns(
-            #     pl.col("pyPositives").cum_sum().over(["pyModelId", "pySnapshotType"]),
-            #     pl.col("pyNegatives").cum_sum().over(["pyModelId", "pySnapshotType"]),
-            # )
-            .with_columns(pyCount=pl.col("pyPositives") + pl.col("pyNegatives"))
-        )
-
-        return cls(mock_prediction_data)
+        world = sample_world(seed=seed, days=days, end=end, scale=scale)
+        return cls(prediction_snapshots(world))
 
     @property
     def is_available(self) -> bool:

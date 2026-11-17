@@ -158,6 +158,24 @@ class TestFigUpdateFacet:
         assert all("=" not in t for t in titles)
         assert set(titles) == {"A", "B"}
 
+    @pytest.mark.parametrize(
+        ("facet_values", "expected"),
+        [
+            (["NaiveBayes", "GradientBoost"], {"Naive Bayes", "Gradient Boosting"}),
+            (
+                ["Web/Inbound/NaiveBayes", "Web/Inbound/GradientBoost"],
+                {"Web/Inbound/Naive Bayes", "Web/Inbound/Gradient Boosting"},
+            ),
+        ],
+    )
+    def test_model_technique_facets_use_public_labels(self, facet_values, expected):
+        data = pl.DataFrame({"x": [1, 2], "y": [1, 2], "facet": facet_values})
+        fig = px.scatter(data, x="x", y="y", facet_col="facet")
+
+        result = fig_update_facet(fig)
+
+        assert {annotation.text for annotation in result.layout.annotations} == expected
+
     def test_custom_step_height(self):
         """step_height parameter is honoured."""
         fig = _make_faceted_scatter(4, col_wrap=2)

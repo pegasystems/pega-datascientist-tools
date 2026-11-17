@@ -23,22 +23,21 @@ else:
 
 
 def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
-    """Import a sample dataset from the CDH Sample application
+    """Load the historical CDH Sample ADM export.
 
-    In a source checkout, the repository data files are preferred so examples
-    and tests use the versioned sample data. Installed packages fall back to
-    the canonical GitHub data URL.
+    This legacy dataset is retained for compatibility. New examples, reports
+    and applications should use :func:`pdstools.demo_data` instead.
 
     Parameters
     ----------
     query : QUERY | None, optional
-        An optional query to apply to the data, by default None
+        Optional query applied to the model data, by default None.
 
     Returns
     -------
     ADMDatamart
-        The ADM Datamart class populated with CDH Sample data
-
+        Datamart loaded from the historical CDH Sample model and predictor
+        archives.
     """
     models = "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip"
     predictors = "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip"
@@ -54,7 +53,7 @@ def cdh_sample(query: QUERY | None = None) -> ADMDatamart:
             )
         except Exception as e:
             raise RuntimeError(
-                f"Error importing CDH Sample. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
+                f"Error importing the legacy CDH Sample. Warnings: {[str(i) for i in w] if len(w) > 0 else 'None'}, exceptions: {e}",
             ) from e
 
 

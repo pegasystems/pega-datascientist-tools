@@ -71,6 +71,9 @@ dependencies and execution.
 - `python/docs`: Sphinx docs (with a Makefile).
 - `reports/*.qmd`: Quarto report templates.
 - `examples/`: notebooks and example content.
+- `python/pdstools/sample_data`: synthetic demo data generator. Its planted
+  stories, invariants and guarding tests are indexed in
+  `docs/sample-data-architecture.md`; read it before tuning generator constants.
 
 ## Setup (local)
 Use uv for env management, mirroring CI.

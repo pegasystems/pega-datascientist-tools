@@ -39,32 +39,38 @@ def _make_databricks_model_snapshots_data() -> pl.LazyFrame:
     ).lazy()
 
 
-@pytest.fixture
-def sample():
-    """Fixture to serve as class to call functions from."""
-    return ADMDatamart.from_ds_export(
-        base_path=f"{basePath}/data",
-        model_filename="Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20210526T131808_GMT.zip",
-        predictor_filename="Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20210526T133622_GMT.zip",
-    )
-
-
-def test_cdh_sample_init(sample):
+def test_demo_data_init(sample):
     assert sample
 
 
 def test_cached_properties(sample: ADMDatamart):
     assert sample.unique_channel_direction == [
+        "Call Center/Outbound",
         "Email/Outbound",
-        "SMS/Outbound",
+        "Mobile/Inbound",
         "Web/Inbound",
     ]
 
-    assert sample.unique_channels == ["Email", "SMS", "Web"]
+    assert sample.unique_channels == ["Call Center", "Email", "Mobile", "Web"]
 
-    assert sample.unique_configurations == ["OmniAdaptiveModel"]
+    assert sample.unique_configurations == [
+        "CallCenterAcceptRateOutbound",
+        "Email_Click_Through_Rate",
+        "Mobile_Click_Through_Rate",
+        "Mobile_Click_Through_Rate_GB",
+        "OmniAdaptiveModel",
+        "Web_Click_Through_Rate_GB",
+        "Web_Loans_Click_Through_Rate_GB",
+    ]
 
-    assert sample.unique_predictor_categories == ["Customer", "IH", "Param"]
+    assert sample.unique_predictor_categories == [
+        "Account",
+        "Context Keys",
+        "Customer",
+        "External Model",
+        "IH",
+        "Param",
+    ]
 
 
 def test_write_then_load(sample: ADMDatamart):
@@ -188,12 +194,11 @@ def test_predictor_categorization_default(sample):
         .collect()["PredictorCategory"]
         .to_list()
     )
-    assert default_cats == ["Customer", "IH", "Param"]
-
-    # print(sample.predictor_data.select("PredictorName", "PredictorCategory").unique().sort("PredictorName").collect().to_pandas())
-
-    assert _check_cat(sample, "Customer.HealthMatter") == "Customer"
-    assert _check_cat(sample, "IH.SMS.Outbound.Loyal.pxLastOutcomeTime.DaysSince") == "IH"
+    assert default_cats == ["Account", "Context Keys", "Customer", "External Model", "IH", "Param"]
+    assert _check_cat(sample, "Account.AccountBalance") == "Account"
+    assert _check_cat(sample, "IH.Web.Inbound.Clicked.pxLastOutcomeTime.DaysSince") == "IH"
+    assert _check_cat(sample, "Customer.ChurnRiskModelScore") == "External Model"
+    assert _check_cat(sample, "Customer.CreditScore") == "Customer"
     assert _check_cat(sample, "Classifier") is None
 
 
@@ -217,8 +222,8 @@ def test_predictor_categorization_custom_expression(sample):
     #     .sort("PredictorName")
     #     .collect()
     # )
-    assert cats == ["Customer", "External Model", "IH", "Param"]
-    assert _check_cat(sample, "Customer.RiskScore") == "External Model"
+    assert cats == ["Account", "Context Keys", "Customer", "External Model", "IH", "Param"]
+    assert _check_cat(sample, "Customer.CreditScore") == "External Model"
 
 
 def test_predictor_categorization_fills_null_source_categories():
@@ -235,16 +240,21 @@ def test_predictor_categorization_fills_null_source_categories():
     )
     predictor_df = pl.LazyFrame(
         {
-            "ModelID": ["m1", "m1"],
-            "PredictorName": ["Customer.Score", "Classifier"],
-            "PredictorCategory": [None, None],
-            "EntryType": ["Active", "Classifier"],
-            "BinIndex": [1, 1],
-            "BinPositives": [8.0, 4.0],
-            "BinNegatives": [12.0, 16.0],
-            "ResponseCount": [20.0, 20.0],
-            "Performance": [0.72, 0.62],
-            "SnapshotTime": [datetime.datetime(2024, 1, 1), datetime.datetime(2024, 1, 1)],
+            "ModelID": ["m1"] * 4,
+            "PredictorName": [
+                "Customer.Score",
+                "Classifier",
+                "Customer.ChurnRiskModelScore",
+                "Customer.UserModelScore",
+            ],
+            "PredictorCategory": [None, None, None, "User category"],
+            "EntryType": ["Active", "Classifier", "Active", "Active"],
+            "BinIndex": [1] * 4,
+            "BinPositives": [8.0, 4.0, 8.0, 8.0],
+            "BinNegatives": [12.0, 16.0, 12.0, 12.0],
+            "ResponseCount": [20.0] * 4,
+            "Performance": [0.72, 0.62, 0.72, 0.72],
+            "SnapshotTime": [datetime.datetime(2024, 1, 1)] * 4,
         },
     )
 
@@ -257,8 +267,13 @@ def test_predictor_categorization_fills_null_source_categories():
         .to_dict(as_series=False)
     )
     assert categories == {
-        "PredictorName": ["Classifier", "Customer.Score"],
-        "PredictorCategory": [None, "Customer"],
+        "PredictorName": [
+            "Classifier",
+            "Customer.ChurnRiskModelScore",
+            "Customer.Score",
+            "Customer.UserModelScore",
+        ],
+        "PredictorCategory": [None, "External Model", "Customer", "User category"],
     }
 
 
@@ -280,7 +295,7 @@ def test_predictor_categorization_dictionary(sample):
     #     .sort("PredictorName")
     #     .collect()
     # )
-    assert cats == ["Customer", "IH", "Param", "XGBoost Model"]
+    assert cats == ["Account", "Context Keys", "Customer", "IH", "Param", "XGBoost Model"]
     assert _check_cat(sample, "Customer.CreditScore") == "XGBoost Model"
 
 
@@ -362,11 +377,23 @@ def test_predictor_categorization_dictionary_regexps(sample):
     assert "XGBoost Model" in cats
 
 
+def test_predictor_categorization_regex_can_override_model_score_without_relabeling_credit_score(sample):
+    sample.apply_predictor_categorization(
+        {"Custom Model": r"(?i)^Customer\..*model_?score$"},
+        use_regexp=True,
+    )
+
+    assert _check_cat(sample, "Customer.ChurnRiskModelScore") == "Custom Model"
+    assert _check_cat(sample, "Customer.CreditScore") == "Customer"
+    assert _check_cat(sample, "IH.Web.Inbound.Clicked.pxLastOutcomeTime.DaysSince") == "IH"
+    assert _check_cat(sample, "Classifier") is None
+
+
 def test_get_last_data_for_report(sample: ADMDatamart):
     """Test get_last_data_for_report formatting."""
     report_data = sample.get_last_data_for_report()
 
-    assert report_data.shape == (98, 31)
+    assert report_data.shape == (864, 21)
 
     # Check that nulls are filled with "NA" for string columns
     string_cols = [col for col in report_data.columns if report_data[col].dtype == pl.Utf8]
