@@ -28,8 +28,10 @@ _stories, _calendar, _random                                             → _de
   world, which is why they tell consistent stories.
 - Each entity draws from its own SHA-256-derived stream (`_random.py`), so
   adding catalog entries does not perturb existing data.
-- The public entry points are `demo_data()` and the `from_mock_data()`
-  constructors on `ADMDatamart`, `Prediction`, `IH` and `ImpactAnalyzer`.
+- The public entry point is `demo_data()`. It generates data by default;
+  `demo_data(source="snapshot")` loads the fixed, versioned exports used by
+  the Health Check app. The historical `cdh_sample()` remains a legacy loader
+  for the old ADM archives.
 
 ## Story index
 
@@ -71,6 +73,9 @@ Test paths are relative to `python/tests/`.
 - Windows are at least 56 days, end on a Sunday and preserve weekdays.
 - Default `demo_data()` stays under 15 s and 1 GiB; prediction-only generation
   stays under 1 s.
+- Snapshot exports are pinned to 182 days ending 2026-11-15, seed 42, scale 1
+  and 100000 interactions. Impact Analyzer data is derived from the matching
+  Interaction History snapshot.
 
 ## When changing a story
 

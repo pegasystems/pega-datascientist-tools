@@ -45,7 +45,7 @@ def test_generates_standalone_reports_from_one_shared_sample(tmp_path, reports):
 
     example_reports.generate_example_reports(output_dir)
 
-    demo_data.assert_called_once_with()
+    demo_data.assert_called_once_with(source="generated")
     generate = sample.datamart.generate
     work_dir = generate.health_check.call_args.kwargs["output_dir"]
     generate.health_check.assert_called_once_with(
@@ -53,7 +53,7 @@ def test_generates_standalone_reports_from_one_shared_sample(tmp_path, reports):
         output_dir=work_dir,
         full_embed=False,
         title="ADM Health Check example",
-        subtitle="All data is synthetic and generated from pdstools.demo_data().",
+        subtitle="All data is synthetic and generated from pdstools.demo_data(source='generated').",
     )
     generate.model_reports.assert_called_once_with(
         "bd72621c-78af-5a37-997b-0a7f4d214132",

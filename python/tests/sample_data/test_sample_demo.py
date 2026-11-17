@@ -1,5 +1,6 @@
 import zipfile
 from datetime import date
+from pathlib import Path
 
 import polars as pl
 import pytest
@@ -81,6 +82,7 @@ def test_write_ds_export_round_trip(demo, tmp_path):
         "model_data": "Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_20000702T235959_GMT.zip",
         "predictor_data": "Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_20000702T235959_GMT.zip",
         "prediction_data": "Data-DM-Snapshot_pyGetSnapshot_20000702T235959_GMT.zip",
+        "ih_data": "Data-pxStrategyResult_pxInteractionHistory_20000702T235959_GMT.zip",
     }
     for file in files.values():
         assert zipfile.ZipFile(file).namelist() == ["data.json"]
@@ -101,4 +103,55 @@ def test_write_ds_export_round_trip(demo, tmp_path):
 
     pred = Prediction.from_ds_export(files["prediction_data"].name, tmp_path / "exports")
     assert_frame_equal(pred.predictions.collect(), demo.prediction.predictions.collect())
+    ih = IH.from_ds_export(files["ih_data"])
+    ih_expected = demo.ih.data.collect().with_columns(pl.col("OutcomeTime").dt.truncate("1ms"))
+    assert_frame_equal(
+        ih.data.collect().sort(["InteractionID", "ExposureID", "OutcomeTime", "Outcome"]),
+        ih_expected.sort(["InteractionID", "ExposureID", "OutcomeTime", "Outcome"]),
+        check_dtypes=False,
+    )
     assert (prediction_snapshots(demo.world).collect().height, pred.predictions.collect().height) == (3458, 910)
+
+
+def test_versioned_snapshot_source_matches_generated_data():
+    generated = demo_data(end=date(2026, 11, 15))
+    snapshot = demo_data(source="snapshot")
+
+    assert snapshot.source == "snapshot"
+    assert snapshot.world is None
+    assert_frame_equal(snapshot.datamart.model_data.collect(), generated.datamart.model_data.collect())
+    assert_frame_equal(snapshot.datamart.predictor_data.collect(), generated.datamart.predictor_data.collect())
+    assert_frame_equal(snapshot.prediction.predictions.collect(), generated.prediction.predictions.collect())
+    snapshot_ih = snapshot.ih.data.collect()
+    generated_ih = generated.ih.data.collect().with_columns(pl.col("OutcomeTime").dt.truncate("1ms"))
+    assert_frame_equal(
+        snapshot_ih.sort(["InteractionID", "ExposureID", "OutcomeTime", "Outcome"]),
+        generated_ih.sort(["InteractionID", "ExposureID", "OutcomeTime", "Outcome"]),
+        check_dtypes=False,
+    )
+
+
+def test_generated_demo_archives_load_with_standard_dataset_methods():
+    data_dir = Path(__file__).parents[3] / "data"
+    stamp = "20261115T235959_GMT_GeneratedDemoData.zip"
+
+    datamart = ADMDatamart.from_ds_export(
+        model_filename=f"Data-Decision-ADM-ModelSnapshot_pyModelSnapshots_{stamp}",
+        predictor_filename=f"Data-Decision-ADM-PredictorBinningSnapshot_pyADMPredictorSnapshots_{stamp}",
+        base_path=data_dir,
+    )
+    prediction = Prediction.from_ds_export(
+        f"Data-DM-Snapshot_pyGetSnapshot_{stamp}",
+        data_dir,
+    )
+    ih = IH.from_ds_export(data_dir / f"Data-pxStrategyResult_pxInteractionHistory_{stamp}")
+
+    assert datamart.model_data.collect().height == 131845
+    assert datamart.predictor_data.collect().height == 247757
+    assert prediction.predictions.collect().height == 910
+    assert ih.data.collect().height == 126788
+
+
+def test_snapshot_source_rejects_generation_options():
+    with pytest.raises(ValueError, match="fixed settings"):
+        demo_data(source="snapshot", days=60)

@@ -212,8 +212,8 @@ if model_file_path is not None:
         query=query
     )
 else:
-    # fall back to sample data
-    demo = demo_data()
+    # Reports stay on generated data; the Health Check app uses source="snapshot".
+    demo = demo_data(source="generated")
     datamart = demo.datamart
 
 ```

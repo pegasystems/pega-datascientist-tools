@@ -3,7 +3,7 @@
 from datetime import datetime
 
 import polars as pl
-from pdstools import datasets, demo_data
+from pdstools import cdh_sample, datasets, demo_data
 from pdstools.utils import cdh_utils
 
 
@@ -56,6 +56,14 @@ def test_demo_action_trend():
     assert trend["Used Actions"].to_list() == [84, 89, 93, 98, 99, 100, 101]
     assert trend["New Actions"].to_list() == [84, 5, 4, 5, 5, 5, 3]
     assert trend["Stopped Actions"].to_list() == [None, 0, 0, 0, 4, 4, 2]
+
+
+def test_legacy_cdh_sample_remains_available_with_query():
+    assert datasets.cdh_sample is cdh_sample
+    sample = cdh_sample(query=pl.col("Channel") == "Web")
+
+    assert sample.model_data.select("Channel").unique().collect()["Channel"].to_list() == ["Web"]
+    assert sample.predictor_data.collect().height > 0
 
 
 def test_import_SampleTrees():

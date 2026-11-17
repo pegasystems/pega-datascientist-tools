@@ -319,8 +319,8 @@ def get_current_index(options, key, default=0):
 
 @st.cache_resource
 def cached_sample():
-    """Cached ADM datamart from the synthetic demo world."""
-    return demo_data().datamart
+    """Cached ADM datamart from the versioned demo snapshot."""
+    return demo_data(source="snapshot").datamart
 
 
 @st.cache_resource
@@ -347,8 +347,8 @@ def cached_datamart(**kwargs):
 
 @st.cache_resource
 def cached_sample_prediction():
-    """Cached Prediction from the same synthetic demo world as ``cached_sample``."""
-    return demo_data().prediction
+    """Cached Prediction from the versioned demo snapshot."""
+    return demo_data(source="snapshot").prediction
 
 
 @st.cache_resource

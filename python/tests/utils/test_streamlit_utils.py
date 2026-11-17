@@ -80,7 +80,7 @@ class TestCachingFunctions:
         """Test loading sample data."""
         result = streamlit_utils.cached_sample()
 
-        assert result is demo_data().datamart
+        assert result is demo_data(source="snapshot").datamart
         assert result.model_data.collect().height == 131845
         assert result.predictor_data.collect().height == 247757
         assert result.model_data.collect().columns[:5] == [
@@ -96,7 +96,7 @@ class TestCachingFunctions:
         """Test loading sample prediction data."""
         result = streamlit_utils.cached_sample_prediction()
 
-        assert result is demo_data().prediction
+        assert result is demo_data(source="snapshot").prediction
         assert result.predictions.collect().height == 910
         assert result.predictions.collect().columns[:5] == [
             "pyModelId",

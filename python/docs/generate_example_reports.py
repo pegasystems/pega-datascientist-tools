@@ -29,7 +29,8 @@ def generate_example_reports(output_dir: Path) -> None:
     ValueError
         If a report is not standalone HTML or contains rendering errors.
     """
-    sample = demo_data()
+    # Documentation reports intentionally exercise on-demand generation.
+    sample = demo_data(source="generated")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     with TemporaryDirectory(prefix="pdstools-docs-reports-") as work_dir:
@@ -40,7 +41,7 @@ def generate_example_reports(output_dir: Path) -> None:
             output_dir=report_dir,
             full_embed=False,
             title="ADM Health Check example",
-            subtitle="All data is synthetic and generated from pdstools.demo_data().",
+            subtitle="All data is synthetic and generated from pdstools.demo_data(source='generated').",
         )
         logger.info("Generating the example Naive Bayes Model Report")
         model_report = sample.datamart.generate.model_reports(

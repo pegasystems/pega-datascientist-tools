@@ -107,13 +107,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and its category labels describe action/treatment records. Update callers
   that select the previous column name.
 
-### Removed
+### Changed
 
-- `pdstools.cdh_sample()` and `pdstools.datasets.cdh_sample()` are removed
-  (#999). Use `pdstools.demo_data().datamart`, or
-  `ADMDatamart.from_mock_data()`, for a synthetic datamart that needs no
-  download. The Health Check and model report fallbacks and the Streamlit
-  sample now use the same synthetic world.
+- Restored `pdstools.cdh_sample()` and `pdstools.datasets.cdh_sample()` as
+  legacy loaders for the historical ADM archives. New reports and notebooks
+  use `pdstools.demo_data()` instead. `demo_data(source="snapshot")` loads the
+  versioned Pega-format ADM, Prediction Studio and Interaction History zips;
+  the Health Check app uses this snapshot while reports and notebooks generate
+  data on demand.
 
 ### Fixed
 

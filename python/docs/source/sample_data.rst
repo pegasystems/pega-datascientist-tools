@@ -3,7 +3,7 @@ Shared synthetic sample data
 
 :func:`pdstools.demo_data` returns the datamart, prediction and Interaction
 History views of one seeded synthetic world, generated on demand without
-customer data or stored files:
+customer data:
 
 .. code-block:: python
 
@@ -35,6 +35,40 @@ pass it explicitly:
 Rendering the Health Check template without input paths uses all three demo
 views. Reports generated from supplied model data do not substitute synthetic
 predictions when prediction data is absent.
+
+Source selection
+----------------
+
+``demo_data(source="generated")`` is the default and is used by reports and
+notebooks. It generates a reproducible world on demand, using the requested
+window and seed.
+
+The applications can use the fixed versioned snapshot instead:
+
+.. code-block:: python
+
+    demo = demo_data(source="snapshot")
+    demo.datamart
+    demo.prediction
+    demo.ih
+
+Snapshot mode loads the Pega dataset-export zips under ``data/`` in a source
+checkout, or downloads those same files from the repository's ``master/data``
+raw-file URL when installed without the source tree. It is fixed at 182 days,
+seed 42, scale 1, 100000 interactions, ending November 15, 2026; generation
+options cannot be changed in snapshot mode. The filenames preserve the
+standard Pega dataset name and timestamp, followed by
+``_GeneratedDemoData.zip``.
+
+``DemoData.write_ds_export(path, suffix="GeneratedDemoData")`` regenerates the four
+versioned zips (ADM model snapshots, predictor binning, Prediction Studio
+snapshots, and Interaction History) in Pega's zip format. Impact Analyzer data
+is derived from the matching Interaction History rather than stored separately.
+
+The historical ``cdh_sample()`` function remains available at both
+``pdstools.cdh_sample`` and ``pdstools.datasets.cdh_sample`` for compatibility.
+It loads the original ADM archives and is not used by current reports,
+notebooks, or apps.
 
 Maintained specification
 ------------------------
