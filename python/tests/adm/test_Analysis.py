@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import polars as pl
 import pytest
-from pdstools import ADMDatamart, datasets
+from pdstools import ADMDatamart
 from pdstools.adm.Analysis import (
     Analysis,
     Finding,
@@ -72,10 +72,10 @@ def _make_last_data(rows: list[dict]) -> pl.DataFrame:
     return pl.DataFrame([{**defaults, **r} for r in rows])
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def sample_dm():
-    """Fixture using CDH sample data."""
-    return datasets.cdh_sample()
+    """Fixture using the synthetic demo datamart."""
+    return ADMDatamart.from_mock_data(end="canonical")
 
 
 @pytest.fixture
@@ -1268,8 +1268,8 @@ class TestCheckTaxonomyExceptionPaths:
 
     def test_predictor_count_exception_is_swallowed(self):
         """Lines 619-620: exception in predictor-count block is swallowed."""
-        dm = datasets.cdh_sample()
-        assert dm.predictor_data.select(pl.len()).collect().item() == 70735
+        dm = ADMDatamart.from_mock_data(end="canonical")
+        assert dm.predictor_data.select(pl.len()).collect().item() == 247757
         # combined_data must work for schema check (line 529) but fail on .filter() (line 594)
         mock_cd = MagicMock()
         mock_cd.collect_schema.return_value.names.return_value = ["Configuration", "EntryType", "PredictorName"]

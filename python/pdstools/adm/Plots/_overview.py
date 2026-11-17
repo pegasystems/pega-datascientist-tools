@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from math import isfinite
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import polars as pl
 
 from ...utils import cdh_utils
-from ...utils.metric_limits import MetricLimits
-from ...utils.plot_utils import get_colorscale
+from ...utils.metric_limits import MetricFormats, MetricLimits
+from ...utils.plot_utils import MODEL_PERFORMANCE_HOVER_FORMAT, MODEL_PERFORMANCE_LABEL, get_colorscale
 from ._base import _PlotsBase
 from ._helpers import (
     add_bottom_left_text_to_bubble_plot,
@@ -36,6 +37,42 @@ def _empty_plot(title: str) -> Any:
         showarrow=False,
     )
     return fig.update_layout(title=title, template="pega")
+
+
+def _treemap_summaries(data: pl.DataFrame, group_by: list[str]) -> tuple[dict[str, dict[str, Any]], pl.DataFrame]:
+    """Aggregate the underlying models at every displayed hierarchy level."""
+    aggregations = [
+        pl.len().alias("Model Count"),
+        (pl.col("ResponseCount") == 0).sum().alias("_without_responses"),
+        pl.col("ResponseCount").sum().alias("Total number of responses"),
+        pl.col("Positives").sum().alias("Total number of positives"),
+        cdh_utils.weighted_average_polars("SuccessRate", "ResponseCount").alias("Weighted average Success Rate"),
+        cdh_utils.weighted_average_polars("Performance", "ResponseCount").alias("Weighted average Performance"),
+    ]
+    summaries = {}
+    level = data
+    for depth in range(len(group_by) + 1):
+        keys = group_by[:depth]
+        level = data.group_by(keys).agg(aggregations) if keys else data.select(aggregations)
+        level = level.with_columns(
+            (pl.col("_without_responses") / pl.col("Model Count")).alias("Percentage without responses")
+        )
+        for row in level.iter_rows(named=True):
+            identifier = "/".join(["All contexts", *(row[key] for key in keys)])
+            summaries[identifier] = row
+    return summaries, level
+
+
+def _treemap_number(value: float | None, spec: str, *, scale: float = 1) -> str:
+    if value is None or not isfinite(value):
+        return "N/A"
+    return format(value * scale, spec)
+
+
+def _format_hover_count(value: float | None) -> str:
+    if value is None or not isfinite(value):
+        return "N/A"
+    return MetricFormats.DEFAULT_FORMAT.format_value(value)
 
 
 class _OverviewPlotsMixin(_PlotsBase):
@@ -141,17 +178,33 @@ class _OverviewPlotsMixin(_PlotsBase):
         collected = df.collect()
         if collected.is_empty():
             fig = _empty_plot(f"Bubble Chart {title}")
-            fig.update_xaxes(title="Performance")
+            fig.update_xaxes(title=MODEL_PERFORMANCE_LABEL)
             fig.update_yaxes(title="SuccessRate", tickformat=".3%")
             if show_metric_limits:
                 fig = add_metric_limit_lines(fig)
             return fig
 
+        plot_data = collected.with_columns(
+            pl.col("LastUpdate").dt.strftime("%v").fill_null("N/A"),
+            pl.col(self.datamart.context_keys).fill_null("N/A"),
+            pl.col("ResponseCount")
+            .map_elements(_format_hover_count, return_dtype=pl.Utf8, skip_nulls=False)
+            .alias("__hover_responses"),
+        )
+        hover_data = {
+            "Performance": MODEL_PERFORMANCE_HOVER_FORMAT,
+            "SuccessRate": ":.3%",
+            "ResponseCount": False,
+            "ModelID": True,
+            **{key: key != "Name" for key in self.datamart.context_keys},
+            "LastUpdate": True,
+            "__hover_responses": True,
+        }
+        if facet_name is not None and facet_name not in self.datamart.context_keys:
+            hover_data[facet_name] = False
+
         fig = px.scatter(
-            collected.with_columns(
-                pl.col("LastUpdate").dt.strftime("%v"),
-                pl.col(self.datamart.context_keys).fill_null(""),
-            ),
+            plot_data,
             x="Performance",
             y="SuccessRate",
             color=color,
@@ -159,11 +212,16 @@ class _OverviewPlotsMixin(_PlotsBase):
             facet_col=facet_name,
             facet_col_wrap=2,
             hover_name="Name",
-            hover_data=["ModelID", *self.datamart.context_keys, "LastUpdate"],
+            hover_data=hover_data,
             title=f"Bubble Chart {title}",
             template="pega",
             facet_row_spacing=0.06,
-            labels={"LastUpdate": "Last Updated"},
+            labels={
+                "Performance": MODEL_PERFORMANCE_LABEL,
+                "SuccessRate": "Success rate",
+                "LastUpdate": "Last updated",
+                "__hover_responses": "Responses",
+            },
         )
         fig = add_bottom_left_text_to_bubble_plot(fig, df, 1)
         if show_metric_limits:
@@ -184,6 +242,7 @@ class _OverviewPlotsMixin(_PlotsBase):
         *,
         by: str = "Name",
         query: QUERY | None = None,
+        relative_color: bool = False,
         return_df: bool = False,
     ):
         """Generate a tree map visualization showing hierarchical model metrics.
@@ -193,9 +252,14 @@ class _OverviewPlotsMixin(_PlotsBase):
         metric : Literal["ResponseCount", "Positives", "Performance", "SuccessRate", "percentage_without_responses"], optional
             The metric to visualize in the tree map, by default "Performance"
         by : str, optional
-            Column to group by for the tree map hierarchy, by default "Name"
+            Stop the displayed hierarchy before this context key, by default
+            "Name". For example, "Group" displays through Issue. "ModelID"
+            displays individual models.
         query : Optional[QUERY], optional
             Optional query to filter the data, by default None
+        relative_color : bool, default False
+            For response or positive counts, color each node relative to the
+            largest count among its siblings. Hover details still show counts.
         return_df : bool, optional
             Whether to return a dataframe instead of a plot, by default False
 
@@ -215,23 +279,28 @@ class _OverviewPlotsMixin(_PlotsBase):
         >>> # Return underlying summary data
         >>> df = dm.plot.tree_map(return_df=True)
 
-        """
-        # TODO: clean up implementation a bit
+        Notes
+        -----
+        Tile area represents model count. At every level, response and positive
+        counts are summed, and success rate and performance are weighted by
+        response count. Hover performance is shown on the 50--100 AUC scale.
 
+        """
         group_by = self.datamart.context_keys[: self.datamart.context_keys.index(by)] if by != "ModelID" else [by]
-        df = self.datamart.aggregates.model_summary(by=by, query=query).select(
-            pl.col(group_by).cast(pl.Utf8).fill_null("Missing"),
-            pl.col("count").alias("Model Count"),
-            pl.col("Percentage_without_responses").alias(
-                "Percentage without responses",
-            ),
-            pl.col("ResponseCount_sum").alias("Total number of responses"),
-            pl.col("Weighted_success_rate").alias("Weighted average Success Rate"),
-            pl.col("Weighted_performance").alias("Weighted average Performance"),
-            pl.col("Positives_sum").alias("Total number of positives"),
-        )
+        if relative_color and metric not in {"ResponseCount", "Positives"}:
+            raise ValueError("relative_color is only available for ResponseCount and Positives.")
         if return_df:
-            return df
+            return self.datamart.aggregates.model_summary(by=by, query=query).select(
+                pl.col(group_by).cast(pl.Utf8).fill_null("Missing"),
+                pl.col("count").alias("Model Count"),
+                pl.col("Percentage_without_responses").alias(
+                    "Percentage without responses",
+                ),
+                pl.col("ResponseCount_sum").alias("Total number of responses"),
+                pl.col("Weighted_success_rate").alias("Weighted average Success Rate"),
+                pl.col("Weighted_performance").alias("Weighted average Performance"),
+                pl.col("Positives_sum").alias("Total number of positives"),
+            )
 
         import plotly.express as px
 
@@ -246,30 +315,79 @@ class _OverviewPlotsMixin(_PlotsBase):
             "SuccessRate": "Weighted average Success Rate",
             "percentage_without_responses": "Percentage without responses",
         }
-
-        hover_data = {
-            "Model Count": ":.d",
-            "Percentage without responses": ":.0%",
-            "Total number of positives": ":.d",
-            "Total number of responses": ":.d",
-            "Weighted average Success Rate": ":.3%",
-            "Weighted average Performance": ":.2%",
+        display_labels = {
+            "Weighted average Success Rate": "Success rate",
+            "Weighted average Performance": f"Weighted average {MODEL_PERFORMANCE_LABEL}",
         }
+        metric_label = label_map[metric]
+        title = f"{display_labels.get(metric_label, metric_label)} by {by}"
 
-        collected = df.collect()
-        if collected.is_empty():
-            return _empty_plot(f"{label_map.get(metric)} by {by}")
-
-        return px.treemap(
-            collected,
-            path=context_keys,
-            color=label_map.get(metric),
-            values="Model Count",
-            title=f"{label_map.get(metric)} by {by}",
-            hover_data=hover_data,
-            color_continuous_scale=colorscale,
-            range_color=[0.5, 1] if metric == "Performance" else None,
+        models = (
+            cdh_utils._apply_query(self.datamart.aggregates.last(), query, allow_empty=True)
+            .select(
+                pl.col(group_by).cast(pl.Utf8).fill_null("Missing"),
+                "ResponseCount",
+                "Positives",
+                "SuccessRate",
+                "Performance",
+            )
+            .collect()
         )
+        if models.is_empty():
+            return _empty_plot(title)
+
+        summaries, collected = _treemap_summaries(models, group_by)
+        plot_data = collected.with_columns(pl.col(metric_label) * 100) if metric == "Performance" else collected
+        fig = px.treemap(
+            plot_data,
+            path=context_keys,
+            color=metric_label,
+            values="Model Count",
+            title=title,
+            labels=display_labels,
+            color_continuous_scale=colorscale,
+            range_color=[50, 100] if metric == "Performance" else None,
+        )
+        trace = fig.data[0]
+        rows = [summaries[identifier] for identifier in trace.ids]
+        trace.customdata = [
+            [
+                _treemap_number(row["Percentage without responses"], ".0%"),
+                _format_hover_count(row["Total number of positives"]),
+                _format_hover_count(row["Total number of responses"]),
+                _treemap_number(row["Weighted average Success Rate"], ".3%"),
+                _treemap_number(row["Weighted average Performance"], ".2f", scale=100),
+            ]
+            for row in rows
+        ]
+        trace.hovertemplate = (
+            "<b>%{label}</b><br>Context=%{id}<br>Model Count=%{value:,d}"
+            "<br>Percentage without responses=%{customdata[0]}"
+            "<br>Positives=%{customdata[1]}"
+            "<br>Responses=%{customdata[2]}"
+            "<br>Success rate=%{customdata[3]}"
+            f"<br>Weighted average {MODEL_PERFORMANCE_LABEL}=%{{customdata[4]}}<extra></extra>"
+        )
+        colors = [
+            value if value is not None and isfinite(value) else None for value in (row[metric_label] for row in rows)
+        ]
+        if metric == "Performance":
+            colors = [value * 100 if value is not None else None for value in colors]
+            fig.update_coloraxes(colorbar_tickformat=".2f")
+        if relative_color:
+            sibling_maxima: dict[str, float] = {}
+            for parent, value in zip(trace.parents, colors, strict=True):
+                if value is not None:
+                    sibling_maxima[parent] = max(sibling_maxima.get(parent, 0), value)
+            colors = [
+                None if value is None else value / sibling_maxima[parent] if sibling_maxima[parent] > 0 else 0
+                for parent, value in zip(trace.parents, colors, strict=True)
+            ]
+            fig.update_coloraxes(
+                cmin=0, cmax=1, colorbar_title="Relative to largest sibling", colorbar_tickformat=".0%"
+            )
+        trace.marker.colors = colors
+        return fig
 
     @requires({"SnapshotTime", "Name", "Configuration"})
     def action_trends(
@@ -486,6 +604,11 @@ class _OverviewPlotsMixin(_PlotsBase):
                 y=f"{group_col_name} on y",
                 color="Overlap",
             ),
+        )
+        value_format = ".1%" if show_fraction else ",.0f"
+        plt.update_traces(
+            hoverongaps=False,
+            hovertemplate=f"%{{x}} / %{{y}}<br>Overlap=%{{z:{value_format}}}<extra></extra>",
         )
         plt.update_coloraxes(showscale=False)
         return plt

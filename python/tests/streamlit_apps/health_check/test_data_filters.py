@@ -83,7 +83,7 @@ def test_narrowing_categorical_column_adds_filter_expression(
     assert not at.exception
 
     sub_ms = _find_multiselect(at, "selected_Channel")
-    assert set(sub_ms.options) == {"Email", "SMS", "Web"}
+    assert set(sub_ms.options) == {"Call Center", "Email", "Mobile", "Web"}
 
     reduced = ["Email"]
     sub_ms.set_value(reduced).run()
