@@ -145,12 +145,34 @@ def test_safe_yaml_str_escapes_metacharacters(value, expected):
         ("plt-foo bar", "plt-foo-bar"),
         ('plt-foo"bar\nbaz', "plt-foo-bar-baz"),
         ("plt-foo:bar", "plt-foo-bar"),
-        ("a" * 200, "a" * 128),
+        ("a" * 200, "a" * 200),
         ("---", "context"),
     ],
 )
 def test_safe_label_sanitises_value(value, expected):
     assert ReportGenerator._safe_label(value) == expected
+
+
+def test_generate_by_context_qmds_preserves_long_context_suffixes(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    prefix = "a" * 135
+    names = [f"{prefix}_one", f"{prefix}_two", f"{prefix}_three"]
+    generator = ReportGenerator()
+    generator.contexts = {"0": [json.dumps({"partition": {"Action": name}}) for name in names]}
+
+    with patch.object(generator, "_read_template", side_effect=_template_for):
+        generator._generate_by_context_qmds()
+
+    output_dir = tmp_path / "by-model-context"
+    expected_labels = [f"plt-{prefix}-{suffix}" for suffix in ("one", "two", "three")]
+    assert sorted(path.stem for path in output_dir.glob("plt-*.qmd")) == sorted(expected_labels)
+
+    batch_lines = (output_dir / "plots_for_batch_0.qmd").read_text(encoding="utf-8").splitlines()
+    for name, label in zip(names, expected_labels, strict=True):
+        assert batch_lines.count(label) == 1
+        page = (output_dir / f"{label}.qmd").read_text(encoding="utf-8")
+        assert f'"{name}"' in page
+        assert label in page.splitlines()
 
 
 def test_hostile_context_dict_in_generated_qmd(tmp_path, monkeypatch):
