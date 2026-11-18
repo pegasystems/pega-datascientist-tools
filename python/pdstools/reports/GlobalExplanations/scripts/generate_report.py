@@ -200,11 +200,10 @@ class ReportGenerator:
         """Return a filesystem- and Quarto-label-safe version of *value*.
 
         Keeps only alphanumeric characters and hyphens, collapses runs of
-        invalid characters to a single hyphen, strips leading/trailing hyphens,
-        and caps the length to 128 characters to keep generated filenames
-        manageable.
+        invalid characters to a single hyphen, and strips leading/trailing
+        hyphens without truncating distinguishing context suffixes.
         """
-        slug = re.sub(r"[^a-zA-Z0-9]+", "-", value).strip("-")[:128]
+        slug = re.sub(r"[^a-zA-Z0-9]+", "-", value).strip("-")
         return slug or "context"
 
     @staticmethod
