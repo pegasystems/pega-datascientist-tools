@@ -478,6 +478,9 @@ class Plots(LazyNamespace):
     ) -> "go.Figure | pl.DataFrame":
         """Plot the share of total gain accumulated as trees are added.
 
+        Shares are unavailable when any split gain is negative or the
+        total gain is zero.
+
         Parameters
         ----------
         return_df : bool, default False
@@ -500,18 +503,15 @@ class Plots(LazyNamespace):
             .select(["treeID", "total_gain"])
         )
         grand_total = base["total_gain"].sum()
-        # A model with no positive-gain splits yet (e.g. a single stump tree)
-        # has grand_total == 0, making the share undefined rather than 0 %.
-        share_expr = (
-            pl.lit(None, dtype=pl.Float64) if not grand_total else (pl.col("total_gain").cum_sum() / grand_total)
-        )
+        valid_share = bool(grand_total) and not (self.trees_model.gains_per_split["gains"] < 0).any()
+        share_expr = pl.col("total_gain").cum_sum() / grand_total if valid_share else pl.lit(None, dtype=pl.Float64)
         df = base.with_columns(share_expr.alias("cumulative_gain_share")).select(["treeID", "cumulative_gain_share"])
         if return_df:
             return df
 
         half_idx = (
             df.filter(pl.col("cumulative_gain_share") >= 0.5)["treeID"].first()
-            if grand_total and (df["cumulative_gain_share"] >= 0.5).any()
+            if valid_share and (df["cumulative_gain_share"] >= 0.5).any()
             else None
         )
         fig = go.Figure()
@@ -627,7 +627,9 @@ class Plots(LazyNamespace):
         """Compare each predictor's gain in early vs late trees.
 
         Predictors above the diagonal are "late refiners"; predictors below
-        are "early specialists".
+        are "early specialists". Gains are signed. Axes become linear when
+        either bucket contains non-positive values; bubbles use a uniform
+        size when total gains are non-positive.
 
         Parameters
         ----------
@@ -661,7 +663,7 @@ class Plots(LazyNamespace):
             else:
                 continue
             for node in _iter_nodes(tree):
-                if node.split is not None and node.gain > 0:
+                if node.split is not None:
                     rows.append({"predictor": node.split.variable, "gain": node.gain, "bucket": bucket})
 
         raw = pl.DataFrame(
@@ -691,16 +693,20 @@ class Plots(LazyNamespace):
 
             return go.Figure().update_layout(title="Early vs late tree gain per predictor")
 
-        max_val = max(df["early_gain"].max() or 0.0, df["late_gain"].max() or 0.0) or 1.0
+        min_val = min(cast(float, df["early_gain"].min()), cast(float, df["late_gain"].min()))
+        max_val = max(cast(float, df["early_gain"].max()), cast(float, df["late_gain"].max()))
+        log_axes = min_val > 0
+        size = "total_gain" if (df["total_gain"] > 0).all() else None
         fig = px.scatter(
             df,
             x="early_gain",
             y="late_gain",
             color="PredictorCategory",
-            size="total_gain",
+            size=size,
+            hover_data={"total_gain": True},
             hover_name="predictor",
-            log_x=True,
-            log_y=True,
+            log_x=log_axes,
+            log_y=log_axes,
             title="Early vs late tree gain per predictor",
             labels={
                 "early_gain": f"Gain in first {quarter} trees",
@@ -711,12 +717,15 @@ class Plots(LazyNamespace):
             category_orders={"PredictorCategory": self.predictor_category_order},
             color_discrete_map=self.predictor_category_colormap,
         )
+        if not log_axes:
+            fig.update_xaxes(type="linear")
+            fig.update_yaxes(type="linear")
         fig.add_shape(
             type="line",
-            x0=0.01,
-            y0=0.01,
-            x1=max_val,
-            y1=max_val,
+            x0=0.01 if log_axes else min(min_val, 0.0),
+            y0=0.01 if log_axes else min(min_val, 0.0),
+            x1=max(max_val, 0.0) or 1.0,
+            y1=max(max_val, 0.0) or 1.0,
             line={"dash": "dash", "color": "grey"},
         )
         return fig
@@ -740,6 +749,8 @@ class Plots(LazyNamespace):
         segment (for example, ``IH``, ``Customer``, ``Param``), while other
         undotted names are ``Primary``. Override
         ``AGBModel.plot.predictor_category_expr`` to define custom categories.
+        Gain shares are unavailable when any split gain is negative or the
+        total gain is zero.
 
         Parameters
         ----------
@@ -765,7 +776,9 @@ class Plots(LazyNamespace):
             .sort("total_gain", descending=True)
         )
         total = df["total_gain"].sum()
-        df = df.with_columns((pl.col("total_gain") / total).alias("gain_share"))
+        valid_share = bool(total) and not (self.trees_model.gains_per_split["gains"] < 0).any()
+        share_expr = pl.col("total_gain") / total if valid_share else pl.lit(None, dtype=pl.Float64)
+        df = df.with_columns(share_expr.alias("gain_share"))
         if return_df:
             return df
 
@@ -798,9 +811,11 @@ class Plots(LazyNamespace):
     ) -> "go.Figure | pl.DataFrame":
         """Bubble chart mapping each predictor's role: router vs refiner.
 
-        X-axis = mean depth of splits; Y-axis = tree coverage (distinct
-        trees used in); bubble size = total gain.  Shallow + wide-coverage
-        predictors are "routers"; deep + narrow ones are "refiners".
+        X-axis = mean edge-count depth of splits; Y-axis = tree coverage
+        (distinct trees used in); bubble size = total signed gain.
+        Bubbles use a uniform size when any total gain is non-positive.
+        Shallow + wide-coverage predictors are "routers"; deep + narrow
+        ones are "refiners".
 
         Parameters
         ----------
@@ -822,7 +837,7 @@ class Plots(LazyNamespace):
         rows: list[dict] = []
         for tree_id, tree in enumerate(self.trees_model.model):
             for node in _iter_nodes(tree):
-                if node.split is not None and node.gain > 0:
+                if node.split is not None:
                     rows.append(
                         {
                             "predictor": node.split.variable,
@@ -857,7 +872,8 @@ class Plots(LazyNamespace):
             df,
             x="mean_depth",
             y="tree_coverage",
-            size="total_gain",
+            size="total_gain" if (df["total_gain"] > 0).all() else None,
+            hover_data={"total_gain": True},
             color="PredictorCategory",
             hover_name="predictor",
             title="Feature role map (router vs refiner)",

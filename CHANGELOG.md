@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- AGB tree depth now counts edges from the root, and all gain summaries
+  include signed and zero split gains. Gain shares and entropy are
+  unavailable when split gains are negative or their total is zero (#1022).
+
 ## [5.1.1] — 2026-11-16
 
 ### Added

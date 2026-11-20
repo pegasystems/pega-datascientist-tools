@@ -151,8 +151,8 @@ def test_metrics_tree_counts(tree_sample: ADMTreesModel):
     m = tree_sample.metrics
     assert m["number_of_trees"] == 50
     assert m["number_of_tree_nodes"] == 2232
-    assert m["tree_depth_max"] == 10
-    assert m["tree_depth_avg"] == 7.8
+    assert m["tree_depth_max"] == 9
+    assert m["tree_depth_avg"] == 6.8
     assert m["tree_depth_std"] == 1.92
 
 
@@ -678,11 +678,11 @@ def test_metrics_convergence_exported(exported_model: ADMTreesModel):
 
 
 def test_metrics_feature_importance(tree_sample: ADMTreesModel):
-    """Feature importance concentration metrics — pinned values."""
+    """Negative splits make concentration metrics unavailable."""
     m = tree_sample.metrics
     assert m["top_predictor_by_gain"] == "pyName"
-    assert m["top_predictor_gain_share"] == pytest.approx(0.5481, abs=1e-3)
-    assert m["predictor_gain_entropy"] == pytest.approx(0.4206, abs=1e-3)
+    assert m["top_predictor_gain_share"] is None
+    assert m["predictor_gain_entropy"] is None
 
 
 def test_metrics_feature_importance_exported(exported_model: ADMTreesModel):
@@ -1317,6 +1317,126 @@ def stump_model() -> ADMTreesModel:
     )
 
 
+@pytest.fixture
+def signed_gain_model() -> ADMTreesModel:
+    """Two signed splits in one tree and a zero-gain split in another."""
+    trees = [
+        {
+            "score": 0.0,
+            "sampleCount": 100,
+            "split": "Customer.A < 1",
+            "gain": 10.0,
+            "left": {
+                "score": 0.0,
+                "split": "Customer.B < 1",
+                "gain": -4.0,
+                "left": {"score": 0.0},
+                "right": {"score": 0.0},
+            },
+            "right": {"score": 0.0},
+        },
+        {"score": 0.0, "sampleCount": 90},
+        {"score": 0.0, "sampleCount": 80},
+        {
+            "score": 0.0,
+            "sampleCount": 70,
+            "split": "Customer.A < 2",
+            "gain": 0.0,
+            "left": {"score": 0.0},
+            "right": {"score": 0.0},
+        },
+    ]
+    return ADMTreesModel(trees={"model": trees}, model=trees)
+
+
+def test_signed_gains_and_edge_depth_agree_across_views(signed_gain_model: ADMTreesModel):
+    model = signed_gain_model
+    metrics = model.metrics
+    assert model.tree_stats["depth"].to_list() == [2, 0, 0, 1]
+    assert metrics["tree_depth_max"] == 2
+    assert metrics["tree_depth_avg"] == 0.75
+    assert model.gains_per_tree == {0: [10.0, -4.0], 1: [], 2: [], 3: [0.0]}
+    assert model.tree_stats["gains"].to_list() == [[10.0, -4.0], [], [], [0.0]]
+    assert model.tree_stats["meangains"].to_list() == [3.0, 0.0, 0.0, 0.0]
+    assert model.gains_per_split["gains"].to_list() == [10.0, -4.0, 0.0]
+    assert metrics["total_gain"] == 6.0
+    assert metrics["mean_gain_per_split"] == 2.0
+    assert metrics["median_gain_per_split"] == 0.0
+    assert metrics["mean_gain_first_half"] == 3.0
+    assert metrics["mean_gain_last_half"] == 0.0
+    assert metrics["top_predictor_by_gain"] == "Customer.A"
+    assert metrics["top_predictor_gain_share"] is None
+    assert metrics["predictor_gain_entropy"] is None
+    assert model.plot.gain_per_tree(return_df=True)["total_gain"].to_list() == [6.0, 0.0, 0.0, 0.0]
+    assert model.plot.gain_decay_dual_lens(return_df=True)["total_gain"].to_list() == [6.0, 0.0, 0.0, 0.0]
+    assert model.plot.cumulative_gain_share(return_df=True)["cumulative_gain_share"].to_list() == [None] * 4
+    namespace = model.plot.gain_by_namespace(return_df=True)
+    assert namespace.select("total_gain", "gain_share").rows() == [(6.0, None)]
+    importance = model.plot.feature_importance_by_gain(return_df=True)
+    assert importance.select("predictor", "total_gain").rows() == [("Customer.A", 10.0), ("Customer.B", -4.0)]
+    role = model.plot.feature_role_map(return_df=True).sort("predictor")
+    assert role.select("predictor", "mean_depth", "total_gain").rows() == [
+        ("Customer.A", 0.0, 10.0),
+        ("Customer.B", 1.0, -4.0),
+    ]
+    early_late = model.plot.early_vs_late_gain(return_df=True).sort("predictor")
+    assert early_late.select("predictor", "early_gain", "late_gain", "total_gain").rows() == [
+        ("Customer.A", 10.0, 0.0, 10.0),
+        ("Customer.B", -4.0, 0.0, -4.0),
+    ]
+
+    early_figure = model.plot.early_vs_late_gain()
+    assert early_figure.layout.xaxis.type == "linear"
+    assert early_figure.layout.yaxis.type == "linear"
+    assert sum(len(trace.x) for trace in early_figure.data) == 2
+    role_figure = model.plot.feature_role_map()
+    assert sum(len(trace.x) for trace in role_figure.data) == 2
+
+
+@pytest.mark.parametrize("gain", [-4.0, 0.0])
+def test_nonpositive_gain_has_no_share_or_entropy(gain: float):
+    tree = {
+        "score": 0.0,
+        "split": "Customer.A < 1",
+        "gain": gain,
+        "left": {"score": 0.0},
+        "right": {"score": 0.0},
+    }
+    model = ADMTreesModel(trees={"model": [tree]}, model=[tree])
+    assert model.metrics["total_gain"] == gain
+    assert model.metrics["top_predictor_by_gain"] == "Customer.A"
+    assert model.metrics["top_predictor_gain_share"] is None
+    assert model.metrics["predictor_gain_entropy"] is None
+    assert model.plot.gain_by_namespace(return_df=True)["gain_share"].to_list() == [None]
+    assert model.plot.cumulative_gain_share(return_df=True)["cumulative_gain_share"].to_list() == [None]
+    assert len(model.plot.feature_role_map().data[0].x) == 1
+    assert len(model.plot.early_vs_late_gain().data[0].x) == 1
+
+
+@pytest.mark.parametrize("second_gain", [0.0, -10.0])
+def test_gain_shares_with_zero_and_cancelling_splits(second_gain: float):
+    tree = {
+        "score": 0.0,
+        "split": "Customer.A < 1",
+        "gain": 10.0,
+        "left": {
+            "score": 0.0,
+            "split": "Customer.B < 1",
+            "gain": second_gain,
+            "left": {"score": 0.0},
+            "right": {"score": 0.0},
+        },
+        "right": {"score": 0.0},
+    }
+    model = ADMTreesModel(trees={"model": [tree]}, model=[tree])
+    expected_share = 1.0 if second_gain == 0 else None
+    assert model.metrics["total_gain"] == 10.0 + second_gain
+    assert model.metrics["top_predictor_gain_share"] == expected_share
+    assert model.metrics["predictor_gain_entropy"] == (0.0 if second_gain == 0 else None)
+    assert model.plot.gain_by_namespace(return_df=True)["gain_share"].to_list() == [expected_share]
+    assert model.plot.cumulative_gain_share(return_df=True)["cumulative_gain_share"].to_list() == [expected_share]
+
+
 def test_stump_model_empty_gain_tables_keep_numeric_schema(stump_model: ADMTreesModel):
     import polars as pl
 
@@ -1336,6 +1456,10 @@ def test_stump_model_empty_gain_tables_keep_numeric_schema(stump_model: ADMTrees
         "gains": [],
         "meangains": 0,
     }
+    assert stump_model.metrics["tree_depth_max"] == 0
+    assert stump_model.metrics["tree_depth_avg"] == 0
+    assert stump_model.metrics["top_predictor_gain_share"] is None
+    assert stump_model.metrics["predictor_gain_entropy"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -1552,7 +1676,7 @@ def test_plot_feature_role_map_return_df(rich_model: ADMTreesModel):
     row = df.filter(df["predictor"] == "pyGroup").row(0, named=True)
     assert row["tree_coverage"] == 63
     assert row["total_gain"] == pytest.approx(48305.23435, rel=1e-4)
-    assert row["mean_depth"] == pytest.approx(4.3161, abs=1e-3)
+    assert row["mean_depth"] == pytest.approx(3.3161, abs=1e-3)
     assert row["PredictorCategory"] == "Context Keys"
     # Exactly 4 predictor categories present.
     assert df["PredictorCategory"].n_unique() == 4
