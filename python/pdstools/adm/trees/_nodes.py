@@ -97,7 +97,8 @@ class Node:
 
     All nodes carry a ``score`` (the leaf prediction or root prior).
     Internal nodes additionally carry a parsed :class:`Split` and a
-    ``gain``.  Leaves have ``split=None`` and ``gain=0.0``.
+    ``gain``.  Leaves have ``split=None`` and ``gain=0.0``. Depth counts
+    edges from the root, which has depth zero.
 
     ``sampleCount`` is the number of training examples that reached this
     node.  Present only in exports from Prediction Studio that include
@@ -112,7 +113,7 @@ class Node:
     sample_count: int | None = None
 
 
-def _iter_nodes(tree: dict, depth: int = 1) -> Iterator[Node]:
+def _iter_nodes(tree: dict, depth: int = 0) -> Iterator[Node]:
     """Yield every node in a tree in pre-order, root first.
 
     Single source of truth for tree traversal.  All metric computations

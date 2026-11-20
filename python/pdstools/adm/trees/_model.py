@@ -376,6 +376,10 @@ class ADMTreesModel:
         computed from an exported model (e.g. saturation counts that
         require bin-level data) are omitted.
 
+        Tree depth counts edges from the root. Gain statistics include
+        signed and zero split gains. Gain share and entropy are ``None``
+        when any split gain is negative or the total is zero.
+
         See :meth:`metric_descriptions` for human-readable descriptions
         of every key.
         """
@@ -636,8 +640,8 @@ class ADMTreesModel:
             "response_negative_count": "Number of negative responses in training data.",
             # Model complexity
             "number_of_tree_nodes": "Total node count across all trees (splits + leaves).",
-            "tree_depth_max": "Maximum depth of any single tree in the ensemble.",
-            "tree_depth_avg": "Average depth across all trees.",
+            "tree_depth_max": "Maximum tree depth in edges from the root.",
+            "tree_depth_avg": "Average tree depth in edges from the root.",
             "tree_depth_std": "Standard deviation of tree depths — uniformity of tree complexity.",
             "number_of_trees": "Total number of boosting rounds (trees) in the model.",
             "number_of_stump_trees": "Trees with no splits (single root node). Stumps contribute no learned signal.",
@@ -657,7 +661,7 @@ class ADMTreesModel:
             "number_of_active_numeric_predictors": "Active numeric (continuous) predictors.",
             "total_number_of_numeric_predictors": "All numeric predictors in configuration.",
             # Gain distribution
-            "total_gain": "Sum of all split gains — total information gained by the ensemble.",
+            "total_gain": "Sum of signed split gains across the ensemble.",
             "mean_gain_per_split": "Average gain per split node (analogous to XGBoost gain importance).",
             "median_gain_per_split": "Median gain — robust central tendency, less sensitive to outlier splits.",
             "max_gain_per_split": "Largest single split gain — identifies the most informative split.",
@@ -684,8 +688,8 @@ class ADMTreesModel:
             "mean_gain_last_half": "Average gain in the second half — lower values suggest convergence.",
             # Feature importance concentration
             "top_predictor_by_gain": "Predictor with the highest total gain.",
-            "top_predictor_gain_share": "Fraction of total gain from the top predictor (0–1). High = dominance.",
-            "predictor_gain_entropy": "Normalised Shannon entropy of gain distribution (0–1). Low = concentrated.",
+            "top_predictor_gain_share": "Fraction of total gain from the top predictor, or None if undefined.",
+            "predictor_gain_entropy": "Normalised gain entropy, or None if undefined.",
             # Saturation (encoder-based only)
             "number_of_saturated_context_key_predictors": "Context-key predictors that have reached max bin capacity.",
             "number_of_saturated_symbolic_predictors": "Symbolic predictors at max bin capacity.",
@@ -745,9 +749,8 @@ class ADMTreesModel:
                 var_split_count[split.variable] += 1
                 var_total_gain[split.variable] += node.gain
 
-                if node.gain > 0:
-                    all_gains.append(node.gain)
-                    tree_gains.append(node.gain)
+                all_gains.append(node.gain)
+                tree_gains.append(node.gain)
 
                 if split.operator == "<":
                     numeric_split_count += 1
@@ -904,9 +907,9 @@ class ADMTreesModel:
             m["mean_gain_first_half"] = 0.0
             m["mean_gain_last_half"] = 0.0
         # Feature-importance concentration
-        if var_total_gain and sum_all_gain > 0:
-            top_var = max(var_total_gain, key=lambda k: var_total_gain[k])
-            m["top_predictor_by_gain"] = top_var
+        top_var = max(var_total_gain, key=lambda k: var_total_gain[k]) if var_total_gain else None
+        m["top_predictor_by_gain"] = top_var
+        if top_var is not None and sum_all_gain > 0 and all(g >= 0 for g in all_gains):
             m["top_predictor_gain_share"] = round(var_total_gain[top_var] / sum_all_gain, 4)
             n_vars = len(var_total_gain)
             if n_vars > 1:
@@ -920,9 +923,8 @@ class ADMTreesModel:
             else:
                 m["predictor_gain_entropy"] = 0.0
         else:
-            m["top_predictor_by_gain"] = None
-            m["top_predictor_gain_share"] = 0.0
-            m["predictor_gain_entropy"] = 0.0
+            m["top_predictor_gain_share"] = None
+            m["predictor_gain_entropy"] = None
         # Saturation
         if encoder_info is not None:
             m["number_of_saturated_context_key_predictors"] = saturated_ctx
@@ -1125,10 +1127,8 @@ class ADMTreesModel:
         leak the entire ADMTreesModel instance for the lifetime of the
         cache.
 
-        Zero-gain splits are kept (with ``gains == 0.0``) in
-        ``gains_per_split`` so the per-split DataFrame is always aligned
-        with ``splits_per_tree``.  ``gains_per_tree`` continues to keep
-        only positive gains for backward compatibility.
+        Signed and zero gains are kept in both gain views, aligned with
+        the corresponding splits.
         """
         # Touch predictors so legacy callers still see them populated.
         self.predictors
@@ -1140,17 +1140,16 @@ class ADMTreesModel:
         all_predictors: list[str] = []
         for tree_id, tree in enumerate(self.model):
             tsplits: list[str] = []
-            tgains_positive: list[float] = []
+            tgains: list[float] = []
             for node in _iter_nodes(tree):
                 if node.split is not None:
                     tsplits.append(node.split.raw)
                     all_splits.append(node.split.raw)
                     all_predictors.append(node.split.variable)
                     all_gains.append(node.gain)
-                    if node.gain > 0:
-                        tgains_positive.append(node.gain)
+                    tgains.append(node.gain)
             splits_per_tree[tree_id] = tsplits
-            gains_per_tree[tree_id] = tgains_positive
+            gains_per_tree[tree_id] = tgains
 
         gains_per_split = pl.DataFrame(
             {"split": all_splits, "gains": all_gains, "predictor": all_predictors},
@@ -1186,7 +1185,7 @@ class ADMTreesModel:
         )
 
     def get_tree_stats(self) -> pl.DataFrame:
-        """Generate a dataframe with useful stats for each tree."""
+        """Generate per-tree stats with edge-count depth and signed gains."""
         rows = []
         for tree_id, tree in enumerate(self.model):
             depth = 0
@@ -1197,13 +1196,12 @@ class ADMTreesModel:
                 depth = max(depth, node.depth)
                 if node.split is not None:
                     n_splits += 1
-                    if node.gain > 0:
-                        gains.append(node.gain)
+                    gains.append(node.gain)
             rows.append(
                 {
                     "treeID": tree_id,
                     "score": root_score,
-                    "depth": depth - 1,  # match legacy behaviour
+                    "depth": depth,
                     "nsplits": n_splits,
                     "gains": gains,
                     "meangains": mean(gains) if gains else 0,
