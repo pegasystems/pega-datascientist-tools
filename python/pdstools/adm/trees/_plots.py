@@ -693,8 +693,8 @@ class Plots(LazyNamespace):
 
             return go.Figure().update_layout(title="Early vs late tree gain per predictor")
 
-        min_val = min(df["early_gain"].min(), df["late_gain"].min())
-        max_val = max(df["early_gain"].max(), df["late_gain"].max())
+        min_val = min(cast(float, df["early_gain"].min()), cast(float, df["late_gain"].min()))
+        max_val = max(cast(float, df["early_gain"].max()), cast(float, df["late_gain"].max()))
         log_axes = min_val > 0
         size = "total_gain" if (df["total_gain"] > 0).all() else None
         fig = px.scatter(
