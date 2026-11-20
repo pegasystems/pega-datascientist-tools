@@ -638,6 +638,15 @@ class TestFunnelSummary:
         assert result["% Decisions without Actions"].min() == 0.0
         assert result["% Decisions without Actions"].max() == pytest.approx(94.7, abs=0.2)
 
+    def test_summary_to_pandas_no_int128(self, da_minimal):
+        available, passing, _ = da_minimal.aggregates.get_funnel_data(scope="Action")
+        result = da_minimal.aggregates.get_funnel_summary(available, passing)
+        assert pl.Int128 not in result.dtypes
+        assert pl.UInt128 not in result.dtypes
+        pdf = result.to_pandas()
+        assert len(pdf) == len(result)
+        assert pdf["Filtered Actions"].iloc[0] == 0
+
 
 # ---------------------------------------------------------------------------
 # Sensitivity analysis

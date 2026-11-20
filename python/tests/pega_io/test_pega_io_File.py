@@ -220,6 +220,77 @@ def test_read_ds_export_prefers_local_repo_data_for_raw_github_samples(monkeypat
     assert df.collect().shape == (7297, 17)
 
 
+def test_scan_parquet_path_prefers_local_repo_data_for_raw_github_samples(monkeypatch):
+    import urllib.request
+
+    def _fail_network(*args, **kwargs):
+        raise AssertionError("network should not be used for checkout-local sample data")
+
+    monkeypatch.setattr(urllib.request, "urlopen", _fail_network)
+
+    df = F.scan_parquet_path(
+        "https://raw.githubusercontent.com/pegasystems/pega-datascientist-tools/master/data/explanations/aggregated_data/OVERVIEW.parquet",
+    )
+
+    assert df.collect().shape == (1077, 10)
+
+
+def test_scan_by_extension_fetches_remote_parquet_and_ipc_via_http_get(monkeypatch):
+    import urllib.request
+    from io import BytesIO
+
+    expected = pl.DataFrame({"predictor_name": ["Age", "Income"], "contribution": [0.25, -0.10]})
+    parquet_buf = BytesIO()
+    expected.write_parquet(parquet_buf)
+    ipc_buf = BytesIO()
+    expected.write_ipc(ipc_buf)
+    payloads = {
+        "https://example.com/data.parquet": parquet_buf.getvalue(),
+        "https://example.com/data.ipc": ipc_buf.getvalue(),
+    }
+
+    class _DummyResponse:
+        def __init__(self, body: bytes):
+            self._body = body
+
+        def read(self) -> bytes:
+            return self._body
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda url, **kwargs: _DummyResponse(payloads[url]))
+
+    assert F.scan_parquet_path("https://example.com/data.parquet").collect().equals(expected)
+    assert F._scan_by_extension("https://example.com/data.ipc", ".ipc").collect().equals(expected)
+
+
+def test_fetch_url_bytes_errors(monkeypatch):
+    import urllib.request
+    from email.message import Message
+    from urllib.error import HTTPError
+
+    with pytest.raises(ValueError, match="Unsupported URL scheme"):
+        F._fetch_url_bytes("ftp://example.com/data.parquet")
+
+    def _raise_404(url, **kwargs):
+        raise HTTPError(url, 404, "Not Found", Message(), None)
+
+    monkeypatch.setattr(urllib.request, "urlopen", _raise_404)
+    with pytest.raises(FileNotFoundError, match="HTTP 404"):
+        F.scan_parquet_path("https://example.com/missing.parquet")
+
+    def _raise_500(url, **kwargs):
+        raise HTTPError(url, 500, "Internal Server Error", Message(), None)
+
+    monkeypatch.setattr(urllib.request, "urlopen", _raise_500)
+    with pytest.raises(OSError, match="HTTP 500"):
+        F.scan_parquet_path("https://example.com/broken.parquet")
+
+
 # ---------------------------------------------------------------------------
 # Excel support in read_data
 # ---------------------------------------------------------------------------
