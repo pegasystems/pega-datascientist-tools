@@ -432,17 +432,24 @@ class ADMTreesModel:
         Runs a handful of heuristic checks against :attr:`metrics` — very
         few trees, mostly-stump trees, near-random AUC, an inverted or very
         low response volume, or a narrow active-predictor set — that
-        together indicate a model is too early in its training lifecycle
-        for its plots and metrics to be a reliable read on real-world
-        performance.
+        together warrant reviewing the model's training lifecycle before
+        interpreting its plots. These are heuristics, not statistical tests
+        or a verdict on real-world performance.
+
+        Separate advisories describe the tree index reaching 50% of total
+        gain and the leading non-context predictor's share of total gain.
+        Context predictors include the standard ADM keys and configured
+        ``context_keys``. A non-context share above 50% invites review, not
+        a leakage diagnosis. Missing metadata and undefined shares are
+        reported as advisories rather than red flags.
 
         Returns
         -------
         dict
             Dictionary with keys ``n_trees``, ``pooled_auc``,
-            ``positive_count``, ``negative_count``, and ``flags`` (a list
-            of human-readable warning strings; empty when no red flags
-            apply).
+            ``positive_count``, ``negative_count``, ``flags`` (heuristic
+            warnings), and ``advisories`` (descriptive observations and
+            unavailable checks). Metadata values can be ``None``.
         """
         m = self.metrics
         n_trees = m["number_of_trees"]
@@ -460,7 +467,7 @@ class ADMTreesModel:
             inverted_response = neg < pos
             low_response_volume = min(pos, neg) < 200
         pooled_auc_msg = (
-            f"Pooled AUC = {pooled_auc:.4f} — statistically indistinguishable from random."
+            f"Pooled AUC = {pooled_auc:.4f} — near 0.5 for the pooled population; assess within-action performance separately."
             if pooled_auc is not None
             else ""
         )
@@ -493,10 +500,6 @@ class ADMTreesModel:
                 pooled_auc_msg,
             ),
             (
-                not has_response_counts,
-                "Response counts are unavailable — volume-based stability checks were skipped.",
-            ),
-            (
                 inverted_response,
                 inverted_response_msg,
             ),
@@ -509,12 +512,63 @@ class ADMTreesModel:
                 f"Only {active_predictors} active predictor(s) — model is deciding on a very narrow feature set.",
             ),
         ]
+        advisories: list[str] = []
+        if pooled_auc is None:
+            advisories.append("Pooled AUC is unavailable — the near-0.5 check was skipped.")
+        if not has_response_counts:
+            advisories.append("Response counts are unavailable — volume-based stability checks were skipped.")
+
+        tree_gains = pl.Series(list(self.gains_per_tree.values()), dtype=pl.List(pl.Float64)).list.sum()
+        total_gain = tree_gains.sum()
+        if total_gain <= 0:
+            advisories.append(
+                "Cumulative gain share unavailable: total gain is not positive; inspect signed gain per tree.",
+            )
+        elif (tree_gains < 0).any():
+            advisories.append(
+                "Cumulative gain share unavailable: at least one tree has negative total gain; inspect signed gain per tree.",
+            )
+        else:
+            half_tree = (tree_gains.cum_sum() >= total_gain / 2).arg_true().item(0)
+            advisories.append(
+                f"Cumulative gain: 50% reached at tree index {half_tree} "
+                f"({half_tree + 1}/{n_trees} trees); descriptive, not a health threshold.",
+            )
+
+        predictor_gains = (
+            self.gains_per_split.group_by("predictor")
+            .agg(pl.col("gains").sum())
+            .sort(["gains", "predictor"], descending=[True, False])
+        )
+        context_keys = cdh_utils.CONTEXT_KEY_PREDICTORS | set(self.context_keys or [])
+        non_context = predictor_gains.filter(~pl.col("predictor").is_in(context_keys))
+        if non_context.is_empty():
+            advisories.append("Gain concentration: no non-context predictors appear in splits.")
+        else:
+            predictor, gain = non_context.row(0)
+            predictor_total = predictor_gains["gains"].sum()
+            if predictor_total > 0 and (predictor_gains["gains"] >= 0).all():
+                share = gain / predictor_total
+                message = (
+                    f"Gain concentration: {predictor} contributes {share:.1%} of total gain "
+                    "(leading non-context predictor)."
+                )
+                if share > 0.5:
+                    message += " Above 50%: review possible over-reliance or leakage; this is not a diagnosis."
+                advisories.append(message)
+            else:
+                advisories.append(
+                    f"Gain concentration: leading non-context predictor is {predictor}; "
+                    "share unavailable because total gain is not positive or a predictor has negative total gain.",
+                )
+
         return {
             "n_trees": n_trees,
             "pooled_auc": pooled_auc,
             "positive_count": pos,
             "negative_count": neg,
             "flags": [msg for is_flag, msg in checks if is_flag],
+            "advisories": advisories,
         }
 
     def predictor_diagnostics(
@@ -882,7 +936,9 @@ class ADMTreesModel:
 
         m: dict[str, Any] = {}
         # Properties-level
-        m["auc"] = props.get("auc") or props.get("performance")
+        m["auc"] = props.get("auc")
+        if m["auc"] is None:
+            m["auc"] = props.get("performance")
         m["success_rate"] = props.get("successRate")
         m["factory_update_time"] = props.get("factoryUpdateTime")
         m["response_positive_count"] = training.get("positiveCount")
@@ -1058,7 +1114,7 @@ class ADMTreesModel:
         return self._splits_and_gains[0]
 
     @cached_property
-    def gains_per_tree(self) -> dict[int, list[float]]:  # pragma: no cover
+    def gains_per_tree(self) -> dict[int, list[float]]:
         return self._splits_and_gains[1]
 
     @cached_property

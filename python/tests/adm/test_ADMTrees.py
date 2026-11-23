@@ -363,10 +363,14 @@ def test_sanity_check_flags_immature_stump_model():
             "Only 1 tree(s) — model has barely started learning.",
             "1/1 trees are stumps (no split) — mostly non-informative trees.",
             "Avg splits/tree = 0.00 — model is not developing structure (SOP-ADM009).",
-            "Pooled AUC = 0.5000 — statistically indistinguishable from random.",
+            "Pooled AUC = 0.5000 — near 0.5 for the pooled population; assess within-action performance separately.",
             "Negatives (10) < positives (25) — inverted response ratio; unusual for an NBA response model.",
             "Very low response volume (positives=25, negatives=10) — metrics are not yet statistically stable.",
             "Only 0 active predictor(s) — model is deciding on a very narrow feature set.",
+        ],
+        "advisories": [
+            "Cumulative gain share unavailable: total gain is not positive; inspect signed gain per tree.",
+            "Gain concentration: no non-context predictors appear in splits.",
         ],
     }
 
@@ -378,7 +382,100 @@ def test_sanity_check_handles_missing_response_counts():
 
     assert result["positive_count"] is None
     assert result["negative_count"] is None
-    assert "Response counts are unavailable — volume-based stability checks were skipped." in result["flags"]
+    message = "Response counts are unavailable — volume-based stability checks were skipped."
+    assert message in result["advisories"]
+    assert message not in result["flags"]
+
+
+def _sanity_gain_model(
+    gains: list[tuple[str, float]],
+    context_keys: list[str] | None = None,
+) -> ADMTreesModel:
+    trees = [
+        {
+            "score": 0.0,
+            "split": f"{predictor} < 1",
+            "gain": gain,
+            "left": {"score": 0.0},
+            "right": {"score": 0.0},
+        }
+        for predictor, gain in gains
+    ]
+    return ADMTreesModel(
+        trees={"model": trees},
+        model=trees,
+        properties={"auc": 0.7, "trainingStats": {"positiveCount": 500, "negativeCount": 1000}},
+        context_keys=context_keys,
+    )
+
+
+@pytest.mark.parametrize(
+    ("gains", "message"),
+    [
+        ([3.0, 1.0], "Cumulative gain: 50% reached at tree index 0 (1/2 trees); descriptive, not a health threshold."),
+        ([1.0, 3.0], "Cumulative gain: 50% reached at tree index 1 (2/2 trees); descriptive, not a health threshold."),
+        (
+            [-1.0, 3.0],
+            "Cumulative gain share unavailable: at least one tree has negative total gain; inspect signed gain per tree.",
+        ),
+        (
+            [1.0, -1.0],
+            "Cumulative gain share unavailable: total gain is not positive; inspect signed gain per tree.",
+        ),
+        (
+            [-1.0],
+            "Cumulative gain share unavailable: total gain is not positive; inspect signed gain per tree.",
+        ),
+        ([], "Cumulative gain share unavailable: total gain is not positive; inspect signed gain per tree."),
+    ],
+)
+def test_sanity_check_describes_gain_distribution(gains: list[float], message: str):
+    model = _sanity_gain_model([("Customer.A", gain) for gain in gains])
+    result = model.sanity_check()
+    assert result["advisories"][0] == message
+    assert message not in result["flags"]
+
+
+@pytest.mark.parametrize("context_key", ["pyGroup", "Portfolio"])
+def test_sanity_check_concentration_excludes_standard_and_configured_context(context_key: str):
+    model = _sanity_gain_model(
+        [(context_key, 6.0), ("Customer.A", 3.0), ("Customer.B", 1.0)],
+        context_keys=[context_key] if context_key == "Portfolio" else None,
+    )
+    assert model.sanity_check()["advisories"][1] == (
+        "Gain concentration: Customer.A contributes 30.0% of total gain (leading non-context predictor)."
+    )
+
+
+@pytest.mark.parametrize("gain", [5.0, 6.0])
+def test_sanity_check_concentration_is_advisory_above_fifty_percent(gain: float):
+    model = _sanity_gain_model([("Customer.A", gain), ("Customer.B", 10 - gain)])
+    result = model.sanity_check()
+    expected = (
+        f"Gain concentration: Customer.A contributes {gain / 10:.1%} of total gain (leading non-context predictor)."
+    )
+    if gain > 5:
+        expected += " Above 50%: review possible over-reliance or leakage; this is not a diagnosis."
+    assert result["advisories"][1] == expected
+    assert expected not in result["flags"]
+
+
+def test_sanity_check_reports_undefined_predictor_shares(signed_gain_model: ADMTreesModel):
+    assert signed_gain_model.sanity_check()["advisories"][-2:] == [
+        "Cumulative gain: 50% reached at tree index 0 (1/4 trees); descriptive, not a health threshold.",
+        (
+            "Gain concentration: leading non-context predictor is Customer.A; "
+            "share unavailable because total gain is not positive or a predictor has negative total gain."
+        ),
+    ]
+
+
+@pytest.mark.parametrize("properties", [{"auc": 0.0, "performance": 0.9}, {"auc": None, "performance": 0.0}])
+def test_sanity_check_preserves_zero_auc(properties: dict):
+    model = ADMTreesModel(trees={"model": []}, model=[], properties=properties)
+    result = model.sanity_check()
+    assert result["pooled_auc"] == 0.0
+    assert not any("AUC is unavailable" in message for message in result["advisories"])
 
 
 @pytest.mark.parametrize("metadata_context_keys", [False, True])
@@ -1544,6 +1641,10 @@ def test_small_negative_split_keeps_gain_shares():
     assert model.metrics["predictor_gain_entropy"] == 1.0
     assert model.plot.cumulative_gain_share(return_df=True)["cumulative_gain_share"].to_list() == [0.5, 1.0]
     assert model.plot.gain_by_namespace(return_df=True)["gain_share"].to_list() == [1.0]
+    assert model.sanity_check()["advisories"][-2:] == [
+        "Cumulative gain: 50% reached at tree index 0 (1/2 trees); descriptive, not a health threshold.",
+        "Gain concentration: Customer.A contributes 50.0% of total gain (leading non-context predictor).",
+    ]
 
 
 def test_stump_model_empty_gain_tables_keep_numeric_schema(stump_model: ADMTreesModel):

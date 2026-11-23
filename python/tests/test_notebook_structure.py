@@ -7,6 +7,8 @@ import pathlib
 import re
 from typing import Any
 
+import pytest
+
 BASE_PATH = pathlib.Path(__file__).parent.parent.parent
 AGB_EXPLAINED = BASE_PATH / "examples" / "articles" / "AGBExplained.ipynb"
 
@@ -61,6 +63,53 @@ def test_agb_explained_intro_toc_matches_level_two_headings():
     assert labels == headings
     assert anchors == [_toc_anchor(label) for label in labels]
     assert not any(re.match(r"\d+\.\s+", heading) for heading in headings)
+
+
+@pytest.mark.parametrize("missing_metadata", [False, True])
+def test_agb_quick_check_handles_missing_metadata_and_marks_only_actual_flags(monkeypatch, capsys, missing_metadata):
+    pytest.importorskip("great_tables")
+    from pdstools import datasets
+    from pdstools.adm.trees import ADMTreesModel
+
+    trees = [
+        {
+            "score": 0.0,
+            "split": f"Customer.A{i % 5} < 2",
+            "gain": 1.0,
+            "left": {
+                "score": 0.0,
+                "split": f"Customer.A{i % 5} < 1",
+                "gain": 1.0,
+                "left": {"score": 0.0},
+                "right": {"score": 0.0},
+            },
+            "right": {"score": 0.0},
+        }
+        for i in range(10)
+    ]
+    properties = {} if missing_metadata else {"auc": 0.5, "trainingStats": {"positiveCount": 25, "negativeCount": 10}}
+    model = ADMTreesModel(trees={"model": trees}, model=trees, properties=properties)
+    monkeypatch.setattr(datasets, "sample_trees", lambda: model)
+    notebook = json.loads(AGB_EXPLAINED.read_text(encoding="utf-8"))
+    namespace: dict[str, Any] = {}
+    for cell in notebook["cells"]:
+        if cell.get("id") in {"32174ba2", "quick-sanity-code"}:
+            exec("\n".join(_source_lines(cell)), namespace)
+
+    output = capsys.readouterr().out
+    assert "Advisories (not red flags):" in output
+    assert "Cumulative gain: 50% reached at tree index 4 (5/10 trees)" in output
+    assert "Customer.A0 contributes 20.0% of total gain" in output
+    if missing_metadata:
+        assert "Pooled AUC=unavailable" in output
+        assert "unavailable pos / unavailable neg" in output
+        assert "No red flags from the available checks" in output
+        assert "🚩" not in output
+    else:
+        assert "Pooled AUC=0.5000" in output
+        assert "25 pos / 10 neg" in output
+        assert "🚩 3 red flag(s):" in output
+        assert output.count("  🚩 ") == 3
 
 
 def test_notebook_examples_do_not_pin_the_canonical_calendar():

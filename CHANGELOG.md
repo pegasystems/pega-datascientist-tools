@@ -10,6 +10,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Per-tree reliability-weighted leaf-score spreads and their ensemble mean
   for AGB exports with usable leaf sample counts (#1019).
+- AGB `sanity_check()` advisories report the 50% cumulative-gain crossover
+  and the leading non-context predictor's gain share, separately from
+  heuristic warnings. The AGB Explained notebook marks warnings with a
+  red flag icon and handles unavailable AUC and response counts.
 
 ### Changed
 
@@ -20,7 +24,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - AGB tree depth now counts edges from the root, and all gain summaries
   include signed and zero split gains. Gain shares and entropy are
-  unavailable when split gains are negative or their total is zero (#1022).
+  unavailable when the relevant aggregated gains are negative or their total
+  is not positive; individual negative splits are retained (#1022).
 
 ## [5.1.1] — 2026-11-16
 
