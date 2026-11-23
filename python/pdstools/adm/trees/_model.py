@@ -413,7 +413,7 @@ class ADMTreesModel:
 
         Tree depth counts edges from the root. Gain statistics include
         signed and zero split gains. Gain share and entropy are ``None``
-        when any split gain is negative or the total is zero.
+        when the total is not positive or any predictor's total is negative.
 
         ``weighted_leaf_score_std_mean`` is the unweighted mean of the
         available per-tree spreads in :attr:`tree_stats`, rounded to six
@@ -958,7 +958,7 @@ class ADMTreesModel:
         # Feature-importance concentration
         top_var = max(var_total_gain, key=lambda k: var_total_gain[k]) if var_total_gain else None
         m["top_predictor_by_gain"] = top_var
-        if top_var is not None and sum_all_gain > 0 and all(g >= 0 for g in all_gains):
+        if top_var is not None and sum_all_gain > 0 and all(g >= 0 for g in var_total_gain.values()):
             m["top_predictor_gain_share"] = round(var_total_gain[top_var] / sum_all_gain, 4)
             n_vars = len(var_total_gain)
             if n_vars > 1:

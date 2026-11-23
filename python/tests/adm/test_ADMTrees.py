@@ -765,11 +765,11 @@ def test_metrics_convergence_exported(exported_model: ADMTreesModel):
 
 
 def test_metrics_feature_importance(tree_sample: ADMTreesModel):
-    """Negative splits make concentration metrics unavailable."""
+    """Small negative splits keep concentration metrics when predictor totals are positive."""
     m = tree_sample.metrics
     assert m["top_predictor_by_gain"] == "pyName"
-    assert m["top_predictor_gain_share"] is None
-    assert m["predictor_gain_entropy"] is None
+    assert m["top_predictor_gain_share"] == 0.5481
+    assert m["predictor_gain_entropy"] == 0.4206
 
 
 def test_metrics_feature_importance_exported(exported_model: ADMTreesModel):
@@ -1456,9 +1456,9 @@ def test_signed_gains_and_edge_depth_agree_across_views(signed_gain_model: ADMTr
     assert metrics["predictor_gain_entropy"] is None
     assert model.plot.gain_per_tree(return_df=True)["total_gain"].to_list() == [6.0, 0.0, 0.0, 0.0]
     assert model.plot.gain_decay_dual_lens(return_df=True)["total_gain"].to_list() == [6.0, 0.0, 0.0, 0.0]
-    assert model.plot.cumulative_gain_share(return_df=True)["cumulative_gain_share"].to_list() == [None] * 4
+    assert model.plot.cumulative_gain_share(return_df=True)["cumulative_gain_share"].to_list() == [1.0] * 4
     namespace = model.plot.gain_by_namespace(return_df=True)
-    assert namespace.select("total_gain", "gain_share").rows() == [(6.0, None)]
+    assert namespace.select("total_gain", "gain_share").rows() == [(6.0, 1.0)]
     importance = model.plot.feature_importance_by_gain(return_df=True)
     assert importance.select("predictor", "total_gain").rows() == [("Customer.A", 10.0), ("Customer.B", -4.0)]
     role = model.plot.feature_role_map(return_df=True).sort("predictor")
@@ -1496,6 +1496,7 @@ def test_nonpositive_gain_has_no_share_or_entropy(gain: float):
     assert model.metrics["predictor_gain_entropy"] is None
     assert model.plot.gain_by_namespace(return_df=True)["gain_share"].to_list() == [None]
     assert model.plot.cumulative_gain_share(return_df=True)["cumulative_gain_share"].to_list() == [None]
+    assert "undefined" in model.plot.cumulative_gain_share().layout.annotations[0].text
     assert len(model.plot.feature_role_map().data[0].x) == 1
     assert len(model.plot.early_vs_late_gain().data[0].x) == 1
 
@@ -1522,6 +1523,27 @@ def test_gain_shares_with_zero_and_cancelling_splits(second_gain: float):
     assert model.metrics["predictor_gain_entropy"] == (0.0 if second_gain == 0 else None)
     assert model.plot.gain_by_namespace(return_df=True)["gain_share"].to_list() == [expected_share]
     assert model.plot.cumulative_gain_share(return_df=True)["cumulative_gain_share"].to_list() == [expected_share]
+
+
+def test_small_negative_split_keeps_gain_shares():
+    def stump(predictor: str, gain: float) -> dict:
+        return {
+            "score": 0.0,
+            "split": f"Customer.{predictor} < 1",
+            "gain": gain,
+            "left": {"score": 0.0},
+            "right": {"score": 0.0},
+        }
+
+    first = stump("A", 6.0)
+    first["left"] = stump("A", -1.0)
+    trees = [first, stump("B", 5.0)]
+    model = ADMTreesModel(trees={"model": trees}, model=trees)
+    assert model.metrics["top_predictor_by_gain"] == "Customer.A"
+    assert model.metrics["top_predictor_gain_share"] == 0.5
+    assert model.metrics["predictor_gain_entropy"] == 1.0
+    assert model.plot.cumulative_gain_share(return_df=True)["cumulative_gain_share"].to_list() == [0.5, 1.0]
+    assert model.plot.gain_by_namespace(return_df=True)["gain_share"].to_list() == [1.0]
 
 
 def test_stump_model_empty_gain_tables_keep_numeric_schema(stump_model: ADMTreesModel):

@@ -478,8 +478,8 @@ class Plots(LazyNamespace):
     ) -> "go.Figure | pl.DataFrame":
         """Plot the share of total gain accumulated as trees are added.
 
-        Shares are unavailable when any split gain is negative or the
-        total gain is zero.
+        Shares are unavailable when the total gain is not positive or any
+        tree's total gain is negative.
 
         Parameters
         ----------
@@ -503,7 +503,7 @@ class Plots(LazyNamespace):
             .select(["treeID", "total_gain"])
         )
         grand_total = base["total_gain"].sum()
-        valid_share = bool(grand_total) and not (self.trees_model.gains_per_split["gains"] < 0).any()
+        valid_share = grand_total > 0 and (base["total_gain"] >= 0).all()
         share_expr = pl.col("total_gain").cum_sum() / grand_total if valid_share else pl.lit(None, dtype=pl.Float64)
         df = base.with_columns(share_expr.alias("cumulative_gain_share")).select(["treeID", "cumulative_gain_share"])
         if return_df:
@@ -532,6 +532,15 @@ class Plots(LazyNamespace):
                 line_color="grey",
                 annotation_text=f"50 % @ tree {tree_marker:g}",
                 annotation_position="top right",
+            )
+        if not valid_share:
+            fig.add_annotation(
+                text="Gain share undefined: total gain is not positive<br>or some trees have negative total gain",
+                xref="paper",
+                yref="paper",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
             )
         fig.update_layout(
             title="Cumulative gain share across trees",
@@ -749,8 +758,8 @@ class Plots(LazyNamespace):
         segment (for example, ``IH``, ``Customer``, ``Param``), while other
         undotted names are ``Primary``. Override
         ``AGBModel.plot.predictor_category_expr`` to define custom categories.
-        Gain shares are unavailable when any split gain is negative or the
-        total gain is zero.
+        Gain shares are unavailable when the total gain is not positive or
+        any category's total gain is negative.
 
         Parameters
         ----------
@@ -776,7 +785,7 @@ class Plots(LazyNamespace):
             .sort("total_gain", descending=True)
         )
         total = df["total_gain"].sum()
-        valid_share = bool(total) and not (self.trees_model.gains_per_split["gains"] < 0).any()
+        valid_share = total > 0 and (df["total_gain"] >= 0).all()
         share_expr = pl.col("total_gain") / total if valid_share else pl.lit(None, dtype=pl.Float64)
         df = df.with_columns(share_expr.alias("gain_share"))
         if return_df:
