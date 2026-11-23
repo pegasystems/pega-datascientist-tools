@@ -46,7 +46,32 @@ uv run ruff check ./python
 ### Running example notebooks locally
 Example notebooks live under `examples/`. Open them from this repository checkout and select the `.venv` Python interpreter as the notebook kernel in VS Code or Jupyter.
 
-Most notebooks use bundled sample data by default. To run one on your own data, look near the first data-loading cell for a small replacement comment such as `Replace with your own data`, `path-to-your-model.json`, or a call to `datasets.*()`. Change that cell to point at your local export, then run the notebook from the top.
+Most notebooks use bundled sample data by default. For supported notebooks, set the corresponding environment variable below to use your own input instead of editing the data-loading cell.
+
+Set the variable before starting the notebook kernel. If it is unset, the notebook keeps using its bundled or generated sample data; if it is set to an invalid path, the loading error is raised rather than silently reverting to sample data.
+
+| Notebook(s) | Environment variable | Input |
+| --- | --- | --- |
+| `articles/AGBExplained.ipynb` | `AGB_REPORT_MODEL` | Exported AGB model JSON file |
+| `adm/ADMBinningInsights.ipynb`, `adm/ADM_ActionDiscrimination_Metric.ipynb`, `articles/ADMExplained.ipynb`, and `datamart/Example_ADM_Analysis.ipynb` | `ADM_DATA_PATH` | Folder containing ADM model and predictor exports |
+| `datamart/Example_ADM_Analysis.ipynb` individual report example | `ADM_MODEL_ID` | Model ID to report; defaults to the sample model ID |
+| `ih/Example_IH_Analysis.ipynb` and `ih/Conversion_Reporting.ipynb` | `IH_DATA_PATH` | Interaction History export file |
+| `prediction_studio/Predictions.ipynb` and `datamart/Example_ADM_Analysis.ipynb` | `PREDICTION_DATA_PATH` | `PR_DATA_DM_SNAPSHOTS` export file |
+| `valuefinder/vf_analysis.ipynb` | `VALUE_FINDER_DATA_PATH` | `pyValueFinder` export file |
+| `decision_analyzer/decision_analyzer.ipynb` | `DECISION_ANALYZER_DATA_PATH` | EEV2 data file supported by `pdstools.pega_io.read_data` |
+| `explainability_extract/explainability_extract.ipynb` | `EXPLAINABILITY_EXTRACT_DATA_PATH` | Explainability Extract data file supported by `pdstools.pega_io.read_data` |
+| `hds/hds_analysis.ipynb` | `HDS_DATA_PATH` | HDS ZIP archive |
+| `impact-analyzer/impact_analyzer.ipynb` | `IMPACT_ANALYZER_DATA_PATH` | VBD Scenario Planner Actuals ZIP archive |
+| `articles/explanations/agb_global_explanations.ipynb` | `GLOBAL_EXPLANATIONS_DATA_PATH` | Folder containing `OVERVIEW.parquet` and `BY_CONTEXT.parquet` |
+
+For example:
+
+```bash
+export AGB_REPORT_MODEL=/path/to/model.json
+export ADM_DATA_PATH=/path/to/adm-exports
+```
+
+These variables are used by the corresponding notebooks in `examples/`; each notebook documents its own input format and falls back to its normal sample when its variable is not set.
 
 When exporting a notebook to HTML with executed plots, use the repository virtual environment rather than a system `jupyter` install:
 

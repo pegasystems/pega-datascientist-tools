@@ -39,6 +39,8 @@ The tools cover a broad range of use cases around Pega Customer Decision Hub and
 
 Installation instructions and a getting started guide can be found [in the documentation](https://pegasystems.github.io/pega-datascientist-tools).
 
+The example notebooks use bundled or generated data by default, and selected notebooks can load local exports from environment variables without editing the notebook. See [the notebook data configuration guide](CONTRIBUTING.md#running-example-notebooks-locally) for the supported variables.
+
 
 # Contributing
 

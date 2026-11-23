@@ -16,6 +16,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   mix encoded and decoded splits now raise a `ValueError` that explains the
   problem.
 
+- Selected example notebooks accept optional environment variables for custom
+  input data while retaining their bundled or generated sample data defaults.
+
 ## [5.1.1] — 2026-11-16
 
 ### Added
