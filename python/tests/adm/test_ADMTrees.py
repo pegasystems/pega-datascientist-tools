@@ -237,6 +237,93 @@ def test_metrics_leaf_scores_exported(exported_model: ADMTreesModel):
     assert m["leaf_score_mean"] == pytest.approx(0.001646, abs=1e-4)
 
 
+def test_weighted_leaf_spread_matches_reliability_weighted_sample_variance():
+    import math
+    import statistics
+
+    import numpy as np
+
+    trees = [
+        {
+            "split": "A < 1",
+            "left": {"score": 0.0, "sampleCount": 1},
+            "right": {
+                "split": "B < 1",
+                "left": {"score": 2.0, "sampleCount": 2},
+                "right": {"score": 4.0, "sampleCount": 3},
+            },
+        },
+        {
+            "split": "A < 2",
+            "left": {"score": 0.0, "sampleCount": 1},
+            "right": {"score": 4.0, "sampleCount": 9},
+        },
+        {"score": 9.0, "sampleCount": 20},
+    ]
+    model = ADMTreesModel(trees={"model": trees}, model=trees)
+    per_tree = model.tree_stats["weighted_leaf_score_std"].to_list()
+    assert per_tree[0] == pytest.approx(math.sqrt(40 / 11))
+    assert per_tree[0] == pytest.approx(math.sqrt(np.cov([0.0, 2.0, 4.0], aweights=[1, 2, 3])))
+    assert per_tree[1] == pytest.approx(math.sqrt(8))
+    assert per_tree[2] is None
+    assert model.metrics["weighted_leaf_score_std_mean"] == pytest.approx(
+        round((math.sqrt(40 / 11) + math.sqrt(8)) / 2, 6)
+    )
+    assert model.metrics["leaf_score_std"] == round(statistics.stdev([0, 2, 4, 0, 4, 9]), 6)
+    assert model.metrics["pooled_leaf_score_std"] == model.metrics["leaf_score_std"]
+
+
+@pytest.mark.parametrize(
+    ("counts", "expected"),
+    [
+        ((0, 1, 1), 2**0.5),
+        ((0, 0, 0), None),
+        ((1, 0, 0), None),
+        ((None, 1, 1), None),
+        ((-1, 1, 1), None),
+        ((float("nan"), 1, 1), None),
+        ((float("inf"), 1, 1), None),
+        (("1", 1, 1), None),
+        ((True, 1, 1), None),
+    ],
+)
+def test_weighted_leaf_spread_unavailable_for_invalid_counts(counts, expected):
+    tree = {
+        "split": "A < 1",
+        "left": {"score": 0.0, "sampleCount": counts[0]},
+        "right": {
+            "split": "B < 1",
+            "left": {"score": 1.0, "sampleCount": counts[1]},
+            "right": {"score": 3.0, "sampleCount": counts[2]},
+        },
+    }
+    model = ADMTreesModel(trees={"model": [tree]}, model=[tree])
+    spread = model.tree_stats["weighted_leaf_score_std"][0]
+    if expected is None:
+        assert spread is None
+        assert model.metrics["weighted_leaf_score_std_mean"] is None
+    else:
+        assert spread == pytest.approx(expected)
+        assert model.metrics["weighted_leaf_score_std_mean"] == round(expected, 6)
+
+
+def test_weighted_leaf_spread_excludes_missing_counts_without_discarding_other_trees():
+    valid_tree = {
+        "split": "A < 1",
+        "left": {"score": 0.0, "sampleCount": 1e-14},
+        "right": {"score": 2.0, "sampleCount": 1.0},
+    }
+    missing_count_tree = {
+        "split": "A < 2",
+        "left": {"score": 0.0},
+        "right": {"score": 3.0, "sampleCount": 2},
+    }
+    trees = [valid_tree, missing_count_tree]
+    model = ADMTreesModel(trees={"model": trees}, model=trees)
+    assert model.tree_stats["weighted_leaf_score_std"].to_list() == [pytest.approx(2**0.5), None]
+    assert model.metrics["weighted_leaf_score_std_mean"] == round(2**0.5, 6)
+
+
 # --- tree structure tests ---------------------------------------------------
 
 
@@ -1455,6 +1542,7 @@ def test_stump_model_empty_gain_tables_keep_numeric_schema(stump_model: ADMTrees
         "nsplits": 0,
         "gains": [],
         "meangains": 0,
+        "weighted_leaf_score_std": None,
     }
     assert stump_model.metrics["tree_depth_max"] == 0
     assert stump_model.metrics["tree_depth_avg"] == 0
