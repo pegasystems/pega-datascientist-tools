@@ -65,8 +65,13 @@ def test_agb_explained_intro_toc_matches_level_two_headings():
     assert not any(re.match(r"\d+\.\s+", heading) for heading in headings)
 
 
-@pytest.mark.parametrize("missing_metadata", [False, True])
-def test_agb_quick_check_handles_missing_metadata_and_marks_only_actual_flags(monkeypatch, capsys, missing_metadata):
+@pytest.mark.parametrize(("missing_metadata", "predictor_warning"), [(False, False), (True, False), (True, True)])
+def test_agb_quick_check_handles_missing_metadata_and_marks_only_actual_flags(
+    monkeypatch,
+    capsys,
+    missing_metadata,
+    predictor_warning,
+):
     pytest.importorskip("great_tables")
     from pdstools import datasets
     from pdstools.adm.trees import ADMTreesModel
@@ -87,6 +92,8 @@ def test_agb_quick_check_handles_missing_metadata_and_marks_only_actual_flags(mo
         }
         for i in range(10)
     ]
+    if predictor_warning:
+        trees[0]["split"] = "Customer.Code in { 1, 2, 3 }"
     properties = {} if missing_metadata else {"auc": 0.5, "trainingStats": {"positiveCount": 25, "negativeCount": 10}}
     model = ADMTreesModel(trees={"model": trees}, model=trees, properties=properties)
     monkeypatch.setattr(datasets, "sample_trees", lambda: model)
@@ -97,9 +104,11 @@ def test_agb_quick_check_handles_missing_metadata_and_marks_only_actual_flags(mo
             exec("\n".join(_source_lines(cell)), namespace)
 
     output = capsys.readouterr().out
-    assert "Advisories (not red flags):" in output
+    assert "ℹ️ Advisories (not red flags):" in output
+    assert "  ℹ️ Cumulative gain:" in output
     assert "Cumulative gain: 50% reached at tree index 4 (5/10 trees)" in output
-    assert "Customer.A0 contributes 20.0% of total gain" in output
+    leader = "Customer.A1" if predictor_warning else "Customer.A0"
+    assert f"{leader} contributes 20.0% of total gain" in output
     if missing_metadata:
         assert "Pooled AUC=unavailable" in output
         assert "unavailable pos / unavailable neg" in output
@@ -110,6 +119,11 @@ def test_agb_quick_check_handles_missing_metadata_and_marks_only_actual_flags(mo
         assert "25 pos / 10 neg" in output
         assert "🚩 3 red flag(s):" in output
         assert output.count("  🚩 ") == 3
+    if predictor_warning:
+        assert "⚠️ Predictor diagnostics: 1 predictor flag(s) found" in output
+        assert "  ⚠️ Customer.Code" in output
+    else:
+        assert "⚠️" not in output
 
 
 def test_notebook_examples_do_not_pin_the_canonical_calendar():

@@ -13,7 +13,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - AGB `sanity_check()` advisories report the 50% cumulative-gain crossover
   and the leading non-context predictor's gain share, separately from
   heuristic warnings. The AGB Explained notebook marks warnings with a
-  red flag icon and handles unavailable AUC and response counts.
+  red flag icon, distinguishes advisories and predictor warnings with
+  information and warning icons, and handles unavailable AUC and response counts.
 
 ### Changed
 
