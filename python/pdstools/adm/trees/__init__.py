@@ -11,7 +11,9 @@ This package provides:
 
 Construction uses explicit factory classmethods
 (``ADMTreesModel.from_file``, ``from_url``, ``from_datamart_blob``,
-``from_dict``, and ``MultiTrees.from_datamart``).  The legacy
+``from_dict``, and ``MultiTrees.from_datamart``). Every loader accepts
+both decoded and encoded AGB model JSON; encoded splits are decoded
+automatically using the model's ``inputsEncoder``.  The legacy
 ``ADMTrees(file, ...)`` polymorphic factory was removed in v5; see
 ``docs/migration-v4-to-v5.md``.
 """
