@@ -225,7 +225,8 @@ def test_metrics_leaf_scores(tree_sample: ADMTreesModel):
     # 50 trees * 22.82 avg leaves ≈ 1141.
     assert m["number_of_leaves"] == 1141
     assert m["leaf_score_min"] <= m["leaf_score_mean"] <= m["leaf_score_max"]
-    assert m["leaf_score_std"] > 0
+    assert m["pooled_leaf_score_std"] > 0
+    assert "leaf_score_std" not in m
 
 
 def test_metrics_leaf_scores_exported(exported_model: ADMTreesModel):
@@ -269,8 +270,7 @@ def test_weighted_leaf_spread_matches_reliability_weighted_sample_variance():
     assert model.metrics["weighted_leaf_score_std_mean"] == pytest.approx(
         round((math.sqrt(40 / 11) + math.sqrt(8)) / 2, 6)
     )
-    assert model.metrics["leaf_score_std"] == round(statistics.stdev([0, 2, 4, 0, 4, 9]), 6)
-    assert model.metrics["pooled_leaf_score_std"] == model.metrics["leaf_score_std"]
+    assert model.metrics["pooled_leaf_score_std"] == round(statistics.stdev([0, 2, 4, 0, 4, 9]), 6)
 
 
 @pytest.mark.parametrize(

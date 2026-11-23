@@ -9,8 +9,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Per-tree reliability-weighted leaf-score spreads and their ensemble mean
-  for AGB exports with usable leaf sample counts, plus the explicit
-  `pooled_leaf_score_std` alias for the existing pooled metric (#1019).
+  for AGB exports with usable leaf sample counts (#1019).
+
+### Changed
+
+- Renamed the pooled AGB leaf-score metric `leaf_score_std` to
+  `pooled_leaf_score_std`; update callers to use the new key (#1019).
 
 ### Fixed
 

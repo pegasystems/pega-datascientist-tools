@@ -419,8 +419,7 @@ class ADMTreesModel:
         available per-tree spreads in :attr:`tree_stats`, rounded to six
         decimals. It is ``None`` if no tree has a defined spread and is
         distinct from ``pooled_leaf_score_std``, the unweighted standard
-        deviation over all leaves. ``leaf_score_std`` remains an alias
-        for ``pooled_leaf_score_std``.
+        deviation over all leaves.
 
         See :meth:`metric_descriptions` for human-readable descriptions
         of every key.
@@ -711,7 +710,6 @@ class ADMTreesModel:
             # Leaf scores
             "number_of_leaves": "Total leaf nodes across all trees.",
             "leaf_score_mean": "Average leaf score (log-odds contribution). Near zero means balanced.",
-            "leaf_score_std": "Legacy alias for pooled_leaf_score_std.",
             "pooled_leaf_score_std": "Unweighted sample standard deviation over all leaves in the ensemble.",
             "weighted_leaf_score_std_mean": "Mean of available per-tree sample-weighted leaf score spreads.",
             "leaf_score_min": "Most negative leaf score.",
@@ -919,8 +917,7 @@ class ADMTreesModel:
         # Leaf scores
         m["number_of_leaves"] = leaf_count
         m["leaf_score_mean"] = round(mean(leaf_scores), 6) if leaf_scores else 0.0
-        m["leaf_score_std"] = round(stdev(leaf_scores), 6) if len(leaf_scores) >= 2 else 0.0
-        m["pooled_leaf_score_std"] = m["leaf_score_std"]
+        m["pooled_leaf_score_std"] = round(stdev(leaf_scores), 6) if len(leaf_scores) >= 2 else 0.0
         m["weighted_leaf_score_std_mean"] = round(mean(weighted_leaf_stds), 6) if weighted_leaf_stds else None
         m["leaf_score_min"] = round(min(leaf_scores), 6) if leaf_scores else 0.0
         m["leaf_score_max"] = round(max(leaf_scores), 6) if leaf_scores else 0.0
