@@ -1798,7 +1798,7 @@ if agb_importance is not None and agb_importance.height > 0:
                 .tab_options(container_height="400px", container_overflow_y="auto")
                 .tab_style(
                     style=style.text(align="left"),
-                    locations=loc.body(columns="PredictorName"),
+                    locations=loc.stub(columns="PredictorName"),
                 )
             )
     except Exception as e:
@@ -1856,7 +1856,7 @@ if datamart.predictor_data is not None:
         )
         .tab_style(
             style=style.text(align="left"),
-            locations=loc.body(columns="PredictorName"),
+            locations=loc.stub(columns="PredictorName"),
         )
         # .fmt_nanoplot(columns="MeanPlotData", plot_type="bar", autoscale=True)
         # .cols_label(
