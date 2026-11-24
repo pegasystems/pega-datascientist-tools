@@ -463,9 +463,29 @@ over time.</p></li>
 </ul>
 <p>Construction uses explicit factory classmethods
 (<code class="docutils literal notranslate"><span class="pre">ADMTreesModel.from_file</span></code>, <code class="docutils literal notranslate"><span class="pre">from_url</span></code>, <code class="docutils literal notranslate"><span class="pre">from_datamart_blob</span></code>,
-<code class="docutils literal notranslate"><span class="pre">from_dict</span></code>, and <code class="docutils literal notranslate"><span class="pre">MultiTrees.from_datamart</span></code>).  The legacy
+<code class="docutils literal notranslate"><span class="pre">from_dict</span></code>, and <code class="docutils literal notranslate"><span class="pre">MultiTrees.from_datamart</span></code>). Every loader accepts
+both decoded and encoded AGB model JSON; encoded splits are decoded
+automatically using the model’s <code class="docutils literal notranslate"><span class="pre">inputsEncoder</span></code>.  The legacy
 <code class="docutils literal notranslate"><span class="pre">ADMTrees(file,</span> <span class="pre">...)</span></code> polymorphic factory was removed in v5; see
 <code class="docutils literal notranslate"><span class="pre">docs/migration-v4-to-v5.md</span></code>.</p>
+<p>Where to start for common AGB analyses:</p>
+<ul class="simple">
+<li><p>Tree walking, depth, split counts and gains: <code class="docutils literal notranslate"><span class="pre">tree_stats</span></code>,
+<code class="docutils literal notranslate"><span class="pre">gains_per_split</span></code> and <code class="docutils literal notranslate"><span class="pre">grouped_gains_per_split</span></code>.</p></li>
+<li><p>Model-level summaries: <code class="docutils literal notranslate"><span class="pre">metrics</span></code> (see <code class="docutils literal notranslate"><span class="pre">metric_descriptions()</span></code>) and
+<code class="docutils literal notranslate"><span class="pre">predictor_diagnostics()</span></code>.</p></li>
+<li><p>Split values and context keys: <code class="docutils literal notranslate"><span class="pre">all_values_per_split</span></code> and
+<code class="docutils literal notranslate"><span class="pre">context_key_counts</span></code>.</p></li>
+<li><p>Gain per predictor and per predictor category: <code class="docutils literal notranslate"><span class="pre">plot.feature_importance_by_gain</span></code>
+and <code class="docutils literal notranslate"><span class="pre">plot.gain_by_namespace</span></code>. To use your own categories, set
+<code class="docutils literal notranslate"><span class="pre">plot.predictor_category_expr</span></code>, or pass a callable to
+<code class="docutils literal notranslate"><span class="pre">compute_categorization_over_time</span></code>.</p></li>
+<li><p>Predictor roles and gain over the boosting sequence:
+<code class="docutils literal notranslate"><span class="pre">plot.feature_role_map</span></code>, <code class="docutils literal notranslate"><span class="pre">plot.early_vs_late_gain</span></code> and
+<code class="docutils literal notranslate"><span class="pre">plot.gain_decay_dual_lens</span></code>.</p></li>
+<li><p>Snapshots over time: <code class="xref py py-class docutils literal notranslate"><span class="pre">MultiTrees</span></code>.</p></li>
+</ul>
+<p>Every <code class="docutils literal notranslate"><span class="pre">plot</span></code> method accepts <code class="docutils literal notranslate"><span class="pre">return_df=True</span></code> to return the data behind the chart.</p>
 </section>
 
         </article>
