@@ -89,9 +89,9 @@ class Plots(LazyNamespace):
         self.predictor_category_order: list[str] = list(_PREDICTOR_CATEGORY_COLORMAP)
         """Fixed display order of predictor categories in plot legends and axes.
 
-        Defaults to alphabetical order (the key order of
-        :data:`_PREDICTOR_CATEGORY_COLORMAP`).  Extend or reorder this list when
-        you add custom categories so legends remain consistent across all plots.
+        Defaults to the key order of :data:`_PREDICTOR_CATEGORY_COLORMAP`.
+        Category-share bars instead sort independently by decreasing
+        contribution, while keeping category colors consistent.
         """
         self.predictor_group_expr = self.predictor_category_expr
         self.predictor_group_colormap = self.predictor_category_colormap
@@ -763,6 +763,8 @@ class Plots(LazyNamespace):
         instead of plotting percentages. Individual negative split gains
         are retained in the category totals. Hover shows the raw gain.
         Null categories are labelled ``Uncategorized`` so all gains are counted.
+        Segments and legend entries are ordered by decreasing gain share,
+        with category names breaking ties.
 
         Parameters
         ----------
@@ -781,7 +783,7 @@ class Plots(LazyNamespace):
             .with_columns(pl.col("PredictorCategory").fill_null("Uncategorized"))
             .group_by("PredictorCategory")
             .agg(pl.col("gains").sum().alias("total_gain"))
-            .sort("total_gain", descending=True)
+            .sort(["total_gain", "PredictorCategory"], descending=[True, False])
         )
         total = df["total_gain"].sum()
         valid_share = total > 0 and (df["total_gain"] >= 0).all()
@@ -819,9 +821,11 @@ class Plots(LazyNamespace):
         Count every internal split node across the exported ensemble,
         including repeated conditions and splits with zero or negative gain.
         These are split-node counts, not unique predictors, tree coverage,
-        or training-response counts. Category definitions, colors, and
-        ordering match :meth:`gain_by_namespace`. Null categories are
-        labelled ``Uncategorized`` in both plots so no splits are omitted.
+        or training-response counts. Category definitions and colors match
+        :meth:`gain_by_namespace`; segments and legend entries are ordered
+        by decreasing split share, with category names breaking ties.
+        Null categories are labelled ``Uncategorized`` in both plots so no
+        splits are omitted.
         If the model has no splits, the figure shows an explanatory note.
 
         Parameters
@@ -882,9 +886,11 @@ class Plots(LazyNamespace):
                 showarrow=False,
             )
         else:
-            categories = self.predictor_category_order + sorted(
-                set(df["PredictorCategory"].to_list()) - set(self.predictor_category_order),
-            )
+            categories = df["PredictorCategory"].to_list()
+            colors = dict(self.predictor_category_colormap)
+            missing_colors = sorted(set(categories) - set(colors))
+            palette = px.colors.qualitative.Plotly
+            colors.update({category: palette[index % len(palette)] for index, category in enumerate(missing_colors)})
             fig = px.bar(
                 df.with_columns(pl.lit("Model").alias("_model")),
                 x=share_column,
@@ -894,7 +900,7 @@ class Plots(LazyNamespace):
                 custom_data=[total_column],
                 orientation="h",
                 category_orders={"PredictorCategory": categories},
-                color_discrete_map=self.predictor_category_colormap,
+                color_discrete_map=colors,
             )
             total_label = "Split nodes" if total_column == "split_count" else "Total gain"
             total_format = ",.0f" if total_column == "split_count" else ",.4g"

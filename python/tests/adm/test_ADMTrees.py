@@ -1909,16 +1909,18 @@ def test_category_shares_count_repeated_zero_and_negative_gain_splits(category_s
     ]
 
 
-def test_category_share_plots_match_colors_order_labels_and_hover_totals(category_share_model: ADMTreesModel):
+def test_category_share_plots_sort_independently_with_matching_colors(category_share_model: ADMTreesModel):
     category_share_model.plot.predictor_category_order = ["IH", "Customer", "Context Keys"]
     gain = category_share_model.plot.gain_by_namespace()
     splits = category_share_model.plot.splits_by_namespace()
-    assert [trace.name for trace in gain.data] == ["IH", "Customer", "Context Keys", "Custom"]
-    assert [trace.name for trace in splits.data] == ["IH", "Customer", "Context Keys", "Custom"]
-    assert [trace.marker.color for trace in gain.data] == [trace.marker.color for trace in splits.data]
-    assert [trace.x[0] for trace in gain.data] == pytest.approx([0.2, 0.2, 0.6, 0.0], abs=1e-12)
+    assert [trace.name for trace in gain.data] == ["Context Keys", "Customer", "IH", "Custom"]
+    assert [trace.name for trace in splits.data] == ["IH", "Context Keys", "Custom", "Customer"]
+    assert {trace.name: trace.marker.color for trace in gain.data} == {
+        trace.name: trace.marker.color for trace in splits.data
+    }
+    assert [trace.x[0] for trace in gain.data] == pytest.approx([0.6, 0.2, 0.2, 0.0], abs=1e-12)
     assert [trace.x[0] for trace in splits.data] == [0.4, 0.2, 0.2, 0.2]
-    assert [trace.customdata[0][0] for trace in gain.data] == [2.0, 2.0, 6.0, 0.0]
+    assert [trace.customdata[0][0] for trace in gain.data] == [6.0, 2.0, 2.0, 0.0]
     assert [trace.customdata[0][0] for trace in splits.data] == [2, 1, 1, 1]
     for fig in (gain, splits):
         assert sum(trace.x[0] for trace in fig.data) == pytest.approx(1.0)
@@ -1962,6 +1964,13 @@ def test_category_share_plots_preserve_null_custom_categories(category_share_mod
     assert gain["gain_share"].to_list() == pytest.approx([0.4, 0.6], abs=1e-12)
     splits = category_share_model.plot.splits_by_namespace(return_df=True).sort("PredictorCategory")
     assert splits.rows() == [("Other", 4, 0.8), ("Uncategorized", 1, 0.2)]
+    gain_plot = category_share_model.plot.gain_by_namespace()
+    split_plot = category_share_model.plot.splits_by_namespace()
+    assert [trace.name for trace in gain_plot.data] == ["Uncategorized", "Other"]
+    assert [trace.name for trace in split_plot.data] == ["Other", "Uncategorized"]
+    assert {trace.name: trace.marker.color for trace in gain_plot.data} == {
+        trace.name: trace.marker.color for trace in split_plot.data
+    }
 
 
 # ---------------------------------------------------------------------------
