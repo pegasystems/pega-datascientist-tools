@@ -1868,10 +1868,100 @@ def test_plot_gain_by_namespace_figure(rich_model: ADMTreesModel):
 
     fig = rich_model.plot.gain_by_namespace()
     assert isinstance(fig, go.Figure)
-    expected_order = rich_model.plot.gain_by_namespace(return_df=True)["PredictorCategory"].to_list()
-    assert list(fig.layout.yaxis.categoryarray) == expected_order
-    assert fig.layout.yaxis.autorange == "reversed"
-    assert fig.layout.yaxis.automargin is True
+    df = rich_model.plot.gain_by_namespace(return_df=True)
+    expected = dict(df.select("PredictorCategory", "gain_share").rows())
+    assert {trace.name: trace.x[0] for trace in fig.data} == pytest.approx(expected, abs=1e-12)
+    assert all(trace.orientation == "h" and list(trace.y) == ["Model"] for trace in fig.data)
+    assert fig.layout.barmode == "stack"
+    assert tuple(fig.layout.xaxis.range) == (0, 1)
+    assert fig.layout.xaxis.tickformat == ".0%"
+
+
+@pytest.fixture
+def category_share_model() -> ADMTreesModel:
+    return _sanity_gain_model(
+        [
+            ("pyGroup", 6.0),
+            ("Customer.Amount", 2.0),
+            ("IH.Count", 3.0),
+            ("IH.Count", -1.0),
+            ("Custom.Field", 0.0),
+        ],
+    )
+
+
+def test_category_shares_count_repeated_zero_and_negative_gain_splits(category_share_model: ADMTreesModel):
+    gain = category_share_model.plot.gain_by_namespace(return_df=True).sort("PredictorCategory")
+    assert gain.select("PredictorCategory", "total_gain").rows() == [
+        ("Context Keys", 6.0),
+        ("Custom", 0.0),
+        ("Customer", 2.0),
+        ("IH", 2.0),
+    ]
+    assert gain["gain_share"].to_list() == pytest.approx([0.6, 0.0, 0.2, 0.2], abs=1e-12)
+    splits = category_share_model.plot.splits_by_namespace(return_df=True).sort("PredictorCategory")
+    assert splits.columns == ["PredictorCategory", "split_count", "split_share"]
+    assert splits.rows() == [
+        ("Context Keys", 1, 0.2),
+        ("Custom", 1, 0.2),
+        ("Customer", 1, 0.2),
+        ("IH", 2, 0.4),
+    ]
+
+
+def test_category_share_plots_match_colors_order_labels_and_hover_totals(category_share_model: ADMTreesModel):
+    category_share_model.plot.predictor_category_order = ["IH", "Customer", "Context Keys"]
+    gain = category_share_model.plot.gain_by_namespace()
+    splits = category_share_model.plot.splits_by_namespace()
+    assert [trace.name for trace in gain.data] == ["IH", "Customer", "Context Keys", "Custom"]
+    assert [trace.name for trace in splits.data] == ["IH", "Customer", "Context Keys", "Custom"]
+    assert [trace.marker.color for trace in gain.data] == [trace.marker.color for trace in splits.data]
+    assert [trace.x[0] for trace in gain.data] == pytest.approx([0.2, 0.2, 0.6, 0.0], abs=1e-12)
+    assert [trace.x[0] for trace in splits.data] == [0.4, 0.2, 0.2, 0.2]
+    assert [trace.customdata[0][0] for trace in gain.data] == [2.0, 2.0, 6.0, 0.0]
+    assert [trace.customdata[0][0] for trace in splits.data] == [2, 1, 1, 1]
+    for fig in (gain, splits):
+        assert sum(trace.x[0] for trace in fig.data) == pytest.approx(1.0)
+        assert all(trace.orientation == "h" and list(trace.y) == ["Model"] for trace in fig.data)
+        assert all(trace.texttemplate == "%{x:.0%}" for trace in fig.data)
+        assert fig.layout.barmode == "stack"
+        assert tuple(fig.layout.xaxis.range) == (0, 1)
+
+
+@pytest.mark.parametrize(("gain", "other_gain"), [(-1.0, 2.0), (0.0, 0.0)])
+def test_undefined_gain_shares_do_not_hide_split_shares(gain: float, other_gain: float):
+    model = _sanity_gain_model([("IH.Count", gain), ("Customer.Amount", other_gain)])
+    assert model.plot.gain_by_namespace(return_df=True)["gain_share"].to_list() == [None, None]
+    fig = model.plot.gain_by_namespace()
+    assert not fig.data
+    assert "Gain shares unavailable" in fig.layout.annotations[0].text
+    assert model.plot.splits_by_namespace(return_df=True)["split_share"].to_list() == [0.5, 0.5]
+    assert sum(trace.x[0] for trace in model.plot.splits_by_namespace().data) == 1.0
+
+
+def test_category_share_plots_explain_no_splits(stump_model: ADMTreesModel):
+    for method in (stump_model.plot.gain_by_namespace, stump_model.plot.splits_by_namespace):
+        assert method(return_df=True).is_empty()
+        fig = method()
+        assert not fig.data
+        assert "unavailable" in fig.layout.annotations[0].text
+    assert "no split nodes" in stump_model.plot.splits_by_namespace().layout.annotations[0].text
+
+
+def test_category_share_plots_preserve_null_custom_categories(category_share_model: ADMTreesModel):
+    import polars as pl
+
+    category_share_model.plot.predictor_category_expr = (
+        pl.when(pl.col("predictor") == "pyGroup")
+        .then(pl.lit(None, dtype=pl.String))
+        .otherwise(pl.lit("Other"))
+        .alias("PredictorCategory")
+    )
+    gain = category_share_model.plot.gain_by_namespace(return_df=True).sort("PredictorCategory")
+    assert gain.select("PredictorCategory", "total_gain").rows() == [("Other", 4.0), ("Uncategorized", 6.0)]
+    assert gain["gain_share"].to_list() == pytest.approx([0.4, 0.6], abs=1e-12)
+    splits = category_share_model.plot.splits_by_namespace(return_df=True).sort("PredictorCategory")
+    assert splits.rows() == [("Other", 4, 0.8), ("Uncategorized", 1, 0.2)]
 
 
 # ---------------------------------------------------------------------------

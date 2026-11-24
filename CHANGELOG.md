@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `ADMTreesModel.plot.splits_by_namespace()` shows the percentage of split
+  nodes in each predictor category as a 100% stacked horizontal bar.
 - Per-tree reliability-weighted leaf-score spreads and their ensemble mean
   for AGB exports with usable leaf sample counts (#1019).
 - AGB `sanity_check()` advisories report the 50% cumulative-gain crossover
@@ -18,6 +20,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `ADMTreesModel.plot.gain_by_namespace()` now shows category gain shares
+  as a 100% stacked horizontal bar, with raw signed gains available on hover
+  and through `return_df=True`. Undefined shares display an explanatory note.
 - Renamed the pooled AGB leaf-score metric `leaf_score_std` to
   `pooled_leaf_score_std`; update callers to use the new key (#1019).
 

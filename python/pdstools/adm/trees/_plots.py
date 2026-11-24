@@ -750,7 +750,7 @@ class Plots(LazyNamespace):
         *,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
-        """Plot total information gain broken down by predictor category.
+        """Plot a 100% stacked horizontal bar of gain by predictor category.
 
         The predictor category follows ADM's default categorisation, with AGB
         model-context fields such as ``pyIssue``, ``pyGroup``, and
@@ -759,7 +759,10 @@ class Plots(LazyNamespace):
         undotted names are ``Primary``. Override
         ``AGBModel.plot.predictor_category_expr`` to define custom categories.
         Gain shares are unavailable when the total gain is not positive or
-        any category's total gain is negative.
+        any category's total gain is negative; the figure explains why
+        instead of plotting percentages. Individual negative split gains
+        are retained in the category totals. Hover shows the raw gain.
+        Null categories are labelled ``Uncategorized`` so all gains are counted.
 
         Parameters
         ----------
@@ -773,13 +776,9 @@ class Plots(LazyNamespace):
             ``PredictorCategory``, ``total_gain``, ``gain_share`` when
             ``return_df=True``.
         """
-        try:
-            import plotly.express as px
-        except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm") from None
-
         df = (
             self.trees_model.gains_per_split.with_columns(self.predictor_category_expr)
+            .with_columns(pl.col("PredictorCategory").fill_null("Uncategorized"))
             .group_by("PredictorCategory")
             .agg(pl.col("gains").sum().alias("total_gain"))
             .sort("total_gain", descending=True)
@@ -791,20 +790,139 @@ class Plots(LazyNamespace):
         if return_df:
             return df
 
-        sorted_df = df.sort("total_gain")
-        fig = px.bar(
-            sorted_df,
-            x="total_gain",
-            y="PredictorCategory",
-            color="PredictorCategory",
-            orientation="h",
-            title="Total gain by predictor category",
-            labels={"total_gain": "Total gain", "PredictorCategory": ""},
-            template="none",
-            category_orders={"PredictorCategory": sorted_df["PredictorCategory"].to_list()},
-            color_discrete_map=self.predictor_category_colormap,
+        return self._category_share_plot(
+            df,
+            share_column="gain_share",
+            total_column="total_gain",
+            title="Share of total gain by predictor category",
+            axis_title="Share of total gain",
+            unavailable_text=(
+                "Gain shares unavailable: total gain is not positive<br>"
+                "or a predictor category has negative total gain.<br>"
+                "Inspect signed totals with return_df=True."
+            ),
         )
-        fig.update_layout(showlegend=False, yaxis_automargin=True, yaxis_autorange="reversed")
+
+    @overload
+    def splits_by_namespace(self, *, return_df: Literal[True]) -> pl.DataFrame: ...
+
+    @overload
+    def splits_by_namespace(self, *, return_df: Literal[False] = ...) -> "go.Figure": ...
+
+    def splits_by_namespace(
+        self,
+        *,
+        return_df: bool = False,
+    ) -> "go.Figure | pl.DataFrame":
+        """Plot a 100% stacked horizontal bar of splits by predictor category.
+
+        Count every internal split node across the exported ensemble,
+        including repeated conditions and splits with zero or negative gain.
+        These are split-node counts, not unique predictors, tree coverage,
+        or training-response counts. Category definitions, colors, and
+        ordering match :meth:`gain_by_namespace`. Null categories are
+        labelled ``Uncategorized`` in both plots so no splits are omitted.
+        If the model has no splits, the figure shows an explanatory note.
+
+        Parameters
+        ----------
+        return_df : bool, default False
+            If True, return the underlying DataFrame instead of the figure.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure or pl.DataFrame
+            Figure when ``return_df=False``; DataFrame with columns
+            ``PredictorCategory``, ``split_count``, ``split_share`` when
+            ``return_df=True``.
+        """
+        df = (
+            self.trees_model.gains_per_split.with_columns(self.predictor_category_expr)
+            .with_columns(pl.col("PredictorCategory").fill_null("Uncategorized"))
+            .group_by("PredictorCategory")
+            .agg(pl.len().alias("split_count"))
+            .sort(["split_count", "PredictorCategory"], descending=[True, False])
+        )
+        total = df["split_count"].sum()
+        share = pl.col("split_count") / total if total else pl.lit(None, dtype=pl.Float64)
+        df = df.with_columns(share.alias("split_share"))
+        if return_df:
+            return df
+        return self._category_share_plot(
+            df,
+            share_column="split_share",
+            total_column="split_count",
+            title="Share of splits by predictor category",
+            axis_title="Share of split nodes",
+            unavailable_text="Split shares unavailable: this model has no split nodes.",
+        )
+
+    def _category_share_plot(
+        self,
+        df: pl.DataFrame,
+        *,
+        share_column: str,
+        total_column: str,
+        title: str,
+        axis_title: str,
+        unavailable_text: str,
+    ) -> "go.Figure":
+        """Build a single normalized category bar, or explain unavailable shares."""
+        import plotly.express as px
+        import plotly.graph_objects as go
+
+        if df.is_empty() or df[share_column].null_count():
+            fig = go.Figure()
+            fig.add_annotation(
+                text=unavailable_text,
+                xref="paper",
+                yref="paper",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
+            )
+        else:
+            categories = self.predictor_category_order + sorted(
+                set(df["PredictorCategory"].to_list()) - set(self.predictor_category_order),
+            )
+            fig = px.bar(
+                df.with_columns(pl.lit("Model").alias("_model")),
+                x=share_column,
+                y="_model",
+                color="PredictorCategory",
+                text=share_column,
+                custom_data=[total_column],
+                orientation="h",
+                category_orders={"PredictorCategory": categories},
+                color_discrete_map=self.predictor_category_colormap,
+            )
+            total_label = "Split nodes" if total_column == "split_count" else "Total gain"
+            total_format = ",.0f" if total_column == "split_count" else ",.4g"
+            fig.update_traces(
+                texttemplate="%{x:.0%}",
+                textposition="inside",
+                insidetextanchor="middle",
+                hovertemplate=(
+                    "%{fullData.name}<br>Share: %{x:.1%}<br>"
+                    f"{total_label}: %{{customdata[0]:{total_format}}}<extra></extra>"
+                ),
+            )
+        fig.update_layout(
+            title=title,
+            barmode="stack",
+            xaxis_title=axis_title,
+            xaxis_tickformat=".0%",
+            xaxis_range=[0, 1],
+            yaxis_title=None,
+            yaxis_showticklabels=False,
+            legend_title_text=None,
+            legend=dict(orientation="h", y=1.02, yanchor="bottom", x=0),
+            uniformtext_minsize=11,
+            uniformtext_mode="hide",
+            height=270,
+            margin=dict(l=30, r=30, t=90, b=55),
+            template="none",
+        )
         return fig
 
     @overload
