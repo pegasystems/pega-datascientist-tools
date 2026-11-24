@@ -26,6 +26,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `ADMTreesModel.from_file`, `from_url`, `from_dict` and `from_datamart_blob`
+  now detect encoded AGB scoring-model JSON and decode it, so encoded
+  exports load the same way as decoded ones (#1020). Decoding no longer
+  modifies the caller's dict. Unsupported encodings, unknown predictor
+  indices, out-of-range bins, missing `inputsEncoder` data and models that
+  mix encoded and decoded splits now raise a `ValueError` that explains the
+  problem.
 - `ADMTreesModel.plot.gain_by_namespace()` now shows category gain shares
   as a 100% stacked horizontal bar, with raw signed gains available on hover
   and through `return_df=True`. Categories are ordered by decreasing gain

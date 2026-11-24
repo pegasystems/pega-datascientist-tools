@@ -1,8 +1,12 @@
 """Tests for ADM Gradient Boosting (ADMTrees) functionality."""
 
+import base64
+import json
 import pathlib
 import re
+import zlib
 
+import polars as pl
 import pytest
 from pdstools.adm.trees import ADMTreesModel, parse_split
 
@@ -1408,33 +1412,184 @@ def test_agb_get_agb_models_with_last_uses_aggregates(agb_datamart_stub, monkeyp
     assert calls == ["model_data"]
 
 
-# --- Issue #659 fixes -------------------------------------------------------
+# --- Encoded models (#1020) ---------------------------------------------------
 
 
-def test_decode_split_unknown_encoder_type_raises():
-    """_decode_trees raises ValueError for unknown encoder variable_type (Fix 1)."""
-    # Minimal model with one encoder of unknown type and one split referencing it.
-    # Booster path: model.boosters[0].trees  (matches _BOOSTER_PATHS[0])
-    # Encoder path: model.inputsEncoder.encoders  (fallback path in _decode_trees)
-    model_data = {
+def _encoded_scoring_model() -> dict:
+    """Synthetic scoring model with encoded splits for every supported encoding."""
+
+    def leaf(score):
+        return {"score": score, "gain": 0.0, "sampleCount": 10}
+
+    return {
+        "type": "AdaptiveBoostScoringModel",
         "model": {
-            "boosters": [{"trees": [{"split": "0 LT 1"}]}],
+            "booster": {
+                "trees": [
+                    {
+                        "score": 0.0,
+                        "gain": 5.0,
+                        "split": "0 LT 2",
+                        "left": {"score": 0.1, "gain": 2.0, "split": "2 LT 131", "left": leaf(0.2), "right": leaf(0.3)},
+                        "right": {
+                            "score": -0.1,
+                            "gain": 1.0,
+                            "split": "2 LT 129",
+                            "left": leaf(0.4),
+                            "right": leaf(-0.4),
+                        },
+                    },
+                    {
+                        "score": 0.0,
+                        "gain": 3.0,
+                        "split": "1 LT 1",
+                        "left": leaf(0.5),
+                        "right": {
+                            "score": 0.1,
+                            "gain": 1.5,
+                            "split": "2 EQ 130",
+                            "left": leaf(0.6),
+                            "right": leaf(-0.6),
+                        },
+                    },
+                ],
+            },
             "inputsEncoder": {
                 "encoders": [
                     {
-                        "key": "predictor_A",
+                        "key": "Age",
                         "value": {
                             "index": 0,
-                            "encoder": {"unknownType": {}},
+                            "encoder": {
+                                "quantileArray": {
+                                    "summaryType": "QUANTILE_SUMMARY",
+                                    "summary": {"list": ["18.5=10", "30.0=20", "42.5=30"]},
+                                },
+                                "range": {"minmax": "18.0/60.0"},
+                            },
                         },
-                    }
-                ]
+                    },
+                    {
+                        "key": "Income",
+                        "value": {
+                            "index": 1,
+                            "encoder": {
+                                "quantileArray": {
+                                    "summaryType": "INITIAL_SUMMARY",
+                                    "summary": {"initialValues": [1000.0, 2000.0, 3000.0]},
+                                },
+                            },
+                        },
+                    },
+                    {
+                        "key": "Color",
+                        "value": {
+                            "index": 2,
+                            "encoder": {"stringTranslator": {"symbols": ["red=0", "green=2", "blue=1"]}},
+                        },
+                    },
+                ],
             },
-        }
+        },
     }
-    m = ADMTreesModel.from_dict(model_data)
-    with pytest.raises(ValueError, match="Unsupported encoder variable_type: 'unknownType'"):
-        m._decode_trees()
+
+
+ENCODED_SPLITS = {0: ["0 LT 2", "2 LT 131", "2 LT 129"], 1: ["1 LT 1", "2 EQ 130"]}
+DECODED_SPLITS = {
+    0: ["Age < 30.0", "Color in { red, blue }", "Color is Missing"],
+    1: ["Income < 2000.0", "Color in { blue }"],
+}
+
+
+def _set_split(model: dict, encoded: str, replacement: str) -> dict:
+    """Replace one encoded split in the synthetic model."""
+    text = json.dumps(model).replace(f'"split": "{encoded}"', f'"split": "{replacement}"', 1)
+    return json.loads(text)
+
+
+def test_from_file_decodes_encoded_scoring_model(tmp_path):
+    raw = _encoded_scoring_model()
+    path = tmp_path / "encoded.json"
+    path.write_text(json.dumps(raw))
+
+    m = ADMTreesModel.from_file(path)
+
+    assert m.splits_per_tree == DECODED_SPLITS
+    assert m.get_predictors() == {"Age": "numeric", "Color": "symbolic", "Income": "numeric"}
+    stats = m.get_tree_stats()
+    assert stats["nsplits"].to_list() == [len(splits) for splits in ENCODED_SPLITS.values()]
+    assert stats["gains"].to_list() == [[5.0, 2.0, 1.0], [3.0, 1.5]]
+    # Decoding leaves the raw input untouched.
+    assert m.trees == raw
+
+
+def test_from_dict_and_blob_decode_like_from_file(tmp_path):
+    raw = _encoded_scoring_model()
+    from_dict = ADMTreesModel.from_dict(raw)
+    blob = base64.b64encode(zlib.compress(json.dumps({**raw, "_serialClass": "x.GbModel"}).encode())).decode()
+
+    assert ADMTreesModel.from_datamart_blob(blob).model == from_dict.model
+    assert from_dict.splits_per_tree == DECODED_SPLITS
+    assert raw["model"]["booster"]["trees"][0]["split"] == "0 LT 2"
+
+
+@pytest.mark.parametrize(
+    ("encoded", "replacement", "message"),
+    [
+        ("0 LT 2", "7 LT 2", "predictor index 7"),
+        ("0 LT 2", "0 EQ 2", "Unsupported operator 'EQ' for numeric predictor 'Age'"),
+        ("0 LT 2", "0 LT 4", "Bin index 4 for numeric predictor 'Age' is outside its 3"),
+        ("1 LT 1", "1 LT 3", "Bin index 3 for numeric predictor 'Income' is outside its 3"),
+        ("2 EQ 130", "2 EQ 140", "Bin index 140 with operator 'EQ' selects no encoded value"),
+        ("2 LT 131", "2 LT 128", "Bin index 128 with operator 'LT' selects no encoded value"),
+        ("0 LT 2", "Age < 30.0", "mixes encoded splits"),
+    ],
+)
+def test_encoded_model_rejects_unsupported_splits(encoded, replacement, message):
+    with pytest.raises(ValueError, match=re.escape(message)):
+        ADMTreesModel.from_dict(_set_split(_encoded_scoring_model(), encoded, replacement))
+
+
+@pytest.mark.parametrize(
+    ("encoder", "message"),
+    [
+        ({"rareEncoder": {}}, "Unsupported encoder ['rareEncoder']"),
+        ({"stringTranslator": {"symbols": ["red"]}}, "Malformed symbol 'red'"),
+        ({"quantileArray": {"summaryType": "OTHER"}}, "Unsupported quantile summary type 'OTHER'"),
+    ],
+)
+def test_encoded_model_rejects_unsupported_encoders(encoder, message):
+    raw = _encoded_scoring_model()
+    raw["model"]["inputsEncoder"]["encoders"][2]["value"]["encoder"] = encoder
+    if "quantileArray" in encoder:
+        raw = _set_split(raw, "2 EQ 130", "2 LT 1")
+    with pytest.raises(ValueError, match=re.escape(message)):
+        ADMTreesModel.from_dict(raw)
+
+
+def test_encoded_model_without_encoder_raises():
+    raw = _encoded_scoring_model()
+    del raw["model"]["inputsEncoder"]
+    with pytest.raises(ValueError, match="no inputsEncoder"):
+        ADMTreesModel.from_dict(raw)
+
+
+def test_datamart_blobs_decode_to_parseable_splits():
+    """Trained encoded models from the sample datamart decode without loss."""
+    blobs = pl.read_ipc(f"{basePath}/data/sample_datamart_with_AGB.arrow", columns=["Modeldata"])["Modeldata"]
+    blob = next(b for b in blobs.drop_nulls() if '"split"' in zlib.decompress(base64.b64decode(b)).decode())
+    raw = json.loads(zlib.decompress(base64.b64decode(blob)))
+    raw_splits = re.findall(r'"split": "(\d+) (?:LT|EQ) -?\d+"', json.dumps(raw))
+
+    m = ADMTreesModel.from_datamart_blob(blob)
+
+    decoded = [split for splits in m.splits_per_tree.values() for split in splits]
+    assert len(decoded) == len(raw_splits) == 899
+    assert all(parse_split(split) for split in decoded)
+    assert (
+        m.model[0]["split"]
+        == "pyName in { Earn2xRewardsPoints, CompleteYourCardApplicationToday, PlatinumRewardsCard }"
+    )
 
 
 def test_safe_eval_warn_once_thread_safe():
