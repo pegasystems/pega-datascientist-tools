@@ -1974,6 +1974,147 @@ def test_category_share_plots_preserve_null_custom_categories(category_share_mod
 
 
 # ---------------------------------------------------------------------------
+# Category shares by split type
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def split_type_category_model() -> ADMTreesModel:
+    conditions = [
+        ("Customer.Mixed < 1", 6.0),
+        ("Customer.Mixed == a", 2.0),
+        ("IH.Count > 1", 2.0),
+        ("pyGroup in { a, b }", 3.0),
+        ("Customer.Amount is Missing", 1.0),
+        ("Param.P == 2", 0.0),
+        ("Customer.Mixed < 1", -1.0),
+    ]
+    trees = [
+        {"score": 0.0, "split": condition, "gain": gain, "left": {"score": 0.0}, "right": {"score": 0.0}}
+        for condition, gain in conditions
+    ]
+    return ADMTreesModel(trees={"model": trees}, model=trees)
+
+
+def test_category_shares_classify_conditions_and_normalize_each_subset(split_type_category_model: ADMTreesModel):
+    gain = split_type_category_model.plot.gain_by_namespace(by_split_type=True, return_df=True).sort(
+        "SplitType",
+        "PredictorCategory",
+    )
+    assert gain.select("SplitType", "PredictorCategory", "total_gain").rows() == [
+        ("All splits", "Context Keys", 3.0),
+        ("All splits", "Customer", 8.0),
+        ("All splits", "IH", 2.0),
+        ("All splits", "Param", 0.0),
+        ("Numeric", "Customer", 5.0),
+        ("Numeric", "IH", 2.0),
+        ("Symbolic", "Context Keys", 3.0),
+        ("Symbolic", "Customer", 3.0),
+        ("Symbolic", "Param", 0.0),
+    ]
+    assert gain["gain_share"].to_list() == pytest.approx(
+        [3 / 13, 8 / 13, 2 / 13, 0, 5 / 7, 2 / 7, 0.5, 0.5, 0],
+    )
+    splits = split_type_category_model.plot.splits_by_namespace(by_split_type=True, return_df=True).sort(
+        "SplitType",
+        "PredictorCategory",
+    )
+    assert splits["split_count"].to_list() == [1, 4, 1, 1, 2, 1, 1, 2, 1]
+    assert splits["split_share"].to_list() == pytest.approx(
+        [1 / 7, 4 / 7, 1 / 7, 1 / 7, 2 / 3, 1 / 3, 0.25, 0.5, 0.25],
+    )
+    assert split_type_category_model.predictors["Customer.Mixed"] == "numeric"
+
+
+def test_split_type_rows_keep_independent_order_colors_and_hover_totals(split_type_category_model: ADMTreesModel):
+    gain = split_type_category_model.plot.gain_by_namespace(by_split_type=True)
+    splits = split_type_category_model.plot.splits_by_namespace(by_split_type=True)
+    gain_orders = {
+        row: [trace.name for trace in gain.data if trace.y[0] == row] for row in ["All splits", "Numeric", "Symbolic"]
+    }
+    assert gain_orders == {
+        "All splits": ["Customer", "Context Keys", "IH", "Param"],
+        "Numeric": ["Customer", "IH"],
+        "Symbolic": ["Context Keys", "Customer", "Param"],
+    }
+    assert [trace.name for trace in splits.data if trace.y[0] == "Symbolic"] == ["Customer", "Context Keys", "Param"]
+    colors = {trace.name: trace.marker.color for trace in gain.data}
+    assert all(trace.marker.color == colors[trace.name] for trace in (*gain.data, *splits.data))
+    for figure, totals in (
+        (gain, {"All splits": 13, "Numeric": 7, "Symbolic": 6}),
+        (splits, {"All splits": 7, "Numeric": 3, "Symbolic": 4}),
+    ):
+        for row, total in totals.items():
+            traces = [trace for trace in figure.data if trace.y[0] == row]
+            assert sum(trace.x[0] for trace in traces) == pytest.approx(1.0)
+            assert all(trace.customdata[0][1] == total for trace in traces)
+            assert all(trace.marker.opacity == (1.0 if row == "All splits" else 0.55) for trace in traces)
+            if row != "All splits":
+                assert all(trace.textfont.color == "#333333" for trace in traces)
+        assert list(figure.layout.yaxis.categoryarray) == ["All splits", "Numeric", "Symbolic"]
+        assert figure.layout.yaxis.showticklabels
+        assert sum(trace.showlegend for trace in figure.data) == 4
+
+
+def test_split_type_gain_validity_is_independent_per_row(split_type_category_model: ADMTreesModel):
+    from copy import deepcopy
+
+    import polars as pl
+
+    trees = deepcopy(split_type_category_model.trees["model"])
+    trees[0]["gain"] = -0.5
+    model = ADMTreesModel(trees={"model": trees}, model=trees)
+    df = model.plot.gain_by_namespace(by_split_type=True, return_df=True)
+    assert df.filter(pl.col("SplitType") == "Numeric")["gain_share"].to_list() == [None, None]
+    assert df.filter(pl.col("SplitType") == "All splits")["gain_share"].null_count() == 0
+    assert df.filter(pl.col("SplitType") == "Symbolic")["gain_share"].null_count() == 0
+    figure = model.plot.gain_by_namespace(by_split_type=True)
+    assert {trace.y[0] for trace in figure.data} == {"All splits", "Symbolic"}
+    assert figure.layout.annotations[0].y == "Numeric"
+    assert "Gain shares unavailable" in figure.layout.annotations[0].text
+    assert {trace.y[0] for trace in model.plot.splits_by_namespace(by_split_type=True).data} == {
+        "All splits",
+        "Numeric",
+        "Symbolic",
+    }
+
+
+@pytest.mark.parametrize("present", ["Numeric", "Symbolic"])
+def test_split_type_rows_explain_absent_types(
+    present: str,
+    category_share_model: ADMTreesModel,
+    split_type_category_model: ADMTreesModel,
+    stump_model: ADMTreesModel,
+):
+    if present == "Numeric":
+        model = category_share_model
+        absent = "Symbolic"
+    else:
+        trees = [tree for tree in split_type_category_model.trees["model"] if parse_split(tree["split"]).is_symbolic]
+        model = ADMTreesModel(trees={"model": trees}, model=trees)
+        absent = "Numeric"
+    for name in ("gain_by_namespace", "splits_by_namespace"):
+        method = getattr(model.plot, name)
+        frame = method(by_split_type=True, return_df=True)
+        assert set(frame["SplitType"].to_list()) == {"All splits", present}
+        figure = method(by_split_type=True)
+        assert {trace.y[0] for trace in figure.data} == {"All splits", present}
+        expected = {trace.name: trace.x[0] for trace in figure.data if trace.y[0] == "All splits"}
+        assert {trace.name: trace.x[0] for trace in figure.data if trace.y[0] == present} == pytest.approx(expected)
+        assert figure.layout.annotations[0].text == f"No {absent.lower()} split nodes."
+        stump_method = getattr(stump_model.plot, name)
+        assert stump_method(by_split_type=True, return_df=True).is_empty()
+        empty = stump_method(by_split_type=True)
+        assert not empty.data
+        assert [annotation.y for annotation in empty.layout.annotations] == ["All splits", "Numeric", "Symbolic"]
+        assert [annotation.text for annotation in empty.layout.annotations] == [
+            "No split nodes.",
+            "No numeric split nodes.",
+            "No symbolic split nodes.",
+        ]
+
+
+# ---------------------------------------------------------------------------
 # plot.feature_role_map
 # ---------------------------------------------------------------------------
 

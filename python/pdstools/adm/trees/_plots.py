@@ -23,7 +23,7 @@ from ...utils import cdh_utils
 from ...utils.namespaces import LazyNamespace, MissingDependenciesException
 from ...utils.plot_utils import abbreviate_label
 from ..ADMDatamart import _STANDARD_PREDICTOR_CATEGORY_COLORS
-from ._nodes import _iter_nodes
+from ._nodes import _SPLIT_RE, _iter_nodes
 
 # Fixed color assignments for well-known predictor categories, shared with
 # ADMDatamart predictor-category plots.
@@ -740,14 +740,15 @@ class Plots(LazyNamespace):
         return fig
 
     @overload
-    def gain_by_namespace(self, *, return_df: Literal[True]) -> pl.DataFrame: ...
+    def gain_by_namespace(self, *, by_split_type: bool = ..., return_df: Literal[True]) -> pl.DataFrame: ...
 
     @overload
-    def gain_by_namespace(self, *, return_df: Literal[False] = ...) -> "go.Figure": ...
+    def gain_by_namespace(self, *, by_split_type: bool = ..., return_df: Literal[False] = ...) -> "go.Figure": ...
 
     def gain_by_namespace(
         self,
         *,
+        by_split_type: bool = False,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
         """Plot a 100% stacked horizontal bar of gain by predictor category.
@@ -768,6 +769,14 @@ class Plots(LazyNamespace):
 
         Parameters
         ----------
+        by_split_type : bool, default False
+            Show separate All splits, Numeric, and Symbolic rows, each
+            normalized within its subset. Numeric splits use ``<`` or ``>``;
+            symbolic splits use ``in``, ``==``, or missing-value checks
+            (``is``). Classify actual conditions, not predictor metadata.
+            A predictor can therefore appear in both split-type subsets.
+            Undefined gain shares are explained separately for each row.
+            Subset fills are paler than the combined reference row.
         return_df : bool, default False
             If True, return the underlying DataFrame instead of the figure.
 
@@ -776,24 +785,25 @@ class Plots(LazyNamespace):
         plotly.graph_objects.Figure or pl.DataFrame
             Figure when ``return_df=False``; DataFrame with columns
             ``PredictorCategory``, ``total_gain``, ``gain_share`` when
-            ``return_df=True``.
+            ``return_df=True``. With ``by_split_type=True``, also include
+            ``SplitType``. All splits is an overlapping combined reference;
+            do not sum its totals with the Numeric and Symbolic rows.
         """
-        df = (
-            self.trees_model.gains_per_split.with_columns(self.predictor_category_expr)
-            .with_columns(pl.col("PredictorCategory").fill_null("Uncategorized"))
-            .group_by("PredictorCategory")
-            .agg(pl.col("gains").sum().alias("total_gain"))
-            .sort(["total_gain", "PredictorCategory"], descending=[True, False])
+        df = self._category_totals(
+            pl.col("gains").sum().alias("total_gain"),
+            by_split_type=by_split_type,
         )
-        total = df["total_gain"].sum()
-        valid_share = total > 0 and (df["total_gain"] >= 0).all()
-        share_expr = pl.col("total_gain") / total if valid_share else pl.lit(None, dtype=pl.Float64)
-        df = df.with_columns(share_expr.alias("gain_share"))
+        total = pl.col("total_gain").sum().over("SplitType")
+        valid_share = (total > 0) & (pl.col("total_gain") >= 0).all().over("SplitType")
+        df = df.with_columns(
+            pl.when(valid_share).then(pl.col("total_gain") / total).otherwise(None).alias("gain_share"),
+        ).sort(["SplitType", "total_gain", "PredictorCategory"], descending=[False, True, False])
         if return_df:
-            return df
+            return df if by_split_type else df.drop("SplitType")
 
         return self._category_share_plot(
             df,
+            by_split_type=by_split_type,
             share_column="gain_share",
             total_column="total_gain",
             title="Share of total gain by predictor category",
@@ -806,14 +816,15 @@ class Plots(LazyNamespace):
         )
 
     @overload
-    def splits_by_namespace(self, *, return_df: Literal[True]) -> pl.DataFrame: ...
+    def splits_by_namespace(self, *, by_split_type: bool = ..., return_df: Literal[True]) -> pl.DataFrame: ...
 
     @overload
-    def splits_by_namespace(self, *, return_df: Literal[False] = ...) -> "go.Figure": ...
+    def splits_by_namespace(self, *, by_split_type: bool = ..., return_df: Literal[False] = ...) -> "go.Figure": ...
 
     def splits_by_namespace(
         self,
         *,
+        by_split_type: bool = False,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
         """Plot a 100% stacked horizontal bar of splits by predictor category.
@@ -830,6 +841,12 @@ class Plots(LazyNamespace):
 
         Parameters
         ----------
+        by_split_type : bool, default False
+            Show All splits, Numeric, and Symbolic rows, each normalized
+            within its subset. Use the same condition-based classification
+            as :meth:`gain_by_namespace`, including missing-value checks
+            with symbolic splits.
+            Subset fills are paler than the combined reference row.
         return_df : bool, default False
             If True, return the underlying DataFrame instead of the figure.
 
@@ -838,22 +855,22 @@ class Plots(LazyNamespace):
         plotly.graph_objects.Figure or pl.DataFrame
             Figure when ``return_df=False``; DataFrame with columns
             ``PredictorCategory``, ``split_count``, ``split_share`` when
-            ``return_df=True``.
+            ``return_df=True``. With ``by_split_type=True``, also include
+            ``SplitType``. All splits is an overlapping combined reference.
         """
-        df = (
-            self.trees_model.gains_per_split.with_columns(self.predictor_category_expr)
-            .with_columns(pl.col("PredictorCategory").fill_null("Uncategorized"))
-            .group_by("PredictorCategory")
-            .agg(pl.len().alias("split_count"))
-            .sort(["split_count", "PredictorCategory"], descending=[True, False])
+        df = self._category_totals(
+            pl.len().alias("split_count"),
+            by_split_type=by_split_type,
         )
-        total = df["split_count"].sum()
-        share = pl.col("split_count") / total if total else pl.lit(None, dtype=pl.Float64)
-        df = df.with_columns(share.alias("split_share"))
+        total = pl.col("split_count").sum().over("SplitType")
+        df = df.with_columns(
+            pl.when(total > 0).then(pl.col("split_count") / total).otherwise(None).alias("split_share"),
+        ).sort(["SplitType", "split_count", "PredictorCategory"], descending=[False, True, False])
         if return_df:
-            return df
+            return df if by_split_type else df.drop("SplitType")
         return self._category_share_plot(
             df,
+            by_split_type=by_split_type,
             share_column="split_share",
             total_column="split_count",
             title="Share of splits by predictor category",
@@ -861,57 +878,109 @@ class Plots(LazyNamespace):
             unavailable_text="Split shares unavailable: this model has no split nodes.",
         )
 
+    def _category_totals(self, aggregation: pl.Expr, *, by_split_type: bool) -> pl.DataFrame:
+        """Aggregate categories for the ensemble and optional split-type subsets."""
+        base = self.trees_model.gains_per_split.with_columns(self.predictor_category_expr).with_columns(
+            pl.col("PredictorCategory").fill_null("Uncategorized"),
+        )
+        combined = (
+            base.group_by("PredictorCategory")
+            .agg(aggregation)
+            .with_columns(
+                pl.lit("All splits").alias("SplitType"),
+            )
+            .select("SplitType", pl.exclude("SplitType"))
+        )
+        if not by_split_type:
+            return combined
+        # Conditions have already passed the shared split parser.
+        numeric = pl.col("split").str.extract(_SPLIT_RE.pattern, 2).is_in(["<", ">"])
+        subsets = (
+            base.with_columns(
+                pl.when(numeric).then(pl.lit("Numeric")).otherwise(pl.lit("Symbolic")).alias("SplitType"),
+            )
+            .group_by("PredictorCategory", "SplitType")
+            .agg(aggregation)
+        )
+        return pl.concat([combined, subsets.select(combined.columns)])
+
     def _category_share_plot(
         self,
         df: pl.DataFrame,
         *,
+        by_split_type: bool,
         share_column: str,
         total_column: str,
         title: str,
         axis_title: str,
         unavailable_text: str,
     ) -> "go.Figure":
-        """Build a single normalized category bar, or explain unavailable shares."""
+        """Build independently ordered category bars and explain unavailable rows."""
         import plotly.express as px
         import plotly.graph_objects as go
 
-        if df.is_empty() or df[share_column].null_count():
-            fig = go.Figure()
-            fig.add_annotation(
-                text=unavailable_text,
-                xref="paper",
-                yref="paper",
-                x=0.5,
-                y=0.5,
-                showarrow=False,
-            )
-        else:
-            categories = df["PredictorCategory"].to_list()
-            colors = dict(self.predictor_category_colormap)
-            missing_colors = sorted(set(categories) - set(colors))
-            palette = px.colors.qualitative.Plotly
-            colors.update({category: palette[index % len(palette)] for index, category in enumerate(missing_colors)})
-            fig = px.bar(
-                df.with_columns(pl.lit("Model").alias("_model")),
-                x=share_column,
-                y="_model",
-                color="PredictorCategory",
-                text=share_column,
-                custom_data=[total_column],
-                orientation="h",
-                category_orders={"PredictorCategory": categories},
-                color_discrete_map=colors,
-            )
-            total_label = "Split nodes" if total_column == "split_count" else "Total gain"
-            total_format = ",.0f" if total_column == "split_count" else ",.4g"
-            fig.update_traces(
-                texttemplate="%{x:.0%}",
-                textposition="inside",
-                insidetextanchor="middle",
-                hovertemplate=(
-                    "%{fullData.name}<br>Share: %{x:.1%}<br>"
-                    f"{total_label}: %{{customdata[0]:{total_format}}}<extra></extra>"
-                ),
+        categories = df["PredictorCategory"].unique(maintain_order=True).to_list()
+        colors = dict(self.predictor_category_colormap)
+        palette = px.colors.qualitative.Plotly
+        missing_colors = sorted(set(categories) - set(colors))
+        colors.update({category: palette[index % len(palette)] for index, category in enumerate(missing_colors)})
+        rows = ["All splits", "Numeric", "Symbolic"] if by_split_type else ["All splits"]
+        seen: set[str] = set()
+        fig = go.Figure()
+        total_label = "Split nodes" if total_column == "split_count" else "Total gain"
+        total_format = ",.0f" if total_column == "split_count" else ",.4g"
+        for split_type in rows:
+            subset = df.filter(pl.col("SplitType") == split_type)
+            if subset.is_empty() or subset[share_column].null_count():
+                text = (
+                    ("No split nodes." if split_type == "All splits" else f"No {split_type.lower()} split nodes.")
+                    if by_split_type and subset.is_empty()
+                    else unavailable_text
+                )
+                fig.add_annotation(
+                    text=text,
+                    xref="paper",
+                    yref="y" if by_split_type else "paper",
+                    x=0.5,
+                    y=split_type if by_split_type else 0.5,
+                    showarrow=False,
+                )
+                continue
+            row_total = subset[total_column].sum()
+            for record in subset.iter_rows(named=True):
+                category = record["PredictorCategory"]
+                fig.add_trace(
+                    go.Bar(
+                        name=category,
+                        x=[record[share_column]],
+                        y=[split_type if by_split_type else "Model"],
+                        text=[record[share_column]],
+                        customdata=[[record[total_column], row_total]],
+                        marker_color=colors[category],
+                        marker_opacity=0.55 if by_split_type and split_type != "All splits" else 1.0,
+                        orientation="h",
+                        legendgroup=category,
+                        legendrank=categories.index(category),
+                        showlegend=category not in seen,
+                        texttemplate="%{x:.0%}",
+                        textposition="inside",
+                        textfont_color="#333333" if by_split_type and split_type != "All splits" else None,
+                        insidetextanchor="middle",
+                        hovertemplate=(
+                            ("%{y}<br>" if by_split_type else "")
+                            + "%{fullData.name}<br>Share: %{x:.1%}<br>"
+                            + f"{total_label}: %{{customdata[0]:{total_format}}}<br>"
+                            + f"{total_label} in row: %{{customdata[1]:{total_format}}}<extra></extra>"
+                        ),
+                    ),
+                )
+                seen.add(category)
+        if by_split_type:
+            fig.update_yaxes(
+                type="category",
+                categoryorder="array",
+                categoryarray=rows,
+                range=[2.5, -0.5],
             )
         fig.update_layout(
             title=title,
@@ -920,13 +989,14 @@ class Plots(LazyNamespace):
             xaxis_tickformat=".0%",
             xaxis_range=[0, 1],
             yaxis_title=None,
-            yaxis_showticklabels=False,
+            yaxis_showticklabels=by_split_type,
+            yaxis_automargin=True,
             legend_title_text=None,
             legend=dict(orientation="h", y=1.02, yanchor="bottom", x=0),
             uniformtext_minsize=11,
             uniformtext_mode="hide",
-            height=270,
-            margin=dict(l=30, r=30, t=90, b=55),
+            height=440 if by_split_type else 270,
+            margin=dict(l=100 if by_split_type else 30, r=30, t=90, b=55),
             template="none",
         )
         return fig
