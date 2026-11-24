@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- `ADMTreesModel.from_file`, `from_url`, `from_dict` and `from_datamart_blob`
+  now detect encoded AGB scoring-model JSON and decode it, so encoded
+  exports load the same way as decoded ones (#1020). Decoding no longer
+  modifies the caller's dict. Unsupported encodings, unknown predictor
+  indices, out-of-range bins, missing `inputsEncoder` data and models that
+  mix encoded and decoded splits now raise a `ValueError` that explains the
+  problem.
+
 ## [5.1.1] — 2026-11-16
 
 ### Added
