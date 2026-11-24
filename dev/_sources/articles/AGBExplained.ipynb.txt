@@ -85,9 +85,14 @@
     "# from pdstools.adm.trees import ADMTreesModel\n",
     "# AGBModel = ADMTreesModel.from_file(\"path-to-your-model.json\")  # <-- Replace with your model file path\n",
     "# See: https://docs.pega.com/bundle/platform/page/platform/decision-management/view-model-report.html#ariaid-title5\n",
-    "print(f\"Loaded model: {len(AGBModel.model)} trees, Pooled AUC={AGBModel.metrics['auc']:.4f}\")\n",
-    "print(f\"Training data: {AGBModel.metrics['response_positive_count']:,} positives, \"\n",
-    "      f\"{AGBModel.metrics['response_negative_count']:,} negatives\")"
+    "\n",
+    "def _format_metric(value, spec):\n",
+    "    return \"unavailable\" if value is None else format(value, spec)\n",
+    "\n",
+    "print(f\"Loaded model: {len(AGBModel.model)} trees, \"\n",
+    "      f\"Pooled AUC={_format_metric(AGBModel.metrics['auc'], '.4f')}\")\n",
+    "print(f\"Training data: {_format_metric(AGBModel.metrics['response_positive_count'], ',')} positives, \"\n",
+    "      f\"{_format_metric(AGBModel.metrics['response_negative_count'], ',')} negatives\")"
    ]
   },
   {
@@ -111,20 +116,33 @@
     "\n",
     "- **Too few trees / mostly stumps** — the model hasn't had enough responses\n",
     "  (or enough signal) to build real structure yet.\n",
-    "- **Pooled AUC ≈ 50** — no discriminative power; predictions are\n",
-    "  indistinguishable from random. (As elsewhere in this notebook, this is the\n",
+    "- **Pooled AUC near 0.5** — near-random ranking in the pooled population,\n",
+    "  not a statistical significance test. As elsewhere in this notebook, this is the\n",
     "  *pooled* AUC exported with the model — not the weighted-average AUC across\n",
-    "  actions.)\n",
-    "- **Negatives ≤ positives** — for a typical NBA response model this is\n",
+    "  actions.\n",
+    "- **Negatives < positives** — for a typical NBA response model this is\n",
     "  inverted (responses are usually rare), and can indicate a sampling issue,\n",
     "  a very high base rate, or a still-forming candidate model.\n",
     "- **Very few active predictors** — the model is only using a sliver of the\n",
     "  available data to make decisions.\n",
     "\n",
-    "None of these are fatal on their own (a brand-new candidate model is\n",
-    "*supposed* to look like this for a while), but several at once mean a\n",
-    "model's plots and metrics are not yet a reliable read on its real-world\n",
-    "performance. The cell also gives an early count of predictor-encoding flags;\n",
+    "The 🚩 icon marks these heuristic warnings, not a verdict on model quality.\n",
+    "A brand-new candidate model can legitimately trigger several of them.\n",
+    "\n",
+    "Separate **ℹ️ advisories** preview two of the detailed chart interpretations:\n",
+    "\n",
+    "- **Gain distribution** — the tree index reaching 50% of total gain.\n",
+    "  An early crossover means front-loaded gain; a later one means gain is\n",
+    "  more spread out. Neither is a universal health threshold. If total gain\n",
+    "  is not positive or any tree's total is negative, the share is unavailable.\n",
+    "- **Predictor concentration** — the leading non-context predictor and its\n",
+    "  share of total gain. Above 50% invites a review for over-reliance or\n",
+    "  leakage, but is not a diagnosis. Context keys can legitimately dominate.\n",
+    "  Shares are unavailable if total gain is not positive or any predictor's\n",
+    "  aggregate gain is negative.\n",
+    "\n",
+    "Missing AUC or response counts are reported as unavailable, not as passed\n",
+    "checks or red flags. **⚠️ Predictor-encoding warnings** are counted separately;\n",
     "the detailed predictor table appears in the feature-importance section."
    ]
   },
@@ -139,23 +157,28 @@
     "predictor_diagnostics = AGBModel.predictor_diagnostics()\n",
     "predictor_flags = predictor_diagnostics.filter(pl.col(\"flags\") != \"\")\n",
     "\n",
-    "print(f\"Sanity check ({result['n_trees']} trees, Pooled AUC={result['pooled_auc']:.4f}, \"\n",
-    "      f\"{result['positive_count']:,} pos / {result['negative_count']:,} neg):\\n\")\n",
+    "print(f\"Sanity check ({result['n_trees']} trees, \"\n",
+    "      f\"Pooled AUC={_format_metric(result['pooled_auc'], '.4f')}, \"\n",
+    "      f\"{_format_metric(result['positive_count'], ',')} pos / \"\n",
+    "      f\"{_format_metric(result['negative_count'], ',')} neg):\\n\")\n",
     "if result[\"flags\"]:\n",
-    "    print(f\"⚠ {len(result['flags'])} red flag(s):\")\n",
+    "    print(f\"🚩 {len(result['flags'])} red flag(s):\")\n",
     "    for msg in result[\"flags\"]:\n",
-    "        print(f\"  ⚠ {msg}\")\n",
-    "    print(\"\\nTreat the detailed sections below as illustrative of the mechanics,\")\n",
-    "    print(\"not as a reliable read on this model's real-world performance yet.\")\n",
+    "        print(f\"  🚩 {msg}\")\n",
+    "    print(\"\\nReview these warnings in the context of the model's training lifecycle.\")\n",
     "else:\n",
-    "    print(\"✓ No red flags from this quick check — proceed to the detailed walkthrough below.\")\n",
+    "    print(\"✓ No red flags from the available checks — see advisories and detailed sections below.\")\n",
+    "\n",
+    "print(\"\\nℹ️ Advisories (not red flags):\")\n",
+    "for msg in result[\"advisories\"]:\n",
+    "    print(f\"  ℹ️ {msg}\")\n",
     "\n",
     "if predictor_flags.is_empty():\n",
     "    print(\"\\nPredictor diagnostics: no high-cardinality or numeric-looking symbolic predictor flags detected.\")\n",
     "else:\n",
-    "    print(f\"\\nPredictor diagnostics: {predictor_flags.height} predictor flag(s) found — see Feature Importance for details.\")\n",
+    "    print(f\"\\n⚠️ Predictor diagnostics: {predictor_flags.height} predictor flag(s) found — see Feature Importance for details.\")\n",
     "    for predictor in predictor_flags.get_column(\"predictor\").head(5).to_list():\n",
-    "        print(f\"  - {predictor}\")"
+    "        print(f\"  ⚠️ {predictor}\")"
    ]
   },
   {
@@ -229,8 +252,9 @@
     "each tree can contribute. They do not turn AGB into a scheduled batch-training\n",
     "process; the model still learns from the incoming response stream.\n",
     "\n",
-    "A split is only added to the tree if this gain is positive.  High gain at\n",
-    "the root means the split strongly separates positives from negatives.\n",
+    "A split is only added to the tree if this gain is positive. Exported split\n",
+    "gains can nevertheless be signed; the summaries below retain those values.\n",
+    "High gain at the root means the split strongly separates positives from negatives.\n",
     "\n",
     "**ADWIN — the adaptation mechanism:** Each node continuously monitors its\n",
     "prediction error using an Adaptive Sliding Window (ADWIN).  When the error\n",
@@ -345,7 +369,14 @@
     "\n",
     "The table below summarises each tree.  Early trees capture the strongest\n",
     "signals (high gain, large root score magnitude).  Later trees make finer\n",
-    "corrections.\n"
+    "corrections. `tree_stats[\"weighted_leaf_score_std\"]` measures each\n",
+    "tree's leaf-score spread using the exported leaf `sampleCount` values as\n",
+    "reliability weights, with sample correction. The ensemble metric\n",
+    "`weighted_leaf_score_std_mean` averages defined tree spreads equally;\n",
+    "it is distinct from the pooled, unweighted `pooled_leaf_score_std`. These\n",
+    "counts need not represent the current population. Missing or invalid\n",
+    "counts and trees with fewer than two positive leaf weights yield null.\n",
+    "See `get_tree_stats()` for the formula and all edge cases.\n"
    ]
   },
   {
@@ -391,7 +422,7 @@
    "id": "0747ccd4",
    "metadata": {},
    "source": [
-    "**Interpreting this chart:** A healthy ensemble shows a steep decline from left to right — the first 10–20 trees capture the bulk of the gain and later trees make progressively smaller corrections. A flat or rising tail suggests the model is still actively learning or that concept drift is continuously introducing new signal."
+    "**Interpreting this chart:** Compare how total gain is distributed across trees. Early trees may capture strong shared patterns while later trees add corrections, but there is no universal cutoff such as the first 10–20 trees and no requirement for gain to decline monotonically. A flat or rising tail is a reason to inspect how the ensemble is learning, not proof of concept drift or poor model quality."
    ]
   },
   {
@@ -417,7 +448,7 @@
    "id": "b50374b0",
    "metadata": {},
    "source": [
-    "**Interpreting this chart:** The dashed line marks where 50% of total gain has accumulated. **Good:** this crossover should fall well before the midpoint of the tree count — in this model around tree 38 out of 83 — confirming that a small core of early trees does most of the work and later trees add diminishing corrections. A late crossover (past the halfway point) indicates an unusually flat gain distribution."
+    "**Interpreting this chart:** The dashed line marks where 50% of total gain has accumulated; the Quick Sanity Check reports the same zero-based tree index. An early crossover describes front-loaded gain, while a crossover nearer the middle describes more evenly distributed gain. This is a descriptive summary, not a pass/fail threshold or proof of convergence. Split gains are signed, so individual splits can be slightly negative; the shares stay valid as long as every tree's total gain is non-negative and the overall total is positive. Otherwise the share is undefined and the chart displays a note — look at *Gain contribution per tree* above to inspect signed tree totals."
    ]
   },
   {
@@ -870,7 +901,7 @@
    "id": "85e2dc26",
    "metadata": {},
    "source": [
-    "**Interpreting this chart:** Predictors are sorted by their total split gain across all trees. **Good:** model-context fields (`pyGroup`, `pyIssue`, `pyTreatment`) dominating the top is expected and healthy — AGB uses a single model for all actions, so action identity is a powerful discriminator. Below those, interaction-history (`IH.*`) and customer-attribute predictors should contribute meaningfully. A single non-context predictor taking >50% of the gain warrants investigation for potential data leakage."
+    "**Interpreting this chart:** Predictors are sorted by their total split gain across all trees. Model-context fields (`pyGroup`, `pyIssue`, `pyTreatment`) can legitimately dominate because AGB shares learning across actions. The Quick Sanity Check separately reports the leading non-context predictor and its share of total gain when defined. A share above 50% invites review of the predictor's meaning and availability at scoring time for possible over-reliance or leakage; it is not a diagnosis, and a genuinely useful external model score can also dominate."
    ]
   },
   {
@@ -878,7 +909,24 @@
    "id": "gain-by-category-heading",
    "metadata": {},
    "source": [
-    "### Gain share by predictor category"
+    "### Contributions by Predictor Category\n",
+    "\n",
+    "Compare the same predictor categories in two ways: their share of total\n",
+    "split gain and their share of all split nodes in the ensemble.\n",
+    "Each chart shows **All splits**, **Numeric**, and **Symbolic** rows. Each\n",
+    "row totals 100% within its own subset; All splits is the combined reference,\n",
+    "not a third disjoint type. Hover shows the category and subset totals.\n",
+    "Numeric means threshold comparisons (`<` or `>`). Symbolic means equality,\n",
+    "set membership, or missing-value checks. This follows actual split conditions,\n",
+    "not predictor metadata: a predictor can appear in both subsets, and numeric-looking\n",
+    "category values are still symbolic when used in an equality or membership split.\n",
+    "Each bar is ordered independently from largest to smallest contribution;\n",
+    "category colors stay consistent across both plots.\n",
+    "The combined All splits row uses full-strength colors; the subset rows use\n",
+    "paler fills and are 60% as tall. Absent split types (or a stump with no splits) are explained\n",
+    "instead of displaying artificial zero-share bars.\n",
+    "\n",
+    "#### Share of total gain"
    ]
   },
   {
@@ -888,7 +936,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "AGBModel.plot.gain_by_namespace()"
+    "AGBModel.plot.gain_by_namespace(by_split_type=True)"
    ]
   },
   {
@@ -896,7 +944,33 @@
    "id": "64538517",
    "metadata": {},
    "source": [
-    "**Interpreting this chart:** Each bar shows one predictor category's share of total split gain. **Good:** several categories each claiming 15–40% of the gain, indicating the model draws on diverse signals. A single category above 70–80% may indicate that other data sources are unavailable or that those predictors are inactive.\n"
+    "**Interpreting this chart:** Each colored segment shows a predictor category's percentage of gain within that row; each full horizontal bar represents 100% of its subset's gain. Compare Numeric with Symbolic to see whether a category contributes primarily through thresholds or categorical conditions. Hover to see the precise share, raw signed gain, and subset total: a high share of a small subset need not mean a large contribution to the whole model. Individual negative split gains are retained, but a row's percentages are unavailable if any of its category totals is negative or its total gain is not positive; other valid rows remain visible. Category shares describe where the model's split gain comes from, not causal importance or a fixed healthy mix.\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "split-share-category-heading",
+   "metadata": {},
+   "source": [
+    "#### Share of split nodes"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "split-share-category-code",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "AGBModel.plot.splits_by_namespace(by_split_type=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "split-share-category-interpretation",
+   "metadata": {},
+   "source": [
+    "**Interpreting this chart:** Each segment shows the percentage of internal split nodes using a predictor category within that row's subset. Repeated conditions count each time they occur, including splits with zero or negative gain; leaves do not count. These are not percentages of unique predictors, customers, responses, or trees. Hover shows how many splits the subset contains. Compare each row with the matching gain-share row above: a category with many splits but little gain contributes frequent small corrections, while one with relatively few splits and a large gain share contributes fewer, stronger separations. Neither pattern is automatically good or bad. Each row sorts its categories from largest to smallest contribution, using the same colors for the same categories."
    ]
   },
   {
@@ -944,7 +1018,7 @@
    "id": "8d474aec",
    "metadata": {},
    "source": [
-    "**Interpreting this chart:** Points above the diagonal are *late refiners* — their gain increases after many responses have arrived. Points below are *early specialists* — they drive the initial rapid learning. **Good:** model-context fields (`pyGroup`, `pyIssue`) typically land near the upper-left (early, dominant); behavioural predictors (`IH.*`) gradually strengthen over time and appear near or above the diagonal. Predictors clustered near the bottom-left contributed little in either phase and may be inactive."
+    "**Interpreting this chart:** Points above the diagonal are *late refiners* — their gain increases after many responses have arrived. Points below are *early specialists* — they drive the initial rapid learning. Model-context fields (`pyGroup`, `pyIssue`) typically land near the upper-left; behavioural predictors (`IH.*`) may strengthen over time. Axes are linear when a bucket has non-positive gain, and bubbles have uniform size if any predictor's total is non-positive."
    ]
   },
   {
@@ -970,7 +1044,7 @@
    "id": "487e2eaf",
    "metadata": {},
    "source": [
-    "**Interpreting this chart:** The x-axis is mean split depth — shallow predictors (near 0) act as high-level routers at the top of every tree; deeper predictors fire only for specific sub-populations. The y-axis shows the fraction of trees the predictor appears in (coverage); bubble size is total gain. **Good:** model-context fields such as `pyGroup` should be shallow and widely covered; individual IH or customer predictors should be deeper and more selective. A large bubble with shallow depth and broad coverage is a powerful universal signal. A predictor with high coverage but a tiny bubble is splitting often without much gain — a candidate for review."
+    "**Interpreting this chart:** The x-axis is mean split depth in edges from the root (depth 0); shallow predictors act as high-level routers, while deeper predictors fire only for specific sub-populations. The y-axis counts trees where the predictor appears. Model-context fields such as `pyGroup` are often shallow and widely covered; individual IH or customer predictors may be deeper and more selective. Bubble size shows total gain when all predictor totals are positive; otherwise bubbles have uniform size and signed totals appear on hover."
    ]
   },
   {
@@ -997,13 +1071,13 @@
     "\n",
     "Key signals to watch:\n",
     "\n",
-    "| Metric | Healthy range | Signal |\n",
+    "| Metric | Interpretation | Caveat |\n",
     "|---|---|---|\n",
-    "| `score_decay_ratio` | < 1 | Converging model; > 1 may indicate instability |\n",
-    "| `top_predictor_gain_share` | < 0.5 | High value = over-reliance on one predictor |\n",
-    "| `predictor_gain_entropy` | High | Low entropy = gain concentrated in few predictors |\n",
-    "| `number_of_stump_trees` | Low | High = heavy pruning, possible concept drift |\n",
-    "| `mean_gain_last_half` < `mean_gain_first_half` | — | Expected; model converging |"
+    "| `score_decay_ratio` | Last/first mean absolute root score | Describes root scores, not every scored path or proof of stability |\n",
+    "| `top_predictor_gain_share` | Share from the overall leading predictor | Context keys or genuine external scores can dominate; unavailable shares are not zero |\n",
+    "| `predictor_gain_entropy` | Lower values mean more concentrated predictor gain | Concentration alone is not evidence of poor performance |\n",
+    "| `number_of_stump_trees` | Trees with no splits | Consider model age and pruning; not proof of drift |\n",
+    "| `mean_gain_last_half` vs `mean_gain_first_half` | Mean split gain in each tree half | Split counts differ; these are not total gains per tree or mandatory convergence thresholds |"
    ]
   },
   {
