@@ -1472,18 +1472,6 @@ wheels = [
 ]
 
 [[package]]
-name = "faicons"
-version = "0.2.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "htmltools" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/06/e8/c12ef85c4444616ab1c1e96d5ecbadc8046d40b34797308846a2cfc06c80/faicons-0.2.2.tar.gz", hash = "sha256:6b7d7b19180179b6b83783f91bf6c9311c0f00ae0f97d41be1d24d9942361659", size = 604434, upload-time = "2024-01-16T23:27:21.634Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/65/3c/1db1b0f878319bb227f35a0fca7cad64e1f528b518bcab1a708da305c86d/faicons-0.2.2-py3-none-any.whl", hash = "sha256:d45d7c2635b53582a3375c67d7e975a28a91d2c16ef5f6b5033b5cdd507224b6", size = 607225, upload-time = "2024-01-16T23:27:19.475Z" },
-]
-
-[[package]]
 name = "fastexcel"
 version = "0.20.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1744,21 +1732,19 @@ wheels = [
 
 [[package]]
 name = "great-tables"
-version = "0.23.0"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "babel" },
-    { name = "faicons" },
-    { name = "htmltools" },
     { name = "importlib-metadata" },
     { name = "importlib-resources" },
     { name = "multimark" },
     { name = "nokap" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ad/f0/72c6d96ffbd8ae7ce75dc3420573aea7ba24b09ecd2cdab48ddabf84ea5a/great_tables-0.23.0.tar.gz", hash = "sha256:dc45bb80642e109608688e38edd88e6883cbf38fd00e4617fc0dadfa51b9bad4", size = 26910044, upload-time = "2026-07-27T23:35:15.476Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/f4/d57a055a4aa25a1e4070743d4520ae5c68e59717723fe47fc1be8e7aba10/great_tables-1.2.0.tar.gz", hash = "sha256:bdaf1457168445702cf6dab5447090b2762ac38da41bc44df0fa2254f5448769", size = 29830762, upload-time = "2026-11-20T14:42:20.483Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/af/6a/5962971b5a4015ca5ded52def3b21f323a4521d5946552abaefff7516682/great_tables-0.23.0-py3-none-any.whl", hash = "sha256:6a0f20b2ce66cdd45c6633d01ca3d0970c17e9be8397ea932ad17ef9603af531", size = 1464927, upload-time = "2026-07-27T23:35:13.207Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/e0/4c9afe3496adc2d7db8c609259fe046bde22dec92d209f7aa7a60c9a6a59/great_tables-1.2.0-py3-none-any.whl", hash = "sha256:830f99440f77d19514355927b8289658e8eedf2beee045ac4c9463a1b42132cf", size = 2283503, upload-time = "2026-11-20T14:42:17.675Z" },
 ]
 
 [[package]]
@@ -1800,19 +1786,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/fb/d1/90a498d05447980b977b1669246eeeeae4cfb0ea3e7a286eaba627f91bf9/hf_xet-1.5.1-cp37-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:6208adb15d192b90e4c2ad2a27ed864359b2cb0f2494eb6d7c7f3699ac02e2bf", size = 4719498, upload-time = "2026-06-08T23:02:49.268Z" },
     { url = "https://files.pythonhosted.org/packages/6d/b6/20f99cfe97cc663a711f7b33cc21d4793e51968e9a26125b4afcd77315ba/hf_xet-1.5.1-cp37-abi3-win_amd64.whl", hash = "sha256:f7b3002f95d1c13e24bcb4537baa8f0eb3838957067c91bb4959bc004a6435f5", size = 4026419, upload-time = "2026-06-08T23:02:50.829Z" },
     { url = "https://files.pythonhosted.org/packages/f9/fa/77453694888f03e5a8c8852d1514a0894d8e81c622d39edbaf308ea0dcf4/hf_xet-1.5.1-cp37-abi3-win_arm64.whl", hash = "sha256:93d090b57b211133f6c0dab0205ef5cb6d89162979ba75a74845045cc3063b8e", size = 3855178, upload-time = "2026-06-08T23:02:52.452Z" },
-]
-
-[[package]]
-name = "htmltools"
-version = "0.6.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "packaging" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/cd/1d/c568d17e9fb5ad5aa0ca3531c58d36fe69deb8eee4e53ff6425c1f99f210/htmltools-0.6.0.tar.gz", hash = "sha256:e8a3fb023d748935035db7ff17f620612ffc814a6a80b6ae388f7b7ab182adf7", size = 97152, upload-time = "2024-10-29T20:21:43.378Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0a/ba/aa99706246f1938ca905eb6eeb7db832ac2e157aa4b805acb5cd4cd1791a/htmltools-0.6.0-py3-none-any.whl", hash = "sha256:072a274ff5e2851e0acce13fc5bb2bbdbbad8268dc8b123f881c05012ce7dce0", size = 84954, upload-time = "2024-10-29T20:21:42.067Z" },
 ]
 
 [[package]]
@@ -4436,7 +4409,7 @@ requires-dist = [
     { name = "duckdb", marker = "extra == 'docs'" },
     { name = "fastexcel", marker = "extra == 'app'", specifier = ">=0.19,<1" },
     { name = "furo", marker = "extra == 'docs'" },
-    { name = "great-tables", marker = "extra == 'healthcheck'", specifier = ">=0.13,<1" },
+    { name = "great-tables", marker = "extra == 'healthcheck'", specifier = ">=0.13,<2" },
     { name = "httpx", marker = "extra == 'api'", specifier = ">=0.27,<1" },
     { name = "httpx", marker = "extra == 'docs'" },
     { name = "humanize", marker = "extra == 'app'", specifier = ">=4.0.0,<5" },
