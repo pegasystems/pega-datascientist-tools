@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 # python/pdstools/app/decision_analyzer/pages/5_Action_Funnel.py
+from typing import cast
+
 import polars as pl
 import streamlit as st
 
@@ -218,7 +220,7 @@ if has_components:
             if sort_by_display is None:
                 st.error("Select a sort option.")
                 st.stop()
-            sort_by = sort_options_mapping[sort_by_display]
+            sort_by = sort_options_mapping[cast(str, sort_by_display)]
 
             impact_fig = da.plot.component_action_impact(
                 top_n=impact_top_n,

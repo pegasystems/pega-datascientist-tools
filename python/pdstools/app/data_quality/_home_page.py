@@ -6,6 +6,8 @@ Exposes a single ``home_page()`` callable registered by
 
 from __future__ import annotations
 
+from typing import cast
+
 
 def home_page() -> None:
     """Render the Topic Data Quality home page."""
@@ -69,6 +71,9 @@ text and label columns, and run a comprehensive quality check.
         if text_col is None or topic_col is None:
             st.error("Select a text and topic column before running the quality check.")
             st.stop()
+
+        text_col = cast(str, text_col)
+        topic_col = cast(str, topic_col)
 
         with st.sidebar:
             st.header("Analysis Options")

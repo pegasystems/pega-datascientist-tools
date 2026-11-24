@@ -48,6 +48,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   unavailable when the relevant aggregated gains are negative or their total
   is not positive; individual negative splits are retained (#1022).
 
+- Selected example notebooks accept optional environment variables for custom
+  input data while retaining their bundled or generated sample data defaults.
+
 ## [5.1.1] — 2026-11-16
 
 ### Added
