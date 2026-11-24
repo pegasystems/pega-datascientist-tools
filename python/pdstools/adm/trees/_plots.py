@@ -23,7 +23,7 @@ from ...utils import cdh_utils
 from ...utils.namespaces import LazyNamespace, MissingDependenciesException
 from ...utils.plot_utils import abbreviate_label
 from ..ADMDatamart import _STANDARD_PREDICTOR_CATEGORY_COLORS
-from ._nodes import _iter_nodes
+from ._nodes import _SPLIT_RE, _iter_nodes
 
 # Fixed color assignments for well-known predictor categories, shared with
 # ADMDatamart predictor-category plots.
@@ -89,9 +89,9 @@ class Plots(LazyNamespace):
         self.predictor_category_order: list[str] = list(_PREDICTOR_CATEGORY_COLORMAP)
         """Fixed display order of predictor categories in plot legends and axes.
 
-        Defaults to alphabetical order (the key order of
-        :data:`_PREDICTOR_CATEGORY_COLORMAP`).  Extend or reorder this list when
-        you add custom categories so legends remain consistent across all plots.
+        Defaults to the key order of :data:`_PREDICTOR_CATEGORY_COLORMAP`.
+        Category-share bars instead sort independently by decreasing
+        contribution, while keeping category colors consistent.
         """
         self.predictor_group_expr = self.predictor_category_expr
         self.predictor_group_colormap = self.predictor_category_colormap
@@ -478,6 +478,9 @@ class Plots(LazyNamespace):
     ) -> "go.Figure | pl.DataFrame":
         """Plot the share of total gain accumulated as trees are added.
 
+        Shares are unavailable when the total gain is not positive or any
+        tree's total gain is negative.
+
         Parameters
         ----------
         return_df : bool, default False
@@ -500,18 +503,15 @@ class Plots(LazyNamespace):
             .select(["treeID", "total_gain"])
         )
         grand_total = base["total_gain"].sum()
-        # A model with no positive-gain splits yet (e.g. a single stump tree)
-        # has grand_total == 0, making the share undefined rather than 0 %.
-        share_expr = (
-            pl.lit(None, dtype=pl.Float64) if not grand_total else (pl.col("total_gain").cum_sum() / grand_total)
-        )
+        valid_share = grand_total > 0 and (base["total_gain"] >= 0).all()
+        share_expr = pl.col("total_gain").cum_sum() / grand_total if valid_share else pl.lit(None, dtype=pl.Float64)
         df = base.with_columns(share_expr.alias("cumulative_gain_share")).select(["treeID", "cumulative_gain_share"])
         if return_df:
             return df
 
         half_idx = (
             df.filter(pl.col("cumulative_gain_share") >= 0.5)["treeID"].first()
-            if grand_total and (df["cumulative_gain_share"] >= 0.5).any()
+            if valid_share and (df["cumulative_gain_share"] >= 0.5).any()
             else None
         )
         fig = go.Figure()
@@ -532,6 +532,15 @@ class Plots(LazyNamespace):
                 line_color="grey",
                 annotation_text=f"50 % @ tree {tree_marker:g}",
                 annotation_position="top right",
+            )
+        if not valid_share:
+            fig.add_annotation(
+                text="Gain share undefined: total gain is not positive<br>or some trees have negative total gain",
+                xref="paper",
+                yref="paper",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
             )
         fig.update_layout(
             title="Cumulative gain share across trees",
@@ -627,7 +636,9 @@ class Plots(LazyNamespace):
         """Compare each predictor's gain in early vs late trees.
 
         Predictors above the diagonal are "late refiners"; predictors below
-        are "early specialists".
+        are "early specialists". Gains are signed. Axes become linear when
+        either bucket contains non-positive values; bubbles use a uniform
+        size when total gains are non-positive.
 
         Parameters
         ----------
@@ -661,7 +672,7 @@ class Plots(LazyNamespace):
             else:
                 continue
             for node in _iter_nodes(tree):
-                if node.split is not None and node.gain > 0:
+                if node.split is not None:
                     rows.append({"predictor": node.split.variable, "gain": node.gain, "bucket": bucket})
 
         raw = pl.DataFrame(
@@ -691,16 +702,20 @@ class Plots(LazyNamespace):
 
             return go.Figure().update_layout(title="Early vs late tree gain per predictor")
 
-        max_val = max(df["early_gain"].max() or 0.0, df["late_gain"].max() or 0.0) or 1.0
+        min_val = min(cast(float, df["early_gain"].min()), cast(float, df["late_gain"].min()))
+        max_val = max(cast(float, df["early_gain"].max()), cast(float, df["late_gain"].max()))
+        log_axes = min_val > 0
+        size = "total_gain" if (df["total_gain"] > 0).all() else None
         fig = px.scatter(
             df,
             x="early_gain",
             y="late_gain",
             color="PredictorCategory",
-            size="total_gain",
+            size=size,
+            hover_data={"total_gain": True},
             hover_name="predictor",
-            log_x=True,
-            log_y=True,
+            log_x=log_axes,
+            log_y=log_axes,
             title="Early vs late tree gain per predictor",
             labels={
                 "early_gain": f"Gain in first {quarter} trees",
@@ -711,28 +726,32 @@ class Plots(LazyNamespace):
             category_orders={"PredictorCategory": self.predictor_category_order},
             color_discrete_map=self.predictor_category_colormap,
         )
+        if not log_axes:
+            fig.update_xaxes(type="linear")
+            fig.update_yaxes(type="linear")
         fig.add_shape(
             type="line",
-            x0=0.01,
-            y0=0.01,
-            x1=max_val,
-            y1=max_val,
+            x0=0.01 if log_axes else min(min_val, 0.0),
+            y0=0.01 if log_axes else min(min_val, 0.0),
+            x1=max(max_val, 0.0) or 1.0,
+            y1=max(max_val, 0.0) or 1.0,
             line={"dash": "dash", "color": "grey"},
         )
         return fig
 
     @overload
-    def gain_by_namespace(self, *, return_df: Literal[True]) -> pl.DataFrame: ...
+    def gain_by_namespace(self, *, by_split_type: bool = ..., return_df: Literal[True]) -> pl.DataFrame: ...
 
     @overload
-    def gain_by_namespace(self, *, return_df: Literal[False] = ...) -> "go.Figure": ...
+    def gain_by_namespace(self, *, by_split_type: bool = ..., return_df: Literal[False] = ...) -> "go.Figure": ...
 
     def gain_by_namespace(
         self,
         *,
+        by_split_type: bool = False,
         return_df: bool = False,
     ) -> "go.Figure | pl.DataFrame":
-        """Plot total information gain broken down by predictor category.
+        """Plot a 100% stacked horizontal bar of gain by predictor category.
 
         The predictor category follows ADM's default categorisation, with AGB
         model-context fields such as ``pyIssue``, ``pyGroup``, and
@@ -740,9 +759,24 @@ class Plots(LazyNamespace):
         segment (for example, ``IH``, ``Customer``, ``Param``), while other
         undotted names are ``Primary``. Override
         ``AGBModel.plot.predictor_category_expr`` to define custom categories.
+        Gain shares are unavailable when the total gain is not positive or
+        any category's total gain is negative; the figure explains why
+        instead of plotting percentages. Individual negative split gains
+        are retained in the category totals. Hover shows the raw gain.
+        Null categories are labelled ``Uncategorized`` so all gains are counted.
+        Segments and legend entries are ordered by decreasing gain share,
+        with category names breaking ties.
 
         Parameters
         ----------
+        by_split_type : bool, default False
+            Show separate All splits, Numeric, and Symbolic rows, each
+            normalized within its subset. Numeric splits use ``<`` or ``>``;
+            symbolic splits use ``in``, ``==``, or missing-value checks
+            (``is``). Classify actual conditions, not predictor metadata.
+            A predictor can therefore appear in both split-type subsets.
+            Undefined gain shares are explained separately for each row.
+            Subset bars are paler and 60% as tall as the combined reference.
         return_df : bool, default False
             If True, return the underlying DataFrame instead of the figure.
 
@@ -751,38 +785,221 @@ class Plots(LazyNamespace):
         plotly.graph_objects.Figure or pl.DataFrame
             Figure when ``return_df=False``; DataFrame with columns
             ``PredictorCategory``, ``total_gain``, ``gain_share`` when
-            ``return_df=True``.
+            ``return_df=True``. With ``by_split_type=True``, also include
+            ``SplitType``. All splits is an overlapping combined reference;
+            do not sum its totals with the Numeric and Symbolic rows.
         """
-        try:
-            import plotly.express as px
-        except ImportError:  # pragma: no cover
-            raise MissingDependenciesException(["plotly"], "AGB", deps_group="adm") from None
-
-        df = (
-            self.trees_model.gains_per_split.with_columns(self.predictor_category_expr)
-            .group_by("PredictorCategory")
-            .agg(pl.col("gains").sum().alias("total_gain"))
-            .sort("total_gain", descending=True)
+        df = self._category_totals(
+            pl.col("gains").sum().alias("total_gain"),
+            by_split_type=by_split_type,
         )
-        total = df["total_gain"].sum()
-        df = df.with_columns((pl.col("total_gain") / total).alias("gain_share"))
+        total = pl.col("total_gain").sum().over("SplitType")
+        valid_share = (total > 0) & (pl.col("total_gain") >= 0).all().over("SplitType")
+        df = df.with_columns(
+            pl.when(valid_share).then(pl.col("total_gain") / total).otherwise(None).alias("gain_share"),
+        ).sort(["SplitType", "total_gain", "PredictorCategory"], descending=[False, True, False])
         if return_df:
-            return df
+            return df if by_split_type else df.drop("SplitType")
 
-        sorted_df = df.sort("total_gain")
-        fig = px.bar(
-            sorted_df,
-            x="total_gain",
-            y="PredictorCategory",
-            color="PredictorCategory",
-            orientation="h",
-            title="Total gain by predictor category",
-            labels={"total_gain": "Total gain", "PredictorCategory": ""},
-            template="none",
-            category_orders={"PredictorCategory": sorted_df["PredictorCategory"].to_list()},
-            color_discrete_map=self.predictor_category_colormap,
+        return self._category_share_plot(
+            df,
+            by_split_type=by_split_type,
+            share_column="gain_share",
+            total_column="total_gain",
+            title="Share of total gain by predictor category",
+            axis_title="Share of total gain",
+            unavailable_text=(
+                "Gain shares unavailable: total gain is not positive<br>"
+                "or a predictor category has negative total gain.<br>"
+                "Inspect signed totals with return_df=True."
+            ),
         )
-        fig.update_layout(showlegend=False, yaxis_automargin=True, yaxis_autorange="reversed")
+
+    @overload
+    def splits_by_namespace(self, *, by_split_type: bool = ..., return_df: Literal[True]) -> pl.DataFrame: ...
+
+    @overload
+    def splits_by_namespace(self, *, by_split_type: bool = ..., return_df: Literal[False] = ...) -> "go.Figure": ...
+
+    def splits_by_namespace(
+        self,
+        *,
+        by_split_type: bool = False,
+        return_df: bool = False,
+    ) -> "go.Figure | pl.DataFrame":
+        """Plot a 100% stacked horizontal bar of splits by predictor category.
+
+        Count every internal split node across the exported ensemble,
+        including repeated conditions and splits with zero or negative gain.
+        These are split-node counts, not unique predictors, tree coverage,
+        or training-response counts. Category definitions and colors match
+        :meth:`gain_by_namespace`; segments and legend entries are ordered
+        by decreasing split share, with category names breaking ties.
+        Null categories are labelled ``Uncategorized`` in both plots so no
+        splits are omitted.
+        If the model has no splits, the figure shows an explanatory note.
+
+        Parameters
+        ----------
+        by_split_type : bool, default False
+            Show All splits, Numeric, and Symbolic rows, each normalized
+            within its subset. Use the same condition-based classification
+            as :meth:`gain_by_namespace`, including missing-value checks
+            with symbolic splits.
+            Subset bars are paler and 60% as tall as the combined reference.
+        return_df : bool, default False
+            If True, return the underlying DataFrame instead of the figure.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure or pl.DataFrame
+            Figure when ``return_df=False``; DataFrame with columns
+            ``PredictorCategory``, ``split_count``, ``split_share`` when
+            ``return_df=True``. With ``by_split_type=True``, also include
+            ``SplitType``. All splits is an overlapping combined reference.
+        """
+        df = self._category_totals(
+            pl.len().alias("split_count"),
+            by_split_type=by_split_type,
+        )
+        total = pl.col("split_count").sum().over("SplitType")
+        df = df.with_columns(
+            pl.when(total > 0).then(pl.col("split_count") / total).otherwise(None).alias("split_share"),
+        ).sort(["SplitType", "split_count", "PredictorCategory"], descending=[False, True, False])
+        if return_df:
+            return df if by_split_type else df.drop("SplitType")
+        return self._category_share_plot(
+            df,
+            by_split_type=by_split_type,
+            share_column="split_share",
+            total_column="split_count",
+            title="Share of splits by predictor category",
+            axis_title="Share of split nodes",
+            unavailable_text="Split shares unavailable: this model has no split nodes.",
+        )
+
+    def _category_totals(self, aggregation: pl.Expr, *, by_split_type: bool) -> pl.DataFrame:
+        """Aggregate categories for the ensemble and optional split-type subsets."""
+        base = self.trees_model.gains_per_split.with_columns(self.predictor_category_expr).with_columns(
+            pl.col("PredictorCategory").fill_null("Uncategorized"),
+        )
+        combined = (
+            base.group_by("PredictorCategory")
+            .agg(aggregation)
+            .with_columns(
+                pl.lit("All splits").alias("SplitType"),
+            )
+            .select("SplitType", pl.exclude("SplitType"))
+        )
+        if not by_split_type:
+            return combined
+        # Conditions have already passed the shared split parser.
+        numeric = pl.col("split").str.extract(_SPLIT_RE.pattern, 2).is_in(["<", ">"])
+        subsets = (
+            base.with_columns(
+                pl.when(numeric).then(pl.lit("Numeric")).otherwise(pl.lit("Symbolic")).alias("SplitType"),
+            )
+            .group_by("PredictorCategory", "SplitType")
+            .agg(aggregation)
+        )
+        return pl.concat([combined, subsets.select(combined.columns)])
+
+    def _category_share_plot(
+        self,
+        df: pl.DataFrame,
+        *,
+        by_split_type: bool,
+        share_column: str,
+        total_column: str,
+        title: str,
+        axis_title: str,
+        unavailable_text: str,
+    ) -> "go.Figure":
+        """Build independently ordered category bars and explain unavailable rows."""
+        import plotly.express as px
+        import plotly.graph_objects as go
+
+        categories = df["PredictorCategory"].unique(maintain_order=True).to_list()
+        colors = dict(self.predictor_category_colormap)
+        palette = px.colors.qualitative.Plotly
+        missing_colors = sorted(set(categories) - set(colors))
+        colors.update({category: palette[index % len(palette)] for index, category in enumerate(missing_colors)})
+        rows = ["All splits", "Numeric", "Symbolic"] if by_split_type else ["All splits"]
+        seen: set[str] = set()
+        fig = go.Figure()
+        total_label = "Split nodes" if total_column == "split_count" else "Total gain"
+        total_format = ",.0f" if total_column == "split_count" else ",.4g"
+        for split_type in rows:
+            subset = df.filter(pl.col("SplitType") == split_type)
+            if subset.is_empty() or subset[share_column].null_count():
+                text = (
+                    ("No split nodes." if split_type == "All splits" else f"No {split_type.lower()} split nodes.")
+                    if by_split_type and subset.is_empty()
+                    else unavailable_text
+                )
+                fig.add_annotation(
+                    text=text,
+                    xref="paper",
+                    yref="y" if by_split_type else "paper",
+                    x=0.5,
+                    y=split_type if by_split_type else 0.5,
+                    showarrow=False,
+                )
+                continue
+            row_total = subset[total_column].sum()
+            for record in subset.iter_rows(named=True):
+                category = record["PredictorCategory"]
+                fig.add_trace(
+                    go.Bar(
+                        name=category,
+                        x=[record[share_column]],
+                        y=[split_type if by_split_type else "Model"],
+                        text=[record[share_column]],
+                        customdata=[[record[total_column], row_total]],
+                        marker_color=colors[category],
+                        marker_opacity=0.55 if by_split_type and split_type != "All splits" else 1.0,
+                        orientation="h",
+                        width=(0.8 if split_type == "All splits" else 0.48) if by_split_type else None,
+                        legendgroup=category,
+                        legendrank=categories.index(category),
+                        showlegend=category not in seen,
+                        texttemplate="%{x:.0%}",
+                        textposition="inside",
+                        textfont_color="#333333" if by_split_type and split_type != "All splits" else None,
+                        insidetextanchor="middle",
+                        hovertemplate=(
+                            ("%{y}<br>" if by_split_type else "")
+                            + "%{fullData.name}<br>Share: %{x:.1%}<br>"
+                            + f"{total_label}: %{{customdata[0]:{total_format}}}<br>"
+                            + f"{total_label} in row: %{{customdata[1]:{total_format}}}<extra></extra>"
+                        ),
+                    ),
+                )
+                seen.add(category)
+        if by_split_type:
+            fig.update_yaxes(
+                type="category",
+                categoryorder="array",
+                categoryarray=rows,
+                range=[2.5, -0.5],
+            )
+        fig.update_layout(
+            title=title,
+            barmode="stack",
+            xaxis_title=axis_title,
+            xaxis_tickformat=".0%",
+            xaxis_range=[0, 1],
+            yaxis_title=None,
+            yaxis_showticklabels=by_split_type,
+            yaxis_automargin=True,
+            legend_title_text=None,
+            legend=dict(orientation="h", y=1.02, yanchor="bottom", x=0),
+            uniformtext_minsize=11,
+            uniformtext_mode="hide",
+            height=440 if by_split_type else 270,
+            margin=dict(l=100 if by_split_type else 30, r=30, t=90, b=55),
+            template="none",
+        )
         return fig
 
     @overload
@@ -798,9 +1015,11 @@ class Plots(LazyNamespace):
     ) -> "go.Figure | pl.DataFrame":
         """Bubble chart mapping each predictor's role: router vs refiner.
 
-        X-axis = mean depth of splits; Y-axis = tree coverage (distinct
-        trees used in); bubble size = total gain.  Shallow + wide-coverage
-        predictors are "routers"; deep + narrow ones are "refiners".
+        X-axis = mean edge-count depth of splits; Y-axis = tree coverage
+        (distinct trees used in); bubble size = total signed gain.
+        Bubbles use a uniform size when any total gain is non-positive.
+        Shallow + wide-coverage predictors are "routers"; deep + narrow
+        ones are "refiners".
 
         Parameters
         ----------
@@ -822,7 +1041,7 @@ class Plots(LazyNamespace):
         rows: list[dict] = []
         for tree_id, tree in enumerate(self.trees_model.model):
             for node in _iter_nodes(tree):
-                if node.split is not None and node.gain > 0:
+                if node.split is not None:
                     rows.append(
                         {
                             "predictor": node.split.variable,
@@ -857,7 +1076,8 @@ class Plots(LazyNamespace):
             df,
             x="mean_depth",
             y="tree_coverage",
-            size="total_gain",
+            size="total_gain" if (df["total_gain"] > 0).all() else None,
+            hover_data={"total_gain": True},
             color="PredictorCategory",
             hover_name="predictor",
             title="Feature role map (router vs refiner)",

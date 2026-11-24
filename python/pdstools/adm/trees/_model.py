@@ -26,6 +26,7 @@ from ...utils import cdh_utils
 from ._encoding import decode_trees, find_encoders, split_encoding
 from ._nodes import (
     _BOOSTER_PATHS,
+    Node,
     _iter_nodes,
     _traverse,
     parse_split,
@@ -39,6 +40,40 @@ if TYPE_CHECKING:
 # safe-eval logging test (test_safe_condition_evaluate_handles_bad_numeric)
 # bind to this logger without churn.
 logger = logging.getLogger("pdstools.adm.ADMTrees")
+
+
+def _weighted_leaf_score_std(leaves: list[Node]) -> float | None:
+    """Return reliability-weighted sample standard deviation, if defined."""
+    weights: list[float] = []
+    for leaf in leaves:
+        count = leaf.sample_count
+        if isinstance(count, bool) or not isinstance(count, (int, float)):
+            return None
+        try:
+            weight = float(count)
+        except OverflowError:
+            return None
+        if not math.isfinite(weight) or weight < 0 or not math.isfinite(leaf.score):
+            return None
+        weights.append(weight)
+
+    if not weights or max(weights) == 0:
+        return None
+    scale = max(weights)
+    weights = [weight / scale for weight in weights]
+    total = sum(weights)
+    # Pairwise products avoid cancellation in total - sum(weights**2) / total.
+    prefix = 0.0
+    pair_sum = 0.0
+    for weight in weights:
+        pair_sum += prefix * weight
+        prefix += weight
+    denominator = 2 * pair_sum / total
+    if denominator <= 0:
+        return None
+    weighted_mean = sum(weight * leaf.score for weight, leaf in zip(weights, leaves, strict=True)) / total
+    variance = sum(weight * (leaf.score - weighted_mean) ** 2 for weight, leaf in zip(weights, leaves, strict=True))
+    return math.sqrt(variance / denominator)
 
 
 class ADMTreesModel:
@@ -313,6 +348,16 @@ class ADMTreesModel:
         computed from an exported model (e.g. saturation counts that
         require bin-level data) are omitted.
 
+        Tree depth counts edges from the root. Gain statistics include
+        signed and zero split gains. Gain share and entropy are ``None``
+        when the total is not positive or any predictor's total is negative.
+
+        ``weighted_leaf_score_std_mean`` is the unweighted mean of the
+        available per-tree spreads in :attr:`tree_stats`, rounded to six
+        decimals. It is ``None`` if no tree has a defined spread and is
+        distinct from ``pooled_leaf_score_std``, the unweighted standard
+        deviation over all leaves.
+
         See :meth:`metric_descriptions` for human-readable descriptions
         of every key.
         """
@@ -324,17 +369,24 @@ class ADMTreesModel:
         Runs a handful of heuristic checks against :attr:`metrics` — very
         few trees, mostly-stump trees, near-random AUC, an inverted or very
         low response volume, or a narrow active-predictor set — that
-        together indicate a model is too early in its training lifecycle
-        for its plots and metrics to be a reliable read on real-world
-        performance.
+        together warrant reviewing the model's training lifecycle before
+        interpreting its plots. These are heuristics, not statistical tests
+        or a verdict on real-world performance.
+
+        Separate advisories describe the tree index reaching 50% of total
+        gain and the leading non-context predictor's share of total gain.
+        Context predictors include the standard ADM keys and configured
+        ``context_keys``. A non-context share above 50% invites review, not
+        a leakage diagnosis. Missing metadata and undefined shares are
+        reported as advisories rather than red flags.
 
         Returns
         -------
         dict
             Dictionary with keys ``n_trees``, ``pooled_auc``,
-            ``positive_count``, ``negative_count``, and ``flags`` (a list
-            of human-readable warning strings; empty when no red flags
-            apply).
+            ``positive_count``, ``negative_count``, ``flags`` (heuristic
+            warnings), and ``advisories`` (descriptive observations and
+            unavailable checks). Metadata values can be ``None``.
         """
         m = self.metrics
         n_trees = m["number_of_trees"]
@@ -352,7 +404,7 @@ class ADMTreesModel:
             inverted_response = neg < pos
             low_response_volume = min(pos, neg) < 200
         pooled_auc_msg = (
-            f"Pooled AUC = {pooled_auc:.4f} — statistically indistinguishable from random."
+            f"Pooled AUC = {pooled_auc:.4f} — near 0.5 for the pooled population; assess within-action performance separately."
             if pooled_auc is not None
             else ""
         )
@@ -385,10 +437,6 @@ class ADMTreesModel:
                 pooled_auc_msg,
             ),
             (
-                not has_response_counts,
-                "Response counts are unavailable — volume-based stability checks were skipped.",
-            ),
-            (
                 inverted_response,
                 inverted_response_msg,
             ),
@@ -401,12 +449,63 @@ class ADMTreesModel:
                 f"Only {active_predictors} active predictor(s) — model is deciding on a very narrow feature set.",
             ),
         ]
+        advisories: list[str] = []
+        if pooled_auc is None:
+            advisories.append("Pooled AUC is unavailable — the near-0.5 check was skipped.")
+        if not has_response_counts:
+            advisories.append("Response counts are unavailable — volume-based stability checks were skipped.")
+
+        tree_gains = pl.Series(list(self.gains_per_tree.values()), dtype=pl.List(pl.Float64)).list.sum()
+        total_gain = tree_gains.sum()
+        if total_gain <= 0:
+            advisories.append(
+                "Cumulative gain share unavailable: total gain is not positive; inspect signed gain per tree.",
+            )
+        elif (tree_gains < 0).any():
+            advisories.append(
+                "Cumulative gain share unavailable: at least one tree has negative total gain; inspect signed gain per tree.",
+            )
+        else:
+            half_tree = (tree_gains.cum_sum() >= total_gain / 2).arg_true().item(0)
+            advisories.append(
+                f"Cumulative gain: 50% reached at tree index {half_tree} "
+                f"({half_tree + 1}/{n_trees} trees); descriptive, not a health threshold.",
+            )
+
+        predictor_gains = (
+            self.gains_per_split.group_by("predictor")
+            .agg(pl.col("gains").sum())
+            .sort(["gains", "predictor"], descending=[True, False])
+        )
+        context_keys = cdh_utils.CONTEXT_KEY_PREDICTORS | set(self.context_keys or [])
+        non_context = predictor_gains.filter(~pl.col("predictor").is_in(context_keys))
+        if non_context.is_empty():
+            advisories.append("Gain concentration: no non-context predictors appear in splits.")
+        else:
+            predictor, gain = non_context.row(0)
+            predictor_total = predictor_gains["gains"].sum()
+            if predictor_total > 0 and (predictor_gains["gains"] >= 0).all():
+                share = gain / predictor_total
+                message = (
+                    f"Gain concentration: {predictor} contributes {share:.1%} of total gain "
+                    "(leading non-context predictor)."
+                )
+                if share > 0.5:
+                    message += " Above 50%: review possible over-reliance or leakage; this is not a diagnosis."
+                advisories.append(message)
+            else:
+                advisories.append(
+                    f"Gain concentration: leading non-context predictor is {predictor}; "
+                    "share unavailable because total gain is not positive or a predictor has negative total gain.",
+                )
+
         return {
             "n_trees": n_trees,
             "pooled_auc": pooled_auc,
             "positive_count": pos,
             "negative_count": neg,
             "flags": [msg for is_flag, msg in checks if is_flag],
+            "advisories": advisories,
         }
 
     def predictor_diagnostics(
@@ -573,8 +672,8 @@ class ADMTreesModel:
             "response_negative_count": "Number of negative responses in training data.",
             # Model complexity
             "number_of_tree_nodes": "Total node count across all trees (splits + leaves).",
-            "tree_depth_max": "Maximum depth of any single tree in the ensemble.",
-            "tree_depth_avg": "Average depth across all trees.",
+            "tree_depth_max": "Maximum tree depth in edges from the root.",
+            "tree_depth_avg": "Average tree depth in edges from the root.",
             "tree_depth_std": "Standard deviation of tree depths — uniformity of tree complexity.",
             "number_of_trees": "Total number of boosting rounds (trees) in the model.",
             "number_of_stump_trees": "Trees with no splits (single root node). Stumps contribute no learned signal.",
@@ -594,7 +693,7 @@ class ADMTreesModel:
             "number_of_active_numeric_predictors": "Active numeric (continuous) predictors.",
             "total_number_of_numeric_predictors": "All numeric predictors in configuration.",
             # Gain distribution
-            "total_gain": "Sum of all split gains — total information gained by the ensemble.",
+            "total_gain": "Sum of signed split gains across the ensemble.",
             "mean_gain_per_split": "Average gain per split node (analogous to XGBoost gain importance).",
             "median_gain_per_split": "Median gain — robust central tendency, less sensitive to outlier splits.",
             "max_gain_per_split": "Largest single split gain — identifies the most informative split.",
@@ -602,7 +701,8 @@ class ADMTreesModel:
             # Leaf scores
             "number_of_leaves": "Total leaf nodes across all trees.",
             "leaf_score_mean": "Average leaf score (log-odds contribution). Near zero means balanced.",
-            "leaf_score_std": "Spread of leaf scores — wider spread means better discrimination.",
+            "pooled_leaf_score_std": "Unweighted sample standard deviation over all leaves in the ensemble.",
+            "weighted_leaf_score_std_mean": "Mean of available per-tree sample-weighted leaf score spreads.",
             "leaf_score_min": "Most negative leaf score.",
             "leaf_score_max": "Most positive leaf score.",
             # Split types
@@ -621,8 +721,8 @@ class ADMTreesModel:
             "mean_gain_last_half": "Average gain in the second half — lower values suggest convergence.",
             # Feature importance concentration
             "top_predictor_by_gain": "Predictor with the highest total gain.",
-            "top_predictor_gain_share": "Fraction of total gain from the top predictor (0–1). High = dominance.",
-            "predictor_gain_entropy": "Normalised Shannon entropy of gain distribution (0–1). Low = concentrated.",
+            "top_predictor_gain_share": "Fraction of total gain from the top predictor, or None if undefined.",
+            "predictor_gain_entropy": "Normalised gain entropy, or None if undefined.",
             # Saturation (encoder-based only)
             "number_of_saturated_context_key_predictors": "Context-key predictors that have reached max bin capacity.",
             "number_of_saturated_symbolic_predictors": "Symbolic predictors at max bin capacity.",
@@ -646,6 +746,7 @@ class ADMTreesModel:
         depths: list[int] = []
         all_gains: list[float] = []
         leaf_scores: list[float] = []
+        weighted_leaf_stds: list[float] = []
         split_strings: list[str] = []
         symbolic_set_sizes: list[int] = []
         per_tree_gains: list[list[float]] = []
@@ -659,6 +760,7 @@ class ADMTreesModel:
         for tree in self.model:
             tree_max_depth = 0
             tree_gains: list[float] = []
+            leaves: list[Node] = []
             root_added = False
             has_split = False
             for node in _iter_nodes(tree):
@@ -671,6 +773,7 @@ class ADMTreesModel:
                 if node.is_leaf:
                     leaf_count += 1
                     leaf_scores.append(node.score)
+                    leaves.append(node)
                     continue
 
                 has_split = True
@@ -682,9 +785,8 @@ class ADMTreesModel:
                 var_split_count[split.variable] += 1
                 var_total_gain[split.variable] += node.gain
 
-                if node.gain > 0:
-                    all_gains.append(node.gain)
-                    tree_gains.append(node.gain)
+                all_gains.append(node.gain)
+                tree_gains.append(node.gain)
 
                 if split.operator == "<":
                     numeric_split_count += 1
@@ -695,6 +797,9 @@ class ADMTreesModel:
 
             depths.append(tree_max_depth)
             per_tree_gains.append(tree_gains)
+            weighted_std = _weighted_leaf_score_std(leaves)
+            if weighted_std is not None:
+                weighted_leaf_stds.append(weighted_std)
             if not has_split:
                 stump_count += 1
 
@@ -768,7 +873,9 @@ class ADMTreesModel:
 
         m: dict[str, Any] = {}
         # Properties-level
-        m["auc"] = props.get("auc") or props.get("performance")
+        m["auc"] = props.get("auc")
+        if m["auc"] is None:
+            m["auc"] = props.get("performance")
         m["success_rate"] = props.get("successRate")
         m["factory_update_time"] = props.get("factoryUpdateTime")
         m["response_positive_count"] = training.get("positiveCount")
@@ -803,7 +910,8 @@ class ADMTreesModel:
         # Leaf scores
         m["number_of_leaves"] = leaf_count
         m["leaf_score_mean"] = round(mean(leaf_scores), 6) if leaf_scores else 0.0
-        m["leaf_score_std"] = round(stdev(leaf_scores), 6) if len(leaf_scores) >= 2 else 0.0
+        m["pooled_leaf_score_std"] = round(stdev(leaf_scores), 6) if len(leaf_scores) >= 2 else 0.0
+        m["weighted_leaf_score_std_mean"] = round(mean(weighted_leaf_stds), 6) if weighted_leaf_stds else None
         m["leaf_score_min"] = round(min(leaf_scores), 6) if leaf_scores else 0.0
         m["leaf_score_max"] = round(max(leaf_scores), 6) if leaf_scores else 0.0
         # Split types
@@ -841,9 +949,9 @@ class ADMTreesModel:
             m["mean_gain_first_half"] = 0.0
             m["mean_gain_last_half"] = 0.0
         # Feature-importance concentration
-        if var_total_gain and sum_all_gain > 0:
-            top_var = max(var_total_gain, key=lambda k: var_total_gain[k])
-            m["top_predictor_by_gain"] = top_var
+        top_var = max(var_total_gain, key=lambda k: var_total_gain[k]) if var_total_gain else None
+        m["top_predictor_by_gain"] = top_var
+        if top_var is not None and sum_all_gain > 0 and all(g >= 0 for g in var_total_gain.values()):
             m["top_predictor_gain_share"] = round(var_total_gain[top_var] / sum_all_gain, 4)
             n_vars = len(var_total_gain)
             if n_vars > 1:
@@ -857,9 +965,8 @@ class ADMTreesModel:
             else:
                 m["predictor_gain_entropy"] = 0.0
         else:
-            m["top_predictor_by_gain"] = None
-            m["top_predictor_gain_share"] = 0.0
-            m["predictor_gain_entropy"] = 0.0
+            m["top_predictor_gain_share"] = None
+            m["predictor_gain_entropy"] = None
         # Saturation
         if encoder_info is not None:
             m["number_of_saturated_context_key_predictors"] = saturated_ctx
@@ -923,6 +1030,7 @@ class ADMTreesModel:
 
     @cached_property
     def tree_stats(self) -> pl.DataFrame:
+        """Per-tree statistics; see :meth:`get_tree_stats` for the weighted spread."""
         logger.debug("Calculating tree stats.")
         return self.get_tree_stats()
 
@@ -931,7 +1039,7 @@ class ADMTreesModel:
         return self._splits_and_gains[0]
 
     @cached_property
-    def gains_per_tree(self) -> dict[int, list[float]]:  # pragma: no cover
+    def gains_per_tree(self) -> dict[int, list[float]]:
         return self._splits_and_gains[1]
 
     @cached_property
@@ -1050,10 +1158,8 @@ class ADMTreesModel:
         leak the entire ADMTreesModel instance for the lifetime of the
         cache.
 
-        Zero-gain splits are kept (with ``gains == 0.0``) in
-        ``gains_per_split`` so the per-split DataFrame is always aligned
-        with ``splits_per_tree``.  ``gains_per_tree`` continues to keep
-        only positive gains for backward compatibility.
+        Signed and zero gains are kept in both gain views, aligned with
+        the corresponding splits.
         """
         # Touch predictors so legacy callers still see them populated.
         self.predictors
@@ -1065,17 +1171,16 @@ class ADMTreesModel:
         all_predictors: list[str] = []
         for tree_id, tree in enumerate(self.model):
             tsplits: list[str] = []
-            tgains_positive: list[float] = []
+            tgains: list[float] = []
             for node in _iter_nodes(tree):
                 if node.split is not None:
                     tsplits.append(node.split.raw)
                     all_splits.append(node.split.raw)
                     all_predictors.append(node.split.variable)
                     all_gains.append(node.gain)
-                    if node.gain > 0:
-                        tgains_positive.append(node.gain)
+                    tgains.append(node.gain)
             splits_per_tree[tree_id] = tsplits
-            gains_per_tree[tree_id] = tgains_positive
+            gains_per_tree[tree_id] = tgains
 
         gains_per_split = pl.DataFrame(
             {"split": all_splits, "gains": all_gains, "predictor": all_predictors},
@@ -1111,34 +1216,53 @@ class ADMTreesModel:
         )
 
     def get_tree_stats(self) -> pl.DataFrame:
-        """Generate a dataframe with useful stats for each tree."""
+        """Generate per-tree stats with edge-count depth and signed gains.
+
+        ``weighted_leaf_score_std`` uses leaf ``sampleCount`` values as
+        reliability weights. For weights w, scores x, W = sum(w), and
+        weighted mean mu = sum(w*x)/W, it is the square root of
+        ``sum(w*(x-mu)**2) / (W - sum(w**2)/W)``. It has the same units
+        as the leaf scores and matches NumPy's ``cov`` with ``aweights``
+        and its default sample correction.
+
+        Zero weights contribute nothing. A missing, non-numeric, negative
+        or non-finite count, or a non-finite score, makes the whole tree's
+        result null. A single leaf, all-zero weights, or fewer than two
+        positive weights also yields null. The counts reflect the export,
+        not necessarily the current population distribution.
+        """
         rows = []
         for tree_id, tree in enumerate(self.model):
             depth = 0
             n_splits = 0
             gains: list[float] = []
+            leaves: list[Node] = []
             root_score = tree.get("score", 0.0)
             for node in _iter_nodes(tree):
                 depth = max(depth, node.depth)
+                if node.is_leaf:
+                    leaves.append(node)
                 if node.split is not None:
                     n_splits += 1
-                    if node.gain > 0:
-                        gains.append(node.gain)
+                    gains.append(node.gain)
             rows.append(
                 {
                     "treeID": tree_id,
                     "score": root_score,
-                    "depth": depth - 1,  # match legacy behaviour
+                    "depth": depth,
                     "nsplits": n_splits,
                     "gains": gains,
                     "meangains": mean(gains) if gains else 0,
+                    "weighted_leaf_score_std": _weighted_leaf_score_std(leaves),
                 },
             )
         # Without an explicit schema, polars infers "gains" as List(Null) when
         # every tree has an empty gains list (e.g. a single-tree, zero-split
         # cold-start candidate), which breaks numeric ops like `list.sum()`
         # and `cum_sum()` downstream. Pin the element type explicitly.
-        return pl.from_dicts(rows, schema_overrides={"gains": pl.List(pl.Float64)})
+        return pl.from_dicts(
+            rows, schema_overrides={"gains": pl.List(pl.Float64), "weighted_leaf_score_std": pl.Float64}
+        )
 
     def get_all_values_per_split(self) -> dict[str, set]:
         """All distinct split values seen for each predictor."""

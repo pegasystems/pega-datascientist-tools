@@ -6,6 +6,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- AGB category gain and split-share plots support `by_split_type=True`
+  for independently normalized All splits, Numeric, and Symbolic rows,
+  classified by actual conditions, with per-subset totals on hover.
+  Paler subset bars at 60% of the reference height emphasize All splits;
+  absent types and models without splits display explanatory notes.
+- `ADMTreesModel.plot.splits_by_namespace()` shows the percentage of split
+  nodes in each predictor category as a 100% stacked horizontal bar, ordered
+  from largest to smallest split share.
+- Per-tree reliability-weighted leaf-score spreads and their ensemble mean
+  for AGB exports with usable leaf sample counts (#1019).
+- AGB `sanity_check()` advisories report the 50% cumulative-gain crossover
+  and the leading non-context predictor's gain share, separately from
+  heuristic warnings. The AGB Explained notebook marks warnings with a
+  red flag icon, distinguishes advisories and predictor warnings with
+  information and warning icons, and handles unavailable AUC and response counts.
+
 ### Changed
 
 - `ADMTreesModel.from_file`, `from_url`, `from_dict` and `from_datamart_blob`
@@ -15,6 +33,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   indices, out-of-range bins, missing `inputsEncoder` data and models that
   mix encoded and decoded splits now raise a `ValueError` that explains the
   problem.
+- `ADMTreesModel.plot.gain_by_namespace()` now shows category gain shares
+  as a 100% stacked horizontal bar, with raw signed gains available on hover
+  and through `return_df=True`. Categories are ordered by decreasing gain
+  share, independently of the split-share plot, with consistent colors.
+  Undefined shares display an explanatory note.
+- Renamed the pooled AGB leaf-score metric `leaf_score_std` to
+  `pooled_leaf_score_std`; update callers to use the new key (#1019).
+
+### Fixed
+
+- AGB tree depth now counts edges from the root, and all gain summaries
+  include signed and zero split gains. Gain shares and entropy are
+  unavailable when the relevant aggregated gains are negative or their total
+  is not positive; individual negative splits are retained (#1022).
 
 - Selected example notebooks accept optional environment variables for custom
   input data while retaining their bundled or generated sample data defaults.
