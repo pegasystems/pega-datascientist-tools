@@ -776,7 +776,7 @@ class Plots(LazyNamespace):
             (``is``). Classify actual conditions, not predictor metadata.
             A predictor can therefore appear in both split-type subsets.
             Undefined gain shares are explained separately for each row.
-            Subset fills are paler than the combined reference row.
+            Subset bars are paler and 60% as tall as the combined reference.
         return_df : bool, default False
             If True, return the underlying DataFrame instead of the figure.
 
@@ -846,7 +846,7 @@ class Plots(LazyNamespace):
             within its subset. Use the same condition-based classification
             as :meth:`gain_by_namespace`, including missing-value checks
             with symbolic splits.
-            Subset fills are paler than the combined reference row.
+            Subset bars are paler and 60% as tall as the combined reference.
         return_df : bool, default False
             If True, return the underlying DataFrame instead of the figure.
 
@@ -959,6 +959,7 @@ class Plots(LazyNamespace):
                         marker_color=colors[category],
                         marker_opacity=0.55 if by_split_type and split_type != "All splits" else 1.0,
                         orientation="h",
+                        width=(0.8 if split_type == "All splits" else 0.48) if by_split_type else None,
                         legendgroup=category,
                         legendrank=categories.index(category),
                         showlegend=category not in seen,

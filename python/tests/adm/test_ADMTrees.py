@@ -2049,8 +2049,10 @@ def test_split_type_rows_keep_independent_order_colors_and_hover_totals(split_ty
             assert sum(trace.x[0] for trace in traces) == pytest.approx(1.0)
             assert all(trace.customdata[0][1] == total for trace in traces)
             assert all(trace.marker.opacity == (1.0 if row == "All splits" else 0.55) for trace in traces)
+            assert all(trace.width == (0.8 if row == "All splits" else 0.48) for trace in traces)
             if row != "All splits":
                 assert all(trace.textfont.color == "#333333" for trace in traces)
+                assert all(trace.width / figure.data[0].width == pytest.approx(0.6) for trace in traces)
         assert list(figure.layout.yaxis.categoryarray) == ["All splits", "Numeric", "Symbolic"]
         assert figure.layout.yaxis.showticklabels
         assert sum(trace.showlegend for trace in figure.data) == 4

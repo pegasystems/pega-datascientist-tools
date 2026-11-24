@@ -11,8 +11,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - AGB category gain and split-share plots support `by_split_type=True`
   for independently normalized All splits, Numeric, and Symbolic rows,
   classified by actual conditions, with per-subset totals on hover.
-  Paler subset fills emphasize the combined reference; absent types and
-  models without splits display explanatory notes.
+  Paler subset bars at 60% of the reference height emphasize All splits;
+  absent types and models without splits display explanatory notes.
 - `ADMTreesModel.plot.splits_by_namespace()` shows the percentage of split
   nodes in each predictor category as a 100% stacked horizontal bar, ordered
   from largest to smallest split share.
