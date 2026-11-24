@@ -9,7 +9,6 @@ import logging
 import math
 import threading
 import zlib
-from collections.abc import Mapping
 from functools import cached_property
 from math import exp
 from pathlib import Path
@@ -24,6 +23,7 @@ from typing import (
 import polars as pl
 
 from ...utils import cdh_utils
+from ._encoding import decode_trees, find_encoders, split_encoding
 from ._nodes import (
     _BOOSTER_PATHS,
     _iter_nodes,
@@ -55,11 +55,15 @@ class ADMTreesModel:
 
     Notes
     -----
-    The "save model" action in Prediction Studio exports a JSON file
-    that this class can load directly.  The Datamart's ``pyModelData``
-    column also contains this information, but compressed and with
-    encoded split values; the "save model" button decompresses and
-    decodes that data.
+    Every loader accepts decoded models, such as the JSON from Prediction
+    Studio's "save model" action, and encoded models, whose splits refer
+    to predictor and bin indices (``"12 LT 40"``).  The Datamart's
+    ``Modeldata`` blobs and raw scoring-model JSON use the encoded form.
+    Encoded splits are detected automatically and decoded with the model's
+    ``inputsEncoder``, so :attr:`model` always holds readable splits; the
+    raw input stays unchanged in :attr:`trees`.  Loading fails with a
+    ``ValueError`` when encoded splits lack encoder data, refer to unknown
+    predictors or bins, or are mixed with decoded splits.
 
     """
 
@@ -111,19 +115,19 @@ class ADMTreesModel:
         instance = cls.__new__(cls)
         instance.trees = data
         instance.raw_input = data
-        instance._post_import_cleanup(decode=False, context_keys=context_keys)
+        instance._post_import_cleanup(context_keys=context_keys)
         return instance
 
     @classmethod
     def from_file(cls, path: str | Path, *, context_keys: list | None = None) -> ADMTreesModel:
-        """Load a model from a local JSON file (Prediction Studio "save model" output)."""
+        """Load a decoded or encoded AGB model from a local JSON file."""
         path = Path(path)
         with path.open() as f:
             data = json.load(f)
         instance = cls.__new__(cls)
         instance.trees = data
         instance.raw_input = str(path)
-        instance._post_import_cleanup(decode=False, context_keys=context_keys)
+        instance._post_import_cleanup(context_keys=context_keys)
         return instance
 
     @classmethod
@@ -146,7 +150,7 @@ class ADMTreesModel:
         instance = cls.__new__(cls)
         instance.trees = data
         instance.raw_input = url
-        instance._post_import_cleanup(decode=False, context_keys=context_keys)
+        instance._post_import_cleanup(context_keys=context_keys)
         return instance
 
     @classmethod
@@ -165,93 +169,26 @@ class ADMTreesModel:
         instance = cls.__new__(cls)
         instance.trees = data
         instance.raw_input = blob
-        instance._post_import_cleanup(decode=True, context_keys=context_keys)
+        instance._post_import_cleanup(context_keys=context_keys)
         return instance
 
     # ------------------------------------------------------------------
     # Internal post-load processing
     # ------------------------------------------------------------------
 
-    def _decode_trees(self):  # pragma: no cover
-        def quantile_decoder(encoder: dict, index: int):
-            if encoder["summaryType"] == "INITIAL_SUMMARY":
-                return encoder["summary"]["initialValues"][index]
-            return encoder["summary"]["list"][index - 1].split("=")[0]
-
-        def string_decoder(encoder: dict, index: int, sign):
-            def set_types(split):
-                logger.debug(split)
-                split = split.rsplit("=", 1)
-                split[1] = int(split[1])
-                return tuple(reversed(split))
-
-            valuelist = dict(sorted(set_types(i) for i in encoder["symbols"]))
-            splitvalues = []
-            for key, value in valuelist.items():
-                logger.debug("string_decoder candidate: %s=%s (index=%s)", key, value, index)
-                if int(key) == index - 129 and index == 129 and sign == "<":
-                    splitvalues.append("Missing")
-                    break
-                if self._safe_numeric_compare(int(key), sign, index - 129):
-                    splitvalues.append(value)
-            return ", ".join(splitvalues)
-
-        def decode_split(split: str):
-            if not isinstance(split, str):
-                return split
-            logger.debug("Decoding split: %s", split)
-            predictor, sign, splitval = split.split(" ")
-            if sign == "LT":
-                sign = "<"
-            elif sign == "EQ":
-                sign = "=="
-            else:
-                raise ValueError(
-                    f"Unsupported split operator (only LT/EQ supported): {(predictor, sign, splitval)}",
-                )
-            variable = encoderkeys[int(predictor)]
-            encoder = encoders[variable]
-            variable_type = next(iter(encoder["encoder"].keys()))
-            to_decode = next(iter(encoder["encoder"].values()))
-            if variable_type == "quantileArray":
-                val = quantile_decoder(to_decode, int(splitval))
-            elif variable_type == "stringTranslator":
-                val = string_decoder(to_decode, int(splitval), sign=sign)
-                if val == "Missing":
-                    sign, val = "is", "Missing"
-                else:
-                    val = "{ " + val + " }"
-                    sign = "in"
-            else:
-                raise ValueError(f"Unsupported encoder variable_type: {variable_type!r}")
-            logger.debug("Decoded split: %s %s %s", variable, sign, val)
-            return f"{variable} {sign} {val}"
-
-        try:
-            encoders = self.trees["model"]["model"]["inputsEncoder"]["encoders"]
-        except KeyError:
-            encoders = self.trees["model"]["inputsEncoder"]["encoders"]
-        encoderkeys: dict[int, str] = {}
-        for encoder in encoders:
-            encoderkeys[encoder["value"]["index"]] = encoder["key"]
-        encoders = {encoder["key"]: encoder["value"] for encoder in encoders}
-
-        def decode_all(ob, func):
-            if isinstance(ob, Mapping):
-                return {k: decode_all(v, func) for k, v in ob.items()}
-            return func(ob)
-
-        for i, model in enumerate(self.model):
-            self.model[i] = decode_all(model, decode_split)
-            logger.debug("Decoded tree %d", i)
-
-    def _post_import_cleanup(self, decode: bool, *, context_keys: list | None = None):
+    def _post_import_cleanup(self, *, context_keys: list | None = None):
         if not hasattr(self, "model"):
             self.model = self._locate_boosters()
 
-        if decode:  # pragma: no cover
+        if split_encoding(self.model) == "encoded":
+            encoders = find_encoders(self.trees)
+            if encoders is None:
+                raise ValueError(
+                    "The model has encoded splits but no inputsEncoder to decode them; "
+                    "load the full scoring-model JSON or a Prediction Studio export.",
+                )
             logger.debug("Decoding the tree splits.")
-            self._decode_trees()
+            self.model = decode_trees(self.model, encoders)
 
         if isinstance(self.trees, dict):
             self._properties = {k: v for k, v in self.trees.items() if k != "model"}
@@ -930,25 +867,13 @@ class ADMTreesModel:
             m["max_saturation_rate_on_context_key_predictors"] = round(max_saturation_ctx * 100, 1)
         return m
 
-    _ENCODER_PATHS: tuple[tuple[str, ...], ...] = (
-        ("model", "inputsEncoder", "encoders"),
-        ("model", "model", "inputsEncoder", "encoders"),
-    )
-
     def _get_encoder_info(self) -> dict[str, dict[str, Any]] | None:
         """Extract predictor metadata from the inputsEncoder if present.
 
         Returns ``None`` when no encoder metadata is available (e.g. for
         exported/decoded models).
         """
-        raw_encoders = None
-        for path in self._ENCODER_PATHS:
-            try:
-                raw_encoders = _traverse(self.trees, path)
-                break
-            except (KeyError, TypeError, IndexError):
-                continue
-
+        raw_encoders = find_encoders(self.trees)
         if raw_encoders is None:
             return None
 
