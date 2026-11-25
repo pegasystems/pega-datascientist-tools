@@ -25,10 +25,9 @@ class Infinity(SyncAPIClient):
     The Pega version is resolved lazily on first access of
     ``version``. When ``pega_version=`` is passed explicitly, no
     HTTP request is ever made; otherwise the first read of
-    ``client.version`` (or any version-dependent resource such as
-    ``client.prediction_studio``) issues a single
-    ``GET /prweb/api/PredictionStudio/v3/predictions/repository`` and
-    caches the result on the instance.
+    ``client.version`` (or a version-dependent resource) probes
+    ``/v5/settings`` first, then the legacy v3 endpoints if v5 is absent.
+    The detected version is cached on the instance.
     """
 
     def __init__(
@@ -66,13 +65,12 @@ class Infinity(SyncAPIClient):
 
     @property
     def version(self) -> str | None:
-        """The Pega platform version (e.g. ``"26.1"``).
+        """The compatible Pega API generation (e.g. ``"26.1"``).
 
-        Resolved lazily on first access by calling the prediction-studio
-        repository endpoint. Returns ``None`` if the version could not be
-        inferred (e.g. the host is unreachable). Pass ``pega_version=``
-        to the constructor or any ``from_*`` classmethod to skip the
-        round-trip entirely.
+        Resolved lazily on first access by probing Prediction Studio v5,
+        then v3 and the legacy repository endpoint if necessary. Returns
+        ``None`` if the version could not be inferred (e.g. the host is
+        unreachable). Pass ``pega_version=`` to skip probing entirely.
         """
         if not self._version_resolved:
             self._version = self._infer_version(on_error="warn")
@@ -116,9 +114,9 @@ class AsyncInfinity(AsyncAPIClient):
     The Pega version is resolved lazily on first access of
     ``version``. When ``pega_version=`` is passed explicitly, no
     HTTP request is ever made; otherwise the first read of
-    ``client.version`` (or any version-dependent resource such as
-    ``client.prediction_studio``) issues a single HTTP probe and caches
-    the result on the instance.
+    ``client.version`` (or a version-dependent resource) probes
+    ``/v5/settings`` first, then the legacy v3 endpoints if v5 is absent.
+    The detected version is cached on the instance.
     """
 
     def __init__(
@@ -156,7 +154,7 @@ class AsyncInfinity(AsyncAPIClient):
 
     @property
     def version(self) -> str | None:
-        """The Pega platform version (e.g. ``"26.1"``).
+        """The compatible Pega API generation (e.g. ``"26.1"``).
 
         Resolved lazily on first access. The underlying
         ``_infer_version`` helper bridges to the async HTTP client via a

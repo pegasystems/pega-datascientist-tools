@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock
+
+import httpx
 import pytest
 from pdstools.infinity import AsyncInfinity, Infinity
 
@@ -11,6 +14,15 @@ from pdstools.infinity import AsyncInfinity, Infinity
 
 
 class TestInfinity:
+    def test_v27_is_discovered_and_cached_without_explicit_version(self, mocker):
+        client = Infinity(base_url="https://example.com", auth=httpx.BasicAuth("user", "pass"))
+        request = mocker.patch.object(client, "_request", return_value=httpx.Response(200))
+
+        assert client.version == "27.1"
+        assert client.prediction_studio.version == "27.1"
+        assert client.version == "27.1"
+        request.assert_called_once_with(method="get", endpoint=client._V5_SETTINGS_ENDPOINT)
+
     def test_init_without_version(self):
         """Client without version raises AttributeError when prediction_studio is accessed."""
         client = Infinity.from_client_id_and_secret("TEST_URL", "NA", "NA")
@@ -51,6 +63,17 @@ class TestInfinity:
         )
         assert client.version == "24.2"
         assert hasattr(client, "prediction_studio")
+
+    @pytest.mark.parametrize("version", ["25.2", "26.2", "27.0"])
+    def test_explicit_legacy_version_retains_v26_routing(self, mocker, version):
+        from pdstools.infinity.resources.prediction_studio.v26_1 import PredictionStudio
+
+        client = Infinity(base_url="https://example.com", auth=httpx.BasicAuth("user", "pass"), pega_version=version)
+        request = mocker.patch.object(client, "_request", side_effect=AssertionError("must not probe"))
+
+        assert client.version == version
+        assert type(client.prediction_studio) is PredictionStudio
+        request.assert_not_called()
 
     def test_init_inferred_version_24_1(self, mocker):
         mocker.patch.object(Infinity, "_infer_version", return_value="24.1")
@@ -94,15 +117,15 @@ class TestInfinity:
             _ = client.nonexistent_thing
 
     def test_version_dispatch_fallback_for_unknown_version(self, mocker):
-        """An unknown version (e.g. '27') should fall back to latest (26)."""
-        mocker.patch.object(Infinity, "_infer_version", return_value="27")
+        """An unknown version (e.g. '28') should fall back to latest (27)."""
+        mocker.patch.object(Infinity, "_infer_version", return_value="28")
         client = Infinity.from_client_id_and_secret(
             "https://example.com",
             "id",
             "secret",
         )
-        assert client.version == "27"
-        # Should still get prediction_studio (falls back to 26 dispatch)
+        assert client.version == "28"
+        # Should still get prediction_studio (falls back to 27 dispatch)
         assert hasattr(client, "prediction_studio")
 
 
@@ -112,6 +135,23 @@ class TestInfinity:
 
 
 class TestAsyncInfinity:
+    def test_v27_is_discovered_and_cached_without_explicit_version(self, mocker):
+        client = AsyncInfinity(base_url="https://example.com", auth=httpx.BasicAuth("user", "pass"))
+        request = mocker.patch.object(client, "_request", new_callable=AsyncMock, return_value=httpx.Response(200))
+
+        assert client.version == "27.1"
+        assert client.prediction_studio.version == "27.1"
+        assert client.version == "27.1"
+        request.assert_awaited_once_with(method="get", endpoint=client._V5_SETTINGS_ENDPOINT)
+
+    @pytest.mark.asyncio
+    async def test_v27_discovery_inside_event_loop(self, mocker):
+        client = AsyncInfinity(base_url="https://example.com", auth=httpx.BasicAuth("user", "pass"))
+        request = mocker.patch.object(client, "_request", new_callable=AsyncMock, return_value=httpx.Response(200))
+
+        assert client.prediction_studio.version == "27.1"
+        request.assert_awaited_once_with(method="get", endpoint=client._V5_SETTINGS_ENDPOINT)
+
     def test_init_no_args_raises_type_error(self):
         """Direct ``AsyncInfinity()`` with no args is rejected — explicit signature."""
         with pytest.raises(TypeError, match="missing .* required keyword-only argument"):
@@ -143,6 +183,19 @@ class TestAsyncInfinity:
         )
         assert client.version == "24.2"
         assert hasattr(client, "prediction_studio")
+
+    @pytest.mark.parametrize("version", ["25.2", "26.2", "27.0"])
+    def test_explicit_legacy_version_retains_v26_routing(self, mocker, version):
+        from pdstools.infinity.resources.prediction_studio.v26_1 import AsyncPredictionStudio
+
+        client = AsyncInfinity(
+            base_url="https://example.com", auth=httpx.BasicAuth("user", "pass"), pega_version=version
+        )
+        request = mocker.patch.object(client, "_request", side_effect=AssertionError("must not probe"))
+
+        assert client.version == version
+        assert type(client.prediction_studio) is AsyncPredictionStudio
+        request.assert_not_called()
 
     def test_init_without_version(self, mocker):
         mocker.patch.object(AsyncInfinity, "_infer_version", return_value=None)
@@ -192,6 +245,14 @@ class TestAsyncInfinity:
 
 
 class TestVersionDispatch:
+    @pytest.mark.parametrize("version", ["23.1", "24.3", "25.2", "26.2", "27.0", "unknown"])
+    def test_unmapped_pre_27_versions_keep_legacy_fallback(self, version):
+        from pdstools.infinity.resources.prediction_studio import get, get_async
+        from pdstools.infinity.resources.prediction_studio.v26_1 import AsyncPredictionStudio, PredictionStudio
+
+        assert get(version) is PredictionStudio
+        assert get_async(version) is AsyncPredictionStudio
+
     def test_get_24_1(self):
         from pdstools.infinity.resources.prediction_studio import get
         from pdstools.infinity.resources.prediction_studio.v24_1 import PredictionStudio
@@ -204,11 +265,31 @@ class TestVersionDispatch:
 
         assert get("24.2") is PredictionStudio
 
-    def test_get_unknown_falls_back(self):
+    def test_get_25_1(self):
+        from pdstools.infinity.resources.prediction_studio import get, get_async
+        from pdstools.infinity.resources.prediction_studio.v25_1 import AsyncPredictionStudio, PredictionStudio
+
+        assert get("25.1") is PredictionStudio
+        assert get_async("25.1") is AsyncPredictionStudio
+
+    def test_get_26_1(self):
         from pdstools.infinity.resources.prediction_studio import get
         from pdstools.infinity.resources.prediction_studio.v26_1 import PredictionStudio
 
-        result = get("27")
+        assert get("26.1") is PredictionStudio
+
+    def test_get_27_1(self):
+        from pdstools.infinity.resources.prediction_studio import get
+        from pdstools.infinity.resources.prediction_studio.v27_1 import PredictionStudio
+
+        assert get("27.1") is PredictionStudio
+
+    @pytest.mark.parametrize("version", ["27.2", "28"])
+    def test_get_unknown_falls_back(self, version):
+        from pdstools.infinity.resources.prediction_studio import get
+        from pdstools.infinity.resources.prediction_studio.v27_1 import PredictionStudio
+
+        result = get(version)
         assert result is PredictionStudio
 
     def test_get_async_24_1(self):
@@ -227,11 +308,20 @@ class TestVersionDispatch:
 
         assert get_async("24.2") is AsyncPredictionStudio
 
-    def test_get_async_unknown_falls_back(self):
+    def test_get_async_27_1(self):
         from pdstools.infinity.resources.prediction_studio import get_async
-        from pdstools.infinity.resources.prediction_studio.v26_1 import (
+        from pdstools.infinity.resources.prediction_studio.v27_1 import (
             AsyncPredictionStudio,
         )
 
-        result = get_async("27")
+        assert get_async("27.1") is AsyncPredictionStudio
+
+    @pytest.mark.parametrize("version", ["27.2", "28"])
+    def test_get_async_unknown_falls_back(self, version):
+        from pdstools.infinity.resources.prediction_studio import get_async
+        from pdstools.infinity.resources.prediction_studio.v27_1 import (
+            AsyncPredictionStudio,
+        )
+
+        result = get_async(version)
         assert result is AsyncPredictionStudio

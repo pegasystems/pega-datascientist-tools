@@ -1,13 +1,19 @@
+"""v26 champion/challenger behavior, inherited by compatible newer versions.
+
+``v24_2`` retains its own mixin because its polling and approval behavior differs.
+"""
+
 from __future__ import annotations
 
 import logging
 import random
 import string
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from pydantic import validate_call
 
-from .....internal._exceptions import PegaException, PegaMLopsError
+from .....internal._exceptions import PegaException, PegaFeatureUnavailableError, PegaMLopsError
 from .....internal._resource import _maybe_await, api_method
 from ...types import AdmModelType
 from ..model_upload import UploadedModel
@@ -15,11 +21,75 @@ from ..model_upload import UploadedModel
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from ...v24_2.model_upload import UploadedModel as UploadedModelBase
+
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class ChampionChallengerEndpoints:
+    """The set of endpoint templates that vary between API versions.
+
+    Every callable takes the path parameters for that endpoint and returns
+    the full request path. Business logic never builds a URL directly —
+    it always goes through one of these, so a new API version only needs a
+    new instance of this table, not a copy of the ~600 lines below.
+
+    """
+
+    operations: Callable[[str], str]
+    delete_challenger: Callable[[str, str], str]
+    promote_challenger: Callable[[str, str], str]
+    update_pattern: Callable[[str, str], str]
+    distribution: Callable[[str, str], str]
+    predictor_add: Callable[[str, str], str]
+    predictor_remove: Callable[[str, str], str]
+    component: Callable[[str, str], str]
+    component_clone: Callable[[str, str], str]
+
+
+def build_champion_challenger_endpoints(
+    api_version: str,
+    *,
+    predictor_api_version: str | None = None,
+) -> ChampionChallengerEndpoints:
+    """Build an endpoint table for one Pega API version.
+
+    Parameters
+    ----------
+    api_version : str
+        The API version segment (e.g. ``"v4"``, ``"v5"``) used by every
+        endpoint except the predictor add/remove pair.
+    predictor_api_version : str, optional
+        Overrides the version segment for ``predictor_add``/``predictor_remove``
+        only. ``v26_1`` kept these on ``v1`` while every other endpoint moved
+        to ``v4`` — a real, observed case of a version not moving all of its
+        endpoints in lockstep, which is why this is a separate parameter
+        rather than a single blanket version string.
+
+    """
+    base = "/prweb/api/PredictionStudio"
+    pv = predictor_api_version or api_version
+    return ChampionChallengerEndpoints(
+        operations=lambda cc_id: f"{base}/{api_version}/predictions/operations/{cc_id}",
+        delete_challenger=lambda pid, mid: f"{base}/{api_version}/predictions/{pid}/models/{mid}/Remove",
+        promote_challenger=lambda pid, mid: f"{base}/{api_version}/predictions/{pid}/models/{mid}/Promote",
+        update_pattern=lambda pid, mid: f"{base}/{api_version}/predictions/{pid}/models/{mid}/updatePattern",
+        distribution=lambda pid, mid: f"{base}/{api_version}/predictions/{pid}/models/{mid}/distribution",
+        predictor_add=lambda pid, mid: f"{base}/{pv}/predictions/{pid}/models/{mid}/predictor/add",
+        predictor_remove=lambda pid, mid: f"{base}/{pv}/predictions/{pid}/models/{mid}/predictor/remove",
+        component=lambda pid, name: f"{base}/{api_version}/predictions/{pid}/component/{name}",
+        component_clone=lambda pid, name: f"{base}/{api_version}/predictions/{pid}/component/{name}/clone",
+    )
+
+
 class _ChampionChallengerv26_1Mixin:
-    """v26 ChampionChallenger business logic — shared parts."""
+    """Champion/challenger behavior reused by v27 with different endpoints."""
+
+    _endpoints: ClassVar[ChampionChallengerEndpoints] = build_champion_challenger_endpoints(
+        "v4", predictor_api_version="v1"
+    )
+    _uploaded_model_type: ClassVar[type[UploadedModelBase]] = UploadedModel
 
     # Declared for mypy — provided by concrete base classes at runtime
     if TYPE_CHECKING:
@@ -42,7 +112,7 @@ class _ChampionChallengerv26_1Mixin:
         champion_percentage: float | None = None,
         model_objective: str | None = None,
     ):
-        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative mixin init resolves at runtime; mypy sees object.__init__
+        super().__init__(client=client)  # type: ignore[call-arg]  # cooperative mixin init resolves at runtime
         self.prediction_id = prediction_id
         self.cc_id = cc_id
         self.context = context
@@ -122,7 +192,7 @@ class _ChampionChallengerv26_1Mixin:
         """Checks the update status of the champion challenger configuration."""
         if not self.cc_id:
             return {"ModelUpdateStatus": "Active", "message": "Active"}
-        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/operations/{self.cc_id}"
+        endpoint = self._endpoints.operations(self.cc_id)
         return await self._a_get(endpoint)
 
     async def _introduce_model(
@@ -134,7 +204,7 @@ class _ChampionChallengerv26_1Mixin:
     ):
         if not self.cc_id:
             return "Model already introduced."
-        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/operations/{self.cc_id}"
+        endpoint = self._endpoints.operations(self.cc_id)
         if self.active_model.model_type.upper() != "SCORECARD":
             if champion_response_share == 1:
                 deployment_mode: dict[str, Any] = {"type": "Shadow"}
@@ -180,7 +250,7 @@ class _ChampionChallengerv26_1Mixin:
             from tqdm import tqdm
         except ImportError:
 
-            class tqdm:  # type: ignore[no-redef]  # intentional fallback shadowing the imported name
+            class tqdm:  # type: ignore[no-redef]  # fallback when the optional tqdm package is unavailable
                 def __init__(self, total=None):
                     self.n = 0
 
@@ -255,7 +325,7 @@ class _ChampionChallengerv26_1Mixin:
         """
         if not self.challenger_model:
             raise PegaMLopsError("Challenger model is not set.")
-        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.challenger_model.model_id}/Remove"
+        endpoint = self._endpoints.delete_challenger(self.prediction_id, self.challenger_model.model_id)
         data = {"contextName": self.context}
         try:
             response = await self._a_patch(endpoint, data=data)
@@ -278,7 +348,7 @@ class _ChampionChallengerv26_1Mixin:
         """
         if not self.challenger_model:
             raise PegaMLopsError("Challenger model is not set.")
-        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.challenger_model.model_id}/Promote"
+        endpoint = self._endpoints.promote_challenger(self.prediction_id, self.challenger_model.model_id)
         data = {"contextName": self.context}
         try:
             response = await self._a_patch(endpoint, data=data)
@@ -319,13 +389,13 @@ class _ChampionChallengerv26_1Mixin:
             raise ValueError("Challenger model is not set.")
 
         if self.challenger_model.status.upper() == "SHADOW":
-            endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.challenger_model.model_id}/updatePattern"
+            endpoint = self._endpoints.update_pattern(self.prediction_id, self.challenger_model.model_id)
             data = {
                 "contextName": self.context,
                 "challengerPercentage": new_challenger_response_share * 100,
             }
         else:
-            endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/models/{self.active_model.model_id}/distribution"
+            endpoint = self._endpoints.distribution(self.prediction_id, self.active_model.model_id)
             data = {
                 "contextName": self.context,
                 "championPercentage": float(1 - new_challenger_response_share) * 100,
@@ -385,13 +455,11 @@ class _ChampionChallengerv26_1Mixin:
             if not self.challenger_model:
                 raise PegaMLopsError("Challenger model is not set.")
             model = self.challenger_model
-        endpoint = (
-            f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/models/{model.model_id}/predictor/add"
-        )
+        endpoint = self._endpoints.predictor_add(self.prediction_id, model.model_id)
         if parameterized:
             predictor_category = "parameterized"
         else:
-            raise NotImplementedError("Static predictors are not supported.")
+            raise PegaFeatureUnavailableError("Static predictors")
         data = {
             "predictorName": name,
             "predictorCategory": predictor_category,
@@ -453,13 +521,11 @@ class _ChampionChallengerv26_1Mixin:
                 raise PegaMLopsError("Challenger model is not set.")
             model = self.challenger_model
 
-        endpoint = (
-            f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/models/{model.model_id}/predictor/remove"
-        )
+        endpoint = self._endpoints.predictor_remove(self.prediction_id, model.model_id)
         if parameterized:
             predictorCategory = "parameterized"
         else:
-            raise NotImplementedError
+            raise PegaFeatureUnavailableError("Static predictors")
         data = {
             "predictorName": name,
             "predictorCategory": predictorCategory,
@@ -508,11 +574,11 @@ class _ChampionChallengerv26_1Mixin:
         objective = None
         if not (0 <= challenger_response_share <= 1):
             raise ValueError("Percentage must be between 0 and 1.")
-        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/component/{self.active_model.component_name}"
+        endpoint = self._endpoints.component(self.prediction_id, self.active_model.component_name)
         data: dict[str, Any] = {}
-        if hasattr(new_model, "model_id") and not isinstance(new_model, UploadedModel):
+        if hasattr(new_model, "model_id") and not isinstance(new_model, self._uploaded_model_type):
             new_model = new_model.model_id.split("!")[1]
-        elif isinstance(new_model, UploadedModel):
+        elif isinstance(new_model, self._uploaded_model_type):
             data["sourceType"] = "Uploaded Model"
             if model_label is None:
                 model_label = new_model.file_path.split("/")[-1].split(".")[0]
@@ -592,7 +658,7 @@ class _ChampionChallengerv26_1Mixin:
             )
         if not (0 <= challenger_response_share <= 1):
             raise PegaMLopsError("Percentage must be between 0 and 1.")
-        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}/component/{self.active_model.component_name}/clone"
+        endpoint = self._endpoints.component_clone(self.prediction_id, self.active_model.component_name)
         if model_label is None:
             unique_suffix = "".join(random.choices(string.ascii_uppercase, k=3))
             model_label = self.active_model.component_name + "_copy_" + unique_suffix

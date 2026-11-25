@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date, timedelta
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, ClassVar, Literal
 from urllib.parse import quote as _quote
 
 import polars as pl
@@ -16,8 +17,19 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
+@dataclass(frozen=True)
+class _PredictionEndpoints:
+    details: str
+    metric: str
+    staged: str
+    notifications: str
+    conditional_model: str
+
+
 class _Predictionv26_1Mixin:
     """v26 Prediction business logic — shared parts."""
+
+    _endpoints: ClassVar[_PredictionEndpoints] = _PredictionEndpoints("v4", "v2", "v1", "v2", "v4")
 
     # Declared for mypy — provided by concrete base classes at runtime
     if TYPE_CHECKING:
@@ -63,7 +75,7 @@ class _Predictionv26_1Mixin:
             A dictionary containing information about the prediction.
 
         """
-        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.details}/predictions/{self.prediction_id}"
         return await self._a_get(endpoint)
 
     async def _get_models(self) -> list[dict[str, str]]:
@@ -81,7 +93,7 @@ class _Predictionv26_1Mixin:
 
         """
         models_list = []
-        endpoint = f"/prweb/api/PredictionStudio/v4/predictions/{self.prediction_id}"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.details}/predictions/{self.prediction_id}"
         prediction_details = await self._a_get(endpoint)
         # Extract default models from context and create PredictionModel instances
         for context in prediction_details.get("context", []):
@@ -150,7 +162,7 @@ class _Predictionv26_1Mixin:
         )
         end_date_str = end_date.strftime("%d/%m/%Y") if end_date else None
 
-        endpoint = f"/prweb/api/PredictionStudio/v2/predictions/{self.prediction_id}/metric/{_quote(metric, safe='')}"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.metric}/predictions/{self.prediction_id}/metric/{_quote(metric, safe='')}"
         try:
             info = await self._a_get(
                 endpoint,
@@ -209,7 +221,7 @@ class _Predictionv26_1Mixin:
             Details the result of the deployment process.
 
         """
-        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/staged"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.staged}/predictions/{self.prediction_id}/staged"
         if message is None:
             message = "Approving the changes"
         data = {"reviewNote": message}
@@ -236,6 +248,6 @@ class _Predictionv26_1Mixin:
             modification pending deployment.
 
         """
-        endpoint = f"/prweb/api/PredictionStudio/v1/predictions/{self.prediction_id}/staged"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.staged}/predictions/{self.prediction_id}/staged"
         responses = await self._a_get(endpoint, data=None)
         return responses["listOfChanges"]

@@ -68,6 +68,28 @@ class PegaMLopsError(Exception):
     """Custom exception for Pega MLOps errors."""
 
 
+class PegaFeatureUnavailableError(NotImplementedError):
+    """Functionality unavailable on this backend or unsupported by this client."""
+
+    def __init__(
+        self,
+        feature: str,
+        *,
+        minimum_supported_version: str | None = None,
+        backend_version: str | None = None,
+    ):
+        self.feature = feature
+        self.minimum_supported_version = minimum_supported_version
+        self.backend_version = backend_version
+        if minimum_supported_version is not None:
+            message = f"Feature '{feature}' requires Infinity {minimum_supported_version} or later"
+            if backend_version is not None:
+                message += f"; connected to {backend_version}"
+        else:
+            message = f"Feature '{feature}' is not supported by this client"
+        super().__init__(message + ".")
+
+
 class NoMonitoringInfo(InvalidInputs):
     """No monitoring info available."""
 

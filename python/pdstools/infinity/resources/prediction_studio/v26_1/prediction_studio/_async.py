@@ -20,6 +20,9 @@ if TYPE_CHECKING:
 
 class AsyncPredictionStudio(_PredictionStudiov26_1Mixin, AsyncPredictionStudioPrevious):
     version: str = "26.1"
+    _model_cls = AsyncModel
+    _prediction_cls = AsyncPrediction
+    _datamart_export_cls = AsyncDatamartExport
 
     async def repository(self) -> AsyncRepository:
         """Gets information about the repository from Prediction Studio.
@@ -52,9 +55,9 @@ class AsyncPredictionStudio(_PredictionStudiov26_1Mixin, AsyncPredictionStudioPr
             ``await ps.models.get(label='My Model')`` and
             ``async for m in ps.models``.
         """
-        endpoint = "/prweb/api/PredictionStudio/v2/models"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.models}/models"
         return AsyncPaginatedList(
-            AsyncModel,
+            self._model_cls,
             self._client,
             "get",
             endpoint,
@@ -73,9 +76,9 @@ class AsyncPredictionStudio(_PredictionStudiov26_1Mixin, AsyncPredictionStudioPr
             ``await ps.predictions.get(label='My Prediction')`` and
             ``async for p in ps.predictions``.
         """
-        endpoint = "/prweb/api/PredictionStudio/v3/predictions"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.predictions}/predictions"
         return AsyncPaginatedList(
-            AsyncPrediction,
+            self._prediction_cls,
             self._client,
             "get",
             endpoint,
@@ -200,14 +203,14 @@ class AsyncPredictionStudio(_PredictionStudiov26_1Mixin, AsyncPredictionStudioPr
             An object with information about the data export process.
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v1/datamart/export"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.datamart_export}/datamart/export"
         try:
             response = await self._a_post(endpoint)
         except NoMonitoringExportError as e:
             raise e
         except PegaException as e:
             raise ValueError("Error while triggering data mart export" + str(e)) from e
-        return AsyncDatamartExport(client=self._client, **response)
+        return self._datamart_export_cls(client=self._client, **response)
 
     async def get_notifications(
         self,
@@ -228,7 +231,7 @@ class AsyncPredictionStudio(_PredictionStudiov26_1Mixin, AsyncPredictionStudioPr
         AsyncPaginatedList[AsyncNotification] or polars.DataFrame
 
         """
-        endpoint = "/prweb/api/PredictionStudio/v2/notifications"
+        endpoint = f"/prweb/api/PredictionStudio/{self._endpoints.notifications}/notifications"
         if category is None:
             category = "All"
 
