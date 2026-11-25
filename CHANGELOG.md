@@ -8,7 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Prediction Studio 27.1 API support. 
+- Prediction Studio 27.1 API support.
   `infinity.resources.prediction_studio.v27_1` implementation, registered
   as the latest known version in the version-dispatch map. It mirrors the
   26.1 surface but targets the new **PredictionStudio `v5` REST endpoints**
@@ -34,7 +34,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   model type; 24.2 retains its distinct polling and approval behavior. Only
   27.1's settings-based repository and model-category parsing differs; adding
   another compatible API version no longer requires copying those implementations.
-  
+
 - AGB category gain and split-share plots support `by_split_type=True`
   for independently normalized All splits, Numeric, and Symbolic rows,
   classified by actual conditions, with per-subset totals on hover.

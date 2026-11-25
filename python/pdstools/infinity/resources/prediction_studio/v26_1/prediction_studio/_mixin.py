@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from ...base import LocalModel
+    from ...v24_2.model_upload import UploadedModel as UploadedModelBase
 
 
 @dataclass(frozen=True)
@@ -37,10 +38,10 @@ class _PredictionStudiov26_1Mixin:
 
     version: str = "26.1"
     _endpoints: ClassVar[_StudioEndpoints] = _StudioEndpoints("v1", "v2", "v3", "v1", "v1", "v1", "v2")
-    _uploaded_model_cls = UploadedModel
+    _uploaded_model_cls: ClassVar[type[UploadedModelBase]] = UploadedModel
 
     @api_method
-    async def upload_model(self, model: LocalModel, file_name: str) -> UploadedModel:
+    async def upload_model(self, model: LocalModel, file_name: str) -> UploadedModelBase:
         """Uploads a model to the repository.
 
         This function handles the uploading of a model to the Repository,
@@ -57,7 +58,7 @@ class _PredictionStudiov26_1Mixin:
 
         Returns
         -------
-        UploadedModel
+        UploadedModelBase
             Details about the uploaded model, including API response data.
 
         Raises
