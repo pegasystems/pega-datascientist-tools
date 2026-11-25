@@ -1,8 +1,12 @@
 """Tests for ADM Gradient Boosting (ADMTrees) functionality."""
 
+import base64
+import json
 import pathlib
 import re
+import zlib
 
+import polars as pl
 import pytest
 from pdstools.adm.trees import ADMTreesModel, parse_split
 
@@ -151,8 +155,8 @@ def test_metrics_tree_counts(tree_sample: ADMTreesModel):
     m = tree_sample.metrics
     assert m["number_of_trees"] == 50
     assert m["number_of_tree_nodes"] == 2232
-    assert m["tree_depth_max"] == 10
-    assert m["tree_depth_avg"] == 7.8
+    assert m["tree_depth_max"] == 9
+    assert m["tree_depth_avg"] == 6.8
     assert m["tree_depth_std"] == 1.92
 
 
@@ -225,7 +229,8 @@ def test_metrics_leaf_scores(tree_sample: ADMTreesModel):
     # 50 trees * 22.82 avg leaves ≈ 1141.
     assert m["number_of_leaves"] == 1141
     assert m["leaf_score_min"] <= m["leaf_score_mean"] <= m["leaf_score_max"]
-    assert m["leaf_score_std"] > 0
+    assert m["pooled_leaf_score_std"] > 0
+    assert "leaf_score_std" not in m
 
 
 def test_metrics_leaf_scores_exported(exported_model: ADMTreesModel):
@@ -235,6 +240,92 @@ def test_metrics_leaf_scores_exported(exported_model: ADMTreesModel):
     assert m["leaf_score_min"] == pytest.approx(-0.535617, abs=1e-4)
     assert m["leaf_score_max"] == pytest.approx(0.481624, abs=1e-4)
     assert m["leaf_score_mean"] == pytest.approx(0.001646, abs=1e-4)
+
+
+def test_weighted_leaf_spread_matches_reliability_weighted_sample_variance():
+    import math
+    import statistics
+
+    import numpy as np
+
+    trees = [
+        {
+            "split": "A < 1",
+            "left": {"score": 0.0, "sampleCount": 1},
+            "right": {
+                "split": "B < 1",
+                "left": {"score": 2.0, "sampleCount": 2},
+                "right": {"score": 4.0, "sampleCount": 3},
+            },
+        },
+        {
+            "split": "A < 2",
+            "left": {"score": 0.0, "sampleCount": 1},
+            "right": {"score": 4.0, "sampleCount": 9},
+        },
+        {"score": 9.0, "sampleCount": 20},
+    ]
+    model = ADMTreesModel(trees={"model": trees}, model=trees)
+    per_tree = model.tree_stats["weighted_leaf_score_std"].to_list()
+    assert per_tree[0] == pytest.approx(math.sqrt(40 / 11))
+    assert per_tree[0] == pytest.approx(math.sqrt(np.cov([0.0, 2.0, 4.0], aweights=[1, 2, 3])))
+    assert per_tree[1] == pytest.approx(math.sqrt(8))
+    assert per_tree[2] is None
+    assert model.metrics["weighted_leaf_score_std_mean"] == pytest.approx(
+        round((math.sqrt(40 / 11) + math.sqrt(8)) / 2, 6)
+    )
+    assert model.metrics["pooled_leaf_score_std"] == round(statistics.stdev([0, 2, 4, 0, 4, 9]), 6)
+
+
+@pytest.mark.parametrize(
+    ("counts", "expected"),
+    [
+        ((0, 1, 1), 2**0.5),
+        ((0, 0, 0), None),
+        ((1, 0, 0), None),
+        ((None, 1, 1), None),
+        ((-1, 1, 1), None),
+        ((float("nan"), 1, 1), None),
+        ((float("inf"), 1, 1), None),
+        (("1", 1, 1), None),
+        ((True, 1, 1), None),
+    ],
+)
+def test_weighted_leaf_spread_unavailable_for_invalid_counts(counts, expected):
+    tree = {
+        "split": "A < 1",
+        "left": {"score": 0.0, "sampleCount": counts[0]},
+        "right": {
+            "split": "B < 1",
+            "left": {"score": 1.0, "sampleCount": counts[1]},
+            "right": {"score": 3.0, "sampleCount": counts[2]},
+        },
+    }
+    model = ADMTreesModel(trees={"model": [tree]}, model=[tree])
+    spread = model.tree_stats["weighted_leaf_score_std"][0]
+    if expected is None:
+        assert spread is None
+        assert model.metrics["weighted_leaf_score_std_mean"] is None
+    else:
+        assert spread == pytest.approx(expected)
+        assert model.metrics["weighted_leaf_score_std_mean"] == round(expected, 6)
+
+
+def test_weighted_leaf_spread_excludes_missing_counts_without_discarding_other_trees():
+    valid_tree = {
+        "split": "A < 1",
+        "left": {"score": 0.0, "sampleCount": 1e-14},
+        "right": {"score": 2.0, "sampleCount": 1.0},
+    }
+    missing_count_tree = {
+        "split": "A < 2",
+        "left": {"score": 0.0},
+        "right": {"score": 3.0, "sampleCount": 2},
+    }
+    trees = [valid_tree, missing_count_tree]
+    model = ADMTreesModel(trees={"model": trees}, model=trees)
+    assert model.tree_stats["weighted_leaf_score_std"].to_list() == [pytest.approx(2**0.5), None]
+    assert model.metrics["weighted_leaf_score_std_mean"] == round(2**0.5, 6)
 
 
 # --- tree structure tests ---------------------------------------------------
@@ -276,10 +367,14 @@ def test_sanity_check_flags_immature_stump_model():
             "Only 1 tree(s) — model has barely started learning.",
             "1/1 trees are stumps (no split) — mostly non-informative trees.",
             "Avg splits/tree = 0.00 — model is not developing structure (SOP-ADM009).",
-            "Pooled AUC = 0.5000 — statistically indistinguishable from random.",
+            "Pooled AUC = 0.5000 — near 0.5 for the pooled population; assess within-action performance separately.",
             "Negatives (10) < positives (25) — inverted response ratio; unusual for an NBA response model.",
             "Very low response volume (positives=25, negatives=10) — metrics are not yet statistically stable.",
             "Only 0 active predictor(s) — model is deciding on a very narrow feature set.",
+        ],
+        "advisories": [
+            "Cumulative gain share unavailable: total gain is not positive; inspect signed gain per tree.",
+            "Gain concentration: no non-context predictors appear in splits.",
         ],
     }
 
@@ -291,7 +386,100 @@ def test_sanity_check_handles_missing_response_counts():
 
     assert result["positive_count"] is None
     assert result["negative_count"] is None
-    assert "Response counts are unavailable — volume-based stability checks were skipped." in result["flags"]
+    message = "Response counts are unavailable — volume-based stability checks were skipped."
+    assert message in result["advisories"]
+    assert message not in result["flags"]
+
+
+def _sanity_gain_model(
+    gains: list[tuple[str, float]],
+    context_keys: list[str] | None = None,
+) -> ADMTreesModel:
+    trees = [
+        {
+            "score": 0.0,
+            "split": f"{predictor} < 1",
+            "gain": gain,
+            "left": {"score": 0.0},
+            "right": {"score": 0.0},
+        }
+        for predictor, gain in gains
+    ]
+    return ADMTreesModel(
+        trees={"model": trees},
+        model=trees,
+        properties={"auc": 0.7, "trainingStats": {"positiveCount": 500, "negativeCount": 1000}},
+        context_keys=context_keys,
+    )
+
+
+@pytest.mark.parametrize(
+    ("gains", "message"),
+    [
+        ([3.0, 1.0], "Cumulative gain: 50% reached at tree index 0 (1/2 trees); descriptive, not a health threshold."),
+        ([1.0, 3.0], "Cumulative gain: 50% reached at tree index 1 (2/2 trees); descriptive, not a health threshold."),
+        (
+            [-1.0, 3.0],
+            "Cumulative gain share unavailable: at least one tree has negative total gain; inspect signed gain per tree.",
+        ),
+        (
+            [1.0, -1.0],
+            "Cumulative gain share unavailable: total gain is not positive; inspect signed gain per tree.",
+        ),
+        (
+            [-1.0],
+            "Cumulative gain share unavailable: total gain is not positive; inspect signed gain per tree.",
+        ),
+        ([], "Cumulative gain share unavailable: total gain is not positive; inspect signed gain per tree."),
+    ],
+)
+def test_sanity_check_describes_gain_distribution(gains: list[float], message: str):
+    model = _sanity_gain_model([("Customer.A", gain) for gain in gains])
+    result = model.sanity_check()
+    assert result["advisories"][0] == message
+    assert message not in result["flags"]
+
+
+@pytest.mark.parametrize("context_key", ["pyGroup", "Portfolio"])
+def test_sanity_check_concentration_excludes_standard_and_configured_context(context_key: str):
+    model = _sanity_gain_model(
+        [(context_key, 6.0), ("Customer.A", 3.0), ("Customer.B", 1.0)],
+        context_keys=[context_key] if context_key == "Portfolio" else None,
+    )
+    assert model.sanity_check()["advisories"][1] == (
+        "Gain concentration: Customer.A contributes 30.0% of total gain (leading non-context predictor)."
+    )
+
+
+@pytest.mark.parametrize("gain", [5.0, 6.0])
+def test_sanity_check_concentration_is_advisory_above_fifty_percent(gain: float):
+    model = _sanity_gain_model([("Customer.A", gain), ("Customer.B", 10 - gain)])
+    result = model.sanity_check()
+    expected = (
+        f"Gain concentration: Customer.A contributes {gain / 10:.1%} of total gain (leading non-context predictor)."
+    )
+    if gain > 5:
+        expected += " Above 50%: review possible over-reliance or leakage; this is not a diagnosis."
+    assert result["advisories"][1] == expected
+    assert expected not in result["flags"]
+
+
+def test_sanity_check_reports_undefined_predictor_shares(signed_gain_model: ADMTreesModel):
+    assert signed_gain_model.sanity_check()["advisories"][-2:] == [
+        "Cumulative gain: 50% reached at tree index 0 (1/4 trees); descriptive, not a health threshold.",
+        (
+            "Gain concentration: leading non-context predictor is Customer.A; "
+            "share unavailable because total gain is not positive or a predictor has negative total gain."
+        ),
+    ]
+
+
+@pytest.mark.parametrize("properties", [{"auc": 0.0, "performance": 0.9}, {"auc": None, "performance": 0.0}])
+def test_sanity_check_preserves_zero_auc(properties: dict):
+    model = ADMTreesModel(trees={"model": []}, model=[], properties=properties)
+    result = model.sanity_check()
+    assert result["pooled_auc"] == 0.0
+    assert not any("AUC is unavailable" in message for message in result["advisories"])
 
 
 @pytest.mark.parametrize("metadata_context_keys", [False, True])
@@ -678,11 +866,11 @@ def test_metrics_convergence_exported(exported_model: ADMTreesModel):
 
 
 def test_metrics_feature_importance(tree_sample: ADMTreesModel):
-    """Feature importance concentration metrics — pinned values."""
+    """Small negative splits keep concentration metrics when predictor totals are positive."""
     m = tree_sample.metrics
     assert m["top_predictor_by_gain"] == "pyName"
-    assert m["top_predictor_gain_share"] == pytest.approx(0.5481, abs=1e-3)
-    assert m["predictor_gain_entropy"] == pytest.approx(0.4206, abs=1e-3)
+    assert m["top_predictor_gain_share"] == 0.5481
+    assert m["predictor_gain_entropy"] == 0.4206
 
 
 def test_metrics_feature_importance_exported(exported_model: ADMTreesModel):
@@ -1224,33 +1412,184 @@ def test_agb_get_agb_models_with_last_uses_aggregates(agb_datamart_stub, monkeyp
     assert calls == ["model_data"]
 
 
-# --- Issue #659 fixes -------------------------------------------------------
+# --- Encoded models (#1020) ---------------------------------------------------
 
 
-def test_decode_split_unknown_encoder_type_raises():
-    """_decode_trees raises ValueError for unknown encoder variable_type (Fix 1)."""
-    # Minimal model with one encoder of unknown type and one split referencing it.
-    # Booster path: model.boosters[0].trees  (matches _BOOSTER_PATHS[0])
-    # Encoder path: model.inputsEncoder.encoders  (fallback path in _decode_trees)
-    model_data = {
+def _encoded_scoring_model() -> dict:
+    """Synthetic scoring model with encoded splits for every supported encoding."""
+
+    def leaf(score):
+        return {"score": score, "gain": 0.0, "sampleCount": 10}
+
+    return {
+        "type": "AdaptiveBoostScoringModel",
         "model": {
-            "boosters": [{"trees": [{"split": "0 LT 1"}]}],
+            "booster": {
+                "trees": [
+                    {
+                        "score": 0.0,
+                        "gain": 5.0,
+                        "split": "0 LT 2",
+                        "left": {"score": 0.1, "gain": 2.0, "split": "2 LT 131", "left": leaf(0.2), "right": leaf(0.3)},
+                        "right": {
+                            "score": -0.1,
+                            "gain": 1.0,
+                            "split": "2 LT 129",
+                            "left": leaf(0.4),
+                            "right": leaf(-0.4),
+                        },
+                    },
+                    {
+                        "score": 0.0,
+                        "gain": 3.0,
+                        "split": "1 LT 1",
+                        "left": leaf(0.5),
+                        "right": {
+                            "score": 0.1,
+                            "gain": 1.5,
+                            "split": "2 EQ 130",
+                            "left": leaf(0.6),
+                            "right": leaf(-0.6),
+                        },
+                    },
+                ],
+            },
             "inputsEncoder": {
                 "encoders": [
                     {
-                        "key": "predictor_A",
+                        "key": "Age",
                         "value": {
                             "index": 0,
-                            "encoder": {"unknownType": {}},
+                            "encoder": {
+                                "quantileArray": {
+                                    "summaryType": "QUANTILE_SUMMARY",
+                                    "summary": {"list": ["18.5=10", "30.0=20", "42.5=30"]},
+                                },
+                                "range": {"minmax": "18.0/60.0"},
+                            },
                         },
-                    }
-                ]
+                    },
+                    {
+                        "key": "Income",
+                        "value": {
+                            "index": 1,
+                            "encoder": {
+                                "quantileArray": {
+                                    "summaryType": "INITIAL_SUMMARY",
+                                    "summary": {"initialValues": [1000.0, 2000.0, 3000.0]},
+                                },
+                            },
+                        },
+                    },
+                    {
+                        "key": "Color",
+                        "value": {
+                            "index": 2,
+                            "encoder": {"stringTranslator": {"symbols": ["red=0", "green=2", "blue=1"]}},
+                        },
+                    },
+                ],
             },
-        }
+        },
     }
-    m = ADMTreesModel.from_dict(model_data)
-    with pytest.raises(ValueError, match="Unsupported encoder variable_type: 'unknownType'"):
-        m._decode_trees()
+
+
+ENCODED_SPLITS = {0: ["0 LT 2", "2 LT 131", "2 LT 129"], 1: ["1 LT 1", "2 EQ 130"]}
+DECODED_SPLITS = {
+    0: ["Age < 30.0", "Color in { red, blue }", "Color is Missing"],
+    1: ["Income < 2000.0", "Color in { blue }"],
+}
+
+
+def _set_split(model: dict, encoded: str, replacement: str) -> dict:
+    """Replace one encoded split in the synthetic model."""
+    text = json.dumps(model).replace(f'"split": "{encoded}"', f'"split": "{replacement}"', 1)
+    return json.loads(text)
+
+
+def test_from_file_decodes_encoded_scoring_model(tmp_path):
+    raw = _encoded_scoring_model()
+    path = tmp_path / "encoded.json"
+    path.write_text(json.dumps(raw))
+
+    m = ADMTreesModel.from_file(path)
+
+    assert m.splits_per_tree == DECODED_SPLITS
+    assert m.get_predictors() == {"Age": "numeric", "Color": "symbolic", "Income": "numeric"}
+    stats = m.get_tree_stats()
+    assert stats["nsplits"].to_list() == [len(splits) for splits in ENCODED_SPLITS.values()]
+    assert stats["gains"].to_list() == [[5.0, 2.0, 1.0], [3.0, 1.5]]
+    # Decoding leaves the raw input untouched.
+    assert m.trees == raw
+
+
+def test_from_dict_and_blob_decode_like_from_file(tmp_path):
+    raw = _encoded_scoring_model()
+    from_dict = ADMTreesModel.from_dict(raw)
+    blob = base64.b64encode(zlib.compress(json.dumps({**raw, "_serialClass": "x.GbModel"}).encode())).decode()
+
+    assert ADMTreesModel.from_datamart_blob(blob).model == from_dict.model
+    assert from_dict.splits_per_tree == DECODED_SPLITS
+    assert raw["model"]["booster"]["trees"][0]["split"] == "0 LT 2"
+
+
+@pytest.mark.parametrize(
+    ("encoded", "replacement", "message"),
+    [
+        ("0 LT 2", "7 LT 2", "predictor index 7"),
+        ("0 LT 2", "0 EQ 2", "Unsupported operator 'EQ' for numeric predictor 'Age'"),
+        ("0 LT 2", "0 LT 4", "Bin index 4 for numeric predictor 'Age' is outside its 3"),
+        ("1 LT 1", "1 LT 3", "Bin index 3 for numeric predictor 'Income' is outside its 3"),
+        ("2 EQ 130", "2 EQ 140", "Bin index 140 with operator 'EQ' selects no encoded value"),
+        ("2 LT 131", "2 LT 128", "Bin index 128 with operator 'LT' selects no encoded value"),
+        ("0 LT 2", "Age < 30.0", "mixes encoded splits"),
+    ],
+)
+def test_encoded_model_rejects_unsupported_splits(encoded, replacement, message):
+    with pytest.raises(ValueError, match=re.escape(message)):
+        ADMTreesModel.from_dict(_set_split(_encoded_scoring_model(), encoded, replacement))
+
+
+@pytest.mark.parametrize(
+    ("encoder", "message"),
+    [
+        ({"rareEncoder": {}}, "Unsupported encoder ['rareEncoder']"),
+        ({"stringTranslator": {"symbols": ["red"]}}, "Malformed symbol 'red'"),
+        ({"quantileArray": {"summaryType": "OTHER"}}, "Unsupported quantile summary type 'OTHER'"),
+    ],
+)
+def test_encoded_model_rejects_unsupported_encoders(encoder, message):
+    raw = _encoded_scoring_model()
+    raw["model"]["inputsEncoder"]["encoders"][2]["value"]["encoder"] = encoder
+    if "quantileArray" in encoder:
+        raw = _set_split(raw, "2 EQ 130", "2 LT 1")
+    with pytest.raises(ValueError, match=re.escape(message)):
+        ADMTreesModel.from_dict(raw)
+
+
+def test_encoded_model_without_encoder_raises():
+    raw = _encoded_scoring_model()
+    del raw["model"]["inputsEncoder"]
+    with pytest.raises(ValueError, match="no inputsEncoder"):
+        ADMTreesModel.from_dict(raw)
+
+
+def test_datamart_blobs_decode_to_parseable_splits():
+    """Trained encoded models from the sample datamart decode without loss."""
+    blobs = pl.read_ipc(f"{basePath}/data/sample_datamart_with_AGB.arrow", columns=["Modeldata"])["Modeldata"]
+    blob = next(b for b in blobs.drop_nulls() if '"split"' in zlib.decompress(base64.b64decode(b)).decode())
+    raw = json.loads(zlib.decompress(base64.b64decode(blob)))
+    raw_splits = re.findall(r'"split": "(\d+) (?:LT|EQ) -?\d+"', json.dumps(raw))
+
+    m = ADMTreesModel.from_datamart_blob(blob)
+
+    decoded = [split for splits in m.splits_per_tree.values() for split in splits]
+    assert len(decoded) == len(raw_splits) == 899
+    assert all(parse_split(split) for split in decoded)
+    assert (
+        m.model[0]["split"]
+        == "pyName in { Earn2xRewardsPoints, CompleteYourCardApplicationToday, PlatinumRewardsCard }"
+    )
 
 
 def test_safe_eval_warn_once_thread_safe():
@@ -1317,6 +1656,152 @@ def stump_model() -> ADMTreesModel:
     )
 
 
+@pytest.fixture
+def signed_gain_model() -> ADMTreesModel:
+    """Two signed splits in one tree and a zero-gain split in another."""
+    trees = [
+        {
+            "score": 0.0,
+            "sampleCount": 100,
+            "split": "Customer.A < 1",
+            "gain": 10.0,
+            "left": {
+                "score": 0.0,
+                "split": "Customer.B < 1",
+                "gain": -4.0,
+                "left": {"score": 0.0},
+                "right": {"score": 0.0},
+            },
+            "right": {"score": 0.0},
+        },
+        {"score": 0.0, "sampleCount": 90},
+        {"score": 0.0, "sampleCount": 80},
+        {
+            "score": 0.0,
+            "sampleCount": 70,
+            "split": "Customer.A < 2",
+            "gain": 0.0,
+            "left": {"score": 0.0},
+            "right": {"score": 0.0},
+        },
+    ]
+    return ADMTreesModel(trees={"model": trees}, model=trees)
+
+
+def test_signed_gains_and_edge_depth_agree_across_views(signed_gain_model: ADMTreesModel):
+    model = signed_gain_model
+    metrics = model.metrics
+    assert model.tree_stats["depth"].to_list() == [2, 0, 0, 1]
+    assert metrics["tree_depth_max"] == 2
+    assert metrics["tree_depth_avg"] == 0.75
+    assert model.gains_per_tree == {0: [10.0, -4.0], 1: [], 2: [], 3: [0.0]}
+    assert model.tree_stats["gains"].to_list() == [[10.0, -4.0], [], [], [0.0]]
+    assert model.tree_stats["meangains"].to_list() == [3.0, 0.0, 0.0, 0.0]
+    assert model.gains_per_split["gains"].to_list() == [10.0, -4.0, 0.0]
+    assert metrics["total_gain"] == 6.0
+    assert metrics["mean_gain_per_split"] == 2.0
+    assert metrics["median_gain_per_split"] == 0.0
+    assert metrics["mean_gain_first_half"] == 3.0
+    assert metrics["mean_gain_last_half"] == 0.0
+    assert metrics["top_predictor_by_gain"] == "Customer.A"
+    assert metrics["top_predictor_gain_share"] is None
+    assert metrics["predictor_gain_entropy"] is None
+    assert model.plot.gain_per_tree(return_df=True)["total_gain"].to_list() == [6.0, 0.0, 0.0, 0.0]
+    assert model.plot.gain_decay_dual_lens(return_df=True)["total_gain"].to_list() == [6.0, 0.0, 0.0, 0.0]
+    assert model.plot.cumulative_gain_share(return_df=True)["cumulative_gain_share"].to_list() == [1.0] * 4
+    namespace = model.plot.gain_by_namespace(return_df=True)
+    assert namespace.select("total_gain", "gain_share").rows() == [(6.0, 1.0)]
+    importance = model.plot.feature_importance_by_gain(return_df=True)
+    assert importance.select("predictor", "total_gain").rows() == [("Customer.A", 10.0), ("Customer.B", -4.0)]
+    role = model.plot.feature_role_map(return_df=True).sort("predictor")
+    assert role.select("predictor", "mean_depth", "total_gain").rows() == [
+        ("Customer.A", 0.0, 10.0),
+        ("Customer.B", 1.0, -4.0),
+    ]
+    early_late = model.plot.early_vs_late_gain(return_df=True).sort("predictor")
+    assert early_late.select("predictor", "early_gain", "late_gain", "total_gain").rows() == [
+        ("Customer.A", 10.0, 0.0, 10.0),
+        ("Customer.B", -4.0, 0.0, -4.0),
+    ]
+
+    early_figure = model.plot.early_vs_late_gain()
+    assert early_figure.layout.xaxis.type == "linear"
+    assert early_figure.layout.yaxis.type == "linear"
+    assert sum(len(trace.x) for trace in early_figure.data) == 2
+    role_figure = model.plot.feature_role_map()
+    assert sum(len(trace.x) for trace in role_figure.data) == 2
+
+
+@pytest.mark.parametrize("gain", [-4.0, 0.0])
+def test_nonpositive_gain_has_no_share_or_entropy(gain: float):
+    tree = {
+        "score": 0.0,
+        "split": "Customer.A < 1",
+        "gain": gain,
+        "left": {"score": 0.0},
+        "right": {"score": 0.0},
+    }
+    model = ADMTreesModel(trees={"model": [tree]}, model=[tree])
+    assert model.metrics["total_gain"] == gain
+    assert model.metrics["top_predictor_by_gain"] == "Customer.A"
+    assert model.metrics["top_predictor_gain_share"] is None
+    assert model.metrics["predictor_gain_entropy"] is None
+    assert model.plot.gain_by_namespace(return_df=True)["gain_share"].to_list() == [None]
+    assert model.plot.cumulative_gain_share(return_df=True)["cumulative_gain_share"].to_list() == [None]
+    assert "undefined" in model.plot.cumulative_gain_share().layout.annotations[0].text
+    assert len(model.plot.feature_role_map().data[0].x) == 1
+    assert len(model.plot.early_vs_late_gain().data[0].x) == 1
+
+
+@pytest.mark.parametrize("second_gain", [0.0, -10.0])
+def test_gain_shares_with_zero_and_cancelling_splits(second_gain: float):
+    tree = {
+        "score": 0.0,
+        "split": "Customer.A < 1",
+        "gain": 10.0,
+        "left": {
+            "score": 0.0,
+            "split": "Customer.B < 1",
+            "gain": second_gain,
+            "left": {"score": 0.0},
+            "right": {"score": 0.0},
+        },
+        "right": {"score": 0.0},
+    }
+    model = ADMTreesModel(trees={"model": [tree]}, model=[tree])
+    expected_share = 1.0 if second_gain == 0 else None
+    assert model.metrics["total_gain"] == 10.0 + second_gain
+    assert model.metrics["top_predictor_gain_share"] == expected_share
+    assert model.metrics["predictor_gain_entropy"] == (0.0 if second_gain == 0 else None)
+    assert model.plot.gain_by_namespace(return_df=True)["gain_share"].to_list() == [expected_share]
+    assert model.plot.cumulative_gain_share(return_df=True)["cumulative_gain_share"].to_list() == [expected_share]
+
+
+def test_small_negative_split_keeps_gain_shares():
+    def stump(predictor: str, gain: float) -> dict:
+        return {
+            "score": 0.0,
+            "split": f"Customer.{predictor} < 1",
+            "gain": gain,
+            "left": {"score": 0.0},
+            "right": {"score": 0.0},
+        }
+
+    first = stump("A", 6.0)
+    first["left"] = stump("A", -1.0)
+    trees = [first, stump("B", 5.0)]
+    model = ADMTreesModel(trees={"model": trees}, model=trees)
+    assert model.metrics["top_predictor_by_gain"] == "Customer.A"
+    assert model.metrics["top_predictor_gain_share"] == 0.5
+    assert model.metrics["predictor_gain_entropy"] == 1.0
+    assert model.plot.cumulative_gain_share(return_df=True)["cumulative_gain_share"].to_list() == [0.5, 1.0]
+    assert model.plot.gain_by_namespace(return_df=True)["gain_share"].to_list() == [1.0]
+    assert model.sanity_check()["advisories"][-2:] == [
+        "Cumulative gain: 50% reached at tree index 0 (1/2 trees); descriptive, not a health threshold.",
+        "Gain concentration: Customer.A contributes 50.0% of total gain (leading non-context predictor).",
+    ]
+
+
 def test_stump_model_empty_gain_tables_keep_numeric_schema(stump_model: ADMTreesModel):
     import polars as pl
 
@@ -1335,7 +1820,12 @@ def test_stump_model_empty_gain_tables_keep_numeric_schema(stump_model: ADMTrees
         "nsplits": 0,
         "gains": [],
         "meangains": 0,
+        "weighted_leaf_score_std": None,
     }
+    assert stump_model.metrics["tree_depth_max"] == 0
+    assert stump_model.metrics["tree_depth_avg"] == 0
+    assert stump_model.metrics["top_predictor_gain_share"] is None
+    assert stump_model.metrics["predictor_gain_entropy"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -1533,10 +2023,252 @@ def test_plot_gain_by_namespace_figure(rich_model: ADMTreesModel):
 
     fig = rich_model.plot.gain_by_namespace()
     assert isinstance(fig, go.Figure)
-    expected_order = rich_model.plot.gain_by_namespace(return_df=True)["PredictorCategory"].to_list()
-    assert list(fig.layout.yaxis.categoryarray) == expected_order
-    assert fig.layout.yaxis.autorange == "reversed"
-    assert fig.layout.yaxis.automargin is True
+    df = rich_model.plot.gain_by_namespace(return_df=True)
+    expected = dict(df.select("PredictorCategory", "gain_share").rows())
+    assert {trace.name: trace.x[0] for trace in fig.data} == pytest.approx(expected, abs=1e-12)
+    assert all(trace.orientation == "h" and list(trace.y) == ["Model"] for trace in fig.data)
+    assert fig.layout.barmode == "stack"
+    assert tuple(fig.layout.xaxis.range) == (0, 1)
+    assert fig.layout.xaxis.tickformat == ".0%"
+
+
+@pytest.fixture
+def category_share_model() -> ADMTreesModel:
+    return _sanity_gain_model(
+        [
+            ("pyGroup", 6.0),
+            ("Customer.Amount", 2.0),
+            ("IH.Count", 3.0),
+            ("IH.Count", -1.0),
+            ("Custom.Field", 0.0),
+        ],
+    )
+
+
+def test_category_shares_count_repeated_zero_and_negative_gain_splits(category_share_model: ADMTreesModel):
+    gain = category_share_model.plot.gain_by_namespace(return_df=True).sort("PredictorCategory")
+    assert gain.select("PredictorCategory", "total_gain").rows() == [
+        ("Context Keys", 6.0),
+        ("Custom", 0.0),
+        ("Customer", 2.0),
+        ("IH", 2.0),
+    ]
+    assert gain["gain_share"].to_list() == pytest.approx([0.6, 0.0, 0.2, 0.2], abs=1e-12)
+    splits = category_share_model.plot.splits_by_namespace(return_df=True).sort("PredictorCategory")
+    assert splits.columns == ["PredictorCategory", "split_count", "split_share"]
+    assert splits.rows() == [
+        ("Context Keys", 1, 0.2),
+        ("Custom", 1, 0.2),
+        ("Customer", 1, 0.2),
+        ("IH", 2, 0.4),
+    ]
+
+
+def test_category_share_plots_sort_independently_with_matching_colors(category_share_model: ADMTreesModel):
+    category_share_model.plot.predictor_category_order = ["IH", "Customer", "Context Keys"]
+    gain = category_share_model.plot.gain_by_namespace()
+    splits = category_share_model.plot.splits_by_namespace()
+    assert [trace.name for trace in gain.data] == ["Context Keys", "Customer", "IH", "Custom"]
+    assert [trace.name for trace in splits.data] == ["IH", "Context Keys", "Custom", "Customer"]
+    assert {trace.name: trace.marker.color for trace in gain.data} == {
+        trace.name: trace.marker.color for trace in splits.data
+    }
+    assert [trace.x[0] for trace in gain.data] == pytest.approx([0.6, 0.2, 0.2, 0.0], abs=1e-12)
+    assert [trace.x[0] for trace in splits.data] == [0.4, 0.2, 0.2, 0.2]
+    assert [trace.customdata[0][0] for trace in gain.data] == [6.0, 2.0, 2.0, 0.0]
+    assert [trace.customdata[0][0] for trace in splits.data] == [2, 1, 1, 1]
+    for fig in (gain, splits):
+        assert sum(trace.x[0] for trace in fig.data) == pytest.approx(1.0)
+        assert all(trace.orientation == "h" and list(trace.y) == ["Model"] for trace in fig.data)
+        assert all(trace.texttemplate == "%{x:.0%}" for trace in fig.data)
+        assert fig.layout.barmode == "stack"
+        assert tuple(fig.layout.xaxis.range) == (0, 1)
+
+
+@pytest.mark.parametrize(("gain", "other_gain"), [(-1.0, 2.0), (0.0, 0.0)])
+def test_undefined_gain_shares_do_not_hide_split_shares(gain: float, other_gain: float):
+    model = _sanity_gain_model([("IH.Count", gain), ("Customer.Amount", other_gain)])
+    assert model.plot.gain_by_namespace(return_df=True)["gain_share"].to_list() == [None, None]
+    fig = model.plot.gain_by_namespace()
+    assert not fig.data
+    assert "Gain shares unavailable" in fig.layout.annotations[0].text
+    assert model.plot.splits_by_namespace(return_df=True)["split_share"].to_list() == [0.5, 0.5]
+    assert sum(trace.x[0] for trace in model.plot.splits_by_namespace().data) == 1.0
+
+
+def test_category_share_plots_explain_no_splits(stump_model: ADMTreesModel):
+    for method in (stump_model.plot.gain_by_namespace, stump_model.plot.splits_by_namespace):
+        assert method(return_df=True).is_empty()
+        fig = method()
+        assert not fig.data
+        assert "unavailable" in fig.layout.annotations[0].text
+    assert "no split nodes" in stump_model.plot.splits_by_namespace().layout.annotations[0].text
+
+
+def test_category_share_plots_preserve_null_custom_categories(category_share_model: ADMTreesModel):
+    import polars as pl
+
+    category_share_model.plot.predictor_category_expr = (
+        pl.when(pl.col("predictor") == "pyGroup")
+        .then(pl.lit(None, dtype=pl.String))
+        .otherwise(pl.lit("Other"))
+        .alias("PredictorCategory")
+    )
+    gain = category_share_model.plot.gain_by_namespace(return_df=True).sort("PredictorCategory")
+    assert gain.select("PredictorCategory", "total_gain").rows() == [("Other", 4.0), ("Uncategorized", 6.0)]
+    assert gain["gain_share"].to_list() == pytest.approx([0.4, 0.6], abs=1e-12)
+    splits = category_share_model.plot.splits_by_namespace(return_df=True).sort("PredictorCategory")
+    assert splits.rows() == [("Other", 4, 0.8), ("Uncategorized", 1, 0.2)]
+    gain_plot = category_share_model.plot.gain_by_namespace()
+    split_plot = category_share_model.plot.splits_by_namespace()
+    assert [trace.name for trace in gain_plot.data] == ["Uncategorized", "Other"]
+    assert [trace.name for trace in split_plot.data] == ["Other", "Uncategorized"]
+    assert {trace.name: trace.marker.color for trace in gain_plot.data} == {
+        trace.name: trace.marker.color for trace in split_plot.data
+    }
+
+
+# ---------------------------------------------------------------------------
+# Category shares by split type
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def split_type_category_model() -> ADMTreesModel:
+    conditions = [
+        ("Customer.Mixed < 1", 6.0),
+        ("Customer.Mixed == a", 2.0),
+        ("IH.Count > 1", 2.0),
+        ("pyGroup in { a, b }", 3.0),
+        ("Customer.Amount is Missing", 1.0),
+        ("Param.P == 2", 0.0),
+        ("Customer.Mixed < 1", -1.0),
+    ]
+    trees = [
+        {"score": 0.0, "split": condition, "gain": gain, "left": {"score": 0.0}, "right": {"score": 0.0}}
+        for condition, gain in conditions
+    ]
+    return ADMTreesModel(trees={"model": trees}, model=trees)
+
+
+def test_category_shares_classify_conditions_and_normalize_each_subset(split_type_category_model: ADMTreesModel):
+    gain = split_type_category_model.plot.gain_by_namespace(by_split_type=True, return_df=True).sort(
+        "SplitType",
+        "PredictorCategory",
+    )
+    assert gain.select("SplitType", "PredictorCategory", "total_gain").rows() == [
+        ("All splits", "Context Keys", 3.0),
+        ("All splits", "Customer", 8.0),
+        ("All splits", "IH", 2.0),
+        ("All splits", "Param", 0.0),
+        ("Numeric", "Customer", 5.0),
+        ("Numeric", "IH", 2.0),
+        ("Symbolic", "Context Keys", 3.0),
+        ("Symbolic", "Customer", 3.0),
+        ("Symbolic", "Param", 0.0),
+    ]
+    assert gain["gain_share"].to_list() == pytest.approx(
+        [3 / 13, 8 / 13, 2 / 13, 0, 5 / 7, 2 / 7, 0.5, 0.5, 0],
+    )
+    splits = split_type_category_model.plot.splits_by_namespace(by_split_type=True, return_df=True).sort(
+        "SplitType",
+        "PredictorCategory",
+    )
+    assert splits["split_count"].to_list() == [1, 4, 1, 1, 2, 1, 1, 2, 1]
+    assert splits["split_share"].to_list() == pytest.approx(
+        [1 / 7, 4 / 7, 1 / 7, 1 / 7, 2 / 3, 1 / 3, 0.25, 0.5, 0.25],
+    )
+    assert split_type_category_model.predictors["Customer.Mixed"] == "numeric"
+
+
+def test_split_type_rows_keep_independent_order_colors_and_hover_totals(split_type_category_model: ADMTreesModel):
+    gain = split_type_category_model.plot.gain_by_namespace(by_split_type=True)
+    splits = split_type_category_model.plot.splits_by_namespace(by_split_type=True)
+    gain_orders = {
+        row: [trace.name for trace in gain.data if trace.y[0] == row] for row in ["All splits", "Numeric", "Symbolic"]
+    }
+    assert gain_orders == {
+        "All splits": ["Customer", "Context Keys", "IH", "Param"],
+        "Numeric": ["Customer", "IH"],
+        "Symbolic": ["Context Keys", "Customer", "Param"],
+    }
+    assert [trace.name for trace in splits.data if trace.y[0] == "Symbolic"] == ["Customer", "Context Keys", "Param"]
+    colors = {trace.name: trace.marker.color for trace in gain.data}
+    assert all(trace.marker.color == colors[trace.name] for trace in (*gain.data, *splits.data))
+    for figure, totals in (
+        (gain, {"All splits": 13, "Numeric": 7, "Symbolic": 6}),
+        (splits, {"All splits": 7, "Numeric": 3, "Symbolic": 4}),
+    ):
+        for row, total in totals.items():
+            traces = [trace for trace in figure.data if trace.y[0] == row]
+            assert sum(trace.x[0] for trace in traces) == pytest.approx(1.0)
+            assert all(trace.customdata[0][1] == total for trace in traces)
+            assert all(trace.marker.opacity == (1.0 if row == "All splits" else 0.55) for trace in traces)
+            assert all(trace.width == (0.8 if row == "All splits" else 0.48) for trace in traces)
+            if row != "All splits":
+                assert all(trace.textfont.color == "#333333" for trace in traces)
+                assert all(trace.width / figure.data[0].width == pytest.approx(0.6) for trace in traces)
+        assert list(figure.layout.yaxis.categoryarray) == ["All splits", "Numeric", "Symbolic"]
+        assert figure.layout.yaxis.showticklabels
+        assert sum(trace.showlegend for trace in figure.data) == 4
+
+
+def test_split_type_gain_validity_is_independent_per_row(split_type_category_model: ADMTreesModel):
+    from copy import deepcopy
+
+    import polars as pl
+
+    trees = deepcopy(split_type_category_model.trees["model"])
+    trees[0]["gain"] = -0.5
+    model = ADMTreesModel(trees={"model": trees}, model=trees)
+    df = model.plot.gain_by_namespace(by_split_type=True, return_df=True)
+    assert df.filter(pl.col("SplitType") == "Numeric")["gain_share"].to_list() == [None, None]
+    assert df.filter(pl.col("SplitType") == "All splits")["gain_share"].null_count() == 0
+    assert df.filter(pl.col("SplitType") == "Symbolic")["gain_share"].null_count() == 0
+    figure = model.plot.gain_by_namespace(by_split_type=True)
+    assert {trace.y[0] for trace in figure.data} == {"All splits", "Symbolic"}
+    assert figure.layout.annotations[0].y == "Numeric"
+    assert "Gain shares unavailable" in figure.layout.annotations[0].text
+    assert {trace.y[0] for trace in model.plot.splits_by_namespace(by_split_type=True).data} == {
+        "All splits",
+        "Numeric",
+        "Symbolic",
+    }
+
+
+@pytest.mark.parametrize("present", ["Numeric", "Symbolic"])
+def test_split_type_rows_explain_absent_types(
+    present: str,
+    category_share_model: ADMTreesModel,
+    split_type_category_model: ADMTreesModel,
+    stump_model: ADMTreesModel,
+):
+    if present == "Numeric":
+        model = category_share_model
+        absent = "Symbolic"
+    else:
+        trees = [tree for tree in split_type_category_model.trees["model"] if parse_split(tree["split"]).is_symbolic]
+        model = ADMTreesModel(trees={"model": trees}, model=trees)
+        absent = "Numeric"
+    for name in ("gain_by_namespace", "splits_by_namespace"):
+        method = getattr(model.plot, name)
+        frame = method(by_split_type=True, return_df=True)
+        assert set(frame["SplitType"].to_list()) == {"All splits", present}
+        figure = method(by_split_type=True)
+        assert {trace.y[0] for trace in figure.data} == {"All splits", present}
+        expected = {trace.name: trace.x[0] for trace in figure.data if trace.y[0] == "All splits"}
+        assert {trace.name: trace.x[0] for trace in figure.data if trace.y[0] == present} == pytest.approx(expected)
+        assert figure.layout.annotations[0].text == f"No {absent.lower()} split nodes."
+        stump_method = getattr(stump_model.plot, name)
+        assert stump_method(by_split_type=True, return_df=True).is_empty()
+        empty = stump_method(by_split_type=True)
+        assert not empty.data
+        assert [annotation.y for annotation in empty.layout.annotations] == ["All splits", "Numeric", "Symbolic"]
+        assert [annotation.text for annotation in empty.layout.annotations] == [
+            "No split nodes.",
+            "No numeric split nodes.",
+            "No symbolic split nodes.",
+        ]
 
 
 # ---------------------------------------------------------------------------
@@ -1552,7 +2284,7 @@ def test_plot_feature_role_map_return_df(rich_model: ADMTreesModel):
     row = df.filter(df["predictor"] == "pyGroup").row(0, named=True)
     assert row["tree_coverage"] == 63
     assert row["total_gain"] == pytest.approx(48305.23435, rel=1e-4)
-    assert row["mean_depth"] == pytest.approx(4.3161, abs=1e-3)
+    assert row["mean_depth"] == pytest.approx(3.3161, abs=1e-3)
     assert row["PredictorCategory"] == "Context Keys"
     # Exactly 4 predictor categories present.
     assert df["PredictorCategory"].n_unique() == 4

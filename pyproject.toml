@@ -59,7 +59,7 @@ api = [
     'pydantic>=2.10,<3',
     "anyio>=4.14.2,<5",
 ]
-healthcheck = ['pdstools[adm]', 'great_tables>=0.13,<1', 'quarto', 'papermill>=2.6,<3', 'xlsxwriter>=3.0,<4', 'pydot>=4.0,<5', 'ipykernel>=6,<8', 'packaging>=24,<27']
+healthcheck = ['pdstools[adm]', 'great_tables>=0.13,<2', 'quarto', 'papermill>=2.6,<3', 'xlsxwriter>=3.0,<4', 'pydot>=4.0,<5', 'ipykernel>=6,<8', 'packaging>=24,<27']
 explanations = ["plotly[express]>=6.0,<7", "pyyaml>=6,<7"]
 nlp = [
     # sentence-transformers depends on torch; depend on the [torch] extra
