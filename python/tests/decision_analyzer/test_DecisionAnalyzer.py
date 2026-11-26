@@ -1345,6 +1345,21 @@ class TestLeverSimulation:
         )
         assert summary.select("Interactions", "Re-evaluated decisions", "Elapsed (s)").row(0) == (3, 2, 0.125)
 
+    def test_top_n_coverage_deduplicates_selected_issue(self, lever_analyzer):
+        distribution, summary = lever_analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", 1.1, win_rank=2)
+        assert summary.select("Interactions", "Re-evaluated decisions", "Before", "After").row(0) == (4, 3, 3, 3)
+        assert summary.select("Before share (%)", "After share (%)", "Change (pp)").row(0) == (75.0, 75.0, 0.0)
+        assert distribution.filter(pl.col("Selected")).select("Action", "Before", "After").rows() == [
+            ("A", 3, 3),
+            ("B", 1, 1),
+        ]
+        assert distribution.filter(pl.col("Action") == "No winning offer").select("Before", "After").row(0) == (1, 1)
+
+    @pytest.mark.parametrize("win_rank", [0, 6, 1.5])
+    def test_invalid_winning_rank(self, lever_analyzer, win_rank):
+        with pytest.raises(ValueError, match="Winning rank must be an integer"):
+            lever_analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", win_rank=win_rank)
+
     @pytest.mark.parametrize("lever", [0.49, 1.51, float("nan"), float("inf")])
     def test_invalid_replacement(self, lever_analyzer, lever):
         with pytest.raises(ValueError, match="between 0.50 and 1.50"):

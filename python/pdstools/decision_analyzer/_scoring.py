@@ -722,6 +722,7 @@ class Scoring:
         lever_value: float | None = None,
         *,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        win_rank: int = 1,
     ) -> tuple[pl.DataFrame, pl.DataFrame]:
         """Compare reconstructed offer distributions after replacing levers.
 
@@ -741,6 +742,10 @@ class Scoring:
             replaces selected levers with the neutral value.
         additional_filters : pl.Expr or list of pl.Expr, optional
             Population filters applied equally to both scenarios.
+        win_rank : int, default 1
+            Count offers ranked in the top N, up to the analyzer's max_win_rank.
+            Selected-scope coverage counts each interaction once if at least one
+            selected offer reaches the top N.
 
         Returns
         -------
@@ -753,12 +758,14 @@ class Scoring:
             columns. Re-evaluated decisions counts interactions with rankable
             arbitration candidates. Elapsed (s) measures scoring and aggregation,
             excluding plot construction. Shares use all filtered sampled
-            interactions, including those without eligible candidates.
+            interactions, including those without eligible candidates. For
+            top-N rankings, action coverage percentages can overlap and need
+            not sum to 100%; selected-scope coverage deduplicates interactions.
 
         Raises
         ------
         ValueError
-            If the replacement is non-finite or outside the prototype range,
+            If the winning rank is invalid, the replacement is non-finite or outside the prototype range,
             the population has no arbitration candidates, or the target does
             not match an eligible candidate.
 
@@ -770,6 +777,8 @@ class Scoring:
         """
         if lever_value is not None and (not isfinite(lever_value) or not 0.5 <= lever_value <= 1.5):
             raise ValueError("Replacement lever must be finite and between 0.50 and 1.50.")
+        if isinstance(win_rank, bool) or not isinstance(win_rank, int) or not 1 <= win_rank <= self.da.max_win_rank:
+            raise ValueError(f"Winning rank must be an integer between 1 and {self.da.max_win_rank}.")
 
         started = perf_counter()
         population = self.da.filtered(additional_filters)
@@ -785,11 +794,12 @@ class Scoring:
             self.re_rank(additional_filters=filters)
             .group_by(keys)
             .agg(
-                Before=(pl.col("rank_PVCL") == 1).sum(),
+                _before_interactions=pl.col("Interaction ID").filter(pl.col("rank_PVCL") <= win_rank).unique(),
+                _arbitration_decisions=(pl.col("rank_PVCL") == 1).sum(),
             )
         )
         if lever_value is None:
-            distribution = before.with_columns(pl.col("Before").alias("After")).collect()
+            distribution = before.with_columns(pl.col("_before_interactions").alias("_after_interactions")).collect()
         else:
             after = (
                 self.re_rank(
@@ -802,7 +812,9 @@ class Scoring:
                     ],
                 )
                 .group_by(keys)
-                .agg(After=(pl.col("rank_PVCL") == 1).sum())
+                .agg(
+                    _after_interactions=pl.col("Interaction ID").filter(pl.col("rank_PVCL") <= win_rank).unique(),
+                )
             )
             distribution = before.join(after, on=keys, nulls_equal=True).collect()
 
@@ -810,11 +822,20 @@ class Scoring:
             raise ValueError("No arbitration candidates are available in the selected population.")
         distribution = distribution.with_columns(
             Selected=lever_condition.fill_null(False),
+            Before=pl.col("_before_interactions").list.len(),
+            After=pl.col("_after_interactions").list.len(),
         )
         if not distribution["Selected"].any():
             raise ValueError("The selected lever scope has no arbitration candidates.")
 
-        evaluated_interactions = distribution["Before"].sum()
+        evaluated_interactions = distribution["_arbitration_decisions"].sum()
+        summary = distribution.filter(pl.col("Selected")).select(
+            pl.lit(interactions).alias("Interactions"),
+            pl.lit(evaluated_interactions).alias("Re-evaluated decisions"),
+            Before=pl.col("_before_interactions").list.explode(keep_nulls=False, empty_as_null=False).n_unique(),
+            After=pl.col("_after_interactions").list.explode(keep_nulls=False, empty_as_null=False).n_unique(),
+        )
+        distribution = distribution.drop("_before_interactions", "_after_interactions", "_arbitration_decisions")
         no_winner_count = interactions - evaluated_interactions
         if no_winner_count:
             no_winner = pl.DataFrame(
@@ -836,14 +857,11 @@ class Scoring:
         ).with_columns(
             (pl.col("After share (%)") - pl.col("Before share (%)")).alias("Change (pp)"),
         )
-        summary = distribution.filter(pl.col("Selected")).select(
-            pl.lit(interactions).alias("Interactions"),
-            pl.lit(evaluated_interactions).alias("Re-evaluated decisions"),
-            pl.col("Before").sum(),
-            pl.col("After").sum(),
-            pl.col("Before share (%)").sum(),
-            pl.col("After share (%)").sum(),
-            pl.col("Change (pp)").sum(),
+        summary = summary.with_columns(
+            (100.0 * pl.col("Before") / interactions).alias("Before share (%)"),
+            (100.0 * pl.col("After") / interactions).alias("After share (%)"),
+        ).with_columns(
+            (pl.col("After share (%)") - pl.col("Before share (%)")).alias("Change (pp)"),
         )
         distribution = distribution.sort(["After", *keys], descending=[True, False, False, False])
         summary = summary.with_columns(pl.lit(perf_counter() - started).alias("Elapsed (s)"))
