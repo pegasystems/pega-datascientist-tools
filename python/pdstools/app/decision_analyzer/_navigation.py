@@ -45,6 +45,7 @@ _DATA_PAGES: tuple[_DataPage, ...] = (
     _DataPage("8_Offer_Quality_Analysis.py", "Offer Quality Analysis", "💎"),
     _DataPage("9_Thresholding_Analysis.py", "Thresholding Analysis", "🚦"),
     _DataPage("10_Arbitration_Distribution.py", "Arbitration Distribution", "⚖️"),
+    _DataPage("13_Business_Levers.py", "What-if: Business Levers", "🎚️"),
     _DataPage("11_Single_Decision.py", "Single Decision", "🔬"),
 )
 

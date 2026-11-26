@@ -124,6 +124,26 @@ level pages analyze. `get_possible_scope_values()` returns available levels base
 on what columns exist. Page 6 (Win/Loss) uses this hierarchy for comparison group
 definition.
 
+### Business Lever What-if Simulation
+
+The What-if: Business Levers page uses `da.scoring.lever_simulation()` to replace
+levers for an Issue, Group, or Action. Its -50% to +50% slider maps to absolute
+replacement values of 0.50 to 1.50, not multipliers of existing levers. Reset
+removes the override; 0% replaces it with 1.0.
+
+Both Before and After use reconstructed PVCL ranks on the same sampled,
+population-filtered arbitration candidates. Target selectors only identify
+which levers change; they do not remove competing offers. Mandatory precedence
+and existing tie-breaking are retained. Counts and shares include interactions
+without an eligible winner using the same population denominator.
+
+The method returns an action-level distribution and a one-row selected-scope
+summary. The page passes each scenario's winning counts as `Decisions` to
+`da.plot.distribution_as_treemap()`, preserving the Action Distribution page's
+hierarchy and colors. The source analyzer is not mutated. See the
+[business levers design](../python/pdstools/decision_analyzer/business-levers-design.md)
+for behavior, limitations, and acceptance tests.
+
 ### Aggregate Summaries and Row Cohorts
 
 Decision Analyzer exposes two related but distinct API shapes:

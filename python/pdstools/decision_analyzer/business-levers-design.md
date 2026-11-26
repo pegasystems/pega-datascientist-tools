@@ -1,6 +1,6 @@
 # What-if Business Levers - Design
 
-**Status:** Proposed prototype
+**Status:** Implemented prototype
 **Application:** Decision Analysis Tool
 
 ## Executive Summary
@@ -20,8 +20,8 @@ existing levers:
 | +10% | 1.10 |
 
 Support one adjustment at a time. Do not update product configuration or predict
-customer responses. The existing scoring and plotting helpers provide a starting
-point, but no what-if page is currently registered in the app navigation.
+customer responses. The page is registered as What-if: Business Levers alongside Arbitration
+Distribution and uses the existing scoring and treemap infrastructure.
 
 ## Key Concepts & Principles
 
@@ -163,18 +163,21 @@ as complete data.
 
 ### Output
 
-One row per action identity:
+`Scoring.lever_simulation()` returns two DataFrames: an action-level distribution
+and a one-row selected-scope summary. The distribution contains:
 
 | Field | Meaning |
 |---|---|
 | Issue, Group, Action | Full identity |
-| selected_action | Whether the replacement applies |
-| original_win_count | Baseline rank-1 wins |
-| new_win_count | Scenario rank-1 wins |
+| Selected | Whether the replacement applies |
+| Before | Baseline rank-1 wins |
+| After | Scenario rank-1 wins |
+| Before share (%), After share (%) | Population-based winning-offer shares |
+| Change (pp) | After share minus Before share |
 
-Retain existing helper fields where required for compatibility. Library
-aggregation derives before/after shares, percentage-point changes, and
-selected-scope totals.
+The summary contains Interactions and the selected scope's Before, After,
+Before share (%), After share (%), and Change (pp). The legacy
+`get_win_distribution_data()` API remains unchanged.
 
 The denominator is the same filtered sampled interaction population for both
 scenarios, measured before restricting candidates to arbitration. Interactions
@@ -204,11 +207,9 @@ Reuse existing components; introduce no new analyzer hierarchy.
   shared page utilities.
 - **Navigation:** register the page only when decision data is loaded.
 
-The existing absolute-replacement behavior remains supported. Changes to shared
-helper behavior require auditing its tests and callers. In particular, the
-current helper counts baseline winners using recorded Rank, whereas this design
-compares reconstructed rankings. Treat that difference as an intentional,
-documented change, not an incidental refactor.
+The existing `get_win_distribution_data()` helper continues to count baseline
+winners using recorded Rank. The new `lever_simulation()` method intentionally
+compares reconstructed rankings without changing that legacy behavior.
 
 ## Process Diagrams
 
@@ -244,10 +245,19 @@ Required library capabilities:
 - Provide the existing treemap input shape for each scenario. No new plot API is
   needed; any necessary extension must preserve existing callers.
 
-The existing `get_win_distribution_data()` helper already supports absolute
-replacement and is the first reuse candidate. Preserve existing call signatures
-unless a directly related change is necessary; inspect callers before deciding
-whether to extend it or add a focused method to the existing Scoring namespace.
+The focused API preserves the legacy helper's recorded-baseline semantics:
+
+```python
+distribution, summary = da.scoring.lever_simulation(
+    (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards"),
+    lever_value=1.10,
+    additional_filters=pl.col("Channel") == "Web",
+)
+```
+
+Pass `lever_value=None` to remove the override. Values outside 0.50 to 1.50 or
+non-finite values raise ValueError. Empty populations or targets without eligible
+candidates also raise actionable ValueErrors.
 
 Do not change the shared sensitivity-ranking engine's default behavior merely
 to serve this page. Plot methods return figures and do not display them.
@@ -340,13 +350,14 @@ inputs and table rather than using tile presence as a correctness assertion.
 - [Reusable distribution treemap](plots/_distribution.py)
 - [Action Distribution page](../app/decision_analyzer/pages/3_Action_Distribution.py)
 - [App navigation](../app/decision_analyzer/_navigation.py)
+- [Business Levers page](../app/decision_analyzer/pages/13_Business_Levers.py)
 - [Existing Win/Loss page](../app/decision_analyzer/pages/6_Win_Loss_Analysis.py)
 - [Decision Analyzer tests](../../tests/decision_analyzer/test_DecisionAnalyzer.py)
 - [Win/loss plot tests](../../tests/decision_analyzer/test_plots_winloss.py)
+- [Lever page interaction tests](../../tests/streamlit_apps/decision_analyzer/test_business_levers.py)
 
 ## Delivery Scope
 
-This document specifies a proposed implementation; it does not claim the page
-or changed simulation behavior already exists. Implement the library behavior,
-page, navigation, directly related documentation, and focused tests together in
-one change. Leave unrelated backlog items untouched.
+The prototype includes library simulation, the page and navigation, directly
+related documentation, and focused tests. It does not implement saved scenarios,
+product write-back, or any unrelated backlog items.
