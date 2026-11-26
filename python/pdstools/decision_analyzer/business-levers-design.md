@@ -83,8 +83,7 @@ must not add population filters that remove competing offers.
 2. Cascading selectors for the required hierarchy.
 3. **Lever adjustment relative to neutral (1.0):** percentage slider from -50%
    to +50%, in 1-percentage-point steps.
-4. Quick buttons: **-10%, +10%, Reset**. The percentage buttons set those values;
-   they do not increment the current value.
+4. **Reset:** a separate control that removes the override completely.
 5. Explicit replacement preview, for example:
 
    > Set the lever to **1.10** for all actions in **Sales / Cards**.
@@ -245,7 +244,6 @@ to serve this page. Plot methods return figures and do not display them.
 | Setting | Proposed behavior |
 |---|---|
 | Percentage slider | -50% to +50%, step 1 percentage point |
-| Quick settings | -10%, +10% |
 | Initial state | No override |
 | Winning rank | 1, fixed |
 | Sampling | Existing analyzer configuration |
@@ -311,7 +309,7 @@ Focused exact-value tests must demonstrate:
     it with 1.50, producing the expected winners and offer shares.
 
 Streamlit state-transition tests cover cascading selectors, slider changes,
-quick buttons, Reset, and changes to the active population. Verify both slider
+Reset, and changes to the active population. Verify both slider
 endpoints, initial no-override state,
 and selection invalidation after a data change.
 
