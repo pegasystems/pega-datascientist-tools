@@ -85,16 +85,32 @@ def distribution(
     color_column = breakdown or scope
     color_discrete_map = self._decision_data.color_mappings.get(color_column)
 
-    fig = px.histogram(
-        df.collect(),
+    group_columns = [scope] if color_column == scope else [scope, color_column]
+    plot_data = (
+        df.group_by(group_columns, maintain_order=True)
+        .agg(pl.col(metric).sum())
+        .with_columns(pl.col(metric).sum().over(scope).alias("_BarTotal"))
+        .collect()
+    )
+    fig = px.bar(
+        plot_data,
         x=metric if horizontal else scope,
         y=scope if horizontal else metric,
         color=color_column,
         color_discrete_map=color_discrete_map,
         orientation="h" if horizontal else "v",
         template="pega",
+        custom_data=["_BarTotal"],
     )
-    fig.update_traces(marker=dict(opacity=1, line=dict(color="#63666F", width=0.75)))
+    category_axis, value_axis = ("y", "x") if horizontal else ("x", "y")
+    fig.update_traces(
+        marker=dict(opacity=1, line=dict(color="#63666F", width=0.75)),
+        hovertemplate=(
+            f"<b>%{{{category_axis}}}</b><br>{color_column}: %{{fullData.name}}"
+            f"<br>{metric}: %{{{value_axis}:,}}"
+            "<br>Bar total: %{customdata[0]:,}<extra></extra>"
+        ),
+    )
 
     if horizontal:
         fig = (

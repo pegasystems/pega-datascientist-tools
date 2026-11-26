@@ -14,7 +14,7 @@ from plotly.subplots import make_subplots
 @overload
 def offer_quality_piecharts(
     df: pl.LazyFrame,
-    propensity_th: Any,
+    propensity_threshold: Any,
     AvailableNBADStages: list[str],
     return_df: Literal[True],
     level: str = "Stage Group",
@@ -24,7 +24,7 @@ def offer_quality_piecharts(
 @overload
 def offer_quality_piecharts(
     df: pl.LazyFrame,
-    propensity_th: Any,
+    propensity_threshold: Any,
     AvailableNBADStages: list[str],
     return_df: Literal[False] = False,
     level: str = "Stage Group",
@@ -33,7 +33,7 @@ def offer_quality_piecharts(
 
 def offer_quality_piecharts(
     df: pl.LazyFrame,
-    propensity_th: Any,
+    propensity_threshold: Any,
     AvailableNBADStages: list[str],
     return_df: bool = False,
     level: str = "Stage Group",
@@ -134,7 +134,7 @@ def offer_quality_piecharts(
 def offer_quality_single_pie(
     df: pl.LazyFrame,
     stage: str,
-    propensity_th,
+    propensity_threshold,
     level="Stage Group",
 ):
     """Create a single pie chart showing offer quality for a specific stage.
@@ -145,7 +145,7 @@ def offer_quality_single_pie(
         Offer quality data from get_offer_quality()
     stage : str
         Stage name to display (e.g., "Arbitration", "Output")
-    propensity_th : float
+    propensity_threshold : float
         Propensity threshold used for relevance categorization
     level : str, default "Stage Group"
         Grouping level (Stage or Stage Group)

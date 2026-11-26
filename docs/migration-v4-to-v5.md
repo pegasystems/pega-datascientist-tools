@@ -332,6 +332,29 @@ da.get_offer_quality(propensity_th=0.5, priority_th=50)
 offer_quality_piecharts(df, propensity_th=0.5, AvailableNBADStages=stages)
 ```
 
+The current namespace API spells these arguments out as
+`propensity_threshold` / `priority_threshold`. Thresholds are applied when
+building action counts, before deriving offer-quality categories:
+
+```python
+action_counts = da.aggregates.filtered_action_counts(
+    groupby_cols=[da.level, "Interaction ID"],
+    propensity_threshold=0.5,
+    priority_threshold=50,
+)
+quality_data = da.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
+offer_quality_piecharts(
+    quality_data,
+    propensity_threshold=0.5,
+    AvailableNBADStages=da.AvailableNBADStages,
+    level=da.level,
+)
+```
+
+`offer_quality_single_pie()` also uses `propensity_threshold`. Positional
+arguments retain their order; update keyword arguments from the earlier
+`propensity_th` / `priority_th` spellings.
+
 ### `Reports.excel_report(predictor_binning=...)` is keyword-only
 
 ```python

@@ -103,20 +103,33 @@ with controls:
 
     st.session_state._lever_percentage = st.session_state.lever_percentage
     st.slider(
-        "Lever adjustment relative to neutral (1.0)",
+        "Replacement relative to selected baseline",
         min_value=-50,
         max_value=50,
         step=1,
         format="%d%%",
         key="_lever_percentage",
         on_change=_persist_percentage,
-        help="Replace selected levers with 1 + percentage / 100; do not multiply their existing values.",
+        help="Use the selected offers' median lever as the baseline. Replace all selected levers with the same value.",
     )
     st.button("Reset", on_click=_reset, help="Remove the override and restore the original levers.")
+    lever_settings = da.aggregates.lever_summary(
+        condition,
+        percentage=st.session_state.lever_percentage,
+        additional_filters=filters,
+    ).row(0, named=True)
+    st.caption(
+        f"Source levers: **{lever_settings['Minimum']:.2f} to {lever_settings['Maximum']:.2f}**. "
+        f"Slider baseline (median): **{lever_settings['Median']:.2f}**."
+    )
+    if st.session_state.lever_override_active:
+        st.caption(f"Replacement lever: **{lever_settings['Replacement']:.2f}**.")
+        if lever_settings["Lowers existing levers"]:
+            st.info("This replacement lowers some recorded levers, even if the slider percentage is positive.")
     win_rank_selector()
     analysis_level = simulation_granularity_selector()
 
-lever = 1 + st.session_state.lever_percentage / 100 if st.session_state.lever_override_active else None
+lever = lever_settings["Replacement"] if st.session_state.lever_override_active else None
 target_label = " / ".join(target)
 if lever is None:
     st.caption("Original levers retained. Move the slider to apply a replacement.")
@@ -140,7 +153,10 @@ with st.expander("Simulation assumptions"):
     st.markdown(
         "Before and After reconstruct priority as **Propensity × Value × Context Weight × Levers**, "
         "so they may differ from recorded output. Missing component values use 1.0. "
-        "Mandatory-action precedence is preserved. **0% sets the lever to 1.0; Reset removes the override.**\n\n"
+        "The slider is centered on the selected offers' median baseline lever and replaces all selected levers "
+        "with one shared value. For mixed source values, some individual levers can decrease even at a positive "
+        "percentage. Mandatory-action precedence is preserved. "
+        "**0% sets selected levers to their median; Reset restores each original lever.**\n\n"
         "The chart and table show decision coverage at the selected analysis granularity. "
         f"Each decision counts once per issue, group, or action with at least one Top-{win_rank} offer. "
         "For Top-N, coverage percentages can overlap and need not sum to 100%. "

@@ -9,11 +9,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - What-if: Business Levers in the Decision Analysis Tool: replace levers at
-  Issue, Group, or Action level with a -50% to +50% slider and compare
+  Issue, Group, or Action level with a -50% to +50% slider centered on the
+  selected offers' median recorded lever and compare
   reconstructed Top-N winning-share changes in a delta chart, with independent
   Issue/Group/Action analysis granularity, arbitration-only selected-target
   decision coverage, evaluated decision counts, and elapsed time.
-  Reset restores the original levers; the same simulation is available through
+  Reset restores the original levers; 0% replaces them with their median.
+  The same simulation is available through
   `DecisionAnalyzer.scoring.lever_simulation()` (#1033).
 - Thresholding Analysis shares the same delta comparison, Top-N and analysis
   granularity controls, and timing footer. Global propensity/priority thresholds
@@ -37,6 +39,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Decision Analysis Tool hover tooltips include absolute counts beside
+  percentages, and stacked distribution bars show segment and whole-bar
+  totals. Colored optionality labels fractional counts as weighted decisions.
+  Rank-based win/loss data now retains an additional `Count` column (#1033).
+- **Breaking:** Rename `propensity_th` / `priority_th` to
+  `propensity_threshold` / `priority_threshold` on
+  `DecisionAnalyzer.aggregates.filtered_action_counts()`, and rename
+  `propensity_th` to `propensity_threshold` on the offer-quality pie helpers.
+  Update keyword callers; positional calls are unchanged (#1033).
 - Decision Analysis Tool charts share stable stage/filter-family and categorical
   colors. The ten most frequent actions retain distinct colors, with other
   actions in gray; Win/Loss bars stay fully opaque and outlined. Optionality

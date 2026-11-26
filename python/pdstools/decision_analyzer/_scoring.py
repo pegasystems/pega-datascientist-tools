@@ -388,6 +388,8 @@ class Scoring:
         Returns
         -------
         pl.LazyFrame
+            In rank-based mode, scope columns, ``Status``, ``Percentage``
+            (a fraction), and the absolute win/loss ``Count``.
         """
         if group_filter is None:
             if win_rank is None:
@@ -399,18 +401,21 @@ class Scoring:
                 .group_by(level)
                 .agg(Wins=pl.sum(win_col), Decisions=pl.sum("Decisions"))
                 .with_columns(Losses=pl.col("Decisions") - pl.col("Wins"))
-                .with_columns(
-                    Wins=pl.col("Wins") / pl.sum("Wins"),
-                    Losses=pl.col("Losses") / pl.sum("Losses"),
-                )
             )
 
-            return group_level_win_losses.unpivot(
-                index=level,
-                on=["Wins", "Losses"],
-                variable_name="Status",
-                value_name="Percentage",
-            ).sort(["Status", "Percentage"], descending=True)
+            return (
+                group_level_win_losses.unpivot(
+                    index=level,
+                    on=["Wins", "Losses"],
+                    variable_name="Status",
+                    value_name="Count",
+                )
+                .with_columns(
+                    (pl.col("Count") / pl.col("Count").sum().over("Status")).alias("Percentage"),
+                )
+                .select(pl.exclude("Count"), "Count")
+                .sort(["Status", "Percentage"], descending=True)
+            )
 
         if status not in {"Wins", "Losses"}:
             raise ValueError("When group_filter is provided, status must be either 'Wins' or 'Losses'.")
@@ -738,7 +743,7 @@ class Scoring:
             Boolean expression selecting an issue, group, or action. Include
             parent hierarchy columns when selecting groups or actions.
         lever_value : float, optional
-            Replacement lever between 0.50 and 1.50, inclusive. This is not a
+            Positive, finite replacement lever. This is not a
             multiplier of existing levers. None removes the override; 1.0
             replaces selected levers with the neutral value.
         additional_filters : pl.Expr or list of pl.Expr, optional
@@ -770,7 +775,7 @@ class Scoring:
         Raises
         ------
         ValueError
-            If the winning rank is invalid, the replacement is non-finite or outside the prototype range,
+            If the winning rank is invalid, the replacement is non-finite or non-positive,
             the population has no arbitration candidates, or the target does
             not match an eligible candidate.
 
@@ -780,8 +785,8 @@ class Scoring:
         recorded Rank. Missing PVCL components use the neutral defaults from
         re_rank. The source data is never modified.
         """
-        if lever_value is not None and (not isfinite(lever_value) or not 0.5 <= lever_value <= 1.5):
-            raise ValueError("Replacement lever must be finite and between 0.50 and 1.50.")
+        if lever_value is not None and (not isfinite(lever_value) or lever_value <= 0):
+            raise ValueError("Replacement lever must be positive and finite.")
         overrides = (
             [
                 pl.when(lever_condition.fill_null(False))

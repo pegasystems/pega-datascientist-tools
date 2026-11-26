@@ -287,6 +287,101 @@ def test_colored_optionality_preserves_null_interaction_ids(mixed_issue_data):
     )
 
 
+@pytest.mark.parametrize("horizontal", [False, True])
+def test_stacked_distribution_hover_has_aggregated_segment_and_bar_total(mixed_issue_data, horizontal):
+    da = DecisionAnalyzer(mixed_issue_data)
+    data = pl.LazyFrame(
+        {"Issue": ["A", "A", "A", "B", "B"], "Group": ["G1", "G1", "G2", "G1", "G2"], "Decisions": [2, 3, 7, 11, 13]}
+    )
+    fig = da.plot.distribution(data, "Issue", "Group", horizontal=horizontal)
+    values = {}
+    for trace in fig.data:
+        categories, counts = (trace.y, trace.x) if horizontal else (trace.x, trace.y)
+        for category, count, custom in zip(categories, counts, trace.customdata, strict=True):
+            values[(category, trace.name)] = (count, custom[0])
+        assert "Bar total: %{customdata[0]:,}" in trace.hovertemplate
+    assert values == {("A", "G1"): (5, 12), ("A", "G2"): (7, 12), ("B", "G1"): (11, 24), ("B", "G2"): (13, 24)}
+
+
+@pytest.mark.parametrize("color_by", [None, "Issue", "Group"])
+def test_optionality_hover_counts_and_stacked_bucket_totals(mixed_issue_data, color_by):
+    da = DecisionAnalyzer(mixed_issue_data)
+    fig = da.plot.propensity_vs_optionality(color_by=color_by)
+    for trace in fig.data:
+        assert "customdata[0]" in trace.hovertemplate
+        if trace.type == "scatter" or color_by is None:
+            assert [row[0] for row in trace.customdata] == [1] * len(trace.x)
+        else:
+            for row in trace.customdata:
+                assert row[1] == pytest.approx(1)
+                assert row[2] == pytest.approx(100 / 3)
+            assert "Bucket total" in trace.hovertemplate
+            assert "weighted decisions" in trace.hovertemplate
+    if color_by is not None:
+        a = next(trace for trace in fig.data if trace.name == ("A" if color_by == "Issue" else "G1"))
+        n_three = list(a.x).index(3)
+        assert a.customdata[n_three][0] == pytest.approx(2 / 3)
+
+
+def test_win_loss_hover_uses_absolute_counts_without_changing_shares(mixed_issue_data):
+    da = DecisionAnalyzer(mixed_issue_data)
+    data = da.scoring.get_win_loss_distribution_data("Issue", 1).collect()
+    assert {(row["Issue"], row["Status"]): row["Count"] for row in data.iter_rows(named=True)} == {
+        ("A", "Wins"): 2,
+        ("B", "Wins"): 0,
+        ("A", "Losses"): 1,
+        ("B", "Losses"): 2,
+    }
+    for status, trace in zip(("Wins", "Losses"), da.plot.global_winloss_distribution("Issue", 1).data, strict=True):
+        assert "%{value:,}" in trace.hovertemplate
+        assert dict(zip(trace.labels, trace.values, strict=True)) == (
+            {"A": 2, "B": 0} if status == "Wins" else {"A": 1, "B": 2}
+        )
+        assert data.filter(pl.col("Status") == status)["Percentage"].sum() == pytest.approx(1)
+
+
+def test_without_actions_hover_has_absolute_interaction_counts(mixed_issue_data):
+    da = DecisionAnalyzer(mixed_issue_data)
+    trace = da.plot.decisions_without_actions_plot().data[0]
+    assert {
+        stage: (share, count[0]) for stage, share, count in zip(trace.y, trace.x, trace.customdata, strict=True)
+    } == {
+        "Eligibility": (pytest.approx(100 / 3), 1),
+        "Arbitration": (pytest.approx(200 / 3), 2),
+    }
+    assert "%{customdata[0]:,}" in trace.hovertemplate
+
+
+def test_lever_summary_centers_replacement_on_selected_source_values(mixed_issue_data):
+    da = DecisionAnalyzer(
+        mixed_issue_data.with_columns(pl.when(pl.col("Action") == "A1").then(2.0).otherwise(1.0).alias("Levers"))
+    )
+    settings = da.aggregates.lever_summary(pl.col("Issue") == "A", percentage=18).row(0, named=True)
+    assert settings == {
+        "Minimum": 1.0,
+        "Median": 2.0,
+        "Maximum": 2.0,
+        "Replacement": pytest.approx(2.36),
+        "Lowers existing levers": False,
+    }
+    distribution, summary = da.scoring.lever_simulation(pl.col("Issue") == "A", settings["Replacement"], by="Issue")
+    assert summary.select("Before", "After").row(0) == (2, 2)
+    assert distribution.filter(pl.col("Selected"))["After"].item() == 2
+
+
+@pytest.mark.parametrize("percentage", [51, float("nan")])
+def test_lever_summary_rejects_invalid_adjustments(mixed_issue_data, percentage):
+    da = DecisionAnalyzer(mixed_issue_data)
+    with pytest.raises(ValueError, match="between -50% and \\+50%"):
+        da.aggregates.lever_summary(pl.col("Issue") == "A", percentage=percentage)
+
+
+def test_lever_summary_rejects_empty_scope(mixed_issue_data):
+    da = DecisionAnalyzer(mixed_issue_data)
+    with pytest.raises(ValueError, match="positive, finite median lever"):
+        da.aggregates.lever_summary(pl.col("Issue") == "Absent")
+
+
 def test_offer_quality_already_colors_stage_specific_propensity_categories(mixed_issue_data):
     early_rows = mixed_issue_data.filter(pl.col("Interaction ID") == "D3")
     raw = pl.concat(
@@ -299,8 +394,8 @@ def test_offer_quality_already_colors_stage_specific_propensity_categories(mixed
     da = DecisionAnalyzer(raw)
     counts = da.aggregates.filtered_action_counts(
         ["Stage Group", "Interaction ID"],
-        propensity_th=0.25,
-        priority_th=0.0,
+        propensity_threshold=0.25,
+        priority_threshold=0.0,
     )
     quality = da.aggregates.get_offer_quality(counts, "Interaction ID")
     fig = offer_quality_piecharts(quality, 0.25, da.AvailableNBADStages)

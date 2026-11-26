@@ -261,19 +261,26 @@ def decisions_without_actions_plot(
     )
     df = df.with_columns((pl.col("decisions_without_actions") / total_decisions * 100).alias("pct_without_actions"))
 
-    return px.bar(
-        df,
-        x="pct_without_actions",
-        y=self._decision_data.level,
-        labels={
-            self._decision_data.level: "Stage group" if self._decision_data.level == "Stage Group" else "Stage",
-            "pct_without_actions": "% of Decisions without Actions",
-        },
-        category_orders={self._decision_data.level: self._decision_data.AvailableNBADStages},
-        template="plotly_white",
-        color_discrete_sequence=["#d73027"],
-    ).update_layout(
-        xaxis_title="% of Decisions without Actions",
-        xaxis_ticksuffix="%",
-        yaxis_title="",
+    return (
+        px.bar(
+            df,
+            x="pct_without_actions",
+            y=self._decision_data.level,
+            labels={
+                self._decision_data.level: "Stage group" if self._decision_data.level == "Stage Group" else "Stage",
+                "pct_without_actions": "% of Decisions without Actions",
+            },
+            category_orders={self._decision_data.level: self._decision_data.AvailableNBADStages},
+            template="plotly_white",
+            color_discrete_sequence=["#d73027"],
+            custom_data=["decisions_without_actions"],
+        )
+        .update_traces(
+            hovertemplate="<b>%{y}</b><br>%{x:.1f}% of decisions (%{customdata[0]:,})<extra></extra>",
+        )
+        .update_layout(
+            xaxis_title="% of Decisions without Actions",
+            xaxis_ticksuffix="%",
+            yaxis_title="",
+        )
     )

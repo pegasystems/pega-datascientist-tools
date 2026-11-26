@@ -1410,9 +1410,9 @@ class TestLeverSimulation:
         with pytest.raises(ValueError, match="Winning rank must be an integer"):
             lever_analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", win_rank=win_rank)
 
-    @pytest.mark.parametrize("lever", [0.49, 1.51, float("nan"), float("inf")])
+    @pytest.mark.parametrize("lever", [0.0, -1.0, float("nan"), float("inf")])
     def test_invalid_replacement(self, lever_analyzer, lever):
-        with pytest.raises(ValueError, match="between 0.50 and 1.50"):
+        with pytest.raises(ValueError, match="positive and finite"):
             lever_analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", lever)
 
     def test_empty_population_and_missing_target(self, lever_analyzer):
@@ -2037,8 +2037,8 @@ class TestFilteringAndScoping:
     def test_filtered_action_counts_with_thresholds(self, da_v2):
         result = da_v2.aggregates.filtered_action_counts(
             groupby_cols=[da_v2.level],
-            propensity_th=0.5,
-            priority_th=0.5,
+            propensity_threshold=0.5,
+            priority_threshold=0.5,
         )
         df = result.collect()
         assert df.height == 5
@@ -2152,7 +2152,7 @@ class TestOfferQualityAnalysis:
         """Test get_offer_quality returns expected structure."""
         # get_offer_quality requires action_counts to have threshold columns
         action_counts = da_v2.aggregates.filtered_action_counts(
-            groupby_cols=[da_v2.level, "Interaction ID"], propensity_th=0.1, priority_th=10.0
+            groupby_cols=[da_v2.level, "Interaction ID"], propensity_threshold=0.1, priority_threshold=10.0
         )
         result = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()
@@ -2174,7 +2174,7 @@ class TestOfferQualityAnalysis:
     def test_get_offer_quality_with_thresholds(self, da_v2):
         """Test get_offer_quality respects propensity/priority thresholds."""
         action_counts = da_v2.aggregates.filtered_action_counts(
-            groupby_cols=[da_v2.level, "Interaction ID"], propensity_th=0.5, priority_th=50.0
+            groupby_cols=[da_v2.level, "Interaction ID"], propensity_threshold=0.5, priority_threshold=50.0
         )
         result = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()
@@ -2198,8 +2198,8 @@ class TestOfferQualityAnalysis:
         """Test that get_offer_quality includes customers even if they have no actions."""
         action_counts = da_v2.aggregates.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID"],
-            propensity_th=0.99,  # High threshold to filter most
-            priority_th=999.0,  # High threshold to filter most
+            propensity_threshold=0.99,  # High threshold to filter most
+            priority_threshold=999.0,  # High threshold to filter most
         )
         result = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()
@@ -2223,7 +2223,7 @@ class TestOfferQualityAnalysis:
     def test_get_offer_quality_stage_without_propensity(self, da_v2):
         """Test offer quality for stages without propensity uses atleast_one_action category."""
         action_counts = da_v2.aggregates.filtered_action_counts(
-            groupby_cols=[da_v2.level, "Interaction ID"], propensity_th=0.1, priority_th=10.0
+            groupby_cols=[da_v2.level, "Interaction ID"], propensity_threshold=0.1, priority_threshold=10.0
         )
         result = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()

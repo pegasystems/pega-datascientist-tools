@@ -11,6 +11,7 @@ __all__ = ["Aggregates", "HeadToHeadResult"]
 
 from bisect import bisect_left
 from dataclasses import dataclass
+from math import isfinite
 from typing import TYPE_CHECKING, Literal
 
 import polars as pl
@@ -1331,11 +1332,69 @@ class Aggregates:
             .otherwise(pl.lit(0)),
         )
 
+    def lever_summary(
+        self,
+        selection: pl.Expr,
+        *,
+        percentage: float = 0.0,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> pl.DataFrame:
+        """Derive a shared replacement lever from selected arbitration offers.
+
+        Parameters
+        ----------
+        selection : pl.Expr
+            Expression selecting the issue, group, or action.
+        percentage : float, default 0.0
+            Adjustment from -50 to +50 percent around the median baseline lever.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Population filters applied before computing the baseline.
+
+        Returns
+        -------
+        pl.DataFrame
+            One row with Minimum, Median, Maximum, Replacement, and
+            Lowers existing levers. Missing levers use the neutral value 1.0.
+            Replacement is median times ``1 + percentage / 100``; it is one
+            shared value, not a multiplier applied to each offer.
+
+        Raises
+        ------
+        ValueError
+            If the adjustment is outside the prototype range, no eligible
+            offers match, or their median is not positive and finite.
+        """
+        if not isfinite(percentage) or not -50 <= percentage <= 50:
+            raise ValueError("Lever adjustment must be finite and between -50% and +50%.")
+        levers = pl.col("Levers").fill_null(1.0)
+        summary = (
+            apply_filter(self.da.sample, additional_filters)
+            .filter(
+                selection.fill_null(False)
+                & pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down)
+                & pl.col("Priority").is_not_null()
+            )
+            .select(
+                Minimum=levers.min(),
+                Median=levers.median(),
+                Maximum=levers.max(),
+            )
+            .collect()
+        )
+        median = summary["Median"].item()
+        if median is None or not isfinite(median) or median <= 0:
+            raise ValueError("Selected arbitration offers must have a positive, finite median lever.")
+        return summary.with_columns(
+            (pl.col("Median") * (1 + percentage / 100)).alias("Replacement"),
+        ).with_columns(
+            (pl.col("Replacement") < pl.col("Maximum")).alias("Lowers existing levers"),
+        )
+
     def filtered_action_counts(
         self,
         groupby_cols: list[str],
-        propensity_th: float | None = None,
-        priority_th: float | None = None,
+        propensity_threshold: float | None = None,
+        priority_threshold: float | None = None,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> pl.LazyFrame:
         """Return action counts from the sample, optionally classified by propensity/priority thresholds.
@@ -1344,9 +1403,9 @@ class Aggregates:
         ----------
         groupby_cols : list of str
             Column names to group by.
-        propensity_th : float, optional
+        propensity_threshold : float, optional
             Propensity threshold for classifying offers.
-        priority_th : float, optional
+        priority_threshold : float, optional
             Priority threshold for classifying offers.
         additional_filters : pl.Expr or list[pl.Expr], optional
             Extra filters applied to the sample (e.g. channel filter).
@@ -1364,7 +1423,7 @@ class Aggregates:
             if col not in df.collect_schema().names():
                 raise ValueError(f"Column '{col}' not found in the dataframe.")
 
-        if propensity_th is None or priority_th is None:
+        if propensity_threshold is None or priority_threshold is None:
             return df.group_by(groupby_cols).agg(
                 no_of_offers=pl.count("Action"),
             )
@@ -1379,19 +1438,19 @@ class Aggregates:
             .count()
             .alias("new_models"),
             pl.col("Action")
-            .filter(has_propensity & (pl.col("Propensity") < propensity_th) & (pl.col("Propensity") != 0.5))
+            .filter(has_propensity & (pl.col("Propensity") < propensity_threshold) & (pl.col("Propensity") != 0.5))
             .count()
             .alias("poor_propensity_offers"),
             pl.col("Action")
-            .filter(has_propensity & (pl.col("Priority") < priority_th) & (pl.col("Propensity") != 0.5))
+            .filter(has_propensity & (pl.col("Priority") < priority_threshold) & (pl.col("Propensity") != 0.5))
             .count()
             .alias("poor_priority_offers"),
             pl.col("Action")
             .filter(
                 has_propensity
-                & (pl.col("Propensity") >= propensity_th)
+                & (pl.col("Propensity") >= propensity_threshold)
                 & (pl.col("Propensity") != 0.5)
-                & (pl.col("Priority") >= priority_th)
+                & (pl.col("Priority") >= priority_threshold)
             )
             .count()
             .alias("good_offers"),

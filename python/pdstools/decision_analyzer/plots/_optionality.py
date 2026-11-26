@@ -87,11 +87,13 @@ def propensity_vs_optionality(
     )
 
     if color_by is None:
-        bar_customdata = plotData.select(["AverageBestPropensity"]).to_numpy() if has_propensity else None
+        bar_customdata = plotData.select(
+            ["Interactions", "AverageBestPropensity"] if has_propensity else ["Interactions"]
+        ).to_numpy()
         bar_hovertemplate = (
-            "Optionality = %{x}<br>Decisions = %{y:.1f}%<br>Avg Propensity = %{customdata[0]:.3%}<extra></extra>"
-            if has_propensity
-            else "Optionality = %{x}<br>Decisions = %{y:.1f}%<extra></extra>"
+            "Optionality = %{x}<br>Decisions = %{y:.1f}% (%{customdata[0]:,} decisions)"
+            + ("<br>Avg Propensity = %{customdata[1]:.3%}" if has_propensity else "")
+            + "<extra></extra>"
         )
         fig.add_trace(
             go.Bar(
@@ -109,6 +111,9 @@ def propensity_vs_optionality(
             .then(pl.lit("No actions"))
             .otherwise(pl.col(color_by).cast(pl.String).fill_null("Unspecified"))
             .alias(color_by)
+        ).with_columns(
+            pl.col("Interactions").sum().over("nOffers").alias("_BucketInteractions"),
+            pl.col("PctInteractions").sum().over("nOffers").alias("_BucketShare"),
         )
         for category in categories.get_column(color_by).unique().sort():
             category_data = categories.filter(pl.col(color_by) == category)
@@ -117,6 +122,7 @@ def propensity_vs_optionality(
                     x=category_data["nOffers"],
                     y=category_data["PctInteractions"],
                     name=category,
+                    customdata=category_data.select("Interactions", "_BucketInteractions", "_BucketShare").rows(),
                     marker_color=(
                         "#cd001f"
                         if category == "No actions"
@@ -124,7 +130,9 @@ def propensity_vs_optionality(
                     ),
                     hovertemplate=(
                         f"{color_by} = %{{fullData.name}}<br>Optionality = %{{x}}"
-                        "<br>Decision share = %{y:.1f}%<extra></extra>"
+                        "<br>Decision share = %{y:.1f}% (%{customdata[0]:,.2f} weighted decisions)"
+                        "<br>Bucket total = %{customdata[2]:.1f}% (%{customdata[1]:,.0f} decisions)"
+                        "<extra></extra>"
                     ),
                 )
             )
@@ -140,7 +148,10 @@ def propensity_vs_optionality(
                 mode="markers+lines",
                 line=dict(color="#63666F"),
                 marker=dict(color="#63666F"),
-                hovertemplate=("Optionality = %{x}<br>Avg Propensity = %{y:.3%}<extra></extra>"),
+                customdata=line_data.select("Interactions").to_numpy(),
+                hovertemplate=(
+                    "Optionality = %{x}<br>Avg Propensity = %{y:.3%}<br>Decisions = %{customdata[0]:,}<extra></extra>"
+                ),
             ),
             secondary_y=True,
         )

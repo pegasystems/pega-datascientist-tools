@@ -91,28 +91,28 @@ def _offer_quality_pie(best_stage: str, level: str):
     """Compute thresholds, action counts, quality breakdown and pie chart in one cached call."""
     _da = st.session_state.decision_data
     # Use 10th percentile thresholds (same defaults as Offer Quality page)
-    propensity_th = _da.scoring.get_thresholding_data("Propensity", [0, 10, 100])
-    priority_th = _da.scoring.get_thresholding_data("Priority", [0, 10, 100])
+    propensity_threshold = _da.scoring.get_thresholding_data("Propensity", [0, 10, 100])
+    priority_threshold = _da.scoring.get_thresholding_data("Priority", [0, 10, 100])
 
-    prop_values = propensity_th["Threshold"].to_list()
-    prio_values = priority_th["Threshold"].to_list()
+    prop_values = propensity_threshold["Threshold"].to_list()
+    prio_values = priority_threshold["Threshold"].to_list()
 
     if all(v is None for v in prop_values) or all(v is None for v in prio_values):
         return None
 
-    propensity_th = prop_values[1] if prop_values[1] is not None else 0.10
-    priority_th = prio_values[0] if prio_values[0] is not None else 0.0
+    propensity_threshold = prop_values[1] if prop_values[1] is not None else 0.10
+    priority_threshold = prio_values[0] if prio_values[0] is not None else 0.0
 
     action_counts = _da.aggregates.filtered_action_counts(
         groupby_cols=["Stage Group", "Interaction ID"],
-        priority_th=priority_th,
-        propensity_th=propensity_th,
+        priority_threshold=priority_threshold,
+        propensity_threshold=propensity_threshold,
     )
     quality_data = _da.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
     return offer_quality_single_pie(
         quality_data,
         stage=best_stage,
-        propensity_th=propensity_th,
+        propensity_threshold=propensity_threshold,
         level="Stage Group",
     )
 

@@ -143,9 +143,12 @@ definition.
 ### Business Lever What-if Simulation
 
 The What-if: Business Levers page uses `da.scoring.lever_simulation()` to replace
-levers for an Issue, Group, or Action. Its -50% to +50% slider maps to absolute
-replacement values of 0.50 to 1.50, not multipliers of existing levers. Reset
-removes the override; 0% replaces it with 1.0.
+levers for an Issue, Group, or Action. Its -50% to +50% slider is centered on
+the selected arbitration offers' median baseline lever, computed by
+`da.aggregates.lever_summary()`. All selected offers receive the same absolute
+replacement, not an individual multiplier. The UI shows the original range
+and warns when some source levers decrease. Reset restores individual source
+values; 0% replaces them with their median.
 
 Both Before and After use reconstructed PVCL ranks on the same sampled,
 population-filtered arbitration candidates. Target selectors only identify

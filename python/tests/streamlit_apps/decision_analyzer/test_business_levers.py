@@ -44,7 +44,7 @@ def _selected_counts(at):
     return data.filter(pl.col("Selected")).select("Before", "After").rows()
 
 
-@pytest.mark.parametrize(("percentage", "expected_after"), [(-50, 0), (10, 0), (50, 1)])
+@pytest.mark.parametrize(("percentage", "expected_after"), [(-50, 0), (10, 1), (50, 1)])
 def test_slider_replaces_action_lever(lever_page, percentage, expected_after):
     at = lever_page
     at.selectbox(key="_lever_level").set_value("Action").run()
@@ -62,14 +62,14 @@ def test_slider_replaces_action_lever(lever_page, percentage, expected_after):
 
 def test_zero_is_replacement_and_reset_removes_override(lever_page):
     at = lever_page
-    at.selectbox(key="_lever_level").set_value("Action").run()
     at.slider(key="_lever_percentage").set_value(10).run()
     at.slider(key="_lever_percentage").set_value(0).run()
     assert not at.exception
-    assert _selected_counts(at) == [(1, 0)]
+    assert at.metric[1].value == "100.0%"
+    assert any("Replacement lever: **1.50**" in c.value for c in at.sidebar.caption)
     at.button[0].click().run()
     assert not at.exception
-    assert _selected_counts(at) == [(1, 1)]
+    assert at.metric[1].value == "50.0%"
     assert at.session_state["lever_override_active"] is False
     assert at.slider(key="_lever_percentage").value == 0
 
@@ -78,7 +78,7 @@ def test_cascading_selection_and_issue_group_scopes(lever_page):
     at = lever_page
     at.slider(key="_lever_percentage").set_value(10).run()
     assert at.main.subheader[0].value == "Winning share for selected issue: Sales"
-    assert _selected_counts(at) == [(0, 1), (1, 0)]
+    assert _selected_counts(at) == [(1, 1), (0, 1)]
     at.selectbox(key="_lever_level").set_value("Group").run()
     at.selectbox(key="_lever_group").set_value("Loans").run()
     assert not at.exception
@@ -129,13 +129,14 @@ def test_evaluation_summary_below_table(lever_page, monkeypatch):
     assert at.main.caption[-1].value == ("Re-evaluated **2 decisions** in **0.125 s** (scoring and aggregation only).")
     data = pl.from_pandas(at.dataframe[0].value)
     assert data.select(pl.col("Before").sum(), pl.col("After").sum()).row(0) == (2, 2)
-    assert at.metric[0].value == at.metric[1].value == "50.0%"
+    assert at.metric[0].value == "50.0%"
+    assert at.metric[1].value == "100.0%"
 
 
 def test_top_n_control_keeps_highest_offers_per_interaction(lever_page):
     at = lever_page
     at.selectbox(key="_lever_level").set_value("Action").run()
-    at.slider(key="_lever_percentage").set_value(10).run()
+    at.slider(key="_lever_percentage").set_value(-50).run()
     assert _selected_counts(at) == [(1, 0)]
     at.number_input(key="_win_rank").set_value(2).run()
     assert not at.exception
@@ -146,6 +147,20 @@ def test_top_n_control_keeps_highest_offers_per_interaction(lever_page):
     at.number_input(key="_win_rank").set_value(1).run()
     assert not at.exception
     assert _selected_counts(at) == [(1, 0)]
+
+
+def test_slider_uses_selected_median_and_warns_for_mixed_source_values(lever_page):
+    at = lever_page
+    at.slider(key="_lever_percentage").set_value(18).run()
+    assert not at.exception
+    assert any("Replacement lever: **1.77**" in c.value for c in at.sidebar.caption)
+    assert any("lowers some recorded levers" in message.value for message in at.info)
+    at.selectbox(key="_lever_level").set_value("Action").run()
+    assert not at.exception
+    assert any("Slider baseline (median): **2.00**" in c.value for c in at.sidebar.caption)
+    assert any("Replacement lever: **2.36**" in c.value for c in at.sidebar.caption)
+    assert _selected_counts(at) == [(1, 1)]
+    assert not at.info
 
 
 def test_analysis_granularity_keeps_adjustment_and_selected_action_coverage(lever_page):
