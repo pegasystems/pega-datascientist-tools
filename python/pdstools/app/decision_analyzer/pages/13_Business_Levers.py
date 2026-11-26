@@ -152,7 +152,15 @@ for column, scenario in zip(st.columns(2, gap="small"), ("Before", "After"), str
         )
 
 st.subheader("Offer share changes")
-st.dataframe(distribution, hide_index=True, height=240)
+st.dataframe(
+    distribution,
+    hide_index=True,
+    height=240,
+    column_config={
+        column: st.column_config.NumberColumn(format="%.1f")
+        for column in ("Before share (%)", "After share (%)", "Change (pp)")
+    },
+)
 decision_label = "decision" if summary["Re-evaluated decisions"] == 1 else "decisions"
 st.caption(
     f"Re-evaluated **{summary['Re-evaluated decisions']:,} {decision_label}** at arbitration "
