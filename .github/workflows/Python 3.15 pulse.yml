@@ -1,0 +1,42 @@
+name: Python 3.15 pulse
+
+on:
+  pull_request:
+    paths:
+      - pyproject.toml
+    types: [ opened, synchronize, reopened, ready_for_review ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  Pulse:
+    runs-on: ubuntu-latest
+    name: Python 3.15 compatibility pulse
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python 3.15
+        run: uv python install 3.15
+
+      - name: Enable caching
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+
+      - name: Install the project with latest compatible dependencies
+        run: uv sync --extra tests --upgrade
+
+      - name: Run tests
+        shell: bash
+        run: |
+          TORCH_IGNORES=$(sed 's|^|--ignore=|' python/tests/torch_test_files.txt | tr '\n' ' ')
+          uv run pytest --ignore=python/tests/healthcheck/test_healthcheck.py --ignore=python/tests/explanations/test_explanations_report.py --ignore=python/tests/healthcheck/test_batch_healthcheck.py --ignore=python/tests/explanations --ignore=python/tests/streamlit_apps $TORCH_IGNORES -n auto
+          uv run pytest --ignore=python/tests/explanations/test_explanations_report.py python/tests/explanations
