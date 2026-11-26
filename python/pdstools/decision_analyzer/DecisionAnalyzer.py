@@ -590,9 +590,12 @@ class DecisionAnalyzer:
     def color_mappings(self) -> dict[str, dict[str, str]]:
         """Compute consistent color mappings for all categorical dimensions.
 
-        Color assignments are based on all unique values in the full dataset
-        (before sampling), sorted alphabetically. This ensures colors remain
-        consistent throughout the session regardless of filtering.
+        Assign colors from the full dataset, before sampling or page filters.
+        The ten actions present in the most decisions receive distinct colors;
+        all other actions are neutral gray. Stage colors follow their stage
+        group's family, with eligibility, applicability, and suitability stages
+        using their respective filter families. Components used in several
+        families are gray. Other dimensions are assigned alphabetically.
 
         Returns
         -------
@@ -609,7 +612,8 @@ class DecisionAnalyzer:
         Notes
         -----
         Uses @cached_property so computation happens once on first access.
-        Colors are assigned from the Pega colorway using modulo indexing.
+        Action popularity uses distinct interaction counts, with alphabetical
+        tie-breaking. Filtering does not change which actions receive colors.
 
         See Also
         --------
@@ -618,6 +622,7 @@ class DecisionAnalyzer:
         """
         from ..utils.color_mapping import create_categorical_color_mappings
         from ..utils.pega_template import colorway
+        from ._constants import ACTION_COLOR_LIMIT, NEUTRAL_COLOR, STAGE_GROUP_COLORS
 
         categorical_columns = [
             "Issue",
@@ -628,9 +633,48 @@ class DecisionAnalyzer:
             "Direction",
             "Stage Group",
             "Stage",
+            "Component Name",
         ]
 
-        return create_categorical_color_mappings(self.decision_data, categorical_columns, colorway)
+        palette = list(dict.fromkeys(color for color in colorway if color not in {"#A7A9B4", "#D0D1DB"}))
+        mappings = create_categorical_color_mappings(self.decision_data, categorical_columns, palette)
+        mappings["Stage Group"].update(STAGE_GROUP_COLORS)
+        if "Stage" in mappings:
+            for stage, group in self.decision_data.select("Stage", "Stage Group").unique().collect().iter_rows():
+                if stage is not None and group is not None:
+                    family = next(
+                        (
+                            family
+                            for family in ("Eligibility", "Applicability", "Suitability")
+                            if family.casefold() in stage.casefold().split()
+                        ),
+                        group,
+                    )
+                    mappings["Stage"][stage] = mappings["Stage Group"][family]
+        if "Component Name" in mappings:
+            component_colors: dict[str, set[str]] = {}
+            for component, stage in self.decision_data.select("Component Name", "Stage").unique().collect().iter_rows():
+                if component is not None and stage is not None:
+                    component_colors.setdefault(component, set()).add(mappings["Stage"][stage])
+            mappings["Component Name"] = {
+                component: next(iter(colors)) if len(colors) == 1 else NEUTRAL_COLOR
+                for component, colors in component_colors.items()
+            }
+
+        popular_actions = (
+            self.decision_data.select(pl.col("Action").cast(pl.String), "Interaction ID")
+            .filter(pl.col("Action").is_not_null())
+            .group_by("Action")
+            .agg(pl.col("Interaction ID").n_unique().alias("Decisions"))
+            .sort(["Decisions", "Action"], descending=[True, False])
+            .head(ACTION_COLOR_LIMIT)
+            .collect()
+            .get_column("Action")
+            .to_list()
+        )
+        mappings["Action"] = dict.fromkeys(mappings["Action"], NEUTRAL_COLOR)
+        mappings["Action"].update(zip(popular_actions, palette[:ACTION_COLOR_LIMIT], strict=False))
+        return mappings
 
     @cached_property
     def stages_from_arbitration_down(self):

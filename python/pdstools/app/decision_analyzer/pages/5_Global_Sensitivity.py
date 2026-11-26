@@ -7,15 +7,13 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
     contextual_filters,
     ensure_data,
+    show_action_color_notice,
     win_rank_selector,
 )
 from pdstools.decision_analyzer.utils import apply_filter
 from pdstools.utils.streamlit_utils import get_current_index, standard_page_config
 
 standard_page_config(page_title="Global Sensitivity · Decision Analysis")
-
-# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
-# (Streamlit Pages → Page 5 — Global Sensitivity).
 
 "# Global Sensitivity Analysis"
 
@@ -101,3 +99,4 @@ with st.container(border=True):
         index=scope_index,
         key="glob_sensitivity_scope",
     )
+    show_action_color_notice(st.session_state.glob_sensitivity_scope)

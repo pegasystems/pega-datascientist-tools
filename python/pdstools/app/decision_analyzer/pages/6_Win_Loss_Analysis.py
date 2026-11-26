@@ -8,6 +8,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     contextual_filters,
     ensure_data,
     get_data_filters,
+    show_action_color_notice,
     show_filtered_counts,
     win_rank_selector,
 )
@@ -194,6 +195,7 @@ if st.session_state.local_filters != []:
     loss_pct = (loss_count / total * 100) if total > 0 else 0
 
     with st.container(border=True):
+        show_action_color_notice(groupby_cols[-1])
         col1, col2 = st.columns(2)
         with col1:
             """## Win Analysis"""

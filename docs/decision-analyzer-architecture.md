@@ -110,6 +110,22 @@ Actions are ranked per interaction by: `is_mandatory` desc → `Priority` desc �
 `Stage Order` desc → alphabetic tiebreaker (Issue, Group, Action). The `Rank`
 column (1 = winner) is derived in `cleanup_raw_data()`.
 
+### Stable Colors and Optionality Breakdowns
+
+`DecisionAnalyzer.color_mappings` owns colors for all pages and notebook plots.
+The ten actions present in the most distinct decisions in the full dataset
+receive distinct colors (alphabetical tie-breaking); other actions remain
+individually represented in gray. Page filters and sampling do not recolor
+them. Stage and component colors follow pipeline/filter families; components
+used across multiple families are gray.
+
+Issue/Group coloring of optionality changes only the composition of each bar.
+A decision with two actions from one group and one from another stays in the
+three-action bin, contributing two-thirds and one-third of a decision to the
+respective colors. Fractional counts sum back to the original histogram.
+Zero-action decisions remain a separate category, and the propensity line is
+computed from the original, unsplit histogram.
+
 ### Column Schema
 
 `column_schema.py` defines a mapping from Pega internal names to display names

@@ -8,15 +8,13 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
     contextual_filters,
     ensure_data,
+    optionality_color_selector,
     stage_level_selector,
     stage_selectbox,
 )
 from pdstools.utils.streamlit_utils import standard_page_config
 
 standard_page_config(page_title="Optionality · Decision Analysis")
-
-# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
-# (Streamlit Pages → Page 7 — Optionality Analysis).
 
 "# Optionality Analysis"
 
@@ -56,12 +54,20 @@ with st.container(border=True):
         key="optionality_stage",
         default="Arbitration",
     )
+    color_by = optionality_color_selector()
+    if color_by is not None:
+        st.caption(
+            "Colors split each decision proportionally to its remaining actions. "
+            "Total optionality, decision percentages, and the propensity line are unchanged."
+        )
 
     st.plotly_chart(
         st.session_state.decision_data.plot.propensity_vs_optionality(
             stage=st.session_state.get("optionality_stage", "Arbitration"),
             df=filtered_data,
+            color_by=color_by,
         ),
+        key="optionality_distribution",
     )
 
     st.caption(

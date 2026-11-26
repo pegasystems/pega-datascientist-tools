@@ -228,6 +228,10 @@ if has_components:
                 additional_filters=combined_filters,
             )
             st.plotly_chart(impact_fig)
+            st.caption(
+                "Colors identify filter families such as eligibility, suitability, and applicability. "
+                "Components spanning multiple families are gray."
+            )
 
             drilldown_df = da.aggregates.get_component_drilldown(
                 component_name=selected_component,

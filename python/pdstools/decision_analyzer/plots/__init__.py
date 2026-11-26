@@ -70,6 +70,7 @@ from ._optionality import propensity_vs_optionality as _propensity_vs_optionalit
 from ._sensitivity import prio_factor_boxplots as _prio_factor_boxplots
 from ._sensitivity import sensitivity as _sensitivity
 from ._sensitivity import threshold_deciles as _threshold_deciles
+from ._sensitivity import threshold_distribution as _threshold_distribution
 from ._trend import trend_chart as _trend_chart
 from ._winloss import (
     create_win_distribution_plot,
@@ -101,6 +102,7 @@ class Plot(LazyNamespace):
 
     # _sensitivity
     threshold_deciles = _threshold_deciles
+    threshold_distribution = _threshold_distribution
     sensitivity = _sensitivity
     prio_factor_boxplots = _prio_factor_boxplots
 

@@ -84,6 +84,28 @@ class TestThresholdDeciles:
         assert df.columns == ["Stage Group", "Decile", "Count", "Threshold"]
 
 
+class TestThresholdDistribution:
+    @pytest.mark.parametrize(
+        ("metric", "threshold", "label", "axis_type"),
+        [
+            ("Propensity", 0.025, "Threshold: 2.50%", None),
+            ("Priority", 1.25, "Threshold: 1.2500", "log"),
+        ],
+    )
+    def test_weighted_bins_and_threshold_parameters(self, plot_v2, metric, threshold, label, axis_type):
+        data = pl.DataFrame({"Propensity": [0.01, 0.01, 0.03], "Priority": [1.0, 1.0, 2.0], "Decisions": [2, 3, 1]})
+        fig = plot_v2.threshold_distribution(data, metric, threshold)
+        histogram = fig.data[0]
+        assert histogram.histfunc == "sum"
+        assert list(histogram.x) == data[metric].to_list()
+        assert list(histogram.y) == [2, 3, 1]
+        assert fig.layout.yaxis.type == axis_type
+        assert fig.layout.yaxis.title.text == "Actions"
+        assert fig.layout.shapes[0].x0 == threshold
+        assert fig.layout.shapes[0].x1 == threshold
+        assert fig.layout.annotations[0].text == label
+
+
 class TestDistributionAsTreemap:
     """Test distribution_as_treemap method."""
 

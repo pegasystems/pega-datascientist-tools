@@ -3,7 +3,6 @@ from __future__ import annotations
 # python/pdstools/app/decision_analyzer/pages/9_Thresholding_Analysis.py
 import math
 
-import plotly.express as px
 import polars as pl
 import streamlit as st
 
@@ -193,42 +192,11 @@ with st.container(border=True):
 
     col1, col2 = st.columns(2)
     with col1:
-        propensity_hist = px.histogram(
-            plot_data,
-            x="Propensity",
-            y="Decisions",
-            nbins=50,
-        )
-        propensity_hist.update_yaxes(title_text="Actions")
-        propensity_hist.add_vline(
-            x=propensity_threshold,
-            line_dash="dash",
-            line_color="red",
-            line_width=2,
-            annotation_text=f"Threshold: {propensity_threshold:.2%}",
-            annotation_position="top right",
-            annotation_font_color="red",
-        )
+        propensity_hist = da.plot.threshold_distribution(plot_data, "Propensity", propensity_threshold)
         prop_event = st.plotly_chart(propensity_hist, on_select="rerun", key="prop_chart")
 
     with col2:
-        priority_hist = px.histogram(
-            plot_data,
-            x="Priority",
-            y="Decisions",
-            nbins=50,
-            log_y=True,
-        )
-        priority_hist.update_yaxes(title_text="Actions")
-        priority_hist.add_vline(
-            x=priority_threshold,
-            line_dash="dash",
-            line_color="red",
-            line_width=2,
-            annotation_text=f"Threshold: {priority_threshold:.4f}",
-            annotation_position="top right",
-            annotation_font_color="red",
-        )
+        priority_hist = da.plot.threshold_distribution(plot_data, "Priority", priority_threshold)
         prio_event = st.plotly_chart(priority_hist, on_select="rerun", key="prio_chart")
 
 

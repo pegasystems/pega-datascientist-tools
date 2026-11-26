@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 import polars as pl
 import streamlit as st
 
+from pdstools.decision_analyzer._constants import ACTION_COLOR_LIMIT
 from pdstools.decision_analyzer.plots import (
     plot_component_overview,
     plot_priority_component_distribution,
@@ -86,6 +87,31 @@ def ensure_data():
     _apply_sidebar_logo()
     ensure_session_data("decision_data", "Please upload your data in the Home page.")
     show_cli_filter_banner()
+
+
+def show_action_color_notice(dimension: str | None) -> None:
+    """Explain the stable Action color cap when it applies to a chart."""
+    if dimension == "Action" and len(st.session_state.decision_data.color_mappings["Action"]) > ACTION_COLOR_LIMIT:
+        st.caption(
+            f"The {ACTION_COLOR_LIMIT} actions present in the most decisions in the full dataset "
+            "have distinct colors; other actions are gray. Colors stay fixed when filtering."
+        )
+
+
+def _persist_optionality_color() -> None:
+    st.session_state.optionality_color_by = st.session_state._optionality_color_by
+
+
+def optionality_color_selector() -> Literal["Issue", "Group"] | None:
+    """Select a persistent color breakdown for the optionality histogram."""
+    st.session_state._optionality_color_by = st.session_state.get("optionality_color_by", "None")
+    selected = st.selectbox(
+        "Color by",
+        ["None", "Issue", "Group"],
+        key="_optionality_color_by",
+        on_change=_persist_optionality_color,
+    )
+    return None if selected == "None" else cast(Literal["Issue", "Group"], selected)
 
 
 def _persist_win_rank() -> None:

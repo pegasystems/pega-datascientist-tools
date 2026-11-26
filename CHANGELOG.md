@@ -37,6 +37,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Decision Analysis Tool charts share stable stage/filter-family and categorical
+  colors. The ten most frequent actions retain distinct colors, with other
+  actions in gray; Win/Loss bars stay fully opaque and outlined. Optionality
+  adds persistent Issue/Group coloring without changing its counts or
+  propensity line (#1033).
+- Thresholding distribution charts are reusable through
+  `DecisionAnalyzer.plot.threshold_distribution()`; existing sliders and
+  chart-click selection behavior are unchanged (#1033).
 - `ADMTreesModel.from_file`, `from_url`, `from_dict` and `from_datamart_blob`
   now detect encoded AGB scoring-model JSON and decode it, so encoded
   exports load the same way as decoded ones (#1020). Decoding no longer

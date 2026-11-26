@@ -122,7 +122,7 @@ def global_winloss_distribution(self, level, win_rank, return_df=False, addition
             go.Pie(
                 labels=[_label(v) for v in wins_values],
                 values=wins_df["Percentage"],
-                marker=dict(colors=colors_wins),
+                marker=dict(colors=colors_wins, line=dict(color="white", width=1)),
                 textposition="auto",
                 textinfo="label+percent",
                 hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>",
@@ -138,7 +138,7 @@ def global_winloss_distribution(self, level, win_rank, return_df=False, addition
             go.Pie(
                 labels=[_label(v) for v in losses_values],
                 values=losses_df["Percentage"],
-                marker=dict(colors=colors_losses),
+                marker=dict(colors=colors_losses, line=dict(color="white", width=1)),
                 textposition="auto",
                 textinfo="label+percent",
                 hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>",

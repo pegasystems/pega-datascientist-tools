@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal, overload
+
 import plotly.express as px
 import plotly.graph_objects as go
 import polars as pl
@@ -9,6 +11,74 @@ from plotly.subplots import make_subplots
 
 from ...utils.plot_utils import DEFAULT_PLOT_POINTS_PER_GROUP, downsample_distribution
 from ..utils import PRIO_FACTORS, apply_filter
+
+
+@overload
+def threshold_distribution(
+    self,
+    df: pl.DataFrame,
+    metric: Literal["Propensity", "Priority"],
+    threshold: float,
+    *,
+    return_df: Literal[False] = False,
+) -> go.Figure: ...
+
+
+@overload
+def threshold_distribution(
+    self,
+    df: pl.DataFrame,
+    metric: Literal["Propensity", "Priority"],
+    threshold: float,
+    *,
+    return_df: Literal[True],
+) -> pl.DataFrame: ...
+
+
+def threshold_distribution(
+    self,
+    df: pl.DataFrame,
+    metric: Literal["Propensity", "Priority"],
+    threshold: float,
+    *,
+    return_df: bool = False,
+) -> go.Figure | pl.DataFrame:
+    """Plot a decision-weighted distribution with its current threshold.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        Sampled values with the selected metric and ``Decisions`` weights.
+        Pass a pre-filtered frame to limit the histogram range.
+    metric : {"Propensity", "Priority"}
+        Metric to display. Priority uses a logarithmic action-count axis.
+    threshold : float
+        Threshold marker in the metric's native units.
+    return_df : bool, default False
+        Return the underlying frame instead of the figure.
+
+    Returns
+    -------
+    go.Figure or pl.DataFrame
+        Weighted histogram or its source data.
+    """
+    if metric not in ("Propensity", "Priority"):
+        raise ValueError("metric must be 'Propensity' or 'Priority'.")
+    if return_df:
+        return df
+    fig = px.histogram(df, x=metric, y="Decisions", nbins=50, log_y=metric == "Priority")
+    fig.update_yaxes(title_text="Actions")
+    threshold_label = f"{threshold:.2%}" if metric == "Propensity" else f"{threshold:.4f}"
+    fig.add_vline(
+        x=threshold,
+        line_dash="dash",
+        line_color="red",
+        line_width=2,
+        annotation_text=f"Threshold: {threshold_label}",
+        annotation_position="top right",
+        annotation_font_color="red",
+    )
+    return fig
 
 
 def threshold_deciles(self, thresholding_on, thresholding_name, return_df=False):

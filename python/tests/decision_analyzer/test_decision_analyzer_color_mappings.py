@@ -1,6 +1,7 @@
 import polars as pl
 import pytest
 from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
+from pdstools.decision_analyzer.plots import offer_quality_piecharts
 
 # The fixture below intentionally omits some columns that DecisionAnalyzer
 # treats as defaults; the resulting "default columns are missing" UserWarning
@@ -125,3 +126,185 @@ def test_distribution_treemap_uses_consistent_colors(sample_data):
             ],
         ),
     ]
+
+
+@pytest.fixture
+def mixed_issue_data():
+    return pl.LazyFrame(
+        {
+            "Interaction ID": ["D1", "D1", "D1", "D2", "D2", "D3"],
+            "Issue": ["A", "A", "B", "A", "B", "C"],
+            "Group": ["G1", "G1", "G2", "G1", "G2", "G3"],
+            "Action": ["A1", "A2", "B1", "A1", "B1", "C1"],
+            "Priority": [0.3, 0.2, 0.1, 0.2, 0.1, None],
+            "Propensity": [0.3, 0.2, 0.1, 0.2, 0.1, None],
+            "Value": [1.0] * 6,
+            "Context Weight": [1.0] * 6,
+            "Levers": [1.0] * 6,
+            "Decision Time": ["2024-01-01"] * 6,
+            "Stage Group": ["Arbitration"] * 5 + ["Eligibility"],
+            "Stage": ["Rank"] * 5 + ["Eligible"],
+            "Stage Order": [3800] * 5 + [1500],
+            "Record Type": ["FILTERED_OUT"] * 6,
+            "Component Name": ["Ranker"] * 5 + ["Eligibility rule"],
+            "Strategy Name": ["Strategy"] * 6,
+        }
+    )
+
+
+def test_action_colors_are_bounded_popularity_based_and_filter_stable(mixed_issue_data):
+    extra_actions = (
+        mixed_issue_data.head(1)
+        .collect()
+        .clear(12)
+        .with_columns(
+            pl.Series("Action", [f"Rare{i:02}" for i in range(12)]),
+            pl.Series("Interaction ID", [f"R{i}" for i in range(12)]),
+            pl.lit("A").alias("Issue"),
+            pl.lit("G1").alias("Group"),
+            pl.lit("Arbitration").alias("Stage Group"),
+            pl.lit("Rank").alias("Stage"),
+            pl.lit(3800).alias("Stage Order"),
+            pl.lit(0.1).alias("Priority"),
+            pl.lit(0.1).alias("Propensity"),
+            pl.lit("Strategy").alias("Strategy Name"),
+            pl.lit("FILTERED_OUT").alias("Record Type"),
+            pl.lit("Ranker").alias("Component Name"),
+            pl.lit("2024-01-01").alias("Decision Time"),
+        )
+    )
+    da = DecisionAnalyzer(pl.concat([mixed_issue_data, extra_actions.lazy().cast(mixed_issue_data.collect_schema())]))
+    colors = da.color_mappings["Action"]
+    colored_actions = {action for action, color in colors.items() if color != "#A7A9B4"}
+    assert colored_actions == {"A1", "B1", "A2", "C1", *[f"Rare{i:02}" for i in range(6)]}
+    assert len({colors[action] for action in colored_actions}) == 10
+    assert colors["Rare11"] == "#A7A9B4"
+    pies = da.plot.global_winloss_distribution(level="Action", win_rank=1)
+    for trace in pies.data:
+        assert list(trace.marker.colors) == [colors[label] for label in trace.labels]
+    assert any(colors[label] == "#A7A9B4" for trace in pies.data for label in trace.labels)
+    frame = pl.LazyFrame({"Action": ["Rare11", "B1"], "Decisions": [1, 2]})
+    fig = da.plot.distribution(frame, "Action", None)
+    assert {trace.name: trace.marker.color for trace in fig.data} == {
+        "Rare11": "#A7A9B4",
+        "B1": colors["B1"],
+    }
+
+
+def test_stage_and_component_colors_follow_the_same_family(mixed_issue_data):
+    da = DecisionAnalyzer(mixed_issue_data)
+    assert da.color_mappings["Stage"]["Eligible"] == da.color_mappings["Stage Group"]["Eligibility"]
+    assert da.color_mappings["Stage"]["Rank"] == da.color_mappings["Stage Group"]["Arbitration"]
+    fig = da.plot.component_action_impact()
+    assert {trace.name: trace.marker.color for trace in fig.data} == {
+        "Eligibility rule": da.color_mappings["Stage Group"]["Eligibility"],
+        "Ranker": da.color_mappings["Stage Group"]["Arbitration"],
+    }
+    stages = list(da.AvailableNBADStages)
+    fig = da.plot.filtering_components(stages=stages, top_n=5, AvailableNBADStages=stages)
+    assert {trace.name: trace.marker.color for trace in fig.data} == {
+        "Eligibility rule": da.color_mappings["Stage Group"]["Eligibility"],
+        "Ranker": da.color_mappings["Stage Group"]["Arbitration"],
+    }
+    da.set_level("Stage")
+    fig = da.plot.component_action_impact()
+    assert {trace.name: trace.marker.color for trace in fig.data} == {
+        "Eligibility rule": da.color_mappings["Stage Group"]["Eligibility"],
+        "Ranker": da.color_mappings["Stage Group"]["Arbitration"],
+    }
+
+
+def test_engagement_policy_components_use_specific_filter_families(mixed_issue_data):
+    raw = mixed_issue_data.head(3).with_columns(
+        pl.lit("EngagementPolicies").alias("Stage Group"),
+        pl.Series("Stage", ["AllActionsEligibility", "AllActionsSuitability", "AllActionsApplicability"]),
+        pl.Series("Component Name", ["Eligibility rule", "Suitability rule", "Applicability rule"]),
+    )
+    da = DecisionAnalyzer(raw)
+    assert da.color_mappings["Stage"]["Issue/Group: All Actions - Eligibility"] == "#001F5F"
+    assert da.color_mappings["Stage"]["Issue/Group: All Actions - Suitability"] == "#F76923"
+    assert da.color_mappings["Stage"]["Issue/Group: All Actions - Applicability"] == "#005154"
+    fig = da.plot.component_action_impact()
+    assert {trace.name: trace.marker.color for trace in fig.data} == {
+        "Eligibility rule": "#001F5F",
+        "Suitability rule": "#F76923",
+        "Applicability rule": "#005154",
+    }
+    shared = DecisionAnalyzer(raw.with_columns(pl.lit("Shared rule").alias("Component Name")))
+    assert shared.color_mappings["Component Name"]["Shared rule"] == "#A7A9B4"
+
+
+def test_win_loss_colors_do_not_depend_on_order_or_count(mixed_issue_data):
+    da = DecisionAnalyzer(mixed_issue_data)
+    first = pl.LazyFrame({"Issue": ["A", "B"], "Decisions": [100, 1]})
+    second = pl.LazyFrame({"Issue": ["B", "A"], "Decisions": [20, 1]})
+    for data in (first, second):
+        fig = da.plot.distribution(data, "Issue", None, horizontal=True)
+        assert {trace.name: trace.marker.color for trace in fig.data} == {
+            "A": da.color_mappings["Issue"]["A"],
+            "B": da.color_mappings["Issue"]["B"],
+        }
+        assert all(trace.marker.opacity == 1 and trace.marker.line.width == 0.75 for trace in fig.data)
+        assert sorted(float(trace.x[0]) for trace in fig.data) == sorted(data.collect()["Decisions"].to_list())
+
+
+@pytest.mark.parametrize(("dimension", "a", "b"), [("Issue", "A", "B"), ("Group", "G1", "G2")])
+def test_optionality_color_split_preserves_counts_and_propensity(mixed_issue_data, dimension, a, b):
+    da = DecisionAnalyzer(mixed_issue_data)
+    plain = da.plot.propensity_vs_optionality(stage="Arbitration")
+    colored = da.plot.propensity_vs_optionality(stage="Arbitration", color_by=dimension)
+    bar_values = {trace.name: dict(zip(trace.x, trace.y, strict=True)) for trace in colored.data if trace.type == "bar"}
+    assert bar_values[a][3] == pytest.approx(100 * 2 / 9)
+    assert bar_values[b][3] == pytest.approx(100 / 9)
+    assert bar_values[a][2] == pytest.approx(100 / 6)
+    assert bar_values[b][2] == pytest.approx(100 / 6)
+    assert bar_values["No actions"][0] == pytest.approx(100 / 3)
+    assert sum(sum(values.values()) for values in bar_values.values()) == pytest.approx(100)
+    assert list(colored.data[-1].x) == list(plain.data[-1].x)
+    assert list(colored.data[-1].y) == list(plain.data[-1].y)
+    filtered = mixed_issue_data.filter(pl.col("Issue") == "A")
+    filtered_fig = da.plot.propensity_vs_optionality(stage="Arbitration", df=filtered, color_by=dimension)
+    assert filtered_fig.data[0].marker.color == da.color_mappings[dimension][a]
+    assert sum(filtered_fig.data[0].y) == pytest.approx(100)
+
+
+def test_colored_optionality_preserves_missing_propensity(mixed_issue_data):
+    da = DecisionAnalyzer(mixed_issue_data.with_columns(pl.lit(None, dtype=pl.Float64).alias("Propensity")))
+    data = da.plot.propensity_vs_optionality(color_by="Issue", return_df=True).collect()
+    assert data["AverageBestPropensity"].null_count() == data.filter(pl.col("nOffers") > 0).height
+    assert all(trace.type == "bar" for trace in da.plot.propensity_vs_optionality(color_by="Issue").data)
+
+
+def test_colored_optionality_preserves_null_interaction_ids(mixed_issue_data):
+    raw = mixed_issue_data.with_columns(
+        pl.when(pl.col("Interaction ID") == "D1").then(None).otherwise(pl.col("Interaction ID")).alias("Interaction ID")
+    )
+    da = DecisionAnalyzer(raw)
+    data = da.plot.propensity_vs_optionality(color_by="Issue", return_df=True).collect()
+    assert data["Interactions"].sum() == pytest.approx(3)
+    assert data.filter((pl.col("Issue") == "A") & (pl.col("nOffers") == 3))["Interactions"].item() == pytest.approx(
+        2 / 3
+    )
+
+
+def test_offer_quality_already_colors_stage_specific_propensity_categories(mixed_issue_data):
+    early_rows = mixed_issue_data.filter(pl.col("Interaction ID") == "D3")
+    raw = pl.concat(
+        [
+            mixed_issue_data,
+            early_rows.with_columns(pl.lit("D1").alias("Interaction ID")),
+            early_rows.with_columns(pl.lit("D2").alias("Interaction ID")),
+        ]
+    )
+    da = DecisionAnalyzer(raw)
+    counts = da.aggregates.filtered_action_counts(
+        ["Stage Group", "Interaction ID"],
+        propensity_th=0.25,
+        priority_th=0.0,
+    )
+    quality = da.aggregates.get_offer_quality(counts, "Interaction ID")
+    fig = offer_quality_piecharts(quality, 0.25, da.AvailableNBADStages)
+    values = {trace.name: list(trace.values) for trace in fig.data}
+    assert values["Eligibility"] == [0, 3, 0, 0]
+    assert values["Arbitration"] == [1, 0, 1, 1]
+    assert all(list(trace.marker.colors) == ["#219e3f", "#4A90E2", "#fca52e", "#cd001f"] for trace in fig.data)

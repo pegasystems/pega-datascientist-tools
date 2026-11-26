@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Literal, cast, overload
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -10,12 +10,61 @@ import polars as pl
 from plotly.subplots import make_subplots
 
 from ...utils.pega_template import colorway
+from .._constants import NEUTRAL_COLOR
 
 
-def propensity_vs_optionality(self, stage="Arbitration", df=None, return_df=False):
+@overload
+def propensity_vs_optionality(
+    self,
+    stage: str = "Arbitration",
+    df: pl.LazyFrame | None = None,
+    return_df: Literal[False] = False,
+    *,
+    color_by: Literal["Issue", "Group"] | None = None,
+) -> go.Figure: ...
+
+
+@overload
+def propensity_vs_optionality(
+    self,
+    stage: str = "Arbitration",
+    df: pl.LazyFrame | None = None,
+    return_df: Literal[True] = True,
+    *,
+    color_by: Literal["Issue", "Group"] | None = None,
+) -> pl.LazyFrame: ...
+
+
+def propensity_vs_optionality(
+    self,
+    stage: str = "Arbitration",
+    df: pl.LazyFrame | None = None,
+    return_df: bool = False,
+    *,
+    color_by: Literal["Issue", "Group"] | None = None,
+) -> go.Figure | pl.LazyFrame:
+    """Plot optionality without changing decision counts when coloring.
+
+    Parameters
+    ----------
+    stage : str, default "Arbitration"
+        Pipeline stage to analyze.
+    df : pl.LazyFrame, optional
+        Input data. Defaults to the analyzer sample.
+    return_df : bool, default False
+        Return the histogram instead of a figure.
+    color_by : {"Issue", "Group"}, optional
+        Split each decision's bar proportionally to its remaining actions.
+        The propensity line and total percentages remain unchanged.
+
+    Returns
+    -------
+    go.Figure or pl.LazyFrame
+        Optionality figure or its underlying histogram.
+    """
     if df is None:
         df = self._decision_data.sample
-    plotData = self._decision_data.aggregates.get_optionality_data(df).filter(
+    plotData = self._decision_data.aggregates.get_optionality_data(df, color_by=color_by).filter(
         pl.col(self._decision_data.level) == stage
     )
     if return_df:
@@ -23,41 +72,74 @@ def propensity_vs_optionality(self, stage="Arbitration", df=None, return_df=Fals
     plotData = plotData.collect()
     total_interactions = plotData["Interactions"].sum()
     plotData = plotData.with_columns((pl.col("Interactions") / total_interactions * 100).alias("PctInteractions"))
+    line_data = (
+        plotData
+        if color_by is None
+        else self._decision_data.aggregates.get_optionality_data(df)
+        .filter(pl.col(self._decision_data.level) == stage)
+        .collect()
+    )
 
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     bar_colors = ["#cd001f" if n == 0 else colorway[0] for n in plotData["nOffers"]]
     has_propensity = (
-        "AverageBestPropensity" in plotData.columns and (plotData["AverageBestPropensity"].drop_nulls() > 0).any()
+        "AverageBestPropensity" in line_data.columns and (line_data["AverageBestPropensity"].drop_nulls() > 0).any()
     )
 
-    if has_propensity:
-        bar_customdata = plotData.select(["AverageBestPropensity"]).to_numpy()
+    if color_by is None:
+        bar_customdata = plotData.select(["AverageBestPropensity"]).to_numpy() if has_propensity else None
         bar_hovertemplate = (
             "Optionality = %{x}<br>Decisions = %{y:.1f}%<br>Avg Propensity = %{customdata[0]:.3%}<extra></extra>"
+            if has_propensity
+            else "Optionality = %{x}<br>Decisions = %{y:.1f}%<extra></extra>"
+        )
+        fig.add_trace(
+            go.Bar(
+                x=plotData["nOffers"],
+                y=plotData["PctInteractions"],
+                name="Optionality",
+                marker_color=bar_colors,
+                customdata=bar_customdata,
+                hovertemplate=bar_hovertemplate,
+            )
         )
     else:
-        bar_customdata = None
-        bar_hovertemplate = "Optionality = %{x}<br>Decisions = %{y:.1f}%<extra></extra>"
-
-    fig.add_trace(
-        go.Bar(
-            x=plotData["nOffers"],
-            y=plotData["PctInteractions"],
-            name="Optionality",
-            marker_color=bar_colors,
-            customdata=bar_customdata,
-            hovertemplate=bar_hovertemplate,
+        categories = plotData.with_columns(
+            pl.when(pl.col("nOffers") == 0)
+            .then(pl.lit("No actions"))
+            .otherwise(pl.col(color_by).cast(pl.String).fill_null("Unspecified"))
+            .alias(color_by)
         )
-    )
+        for category in categories.get_column(color_by).unique().sort():
+            category_data = categories.filter(pl.col(color_by) == category)
+            fig.add_trace(
+                go.Bar(
+                    x=category_data["nOffers"],
+                    y=category_data["PctInteractions"],
+                    name=category,
+                    marker_color=(
+                        "#cd001f"
+                        if category == "No actions"
+                        else self._decision_data.color_mappings[color_by].get(category, NEUTRAL_COLOR)
+                    ),
+                    hovertemplate=(
+                        f"{color_by} = %{{fullData.name}}<br>Optionality = %{{x}}"
+                        "<br>Decision share = %{y:.1f}%<extra></extra>"
+                    ),
+                )
+            )
+    fig.update_traces(marker=dict(opacity=1, line=dict(color="#63666F", width=0.75)), selector=dict(type="bar"))
 
     if has_propensity:
         fig.add_trace(
             go.Scatter(
-                x=plotData["nOffers"],
-                y=plotData["AverageBestPropensity"],
+                x=line_data["nOffers"],
+                y=line_data["AverageBestPropensity"],
                 yaxis="y2",
                 name="Propensity",
                 mode="markers+lines",
+                line=dict(color="#63666F"),
+                marker=dict(color="#63666F"),
                 hovertemplate=("Optionality = %{x}<br>Avg Propensity = %{y:.3%}<extra></extra>"),
             ),
             secondary_y=True,
@@ -66,8 +148,17 @@ def propensity_vs_optionality(self, stage="Arbitration", df=None, return_df=Fals
         template="pega",
         xaxis_title="Number of Actions per Customer",
         yaxis_title="% of Decisions",
+        barmode="stack",
+        legend_title_text=color_by,
+        margin=dict(r=120),
     )
     fig.layout.yaxis.ticksuffix = "%"
+    if color_by is not None:
+        fig.update_layout(
+            height=550,
+            margin=dict(r=120, b=140),
+            legend=dict(orientation="h", x=0, xanchor="left", y=-0.2, yanchor="top"),
+        )
     if has_propensity:
         fig.update_yaxes(title_text="Propensity", secondary_y=True)
         fig.layout.yaxis2.tickformat = ",.3%"
