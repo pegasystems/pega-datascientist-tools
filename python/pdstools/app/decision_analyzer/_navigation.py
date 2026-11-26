@@ -33,8 +33,7 @@ class _DataPage:
     icon: str
 
 
-# Order matches the historical numeric prefixes so the sidebar reads
-# the same way users are used to. Edit here to reorder the menu.
+# Explicit sidebar order; numeric filename prefixes do not control navigation.
 _DATA_PAGES: tuple[_DataPage, ...] = (
     _DataPage("2_Overview.py", "Overview", "🔍"),
     _DataPage("3_Action_Distribution.py", "Action Distribution", "📊"),
@@ -43,8 +42,8 @@ _DATA_PAGES: tuple[_DataPage, ...] = (
     _DataPage("6_Win_Loss_Analysis.py", "Win / Loss Analysis", "🏆"),
     _DataPage("7_Optionality_Analysis.py", "Optionality Analysis", "🎨"),
     _DataPage("8_Offer_Quality_Analysis.py", "Offer Quality Analysis", "💎"),
-    _DataPage("9_Thresholding_Analysis.py", "Thresholding Analysis", "🚦"),
     _DataPage("10_Arbitration_Distribution.py", "Arbitration Distribution", "⚖️"),
+    _DataPage("9_Thresholding_Analysis.py", "Thresholding Analysis", "🚦"),
     _DataPage("13_Business_Levers.py", "What-if: Business Levers", "🎚️"),
     _DataPage("11_Single_Decision.py", "Single Decision", "🔬"),
 )
