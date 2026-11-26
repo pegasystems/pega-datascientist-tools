@@ -9,6 +9,7 @@ from __future__ import annotations
 
 __all__ = ["Scoring"]
 
+from math import isfinite
 from typing import TYPE_CHECKING, Literal
 
 import polars as pl
@@ -713,6 +714,131 @@ class Scoring:
             )
 
         return _aggregate(win_rows, interactions_win), _aggregate(loss_rows, interactions_loss)
+
+    def lever_simulation(
+        self,
+        lever_condition: pl.Expr,
+        lever_value: float | None = None,
+        *,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> tuple[pl.DataFrame, pl.DataFrame]:
+        """Compare reconstructed offer distributions after replacing levers.
+
+        Rank arbitration-eligible candidates using the original PVCL components
+        for the baseline and an absolute lever replacement for the scenario.
+        Unselected competitors remain in the same sampled interaction population.
+        Mandatory precedence and tie-breaking follow :meth:`re_rank`.
+
+        Parameters
+        ----------
+        lever_condition : pl.Expr
+            Boolean expression selecting an issue, group, or action. Include
+            parent hierarchy columns when selecting groups or actions.
+        lever_value : float, optional
+            Replacement lever between 0.50 and 1.50, inclusive. This is not a
+            multiplier of existing levers. None removes the override; 1.0
+            replaces selected levers with the neutral value.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Population filters applied equally to both scenarios.
+
+        Returns
+        -------
+        tuple of pl.DataFrame and pl.DataFrame
+            Action-level distribution with Issue, Group, Action, Selected,
+            Before, After, Before share (%), After share (%), and Change (pp).
+            Counts include a No winning offer row when needed. The second frame
+            is a one-row selected-scope summary containing Interactions and the
+            same count/share columns. Shares use all filtered sampled
+            interactions, including those without eligible candidates.
+
+        Raises
+        ------
+        ValueError
+            If the replacement is non-finite or outside the prototype range,
+            the population has no arbitration candidates, or the target does
+            not match an eligible candidate.
+
+        Notes
+        -----
+        Both scenarios reconstruct priority from components rather than using
+        recorded Rank. Missing PVCL components use the neutral defaults from
+        re_rank. The source data is never modified.
+        """
+        if lever_value is not None and (not isfinite(lever_value) or not 0.5 <= lever_value <= 1.5):
+            raise ValueError("Replacement lever must be finite and between 0.50 and 1.50.")
+
+        population = self.da.filtered(additional_filters)
+        interactions = population.select(pl.col("Interaction ID").n_unique()).collect().item()
+        filters = [pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down)]
+        if isinstance(additional_filters, list):
+            filters.extend(additional_filters)
+        elif additional_filters is not None:
+            filters.append(additional_filters)
+
+        keys = ["Issue", "Group", "Action"]
+        before = (
+            self.re_rank(additional_filters=filters)
+            .group_by(keys)
+            .agg(
+                Before=(pl.col("rank_PVCL") == 1).sum(),
+            )
+        )
+        if lever_value is None:
+            distribution = before.with_columns(pl.col("Before").alias("After")).collect()
+        else:
+            after = (
+                self.re_rank(
+                    additional_filters=filters,
+                    overrides=[
+                        pl.when(lever_condition.fill_null(False))
+                        .then(pl.lit(lever_value))
+                        .otherwise(pl.col("Levers"))
+                        .alias("Levers")
+                    ],
+                )
+                .group_by(keys)
+                .agg(After=(pl.col("rank_PVCL") == 1).sum())
+            )
+            distribution = before.join(after, on=keys, nulls_equal=True).collect()
+
+        if interactions == 0 or distribution.is_empty():
+            raise ValueError("No arbitration candidates are available in the selected population.")
+        distribution = distribution.with_columns(
+            Selected=lever_condition.fill_null(False),
+        )
+        if not distribution["Selected"].any():
+            raise ValueError("The selected lever scope has no arbitration candidates.")
+
+        no_winner_count = interactions - distribution["Before"].sum()
+        if no_winner_count:
+            no_winner = pl.DataFrame(
+                {
+                    "Issue": ["No winning offer"],
+                    "Group": ["No winning offer"],
+                    "Action": ["No winning offer"],
+                    "Before": [no_winner_count],
+                    "After": [no_winner_count],
+                    "Selected": [False],
+                },
+                schema=distribution.schema,
+            )
+            distribution = pl.concat([distribution, no_winner])
+
+        distribution = distribution.with_columns(
+            (100.0 * pl.col("Before") / interactions).alias("Before share (%)"),
+            (100.0 * pl.col("After") / interactions).alias("After share (%)"),
+        ).with_columns(
+            (pl.col("After share (%)") - pl.col("Before share (%)")).alias("Change (pp)"),
+        )
+        summary = distribution.filter(pl.col("Selected")).select(
+            pl.lit(interactions).alias("Interactions"),
+            pl.col("Before").sum(),
+            pl.col("After").sum(),
+            pl.col("Before share (%)").sum(),
+            pl.col("After share (%)").sum(),
+            pl.col("Change (pp)").sum(),
+        )
+        return distribution.sort(["After", *keys], descending=[True, False, False, False]), summary
 
     def get_win_distribution_data(
         self,

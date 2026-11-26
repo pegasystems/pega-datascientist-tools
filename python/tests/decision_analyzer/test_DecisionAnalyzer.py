@@ -1246,6 +1246,108 @@ class TestWinDistribution:
         assert "No Winner" in result["Action"].to_list()
 
 
+@pytest.fixture
+def lever_analyzer():
+    """Four interactions with competing offers and one pre-arbitration exit."""
+    raw = pl.LazyFrame(
+        {
+            "Interaction ID": ["I1", "I1", "I2", "I2", "I3", "I3", "I4"],
+            "Subject ID": ["S1", "S1", "S2", "S2", "S3", "S3", "S4"],
+            "Decision Time": [datetime(2024, 1, 1)] * 7,
+            "Issue": ["Sales", "Other", "Sales", "Sales", "Service", "Sales", "Sales"],
+            "Group": ["Cards", "Cards", "Cards", "Loans", "Cards", "Cards", "Cards"],
+            "Action": ["A", "A", "A", "B", "A", "A", "A"],
+            "Channel": ["Web", "Web", "Web", "Web", "Mobile", "Mobile", "Web"],
+            "Direction": ["Inbound"] * 7,
+            "Propensity": [1.0] * 7,
+            "Value": [1.0, 1.05, 1.0, 1.5, 1.0, 0.95, 1.0],
+            "Context Weight": [1.0] * 7,
+            "Levers": [1.0, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0],
+            "Priority": [9.0, 1.05, 2.0, 1.5, 1.0, 0.95, None],
+            "Stage_pyStageGroup": ["Arbitration"] * 6 + ["Eligibility"],
+            "Stage_pyName": ["Arbitration"] * 6 + ["Eligibility"],
+            "Stage_pyOrder": [3800] * 6 + [1500],
+        }
+    )
+    return DecisionAnalyzer(raw, sample_size=10)
+
+
+class TestLeverSimulation:
+    @pytest.mark.parametrize(
+        ("lever", "expected_after"),
+        [(None, 1), (0.5, 0), (0.9, 0), (1.0, 0), (1.1, 2), (1.5, 2)],
+    )
+    def test_replacement_and_reset(self, lever_analyzer, lever, expected_after):
+        condition = (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards") & (pl.col("Action") == "A")
+        distribution, summary = lever_analyzer.scoring.lever_simulation(condition, lever)
+        assert summary.row(0, named=True) == {
+            "Interactions": 4,
+            "Before": 1,
+            "After": expected_after,
+            "Before share (%)": 25.0,
+            "After share (%)": 25.0 * expected_after,
+            "Change (pp)": 25.0 * (expected_after - 1),
+        }
+        no_winner = distribution.filter(pl.col("Action") == "No winning offer")
+        assert no_winner.select("Before", "After").row(0) == (1, 1)
+        assert distribution["Before"].sum() == distribution["After"].sum() == 4
+        assert distribution["Before share (%)"].sum() == distribution["After share (%)"].sum() == 100.0
+
+    def test_hierarchy_and_reconstructed_baseline(self, lever_analyzer):
+        condition = (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards")
+        distribution, _ = lever_analyzer.scoring.lever_simulation(condition, 1.1)
+        assert distribution.select("Issue", "Group", "Action", "Before", "After", "Selected").rows() == [
+            ("Sales", "Cards", "A", 1, 2, True),
+            ("No winning offer", "No winning offer", "No winning offer", 1, 1, False),
+            ("Sales", "Loans", "B", 0, 1, False),
+            ("Other", "Cards", "A", 1, 0, False),
+            ("Service", "Cards", "A", 1, 0, False),
+        ]
+
+    def test_issue_scope_and_population_filters(self, lever_analyzer):
+        condition = pl.col("Issue") == "Sales"
+        distribution, summary = lever_analyzer.scoring.lever_simulation(
+            condition, 1.1, additional_filters=[pl.col("Channel") == "Web"]
+        )
+        assert summary.select("Interactions", "Before", "After").row(0) == (3, 1, 2)
+        assert summary["Change (pp)"].item() == pytest.approx(100 / 3)
+        assert distribution.filter(pl.col("Selected"))["Group"].sort().to_list() == ["Cards", "Loans"]
+        assert distribution["Before"].sum() == distribution["After"].sum() == 3
+
+    def test_mandatory_precedence_and_source_unchanged(self, lever_analyzer):
+        source = lever_analyzer.decision_data.collect()
+        mandatory = DecisionAnalyzer(source.lazy(), mandatory_expr=pl.col("Issue") == "Service")
+        source = mandatory.decision_data.collect()
+        distribution, summary = mandatory.scoring.lever_simulation(
+            (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards"), 1.5
+        )
+        assert summary.select("Before", "After").row(0) == (1, 1)
+        assert distribution.filter(pl.col("Issue") == "Service").select("Before", "After").row(0) == (1, 1)
+        assert mandatory.decision_data.collect().equals(source)
+
+    def test_missing_levers_use_neutral_default(self, lever_analyzer):
+        missing = DecisionAnalyzer(lever_analyzer.decision_data.drop("Levers"), sample_size=10)
+        _, summary = missing.scoring.lever_simulation(
+            (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards"),
+            1.1,
+            additional_filters=pl.col("Channel") == "Mobile",
+        )
+        assert summary.select("Interactions", "Before", "After", "Change (pp)").row(0) == (1, 0, 1, 100.0)
+
+    @pytest.mark.parametrize("lever", [0.49, 1.51, float("nan"), float("inf")])
+    def test_invalid_replacement(self, lever_analyzer, lever):
+        with pytest.raises(ValueError, match="between 0.50 and 1.50"):
+            lever_analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", lever)
+
+    def test_empty_population_and_missing_target(self, lever_analyzer):
+        with pytest.raises(ValueError, match="No arbitration candidates"):
+            lever_analyzer.scoring.lever_simulation(
+                pl.col("Issue") == "Sales", additional_filters=pl.col("Channel") == "Absent"
+            )
+        with pytest.raises(ValueError, match="scope has no arbitration candidates"):
+            lever_analyzer.scoring.lever_simulation(pl.col("Issue") == "Absent")
+
+
 # ---------------------------------------------------------------------------
 # Optionality
 # ---------------------------------------------------------------------------
