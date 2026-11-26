@@ -180,7 +180,7 @@ with st.container(border=True):
 # Section 2: Propensity and Priority distributions with threshold lines
 # ---------------------------------------------------------------------------
 with st.container(border=True):
-    "## Response Likelihood and Priority Distributions"
+    "## Propensity and Priority Distributions"
 
     st.caption(
         "See how your offers are distributed across response likelihood (propensity) and "
