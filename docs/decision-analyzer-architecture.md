@@ -134,8 +134,9 @@ removes the override; 0% replaces it with 1.0.
 Both Before and After use reconstructed PVCL ranks on the same sampled,
 population-filtered arbitration candidates. Target selectors only identify
 which levers change; they do not remove competing offers. Mandatory precedence
-and existing tie-breaking are retained. Counts and shares include interactions
-without an eligible winner using the same population denominator.
+and existing tie-breaking are retained. Counts and shares use only decisions
+with rankable arbitration candidates. Decisions without such candidates are
+excluded from both scenarios, with no synthetic placeholder offers.
 
 The sidebar's "Define winning: rank in top N" control retains the top N
 highest-ranked offers per interaction (default 1, up to `da.max_win_rank`).
@@ -145,19 +146,25 @@ Business Levers, Global Sensitivity, and Win/Loss use the shared
 `_win_rank` widget, so the selected value survives visits to pages without a
 Top-N control and is restored on the next page that has one.
 Selected-target percentages are decision coverage: a decision counts once when
-at least one selected offer is in the top N. The treemaps count Top-N offer
-appearances; table percentages are per-action coverage and may overlap.
+at least one selected offer is in the top N. A separate "Analysis granularity"
+control selects Issue, Group, or Action for both the delta chart and table.
+Pass `by="Issue"` or `by="Group"` to the scoring API for the same aggregation.
+Each decision counts once per fully qualified issue, group, or action, even if
+multiple offers reach Top-N; percentages across rows may overlap. Changing
+granularity neither resets the adjustment nor changes the selected-target summary.
 
 The method returns an action-level distribution and a one-row selected-scope
 summary, including the number of distinct re-evaluated arbitration decisions
 and measured scoring/aggregation time. These appear in one line beneath the
-table. The re-evaluated count excludes interactions without rankable arbitration
-candidates; those interactions remain in the offer-share denominator. Timing
-excludes plot construction and rendering.
+table. The re-evaluated count is also the offer-share denominator. The UI shows
+absolute share differences as plain numbers under "Change" (percentage points,
+not relative percent changes).
+Timing excludes plot construction and rendering.
 
-The page passes each scenario's winning counts as `Decisions` to
-`da.plot.distribution_as_treemap()`, preserving the Action Distribution page's
-hierarchy and colors. The source analyzer is not mutated. See the
+The page passes the distribution to `da.plot.lever_delta()`, which shows
+positive and negative winning-share changes as horizontal bars, with fully
+qualified labels and Before/After counts in hover details. The plot supports
+`return_df=True`. The source analyzer is not mutated. See the
 [Business Levers page](../python/pdstools/app/decision_analyzer/pages/13_Business_Levers.py)
 and [scoring API](../python/pdstools/decision_analyzer/_scoring.py) for the
 implementation and its limitations.

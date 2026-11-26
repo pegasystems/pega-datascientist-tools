@@ -14,22 +14,22 @@ pytestmark = pytest.mark.filterwarnings("ignore:The following default columns ar
 def lever_page(da_app_dir):
     raw = pl.LazyFrame(
         {
-            "Interaction ID": ["I1", "I1", "I2", "I2"],
-            "Subject ID": ["S1", "S1", "S2", "S2"],
-            "Decision Time": [datetime(2024, 1, 1)] * 4,
-            "Issue": ["Sales", "Service", "Sales", "Service"],
-            "Group": ["Cards", "Cards", "Loans", "Loans"],
-            "Action": ["A", "A", "C", "D"],
-            "Channel": ["Web", "Web", "Mobile", "Mobile"],
-            "Direction": ["Inbound"] * 4,
-            "Propensity": [1.0] * 4,
-            "Value": [1.0, 1.4, 1.0, 1.05],
-            "Context Weight": [1.0] * 4,
-            "Levers": [2.0, 1.0, 1.0, 1.0],
-            "Priority": [2.0, 1.4, 1.0, 1.05],
-            "Stage_pyStageGroup": ["Arbitration"] * 4,
-            "Stage_pyName": ["Arbitration"] * 4,
-            "Stage_pyOrder": [3800] * 4,
+            "Interaction ID": ["I1", "I1", "I2", "I2", "I3"],
+            "Subject ID": ["S1", "S1", "S2", "S2", "S3"],
+            "Decision Time": [datetime(2024, 1, 1)] * 5,
+            "Issue": ["Sales", "Service", "Sales", "Service", "Sales"],
+            "Group": ["Cards", "Cards", "Loans", "Loans", "Cards"],
+            "Action": ["A", "A", "C", "D", "Excluded"],
+            "Channel": ["Web", "Web", "Mobile", "Mobile", "Web"],
+            "Direction": ["Inbound"] * 5,
+            "Propensity": [1.0] * 5,
+            "Value": [1.0, 1.4, 1.0, 1.05, 1.0],
+            "Context Weight": [1.0] * 5,
+            "Levers": [2.0, 1.0, 1.0, 1.0, 1.0],
+            "Priority": [2.0, 1.4, 1.0, 1.05, None],
+            "Stage_pyStageGroup": ["Arbitration"] * 4 + ["Eligibility"],
+            "Stage_pyName": ["Arbitration"] * 4 + ["Eligibility"],
+            "Stage_pyOrder": [3800] * 4 + [1500],
         }
     )
     at = AppTest.from_file(str(da_app_dir / "pages" / "13_Business_Levers.py"), default_timeout=60)
@@ -57,7 +57,7 @@ def test_slider_replaces_action_lever(lever_page, percentage, expected_after):
     assert at.metric[1].value == f"{50 * expected_after:.1f}%"
     assert at.session_state["lever_percentage"] == percentage
     assert at.session_state["lever_override_active"] is True
-    assert len(at.get("plotly_chart")) == 2
+    assert len(at.get("plotly_chart")) == 1
 
 
 def test_zero_is_replacement_and_reset_removes_override(lever_page):
@@ -126,10 +126,10 @@ def test_evaluation_summary_below_table(lever_page, monkeypatch):
     at = lever_page
     at.slider(key="_lever_percentage").set_value(10).run()
     assert not at.exception
-    assert at.main.caption[-1].value == (
-        "Re-evaluated **2 decisions** at arbitration in **0.125 s** "
-        "(sampled, filtered population; scoring and aggregation only)."
-    )
+    assert at.main.caption[-1].value == ("Re-evaluated **2 decisions** in **0.125 s** (scoring and aggregation only).")
+    data = pl.from_pandas(at.dataframe[0].value)
+    assert data.select(pl.col("Before").sum(), pl.col("After").sum()).row(0) == (2, 2)
+    assert at.metric[0].value == at.metric[1].value == "50.0%"
 
 
 def test_top_n_control_keeps_highest_offers_per_interaction(lever_page):
@@ -146,6 +146,32 @@ def test_top_n_control_keeps_highest_offers_per_interaction(lever_page):
     at.number_input(key="_win_rank").set_value(1).run()
     assert not at.exception
     assert _selected_counts(at) == [(1, 0)]
+
+
+def test_analysis_granularity_keeps_adjustment_and_selected_action_coverage(lever_page):
+    at = lever_page
+    at.selectbox(key="_lever_level").set_value("Action").run()
+    at.selectbox(key="_lever_group").set_value("Loans").run()
+    at.slider(key="_lever_percentage").set_value(10).run()
+    at.selectbox(key="_lever_analysis_level").set_value("Issue").run()
+    assert not at.exception
+    assert _selected_counts(at) == [(1, 2)]
+    assert at.metric[0].value == "0.0%"
+    assert at.metric[1].value == "50.0%"
+    at.selectbox(key="_lever_analysis_level").set_value("Group").run()
+    assert not at.exception
+    data = pl.from_pandas(at.dataframe[0].value)
+    assert data.select("Issue", "Group", "Before", "After").rows() == [
+        ("Sales", "Cards", 1, 1),
+        ("Sales", "Loans", 0, 1),
+        ("Service", "Cards", 0, 0),
+        ("Service", "Loans", 1, 0),
+    ]
+    at.selectbox(key="_lever_analysis_level").set_value("Action").run()
+    assert not at.exception
+    assert _selected_counts(at) == [(0, 1)]
+    assert at.session_state["lever_percentage"] == 10
+    assert at.session_state["lever_override_active"] is True
 
 
 def test_top_n_persists_between_pages(da_app_dir, seeded_decision_analyzer):
