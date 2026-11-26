@@ -88,6 +88,25 @@ def ensure_data():
     show_cli_filter_banner()
 
 
+def _persist_win_rank() -> None:
+    st.session_state.win_rank = st.session_state._win_rank
+
+
+def win_rank_selector() -> None:
+    """Render the shared Top-N selector without losing it on page navigation."""
+    st.session_state.win_rank = st.session_state.get("win_rank", 1)
+    st.session_state._win_rank = st.session_state.win_rank
+    st.number_input(
+        "Define winning: rank in top N",
+        min_value=1,
+        max_value=st.session_state.decision_data.max_win_rank,
+        step=1,
+        key="_win_rank",
+        on_change=_persist_win_rank,
+        help="Keep the top N highest-ranked offers per interaction.",
+    )
+
+
 def _apply_stage_level():
     """Callback: sync the DA level with the radio widget value."""
     da = st.session_state.decision_data

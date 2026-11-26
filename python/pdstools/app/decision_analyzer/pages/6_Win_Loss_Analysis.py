@@ -9,6 +9,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     ensure_data,
     get_data_filters,
     show_filtered_counts,
+    win_rank_selector,
 )
 from pdstools.decision_analyzer.utils import (
     apply_filter,
@@ -117,14 +118,7 @@ with st.session_state["sidebar"]:
         key="scope",
     )
 
-    st.number_input(
-        "Define winning: rank in top N",
-        min_value=1,
-        max_value=st.session_state.decision_data.max_win_rank,
-        value=st.session_state.win_rank if "win_rank" in st.session_state else 1,
-        key="win_rank",
-        help="A win means at least one offer from the comparison group ranks N or better.",
-    )
+    win_rank_selector()
 
     top_k = None
     if st.session_state.scope == "Action":

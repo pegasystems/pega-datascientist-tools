@@ -3,7 +3,12 @@ from __future__ import annotations
 import polars as pl
 import streamlit as st
 
-from pdstools.app.decision_analyzer.da_streamlit_utils import collect_page_filters, contextual_filters, ensure_data
+from pdstools.app.decision_analyzer.da_streamlit_utils import (
+    collect_page_filters,
+    contextual_filters,
+    ensure_data,
+    win_rank_selector,
+)
 from pdstools.decision_analyzer.utils import apply_filter
 from pdstools.utils.streamlit_utils import get_current_index, standard_page_config
 
@@ -28,14 +33,7 @@ ensure_data()
 st.session_state["sidebar"] = st.sidebar
 
 with st.session_state["sidebar"]:
-    st.number_input(
-        "Define winning: rank in top N",
-        min_value=1,
-        max_value=st.session_state.decision_data.max_win_rank,
-        value=st.session_state.win_rank if "win_rank" in st.session_state else 1,
-        key="win_rank",
-        help="A win means at least one offer ranks N or better.",
-    )
+    win_rank_selector()
     contextual_filters()
 
 # Apply channel filter to sample data

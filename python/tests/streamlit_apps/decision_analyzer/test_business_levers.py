@@ -48,6 +48,7 @@ def _selected_counts(at):
 def test_slider_replaces_action_lever(lever_page, percentage, expected_after):
     at = lever_page
     at.selectbox(key="_lever_level").set_value("Action").run()
+    assert at.main.subheader[0].value == "Winning share for selected action: Sales / Cards / A"
     assert _selected_counts(at) == [(1, 1)]
     at.slider(key="_lever_percentage").set_value(percentage).run()
     assert not at.exception
@@ -76,15 +77,18 @@ def test_zero_is_replacement_and_reset_removes_override(lever_page):
 def test_cascading_selection_and_issue_group_scopes(lever_page):
     at = lever_page
     at.slider(key="_lever_percentage").set_value(10).run()
+    assert at.main.subheader[0].value == "Winning share for selected issue: Sales"
     assert _selected_counts(at) == [(0, 1), (1, 0)]
     at.selectbox(key="_lever_level").set_value("Group").run()
     at.selectbox(key="_lever_group").set_value("Loans").run()
     assert not at.exception
+    assert at.main.subheader[0].value == "Winning share for selected group: Sales / Loans"
     assert _selected_counts(at) == [(0, 1)]
     at.selectbox(key="_lever_level").set_value("Action").run()
     assert at.selectbox(key="_lever_action").value == "C"
     at.selectbox(key="_lever_issue").set_value("Service").run()
     assert not at.exception
+    assert at.main.subheader[0].value == "Winning share for selected action: Service / Cards / A"
     assert at.selectbox(key="_lever_group").value == "Cards"
     assert at.selectbox(key="_lever_action").value == "A"
     data = pl.from_pandas(at.dataframe[0].value)
@@ -101,7 +105,7 @@ def test_filter_change_invalidates_target_and_restores_baseline(lever_page):
     assert at.selectbox(key="_lever_action").value == "C"
     assert at.session_state["lever_override_active"] is False
     assert _selected_counts(at) == [(0, 0)]
-    assert "1 sampled interactions" in " ".join(c.value for c in at.caption)
+    assert "Re-evaluated **1 decision**" in at.main.caption[-1].value
 
 
 def test_new_data_clears_override(lever_page):
@@ -126,3 +130,42 @@ def test_evaluation_summary_below_table(lever_page, monkeypatch):
         "Re-evaluated **2 decisions** at arbitration in **0.125 s** "
         "(sampled, filtered population; scoring and aggregation only)."
     )
+
+
+def test_top_n_control_keeps_highest_offers_per_interaction(lever_page):
+    at = lever_page
+    at.selectbox(key="_lever_level").set_value("Action").run()
+    at.slider(key="_lever_percentage").set_value(10).run()
+    assert _selected_counts(at) == [(1, 0)]
+    at.number_input(key="_win_rank").set_value(2).run()
+    assert not at.exception
+    assert _selected_counts(at) == [(1, 1)]
+    assert at.metric[0].value == at.metric[1].value == "50.0%"
+    assert "at least one selected offer in the Top-2" in " ".join(c.value for c in at.main.caption)
+    assert at.session_state["win_rank"] == 2
+    at.number_input(key="_win_rank").set_value(1).run()
+    assert not at.exception
+    assert _selected_counts(at) == [(1, 0)]
+
+
+def test_top_n_persists_between_pages(da_app_dir, seeded_decision_analyzer):
+    at = AppTest.from_file(str(da_app_dir / "Home.py"), default_timeout=60)
+    at.session_state["decision_data"] = seeded_decision_analyzer
+    at.run()
+    at.switch_page("pages/13_Business_Levers.py").run()
+    assert not at.exception
+    at.number_input(key="_win_rank").set_value(3).run()
+    at.switch_page("pages/5_Global_Sensitivity.py").run()
+    assert not at.exception
+    assert at.number_input(key="_win_rank").value == 3
+    at.number_input(key="_win_rank").set_value(2).run()
+    at.switch_page("pages/3_Action_Distribution.py").run()
+    assert not at.exception
+    assert at.session_state["win_rank"] == 2
+    at.switch_page("pages/6_Win_Loss_Analysis.py").run()
+    assert not at.exception
+    assert at.number_input(key="_win_rank").value == 2
+    at.number_input(key="_win_rank").set_value(1).run()
+    at.switch_page("pages/13_Business_Levers.py").run()
+    assert not at.exception
+    assert at.number_input(key="_win_rank").value == 1

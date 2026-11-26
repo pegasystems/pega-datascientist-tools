@@ -7,6 +7,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
     contextual_filters,
     ensure_data,
+    win_rank_selector,
 )
 from pdstools.utils.streamlit_utils import standard_page_config
 
@@ -55,11 +56,7 @@ def _reset() -> None:
 
 
 st.title("What-if: Business Levers")
-st.caption(
-    "Illustrate how replacing business levers changes the winning-offer mix. "
-    "This simulation uses recorded candidates; it does not update product configuration "
-    "or predict future customer responses."
-)
+st.caption("Replace business levers and compare the winning-offer mix.")
 
 da = st.session_state.decision_data
 if st.session_state.get("lever_data_id") != id(da):
@@ -88,6 +85,7 @@ if identities.is_empty():
 with controls:
     st.subheader("Lever adjustment")
     level = _selectbox("Adjust at", "lever_level", ["Issue", "Group", "Action"])
+    win_rank_selector()
     issue = _selectbox("Issue", "lever_issue", identities["Issue"].drop_nulls().unique().sort().to_list())
     condition = pl.col("Issue") == issue
     target = [issue]
@@ -118,33 +116,27 @@ with controls:
 lever = 1 + st.session_state.lever_percentage / 100 if st.session_state.lever_override_active else None
 target_label = " / ".join(target)
 if lever is None:
-    st.info("No override active. Move the slider to replace the selected levers.")
+    st.caption("Original levers retained. Move the slider to apply a replacement.")
 else:
-    st.info(
-        f"Set the lever to **{lever:.2f}** for **{target_label}**. "
-        "Existing lever values are replaced; competitors retain their original levers."
-    )
-st.caption(
-    "Before and After both reconstruct priority as Propensity × Value × Context Weight × Levers. "
-    "They may differ from recorded output. Missing component values use the neutral value 1.0. "
-    "Mandatory-action precedence is preserved. 0% sets the lever to 1.0; Reset removes the override."
+    st.caption(f"Replacement lever: **{lever:.2f}** for **{target_label}**. Other offers retain their original levers.")
+
+win_rank = st.session_state.win_rank
+distribution, summary_frame = da.scoring.lever_simulation(
+    condition, lever, additional_filters=filters, win_rank=win_rank
 )
-
-distribution, summary_frame = da.scoring.lever_simulation(condition, lever, additional_filters=filters)
 summary = summary_frame.row(0, named=True)
-st.caption(f"Analyzed population: {summary['Interactions']:,} sampled interactions, including those without a winner.")
 
-before_metric, after_metric, change_metric = st.columns(3)
-before_metric.metric("Selected scope: Before", f"{summary['Before share (%)']:.1f}%")
-after_metric.metric("Selected scope: After", f"{summary['After share (%)']:.1f}%")
+st.subheader(f"Winning share for selected {level.lower()}: {target_label}")
+st.caption(
+    f"Share of all **{summary['Interactions']:,} analyzed decisions** with "
+    f"**at least one selected offer in the Top-{win_rank}**. Competitors remain in the comparison."
+)
+before_metric, after_metric, change_metric = st.columns(3, gap="small")
+before_metric.metric("Before", f"{summary['Before share (%)']:.1f}%")
+after_metric.metric("After", f"{summary['After share (%)']:.1f}%")
 change_metric.metric("Change", f"{summary['Change (pp)']:+.1f} pp")
 
-st.subheader("Winning-offer distribution")
-st.caption(
-    "Tile sizes represent rank-1 wins, not candidate appearances. Explore Issue → Group → Action. "
-    "The table below shows shares of the entire analyzed population, rather than shares within a parent tile."
-)
-for column, scenario in zip(st.columns(2), ("Before", "After"), strict=True):
+for column, scenario in zip(st.columns(2, gap="small"), ("Before", "After"), strict=True):
     with column:
         st.markdown(f"### {scenario}")
         chart_data = distribution.select("Issue", "Group", "Action", pl.col(scenario).alias("Decisions")).filter(
@@ -155,14 +147,28 @@ for column, scenario in zip(st.columns(2), ("Before", "After"), strict=True):
                 df=chart_data.lazy(),
                 stage=scenario,
                 scope_options=["Issue", "Group", "Action"],
-            ),
+            ).update_layout(height=320, margin=dict(t=24, b=0, l=0, r=0)),
             key=f"lever_{scenario.lower()}",
         )
 
 st.subheader("Offer share changes")
-st.dataframe(distribution, hide_index=True)
+st.dataframe(distribution, hide_index=True, height=240)
+decision_label = "decision" if summary["Re-evaluated decisions"] == 1 else "decisions"
 st.caption(
-    f"Re-evaluated **{summary['Re-evaluated decisions']:,} decisions** at arbitration "
+    f"Re-evaluated **{summary['Re-evaluated decisions']:,} {decision_label}** at arbitration "
     f"in **{summary['Elapsed (s)']:.3f} s** "
     "(sampled, filtered population; scoring and aggregation only)."
 )
+
+with st.expander("Simulation assumptions"):
+    st.markdown(
+        "Before and After reconstruct priority as **Propensity × Value × Context Weight × Levers**, "
+        "so they may differ from recorded output. Missing component values use 1.0. "
+        "Mandatory-action precedence is preserved. **0% sets the lever to 1.0; Reset removes the override.**\n\n"
+        f"Treemap tile sizes count Top-{win_rank} offer appearances. Explore Issue → Group → Action. "
+        "The table shows each action's coverage of all analyzed decisions, rather than shares within a parent tile. "
+        "For Top-N, action coverage percentages can overlap and need not sum to 100%. "
+        "Selected-issue/group coverage counts each decision only once.\n\n"
+        "Results use the sampled, filtered population of recorded candidates. This illustration does not "
+        "update product configuration or predict future customer responses."
+    )
