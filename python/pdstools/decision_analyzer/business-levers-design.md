@@ -96,13 +96,26 @@ constraint.
 ### Results
 
 - Selected scope's offer share before, after, and percentage-point change.
-- Horizontal grouped bars showing Before / After offer share.
+- Side-by-side Before / After treemaps, reusing the existing **Offer Mix by
+  Volume** visualization from the Action Distribution page.
 - A table containing offer identity, before/after counts, shares, and change.
-- Default display granularity matches the adjustment level.
+- Both treemaps retain the same Issue / Group / Action hierarchy, regardless of
+  the adjustment level, and use the existing Issue color mappings and Pega
+  template. Users can explore the hierarchy as they do on Action Distribution.
 - Full hierarchy appears in labels or hover text.
-- Any display truncation uses the same categories in both scenarios, with
-  remaining categories aggregated as **Other**. Keep the selected category
-  visible. The table retains the complete distribution.
+- Tile area represents rank-1 winning-offer counts, not all candidate appearances
+  at a pipeline stage. Titles and captions make this distinction explicit.
+- Zero-win offers need not occupy tiles, but the table retains the complete
+  before/after distribution, including offers that gain or lose all wins.
+
+Reuse `distribution_as_treemap()` twice rather than introducing a new chart type
+or paired-chart framework. Prepare each scenario's input in the library with
+Issue, Group, Action, and a `Decisions` column containing that scenario's win
+count, then pass it to the existing plotting method as a LazyFrame. Use
+Before and After labels rather than implying these are recorded pipeline stages.
+Include **No winning offer** consistently in both inputs when its count is
+nonzero. The summary and table expose population-based shares explicitly; do not
+mistake a treemap's parent-relative percentages for those shares.
 
 Show the sampled interaction count and label results as an illustrative
 simulation. Explain that mandatory precedence can prevent a lever adjustment
@@ -185,8 +198,8 @@ Reuse existing components; introduce no new analyzer hierarchy.
   baseline/scenario ranking and active population filters.
 - **Scope utilities:** reuse hierarchy selection patterns, ensuring action
   matching includes Issue and Group.
-- **Plots:** add a paired comparison chart in the existing win/loss plotting
-  area.
+- **Plots:** reuse the existing distribution treemap method for both scenarios,
+  preserving the app's established hierarchy, colors, and visual style.
 - **Streamlit page:** manage selection and replacement state using existing
   shared page utilities.
 - **Navigation:** register the page only when decision data is loaded.
@@ -219,8 +232,8 @@ invalidates incompatible selections and previously computed results.
 
 ## APIs and Extension Points
 
-Extend existing scoring and plotting entry points rather than adding a generic
-scenario framework.
+Extend existing scoring entry points and reuse the distribution treemap plotting
+entry point rather than adding a generic scenario framework.
 
 Required library capabilities:
 
@@ -228,8 +241,8 @@ Required library capabilities:
 - Accept population filters independently of the lever condition.
 - Produce baseline and scenario counts from one consistent candidate population.
 - Aggregate by Issue, Group, or Action using complete hierarchy keys.
-- Return chart data through the standard keyword-only `return_df` pattern,
-  with typed overloads.
+- Provide the existing treemap input shape for each scenario. No new plot API is
+  needed; any necessary extension must preserve existing callers.
 
 The existing `get_win_distribution_data()` helper already supports absolute
 replacement and is the first reuse candidate. Preserve existing call signatures
@@ -314,7 +327,9 @@ endpoints, initial no-override state,
 and selection invalidation after a data change.
 
 Run the narrow scoring, plotting, and page tests covering these changes.
-Visually check chart label clipping and Before / After category alignment.
+Visually check treemap label clipping, consistent Issue colors and hierarchy,
+and Before / After readability. Verify exact scenario counts in the library
+inputs and table rather than using tile presence as a correctness assertion.
 
 ## Footnotes & References
 
@@ -322,6 +337,8 @@ Visually check chart label clipping and Before / After category alignment.
 - [Scoring and lever distribution helpers](_scoring.py)
 - [Scope configuration and filtering utilities](utils.py)
 - [Existing win/loss distribution plotting](plots/_winloss.py)
+- [Reusable distribution treemap](plots/_distribution.py)
+- [Action Distribution page](../app/decision_analyzer/pages/3_Action_Distribution.py)
 - [App navigation](../app/decision_analyzer/_navigation.py)
 - [Existing Win/Loss page](../app/decision_analyzer/pages/6_Win_Loss_Analysis.py)
 - [Decision Analyzer tests](../../tests/decision_analyzer/test_DecisionAnalyzer.py)
