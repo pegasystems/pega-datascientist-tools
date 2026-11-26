@@ -161,3 +161,8 @@ for column, scenario in zip(st.columns(2), ("Before", "After"), strict=True):
 
 st.subheader("Offer share changes")
 st.dataframe(distribution, hide_index=True)
+st.caption(
+    f"Re-evaluated **{summary['Re-evaluated decisions']:,} decisions** at arbitration "
+    f"in **{summary['Elapsed (s)']:.3f} s** "
+    "(sampled, filtered population; scoring and aggregation only)."
+)

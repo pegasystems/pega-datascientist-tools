@@ -114,3 +114,15 @@ def test_new_data_clears_override(lever_page):
     assert at.session_state["lever_override_active"] is False
     assert at.slider(key="_lever_percentage").value == 0
     assert at.metric[0].value == at.metric[1].value
+
+
+def test_evaluation_summary_below_table(lever_page, monkeypatch):
+    clock = iter([20.0, 20.125])
+    monkeypatch.setattr("pdstools.decision_analyzer._scoring.perf_counter", lambda: next(clock))
+    at = lever_page
+    at.slider(key="_lever_percentage").set_value(10).run()
+    assert not at.exception
+    assert at.main.caption[-1].value == (
+        "Re-evaluated **2 decisions** at arbitration in **0.125 s** "
+        "(sampled, filtered population; scoring and aggregation only)."
+    )

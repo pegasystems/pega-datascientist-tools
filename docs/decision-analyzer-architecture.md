@@ -138,7 +138,13 @@ and existing tie-breaking are retained. Counts and shares include interactions
 without an eligible winner using the same population denominator.
 
 The method returns an action-level distribution and a one-row selected-scope
-summary. The page passes each scenario's winning counts as `Decisions` to
+summary, including the number of distinct re-evaluated arbitration decisions
+and measured scoring/aggregation time. These appear in one line beneath the
+table. The re-evaluated count excludes interactions without rankable arbitration
+candidates; those interactions remain in the offer-share denominator. Timing
+excludes plot construction and rendering.
+
+The page passes each scenario's winning counts as `Decisions` to
 `da.plot.distribution_as_treemap()`, preserving the Action Distribution page's
 hierarchy and colors. The source analyzer is not mutated. See the
 [business levers design](../python/pdstools/decision_analyzer/business-levers-design.md)

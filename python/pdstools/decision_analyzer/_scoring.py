@@ -10,6 +10,7 @@ from __future__ import annotations
 __all__ = ["Scoring"]
 
 from math import isfinite
+from time import perf_counter
 from typing import TYPE_CHECKING, Literal
 
 import polars as pl
@@ -747,8 +748,11 @@ class Scoring:
             Action-level distribution with Issue, Group, Action, Selected,
             Before, After, Before share (%), After share (%), and Change (pp).
             Counts include a No winning offer row when needed. The second frame
-            is a one-row selected-scope summary containing Interactions and the
-            same count/share columns. Shares use all filtered sampled
+            is a one-row selected-scope summary containing Interactions,
+            Re-evaluated decisions, Elapsed (s), and the same count/share
+            columns. Re-evaluated decisions counts interactions with rankable
+            arbitration candidates. Elapsed (s) measures scoring and aggregation,
+            excluding plot construction. Shares use all filtered sampled
             interactions, including those without eligible candidates.
 
         Raises
@@ -767,6 +771,7 @@ class Scoring:
         if lever_value is not None and (not isfinite(lever_value) or not 0.5 <= lever_value <= 1.5):
             raise ValueError("Replacement lever must be finite and between 0.50 and 1.50.")
 
+        started = perf_counter()
         population = self.da.filtered(additional_filters)
         interactions = population.select(pl.col("Interaction ID").n_unique()).collect().item()
         filters = [pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down)]
@@ -809,7 +814,8 @@ class Scoring:
         if not distribution["Selected"].any():
             raise ValueError("The selected lever scope has no arbitration candidates.")
 
-        no_winner_count = interactions - distribution["Before"].sum()
+        evaluated_interactions = distribution["Before"].sum()
+        no_winner_count = interactions - evaluated_interactions
         if no_winner_count:
             no_winner = pl.DataFrame(
                 {
@@ -832,13 +838,16 @@ class Scoring:
         )
         summary = distribution.filter(pl.col("Selected")).select(
             pl.lit(interactions).alias("Interactions"),
+            pl.lit(evaluated_interactions).alias("Re-evaluated decisions"),
             pl.col("Before").sum(),
             pl.col("After").sum(),
             pl.col("Before share (%)").sum(),
             pl.col("After share (%)").sum(),
             pl.col("Change (pp)").sum(),
         )
-        return distribution.sort(["After", *keys], descending=[True, False, False, False]), summary
+        distribution = distribution.sort(["After", *keys], descending=[True, False, False, False])
+        summary = summary.with_columns(pl.lit(perf_counter() - started).alias("Elapsed (s)"))
+        return distribution, summary
 
     def get_win_distribution_data(
         self,

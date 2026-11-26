@@ -107,6 +107,8 @@ constraint.
   at a pipeline stage. Titles and captions make this distinction explicit.
 - Zero-win offers need not occupy tiles, but the table retains the complete
   before/after distribution, including offers that gain or lose all wins.
+- One summary line beneath the table reports the number of re-evaluated
+  arbitration decisions and the measured simulation time in seconds.
 
 Reuse `distribution_as_treemap()` twice rather than introducing a new chart type
 or paired-chart framework. Prepare each scenario's input in the library with
@@ -175,8 +177,12 @@ and a one-row selected-scope summary. The distribution contains:
 | Before share (%), After share (%) | Population-based winning-offer shares |
 | Change (pp) | After share minus Before share |
 
-The summary contains Interactions and the selected scope's Before, After,
-Before share (%), After share (%), and Change (pp). The legacy
+The summary contains Interactions, Re-evaluated decisions, Elapsed (s), and the
+selected scope's Before, After, Before share (%), After share (%), and Change
+(pp). Re-evaluated decisions counts distinct interactions with rankable
+arbitration candidates in the sampled, filtered population, not all loaded
+interactions. Elapsed (s) measures scoring and aggregation with a monotonic clock;
+it excludes plot construction and rendering. The legacy
 `get_win_distribution_data()` API remains unchanged.
 
 The denominator is the same filtered sampled interaction population for both
@@ -281,6 +287,15 @@ the existing data fingerprint and Polars hashing patterns.
 
 Display the effective replacement lever, selected hierarchy, active population
 filters, analyzed interaction count, and sampling/reconstruction caveats.
+Below the table, show a single summary line such as:
+
+> Re-evaluated **2,345 decisions** at arbitration in **0.125 s**
+> (sampled, filtered population; scoring and aggregation only).
+
+Distinguish re-evaluated decisions from the share denominator: interactions
+without a rankable arbitration candidate contribute to No winning offer but
+are not re-evaluated. Timing is measured for each run, not a fixed demonstration
+value.
 
 Use module logging for technical diagnostics. No scenario persistence, audit
 database, external telemetry, or product write-back is required.
@@ -330,6 +345,9 @@ Focused exact-value tests must demonstrate:
     populations produce explicit errors or documented empty states.
 11. **Slider boundaries:** -50% replaces the lever with 0.50 and +50% replaces
     it with 1.50, producing the expected winners and offer shares.
+12. **Count and timing:** verify distinct arbitration interactions separately
+    from the share denominator, and test elapsed time with a controlled clock.
+    The page displays both values in one line beneath the table.
 
 Streamlit state-transition tests cover cascading selectors, slider changes,
 Reset, and changes to the active population. Verify both slider

@@ -1280,8 +1280,9 @@ class TestLeverSimulation:
     def test_replacement_and_reset(self, lever_analyzer, lever, expected_after):
         condition = (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards") & (pl.col("Action") == "A")
         distribution, summary = lever_analyzer.scoring.lever_simulation(condition, lever)
-        assert summary.row(0, named=True) == {
+        assert summary.drop("Elapsed (s)").row(0, named=True) == {
             "Interactions": 4,
+            "Re-evaluated decisions": 3,
             "Before": 1,
             "After": expected_after,
             "Before share (%)": 25.0,
@@ -1333,6 +1334,16 @@ class TestLeverSimulation:
             additional_filters=pl.col("Channel") == "Mobile",
         )
         assert summary.select("Interactions", "Before", "After", "Change (pp)").row(0) == (1, 0, 1, 100.0)
+
+    def test_evaluated_count_and_elapsed_time(self, lever_analyzer, monkeypatch):
+        clock = iter([10.0, 10.125])
+        monkeypatch.setattr("pdstools.decision_analyzer._scoring.perf_counter", lambda: next(clock))
+        _, summary = lever_analyzer.scoring.lever_simulation(
+            pl.col("Issue") == "Sales",
+            1.1,
+            additional_filters=pl.col("Channel") == "Web",
+        )
+        assert summary.select("Interactions", "Re-evaluated decisions", "Elapsed (s)").row(0) == (3, 2, 0.125)
 
     @pytest.mark.parametrize("lever", [0.49, 1.51, float("nan"), float("inf")])
     def test_invalid_replacement(self, lever_analyzer, lever):
