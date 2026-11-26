@@ -139,7 +139,7 @@ def _persist_simulation_granularity() -> None:
 
 def simulation_granularity_selector() -> Literal["Issue", "Group", "Action"]:
     """Render shared simulation granularity that survives page navigation."""
-    st.session_state.simulation_granularity = st.session_state.get("simulation_granularity", "Action")
+    st.session_state.simulation_granularity = st.session_state.get("simulation_granularity", "Group")
     st.session_state._simulation_granularity = st.session_state.simulation_granularity
     return cast(
         Literal["Issue", "Group", "Action"],

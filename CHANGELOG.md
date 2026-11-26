@@ -25,6 +25,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   above the gains/losses chart, with shared scales, stable colors, all categories,
   and decision counts on hover. Notebook users can call
   `DecisionAnalyzer.plot.simulation_distribution()` (#1033).
+- Simulation analysis granularity defaults to Group, with explicit choices
+  preserved across both pages (#1033).
 - AGB category gain and split-share plots support `by_split_type=True`
   for independently normalized All splits, Numeric, and Symbolic rows,
   classified by actual conditions, with per-subset totals on hover.

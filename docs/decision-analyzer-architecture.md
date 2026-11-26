@@ -186,6 +186,7 @@ Both simulation pages place `da.plot.simulation_distribution()` between the
 summary metrics and the delta chart: one horizontal stacked bar each for Before
 and After, with shared segment order and a percentage scale at the selected
 analysis granularity.
+Group is the initial granularity; explicit choices persist across both pages.
 These show all categories, including competitors, unchanged rows, and zero shares,
 using stable dimension colors and absolute decision counts in hover details.
 Shares retain the original decision denominator, including when thresholds leave

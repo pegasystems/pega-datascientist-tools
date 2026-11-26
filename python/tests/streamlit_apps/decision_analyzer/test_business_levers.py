@@ -35,6 +35,7 @@ def lever_page(da_app_dir):
     )
     at = AppTest.from_file(str(da_app_dir / "pages" / "13_Business_Levers.py"), default_timeout=60)
     at.session_state["decision_data"] = DecisionAnalyzer(raw, sample_size=10)
+    at.session_state["simulation_granularity"] = "Action"
     at.run()
     assert not at.exception
     return at
@@ -43,6 +44,17 @@ def lever_page(da_app_dir):
 def _selected_counts(at):
     data = pl.from_pandas(at.dataframe[0].value)
     return data.filter(pl.col("Selected")).select("Before", "After").rows()
+
+
+@pytest.mark.parametrize("page", ["13_Business_Levers.py", "9_Thresholding_Analysis.py"])
+def test_initial_analysis_granularity_is_group(da_app_dir, seeded_decision_analyzer, page):
+    at = AppTest.from_file(str(da_app_dir / "pages" / page), default_timeout=60)
+    at.session_state["decision_data"] = seeded_decision_analyzer
+    at.run()
+    assert not at.exception
+    assert at.selectbox(key="_simulation_granularity").value == "Group"
+    assert at.session_state["simulation_granularity"] == "Group"
+    assert "### Overall distribution by group" in [element.value for element in at.main.markdown]
 
 
 @pytest.mark.parametrize(("percentage", "expected_after"), [(-50, 0), (10, 1), (50, 1)])

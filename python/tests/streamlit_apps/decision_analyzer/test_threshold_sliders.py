@@ -143,6 +143,7 @@ def test_delta_controls_preserve_threshold_and_rerank_survivors(da_app_dir):
     )
     at = _load_page(da_app_dir, DecisionAnalyzer(raw, sample_size=10))
     assert not at.exception
+    at.selectbox(key="_simulation_granularity").set_value("Action").run()
     at.slider(key="propensity_threshold_pct").set_value(10.0).run()
     assert not at.exception
     metrics = {metric.label: metric.value for metric in at.metric}
