@@ -161,7 +161,7 @@ def show_simulation_comparison(
     analysis_level: Literal["Issue", "Group", "Action"],
     selected_target: bool = False,
 ) -> None:
-    """Render the shared delta comparison, table, and evaluation footer."""
+    """Render shared distributions, delta comparison, table, and evaluation footer."""
     summary = summary_frame.row(0, named=True)
     offer_label = "selected offer" if selected_target else "offer"
     with st.container(border=True):
@@ -175,6 +175,17 @@ def show_simulation_comparison(
         before_metric.metric("Before", f"{summary['Before share (%)']:.1f}%")
         after_metric.metric("After", f"{summary['After share (%)']:.1f}%")
         change_metric.metric("Change", f"{summary['Change (pp)']:+.1f}")
+
+        st.markdown(f"### Overall distribution by {analysis_level.lower()}")
+        st.caption(
+            "All categories, including unchanged offers and competitors, on the same scale. "
+            "Shares use the re-evaluated decision population; Top-N coverage can overlap across categories."
+        )
+        show_action_color_notice(analysis_level)
+        st.plotly_chart(
+            st.session_state.decision_data.plot.simulation_distribution(distribution),
+            key="simulation_distribution",
+        )
 
         st.markdown(f"### Gains and losses by {analysis_level.lower()}")
         st.caption(

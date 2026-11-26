@@ -1,5 +1,6 @@
 """State transitions for hierarchical lever replacement and Reset."""
 
+import json
 from datetime import datetime
 
 import polars as pl
@@ -57,7 +58,7 @@ def test_slider_replaces_action_lever(lever_page, percentage, expected_after):
     assert at.metric[1].value == f"{50 * expected_after:.1f}%"
     assert at.session_state["lever_percentage"] == percentage
     assert at.session_state["lever_override_active"] is True
-    assert len(at.get("plotly_chart")) == 1
+    assert len(at.get("plotly_chart")) == 2
 
 
 def test_zero_is_replacement_and_reset_removes_override(lever_page):
@@ -173,6 +174,13 @@ def test_analysis_granularity_keeps_adjustment_and_selected_action_coverage(leve
     assert _selected_counts(at) == [(1, 2)]
     assert at.metric[0].value == "0.0%"
     assert at.metric[1].value == "50.0%"
+    spec = json.loads(at.get("plotly_chart")[0].proto.spec)
+    assert [trace["name"] for trace in spec["data"]] == ["Sales", "Service"]
+    assert spec["data"][0]["y"] == spec["data"][1]["y"] == ["Before", "After"]
+    assert spec["data"][0]["x"] == [50.0, 100.0]
+    assert spec["data"][1]["x"] == [50.0, 0.0]
+    headings = [element.value for element in at.main.markdown]
+    assert headings.index("### Overall distribution by issue") < headings.index("### Gains and losses by issue")
     at.selectbox(key="_simulation_granularity").set_value("Group").run()
     assert not at.exception
     data = pl.from_pandas(at.dataframe[0].value)
@@ -182,6 +190,14 @@ def test_analysis_granularity_keeps_adjustment_and_selected_action_coverage(leve
         ("Service", "Cards", 0, 0),
         ("Service", "Loans", 1, 0),
     ]
+    spec = json.loads(at.get("plotly_chart")[0].proto.spec)
+    assert [trace["name"] for trace in spec["data"]] == [
+        "Sales / Cards",
+        "Service / Loans",
+        "Sales / Loans",
+        "Service / Cards",
+    ]
+    assert [trace["x"] for trace in spec["data"]] == [[50.0, 50.0], [50.0, 0.0], [0.0, 50.0], [0.0, 0.0]]
     at.selectbox(key="_simulation_granularity").set_value("Action").run()
     assert not at.exception
     assert _selected_counts(at) == [(0, 1)]

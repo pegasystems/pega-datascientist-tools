@@ -16,6 +16,7 @@ state transitions.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -148,12 +149,23 @@ def test_delta_controls_preserve_threshold_and_rerank_survivors(da_app_dir):
     assert (metrics["Before"], metrics["After"], metrics["Change"]) == ("100.0%", "50.0%", "-50.0")
     data = pl.from_pandas(at.dataframe[0].value)
     assert data.select("Action", "Before", "After").rows() == [("B", 0, 1), ("A", 1, 0), ("C", 1, 0)]
+    spec = json.loads(at.get("plotly_chart")[-2].proto.spec)
+    assert [trace["name"] for trace in spec["data"]] == [
+        "Sales / Cards / A",
+        "Sales / Loans / C",
+        "Service / Cards / B",
+    ]
+    assert [trace["x"] for trace in spec["data"]] == [[50.0, 0.0], [50.0, 0.0], [0.0, 50.0]]
+    assert spec["layout"]["barmode"] == "stack"
 
     at.number_input(key="_win_rank").set_value(2).run()
     at.selectbox(key="_simulation_granularity").set_value("Issue").run()
     assert not at.exception
     data = pl.from_pandas(at.dataframe[0].value)
     assert data.select("Issue", "Before", "After").rows() == [("Service", 1, 1), ("Sales", 2, 0)]
+    spec = json.loads(at.get("plotly_chart")[-2].proto.spec)
+    assert [trace["name"] for trace in spec["data"]] == ["Sales", "Service"]
+    assert [trace["x"] for trace in spec["data"]] == [[100.0, 0.0], [50.0, 50.0]]
     assert at.session_state["propensity_threshold_pct"] == 10.0
     assert any("Re-evaluated **2 decisions**" in caption.value for caption in at.caption)
 

@@ -21,6 +21,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   granularity controls, and timing footer. Global propensity/priority thresholds
   filter offers before re-ranking survivors; notebook users can reproduce this
   with `DecisionAnalyzer.scoring.threshold_simulation()` (#1033).
+- Both simulation pages show overall Before/After horizontal stacked distributions
+  above the gains/losses chart, with shared scales, stable colors, all categories,
+  and decision counts on hover. Notebook users can call
+  `DecisionAnalyzer.plot.simulation_distribution()` (#1033).
 - AGB category gain and split-share plots support `by_split_type=True`
   for independently normalized All splits, Numeric, and Symbolic rows,
   classified by actual conditions, with per-subset totals on hover.

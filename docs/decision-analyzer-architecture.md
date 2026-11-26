@@ -182,7 +182,16 @@ absolute share differences as plain numbers under "Change" (percentage points,
 not relative percent changes).
 Timing excludes plot construction and rendering.
 
-The page passes the distribution to `da.plot.lever_delta()`, which shows
+Both simulation pages place `da.plot.simulation_distribution()` between the
+summary metrics and the delta chart: one horizontal stacked bar each for Before
+and After, with shared segment order and a percentage scale at the selected
+analysis granularity.
+These show all categories, including competitors, unchanged rows, and zero shares,
+using stable dimension colors and absolute decision counts in hover details.
+Shares retain the original decision denominator, including when thresholds leave
+decisions without offers; Top-N coverage can overlap across categories.
+
+The page also passes the distribution to `da.plot.lever_delta()`, which shows
 positive and negative winning-share changes as horizontal bars, with fully
 qualified labels and Before/After counts in hover details. The plot supports
 `return_df=True`. The source analyzer is not mutated. See the

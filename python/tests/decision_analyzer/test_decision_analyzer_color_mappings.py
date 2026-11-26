@@ -44,6 +44,59 @@ def test_color_mappings_property_exists(sample_data):
     assert isinstance(mappings, dict)
 
 
+@pytest.mark.parametrize("level", ["Issue", "Group", "Action"])
+@pytest.mark.parametrize("after", [[0, 1, 1], [0, 0, 0]])
+def test_simulation_distributions_keep_all_categories_and_baseline_shares(sample_data, level, after):
+    da = DecisionAnalyzer(sample_data)
+    keys = ["Issue", "Group", "Action"][: ["Issue", "Group", "Action"].index(level) + 1]
+    distribution = (
+        pl.DataFrame(
+            {
+                "Issue": ["Sales", "Retention", "Service"],
+                "Group": ["Cards", "Loans", "Insurance"],
+                "Action": ["Action1", "Action2", "Action3"],
+                "Before": [2, 0, 1],
+                "After": after,
+            }
+        )
+        .select(*keys, "Before", "After")
+        .with_columns(
+            (25.0 * pl.col("Before")).alias("Before share (%)"),
+            (25.0 * pl.col("After")).alias("After share (%)"),
+        )
+    )
+    data = da.plot.simulation_distribution(distribution, return_df=True)
+    labels = [
+        " / ".join(values[: len(keys)])
+        for values in [
+            ("Sales", "Cards", "Action1"),
+            ("Service", "Insurance", "Action3"),
+            ("Retention", "Loans", "Action2"),
+        ]
+    ]
+    assert data.select("Label", "Before", "After").rows() == [
+        (labels[0], 2, after[0]),
+        (labels[1], 1, after[2]),
+        (labels[2], 0, after[1]),
+    ]
+    fig = da.plot.simulation_distribution(distribution)
+    assert [trace.name for trace in fig.data] == labels
+    assert [list(trace.y) for trace in fig.data] == [["Before", "After"]] * 3
+    assert [list(trace.x) for trace in fig.data] == [
+        [50.0, 25.0 * after[0]],
+        [25.0, 25.0 * after[2]],
+        [0.0, 25.0 * after[1]],
+    ]
+    assert [list(trace.customdata) for trace in fig.data] == [
+        [[2], [after[0]]],
+        [[1], [after[2]]],
+        [[0], [after[1]]],
+    ]
+    assert [trace.marker.color for trace in fig.data] == [da.color_mappings[level][value] for value in data[level]]
+    assert fig.layout.barmode == "stack"
+    assert fig.layout.xaxis.range == (0, 100)
+
+
 def test_color_mappings_includes_all_categorical_columns(sample_data):
     """Test that color_mappings includes all categorical dimensions."""
     da = DecisionAnalyzer(sample_data)

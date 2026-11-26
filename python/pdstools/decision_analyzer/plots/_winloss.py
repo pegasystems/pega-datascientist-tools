@@ -10,6 +10,80 @@ from plotly.subplots import make_subplots
 
 
 @overload
+def simulation_distribution(self, df: pl.DataFrame, *, return_df: Literal[False] = False) -> go.Figure: ...
+
+
+@overload
+def simulation_distribution(self, df: pl.DataFrame, *, return_df: Literal[True]) -> pl.DataFrame: ...
+
+
+def simulation_distribution(self, df: pl.DataFrame, *, return_df: bool = False) -> go.Figure | pl.DataFrame:
+    """Compare overall Before and After winning-share distributions.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        Distribution returned by ``scoring.lever_simulation()`` or
+        ``scoring.threshold_simulation()`` at the desired granularity.
+    return_df : bool, default False
+        Return all rows with fully qualified labels in display order.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure or pl.DataFrame
+        Horizontal stacked Before and After bars, or their underlying data.
+        Include unchanged and zero-share categories.
+        Shares retain the simulation's baseline decision denominator; Top-N
+        coverage may overlap across categories.
+    """
+    keys = [key for key in ("Issue", "Group", "Action") if key in df.columns]
+    if not keys:
+        raise ValueError("Simulation distribution data must contain Issue, Group, or Action columns.")
+    data = df.with_columns(
+        Label=pl.concat_str([pl.col(key).fill_null("(missing)") for key in keys], separator=" / "),
+    ).sort(["Before", "After", *keys], descending=[True, True, *[False] * len(keys)])
+    if return_df:
+        return data
+
+    colors = self._decision_data.color_mappings.get(keys[-1], {})
+    fig = go.Figure()
+    for row in data.iter_rows(named=True):
+        fig.add_trace(
+            go.Bar(
+                name=row["Label"],
+                x=[row["Before share (%)"], row["After share (%)"]],
+                y=["Before", "After"],
+                orientation="h",
+                marker=dict(color=colors.get(row[keys[-1]], "#cccccc"), line=dict(color="white", width=1)),
+                texttemplate="%{x:.1f}%",
+                textposition="inside",
+                customdata=[[row["Before"]], [row["After"]]],
+                hovertemplate=(
+                    "<b>%{fullData.name}</b><br>%{y}: %{x:.1f}% (%{customdata[0]:,} decisions)<extra></extra>"
+                ),
+            ),
+        )
+    maximum_total = max(data["Before share (%)"].sum(), data["After share (%)"].sum())
+    fig.update_xaxes(title_text="Winning share", ticksuffix="%", range=[0, max(100.0, maximum_total)])
+    fig.update_yaxes(
+        autorange="reversed",
+        automargin=True,
+        title_text=None,
+        categoryorder="array",
+        categoryarray=["Before", "After"],
+    )
+    fig.update_layout(
+        template="pega",
+        barmode="stack",
+        height=280,
+        margin=dict(l=0, r=8, t=8, b=40),
+        uniformtext=dict(minsize=10, mode="hide"),
+        legend=dict(y=1, yanchor="top"),
+    )
+    return fig
+
+
+@overload
 def lever_delta(self, df: pl.DataFrame, *, return_df: Literal[False] = False) -> go.Figure: ...
 
 
