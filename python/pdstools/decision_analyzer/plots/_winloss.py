@@ -2,11 +2,92 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Literal, cast, overload
 
 import plotly.graph_objects as go
 import polars as pl
 from plotly.subplots import make_subplots
+
+
+@overload
+def lever_delta(self, df: pl.DataFrame, *, return_df: Literal[False] = False) -> go.Figure: ...
+
+
+@overload
+def lever_delta(self, df: pl.DataFrame, *, return_df: Literal[True]) -> pl.DataFrame: ...
+
+
+def lever_delta(self, df: pl.DataFrame, *, return_df: bool = False) -> go.Figure | pl.DataFrame:
+    """Plot winning-share gains and losses from a lever simulation.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        Distribution returned by ``scoring.lever_simulation()`` at the
+        desired Issue, Group, or Action granularity.
+    return_df : bool, default False
+        Return changed rows with fully qualified labels instead of a figure.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure or pl.DataFrame
+        Horizontal delta bars, or their underlying data. Positive values
+        indicate gains and negative values indicate losses. Changes are
+        absolute differences in winning share, not relative percent changes.
+    """
+    keys = [key for key in ("Issue", "Group", "Action") if key in df.columns]
+    if not keys:
+        raise ValueError("Lever delta data must contain Issue, Group, or Action columns.")
+    data = (
+        df.filter(pl.col("Change (pp)") != 0)
+        .with_columns(
+            Label=pl.concat_str([pl.col(key).fill_null("(missing)") for key in keys], separator=" / "),
+        )
+        .sort("Change (pp)")
+    )
+    if return_df:
+        return data
+
+    changes = data["Change (pp)"].to_list()
+    fig = go.Figure(
+        go.Bar(
+            x=changes,
+            y=data["Label"].to_list(),
+            orientation="h",
+            marker_color=["#00A6A6" if change > 0 else "#E45756" if change < 0 else "#999999" for change in changes],
+            text=changes,
+            texttemplate="%{text:+.1f}",
+            textposition="outside",
+            cliponaxis=False,
+            customdata=data.select("Before", "After", "Before share (%)", "After share (%)").rows(),
+            hovertemplate=(
+                "<b>%{y}</b><br>"
+                "Before: %{customdata[0]:,} decisions (%{customdata[2]:.1f}%)<br>"
+                "After: %{customdata[1]:,} decisions (%{customdata[3]:.1f}%)<br>"
+                "Change: %{x:+.1f}<extra></extra>"
+            ),
+        )
+    )
+    fig.update_layout(
+        template="pega",
+        height=max(240, 26 * data.height + 80),
+        margin=dict(l=0, r=48, t=8, b=40),
+        xaxis_title="Change in winning share",
+        yaxis_title=None,
+        yaxis_automargin=True,
+        showlegend=False,
+    )
+    fig.add_vline(x=0, line_width=1, line_color="#999999")
+    if data.is_empty():
+        fig.add_annotation(
+            text="No change in winning share.",
+            x=0.5,
+            y=0.5,
+            xref="paper",
+            yref="paper",
+            showarrow=False,
+        )
+    return fig
 
 
 def global_winloss_distribution(self, level, win_rank, return_df=False, additional_filters=None):

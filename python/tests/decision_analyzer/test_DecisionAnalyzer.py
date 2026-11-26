@@ -1281,25 +1281,24 @@ class TestLeverSimulation:
         condition = (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards") & (pl.col("Action") == "A")
         distribution, summary = lever_analyzer.scoring.lever_simulation(condition, lever)
         assert summary.drop("Elapsed (s)").row(0, named=True) == {
-            "Interactions": 4,
+            "Interactions": 3,
             "Re-evaluated decisions": 3,
             "Before": 1,
             "After": expected_after,
-            "Before share (%)": 25.0,
-            "After share (%)": 25.0 * expected_after,
-            "Change (pp)": 25.0 * (expected_after - 1),
+            "Before share (%)": 100 / 3,
+            "After share (%)": 100.0 * expected_after / 3,
+            "Change (pp)": 100.0 * expected_after / 3 - 100 / 3,
         }
-        no_winner = distribution.filter(pl.col("Action") == "No winning offer")
-        assert no_winner.select("Before", "After").row(0) == (1, 1)
-        assert distribution["Before"].sum() == distribution["After"].sum() == 4
-        assert distribution["Before share (%)"].sum() == distribution["After share (%)"].sum() == 100.0
+        assert distribution["Before"].sum() == distribution["After"].sum() == 3
+        assert (distribution["Before share (%)"].sum(), distribution["After share (%)"].sum()) == pytest.approx(
+            (100.0, 100.0)
+        )
 
     def test_hierarchy_and_reconstructed_baseline(self, lever_analyzer):
         condition = (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards")
         distribution, _ = lever_analyzer.scoring.lever_simulation(condition, 1.1)
         assert distribution.select("Issue", "Group", "Action", "Before", "After", "Selected").rows() == [
             ("Sales", "Cards", "A", 1, 2, True),
-            ("No winning offer", "No winning offer", "No winning offer", 1, 1, False),
             ("Sales", "Loans", "B", 0, 1, False),
             ("Other", "Cards", "A", 1, 0, False),
             ("Service", "Cards", "A", 1, 0, False),
@@ -1310,9 +1309,19 @@ class TestLeverSimulation:
         distribution, summary = lever_analyzer.scoring.lever_simulation(
             condition, 1.1, additional_filters=[pl.col("Channel") == "Web"]
         )
-        assert summary.select("Interactions", "Before", "After").row(0) == (3, 1, 2)
-        assert summary["Change (pp)"].item() == pytest.approx(100 / 3)
+        assert summary.select("Interactions", "Before", "After").row(0) == (2, 1, 2)
+        assert summary["Change (pp)"].item() == 50.0
         assert distribution.filter(pl.col("Selected"))["Group"].sort().to_list() == ["Cards", "Loans"]
+        assert distribution["Before"].sum() == distribution["After"].sum() == 2
+
+    def test_missing_priority_excluded_from_simulation_population(self, lever_analyzer):
+        unrankable = lever_analyzer.decision_data.head(1).with_columns(
+            pl.lit("I5").alias("Interaction ID"),
+            pl.lit(None, dtype=lever_analyzer.decision_data.collect_schema()["Priority"]).alias("Priority"),
+        )
+        analyzer = DecisionAnalyzer(pl.concat([lever_analyzer.decision_data, unrankable]), sample_size=10)
+        distribution, summary = analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", 1.1)
+        assert summary.select("Interactions", "Re-evaluated decisions", "Before", "After").row(0) == (3, 3, 1, 3)
         assert distribution["Before"].sum() == distribution["After"].sum() == 3
 
     def test_mandatory_precedence_and_source_unchanged(self, lever_analyzer):
@@ -1343,17 +1352,58 @@ class TestLeverSimulation:
             1.1,
             additional_filters=pl.col("Channel") == "Web",
         )
-        assert summary.select("Interactions", "Re-evaluated decisions", "Elapsed (s)").row(0) == (3, 2, 0.125)
+        assert summary.select("Interactions", "Re-evaluated decisions", "Elapsed (s)").row(0) == (2, 2, 0.125)
 
     def test_top_n_coverage_deduplicates_selected_issue(self, lever_analyzer):
         distribution, summary = lever_analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", 1.1, win_rank=2)
-        assert summary.select("Interactions", "Re-evaluated decisions", "Before", "After").row(0) == (4, 3, 3, 3)
-        assert summary.select("Before share (%)", "After share (%)", "Change (pp)").row(0) == (75.0, 75.0, 0.0)
+        assert summary.select("Interactions", "Re-evaluated decisions", "Before", "After").row(0) == (3, 3, 3, 3)
+        assert summary.select("Before share (%)", "After share (%)", "Change (pp)").row(0) == (100.0, 100.0, 0.0)
         assert distribution.filter(pl.col("Selected")).select("Action", "Before", "After").rows() == [
             ("A", 3, 3),
             ("B", 1, 1),
         ]
-        assert distribution.filter(pl.col("Action") == "No winning offer").select("Before", "After").row(0) == (1, 1)
+
+    @pytest.mark.parametrize(
+        ("by", "expected"),
+        [
+            ("Issue", [("Sales", 3, 3), ("Other", 1, 1), ("Service", 1, 1)]),
+            (
+                "Group",
+                [
+                    ("Sales", "Cards", 3, 3),
+                    ("Other", "Cards", 1, 1),
+                    ("Sales", "Loans", 1, 1),
+                    ("Service", "Cards", 1, 1),
+                ],
+            ),
+        ],
+    )
+    def test_analysis_granularity_preserves_top_n_union_and_target_summary(self, lever_analyzer, by, expected):
+        condition = (pl.col("Issue") == "Sales") & (pl.col("Group") == "Loans")
+        distribution, summary = lever_analyzer.scoring.lever_simulation(condition, 1.1, win_rank=2, by=by)
+        keys = ["Issue"] if by == "Issue" else ["Issue", "Group"]
+        assert distribution.select(*keys, "Before", "After").rows() == expected
+        assert summary.select("Interactions", "Before", "After").row(0) == (3, 1, 1)
+        assert summary["Before share (%)"].item() == 100 / 3
+
+    def test_delta_plot_uses_share_changes_and_fully_qualified_labels(self, lever_analyzer):
+        condition = (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards")
+        distribution, _ = lever_analyzer.scoring.lever_simulation(condition, 1.1)
+        fig = lever_analyzer.plot.lever_delta(distribution)
+        expected = {
+            "Other / Cards / A": -100 / 3,
+            "Service / Cards / A": -100 / 3,
+            "Sales / Cards / A": 100 / 3,
+            "Sales / Loans / B": 100 / 3,
+        }
+        assert dict(zip(fig.data[0].y, fig.data[0].x, strict=True)) == pytest.approx(expected)
+        data = lever_analyzer.plot.lever_delta(distribution, return_df=True)
+        assert dict(data.select("Label", "Change (pp)").iter_rows()) == pytest.approx(expected)
+
+    @pytest.mark.parametrize("by", ["Subject ID", "Invalid"])
+    def test_invalid_analysis_granularity(self, lever_analyzer, by):
+        with pytest.raises(ValueError, match="Analysis granularity"):
+            lever_analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", by=by)
 
     @pytest.mark.parametrize("win_rank", [0, 6, 1.5])
     def test_invalid_winning_rank(self, lever_analyzer, win_rank):

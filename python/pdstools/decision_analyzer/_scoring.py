@@ -723,6 +723,7 @@ class Scoring:
         *,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
         win_rank: int = 1,
+        by: Literal["Issue", "Group", "Action"] = "Action",
     ) -> tuple[pl.DataFrame, pl.DataFrame]:
         """Compare reconstructed offer distributions after replacing levers.
 
@@ -746,19 +747,23 @@ class Scoring:
             Count offers ranked in the top N, up to the analyzer's max_win_rank.
             Selected-scope coverage counts each interaction once if at least one
             selected offer reaches the top N.
+        by : {"Issue", "Group", "Action"}, default "Action"
+            Distribution granularity, retaining parent hierarchy columns.
+            Each decision counts once per issue, group, or action. This does
+            not change the selected-target summary.
 
         Returns
         -------
         tuple of pl.DataFrame and pl.DataFrame
-            Action-level distribution with Issue, Group, Action, Selected,
+            Distribution with hierarchy columns through ``by``, Selected,
             Before, After, Before share (%), After share (%), and Change (pp).
-            Counts include a No winning offer row when needed. The second frame
-            is a one-row selected-scope summary containing Interactions,
+            Selected indicates that a row contains the adjusted target.
+            The second frame is a one-row selected-scope summary containing Interactions,
             Re-evaluated decisions, Elapsed (s), and the same count/share
             columns. Re-evaluated decisions counts interactions with rankable
             arbitration candidates. Elapsed (s) measures scoring and aggregation,
-            excluding plot construction. Shares use all filtered sampled
-            interactions, including those without eligible candidates. For
+            excluding plot construction. Interactions and shares use only
+            filtered sampled decisions with rankable arbitration candidates. For
             top-N rankings, action coverage percentages can overlap and need
             not sum to 100%; selected-scope coverage deduplicates interactions.
 
@@ -779,17 +784,18 @@ class Scoring:
             raise ValueError("Replacement lever must be finite and between 0.50 and 1.50.")
         if isinstance(win_rank, bool) or not isinstance(win_rank, int) or not 1 <= win_rank <= self.da.max_win_rank:
             raise ValueError(f"Winning rank must be an integer between 1 and {self.da.max_win_rank}.")
+        keys = ["Issue", "Group", "Action"]
+        if by not in keys:
+            raise ValueError("Analysis granularity must be Issue, Group, or Action.")
+        group_keys = keys[: keys.index(by) + 1]
 
         started = perf_counter()
-        population = self.da.filtered(additional_filters)
-        interactions = population.select(pl.col("Interaction ID").n_unique()).collect().item()
         filters = [pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down)]
         if isinstance(additional_filters, list):
             filters.extend(additional_filters)
         elif additional_filters is not None:
             filters.append(additional_filters)
 
-        keys = ["Issue", "Group", "Action"]
         before = (
             self.re_rank(additional_filters=filters)
             .group_by(keys)
@@ -818,7 +824,7 @@ class Scoring:
             )
             distribution = before.join(after, on=keys, nulls_equal=True).collect()
 
-        if interactions == 0 or distribution.is_empty():
+        if distribution.is_empty():
             raise ValueError("No arbitration candidates are available in the selected population.")
         distribution = distribution.with_columns(
             Selected=lever_condition.fill_null(False),
@@ -828,29 +834,21 @@ class Scoring:
         if not distribution["Selected"].any():
             raise ValueError("The selected lever scope has no arbitration candidates.")
 
-        evaluated_interactions = distribution["_arbitration_decisions"].sum()
+        interactions = distribution["_arbitration_decisions"].sum()
         summary = distribution.filter(pl.col("Selected")).select(
             pl.lit(interactions).alias("Interactions"),
-            pl.lit(evaluated_interactions).alias("Re-evaluated decisions"),
+            pl.lit(interactions).alias("Re-evaluated decisions"),
             Before=pl.col("_before_interactions").list.explode(keep_nulls=False, empty_as_null=False).n_unique(),
             After=pl.col("_after_interactions").list.explode(keep_nulls=False, empty_as_null=False).n_unique(),
         )
-        distribution = distribution.drop("_before_interactions", "_after_interactions", "_arbitration_decisions")
-        no_winner_count = interactions - evaluated_interactions
-        if no_winner_count:
-            no_winner = pl.DataFrame(
-                {
-                    "Issue": ["No winning offer"],
-                    "Group": ["No winning offer"],
-                    "Action": ["No winning offer"],
-                    "Before": [no_winner_count],
-                    "After": [no_winner_count],
-                    "Selected": [False],
-                },
-                schema=distribution.schema,
+        if by == "Action":
+            distribution = distribution.drop("_before_interactions", "_after_interactions", "_arbitration_decisions")
+        else:
+            distribution = distribution.group_by(group_keys).agg(
+                Selected=pl.col("Selected").any(),
+                Before=pl.col("_before_interactions").list.explode(keep_nulls=False, empty_as_null=False).n_unique(),
+                After=pl.col("_after_interactions").list.explode(keep_nulls=False, empty_as_null=False).n_unique(),
             )
-            distribution = pl.concat([distribution, no_winner])
-
         distribution = distribution.with_columns(
             (100.0 * pl.col("Before") / interactions).alias("Before share (%)"),
             (100.0 * pl.col("After") / interactions).alias("After share (%)"),
@@ -863,7 +861,7 @@ class Scoring:
         ).with_columns(
             (pl.col("After share (%)") - pl.col("Before share (%)")).alias("Change (pp)"),
         )
-        distribution = distribution.sort(["After", *keys], descending=[True, False, False, False])
+        distribution = distribution.sort(["After", *group_keys], descending=[True, *[False] * len(group_keys)])
         summary = summary.with_columns(pl.lit(perf_counter() - started).alias("Elapsed (s)"))
         return distribution, summary
 

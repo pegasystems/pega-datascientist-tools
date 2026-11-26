@@ -75,6 +75,7 @@ from ._winloss import (
     create_win_distribution_plot,
 )
 from ._winloss import global_winloss_distribution as _global_winloss_distribution
+from ._winloss import lever_delta as _lever_delta
 
 
 class Plot(LazyNamespace):
@@ -105,6 +106,7 @@ class Plot(LazyNamespace):
 
     # _winloss
     global_winloss_distribution = _global_winloss_distribution
+    lever_delta = _lever_delta
 
     # _optionality
     propensity_vs_optionality = _propensity_vs_optionality
