@@ -782,6 +782,95 @@ class Scoring:
         """
         if lever_value is not None and (not isfinite(lever_value) or not 0.5 <= lever_value <= 1.5):
             raise ValueError("Replacement lever must be finite and between 0.50 and 1.50.")
+        overrides = (
+            [
+                pl.when(lever_condition.fill_null(False))
+                .then(pl.lit(lever_value))
+                .otherwise(pl.col("Levers"))
+                .alias("Levers")
+            ]
+            if lever_value is not None
+            else None
+        )
+        return self._simulation(
+            lever_condition,
+            overrides=overrides,
+            additional_filters=additional_filters,
+            win_rank=win_rank,
+            by=by,
+        )
+
+    def threshold_simulation(
+        self,
+        min_propensity: float = 0.0,
+        min_priority: float = 0.0,
+        *,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        win_rank: int = 1,
+        by: Literal["Issue", "Group", "Action"] = "Action",
+    ) -> tuple[pl.DataFrame, pl.DataFrame]:
+        """Compare Top-N coverage before and after applying global thresholds.
+
+        Remove offers below either threshold and re-rank the survivors using
+        the same PVCL reconstruction as the lever simulation. The population
+        remains the original rankable arbitration decisions, including those
+        left without a qualifying offer after thresholding.
+
+        Parameters
+        ----------
+        min_propensity : float, default 0.0
+            Minimum propensity, between 0 and 1 inclusive. Missing propensity
+            uses the neutral default from ``re_rank()``.
+        min_priority : float, default 0.0
+            Minimum recorded priority, finite and non-negative.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Population filters applied equally to both scenarios.
+        win_rank : int, default 1
+            Number of highest-ranked surviving offers retained per decision.
+        by : {"Issue", "Group", "Action"}, default "Action"
+            Distribution granularity, retaining parent hierarchy columns.
+
+        Returns
+        -------
+        tuple of pl.DataFrame and pl.DataFrame
+            Per-scope coverage and a whole-population summary, with the same
+            columns as ``lever_simulation()``. After counts can be zero; no
+            synthetic placeholder offers are added.
+
+        Raises
+        ------
+        ValueError
+            If thresholds, winning rank, or granularity are invalid, or the
+            filtered population has no rankable arbitration candidates.
+        """
+        if not isfinite(min_propensity) or not 0 <= min_propensity <= 1:
+            raise ValueError("Minimum propensity must be finite and between 0 and 1.")
+        if not isfinite(min_priority) or min_priority < 0:
+            raise ValueError("Minimum priority must be finite and non-negative.")
+        return self._simulation(
+            pl.lit(True),
+            scenario_filter=(pl.col("Propensity") >= min_propensity) & (pl.col("Priority") >= min_priority),
+            additional_filters=additional_filters,
+            win_rank=win_rank,
+            by=by,
+        )
+
+    def _simulation(
+        self,
+        selection: pl.Expr,
+        *,
+        overrides: list[pl.Expr] | None = None,
+        scenario_filter: pl.Expr | None = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        win_rank: int = 1,
+        by: Literal["Issue", "Group", "Action"] = "Action",
+    ) -> tuple[pl.DataFrame, pl.DataFrame]:
+        """Compare scenarios over a fixed population of arbitration decisions.
+
+        Scenario filters affect only After. Retain baseline offer identities
+        when their After winners disappear, and aggregate unique interaction
+        sets without changing the selected-target summary.
+        """
         if isinstance(win_rank, bool) or not isinstance(win_rank, int) or not 1 <= win_rank <= self.da.max_win_rank:
             raise ValueError(f"Winning rank must be an integer between 1 and {self.da.max_win_rank}.")
         keys = ["Issue", "Group", "Action"]
@@ -804,30 +893,30 @@ class Scoring:
                 _arbitration_decisions=(pl.col("rank_PVCL") == 1).sum(),
             )
         )
-        if lever_value is None:
+        if overrides is None and scenario_filter is None:
             distribution = before.with_columns(pl.col("_before_interactions").alias("_after_interactions")).collect()
         else:
+            after_filters = filters if scenario_filter is None else [*filters, scenario_filter]
             after = (
                 self.re_rank(
-                    additional_filters=filters,
-                    overrides=[
-                        pl.when(lever_condition.fill_null(False))
-                        .then(pl.lit(lever_value))
-                        .otherwise(pl.col("Levers"))
-                        .alias("Levers")
-                    ],
+                    additional_filters=after_filters,
+                    overrides=overrides,
                 )
                 .group_by(keys)
                 .agg(
                     _after_interactions=pl.col("Interaction ID").filter(pl.col("rank_PVCL") <= win_rank).unique(),
                 )
             )
-            distribution = before.join(after, on=keys, nulls_equal=True).collect()
+            distribution = (
+                before.join(after, on=keys, how="left", nulls_equal=True)
+                .with_columns(pl.col("_after_interactions").fill_null([]))
+                .collect()
+            )
 
         if distribution.is_empty():
             raise ValueError("No arbitration candidates are available in the selected population.")
         distribution = distribution.with_columns(
-            Selected=lever_condition.fill_null(False),
+            Selected=selection.fill_null(False),
             Before=pl.col("_before_interactions").list.len(),
             After=pl.col("_after_interactions").list.len(),
         )

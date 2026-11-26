@@ -16,9 +16,12 @@ state transitions.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 
+import polars as pl
 import pytest
+from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 from streamlit.testing.v1 import AppTest
 
 if TYPE_CHECKING:
@@ -114,3 +117,52 @@ def test_resetting_propensity_slider_to_zero(
         f"Resetting slider to 0 should clear propensity_threshold_pct, "
         f"got {at.session_state['propensity_threshold_pct']}"
     )
+
+
+def test_delta_controls_preserve_threshold_and_rerank_survivors(da_app_dir):
+    raw = pl.LazyFrame(
+        {
+            "Interaction ID": ["I1", "I1", "I2", "I3"],
+            "Subject ID": ["S1", "S1", "S2", "S3"],
+            "Decision Time": [datetime(2024, 1, 1)] * 4,
+            "Issue": ["Sales", "Service", "Sales", "Sales"],
+            "Group": ["Cards", "Cards", "Loans", "Loans"],
+            "Action": ["A", "B", "C", "Excluded"],
+            "Channel": ["Web"] * 4,
+            "Direction": ["Inbound"] * 4,
+            "Propensity": [0.05, 0.2, 0.05, 0.2],
+            "Value": [100.0, 2.0, 1.0, 1.0],
+            "Context Weight": [1.0] * 4,
+            "Levers": [1.0] * 4,
+            "Priority": [5.0, 0.4, 0.05, None],
+            "Stage Group": ["Arbitration"] * 3 + ["Eligibility"],
+            "Stage": ["Arbitration"] * 3 + ["Eligibility"],
+            "Stage Order": [3800] * 3 + [1500],
+        }
+    )
+    at = _load_page(da_app_dir, DecisionAnalyzer(raw, sample_size=10))
+    assert not at.exception
+    at.slider(key="propensity_threshold_pct").set_value(10.0).run()
+    assert not at.exception
+    metrics = {metric.label: metric.value for metric in at.metric}
+    assert (metrics["Before"], metrics["After"], metrics["Change"]) == ("100.0%", "50.0%", "-50.0")
+    data = pl.from_pandas(at.dataframe[0].value)
+    assert data.select("Action", "Before", "After").rows() == [("B", 0, 1), ("A", 1, 0), ("C", 1, 0)]
+
+    at.number_input(key="_win_rank").set_value(2).run()
+    at.selectbox(key="_simulation_granularity").set_value("Issue").run()
+    assert not at.exception
+    data = pl.from_pandas(at.dataframe[0].value)
+    assert data.select("Issue", "Before", "After").rows() == [("Service", 1, 1), ("Sales", 2, 0)]
+    assert at.session_state["propensity_threshold_pct"] == 10.0
+    assert any("Re-evaluated **2 decisions**" in caption.value for caption in at.caption)
+
+
+def test_no_rankable_candidates_shows_warning(da_app_dir, seeded_decision_analyzer):
+    da = DecisionAnalyzer(
+        seeded_decision_analyzer.decision_data.with_columns(Priority=pl.lit(None, dtype=pl.Float32)),
+        sample_size=10,
+    )
+    at = _load_page(da_app_dir, da)
+    assert not at.exception
+    assert any("No rankable arbitration candidates" in warning.value for warning in at.warning)

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import polars as pl
 import streamlit as st
@@ -105,6 +105,81 @@ def win_rank_selector() -> None:
         on_change=_persist_win_rank,
         help="Keep the top N highest-ranked offers per interaction.",
     )
+
+
+def _persist_simulation_granularity() -> None:
+    st.session_state.simulation_granularity = st.session_state._simulation_granularity
+
+
+def simulation_granularity_selector() -> Literal["Issue", "Group", "Action"]:
+    """Render shared simulation granularity that survives page navigation."""
+    st.session_state.simulation_granularity = st.session_state.get("simulation_granularity", "Action")
+    st.session_state._simulation_granularity = st.session_state.simulation_granularity
+    return cast(
+        Literal["Issue", "Group", "Action"],
+        st.selectbox(
+            "Analysis granularity",
+            ["Issue", "Group", "Action"],
+            key="_simulation_granularity",
+            on_change=_persist_simulation_granularity,
+        ),
+    )
+
+
+def show_simulation_comparison(
+    distribution: pl.DataFrame,
+    summary_frame: pl.DataFrame,
+    *,
+    title: str,
+    win_rank: int,
+    analysis_level: Literal["Issue", "Group", "Action"],
+    selected_target: bool = False,
+) -> None:
+    """Render the shared delta comparison, table, and evaluation footer."""
+    summary = summary_frame.row(0, named=True)
+    offer_label = "selected offer" if selected_target else "offer"
+    with st.container(border=True):
+        st.subheader(title)
+        st.caption(
+            f"Share of **{summary['Interactions']:,} re-evaluated arbitration decisions** with "
+            f"**at least one {offer_label} in the Top-{win_rank}**."
+            + (" Competitors remain in the comparison." if selected_target else "")
+        )
+        before_metric, after_metric, change_metric = st.columns(3, gap="small")
+        before_metric.metric("Before", f"{summary['Before share (%)']:.1f}%")
+        after_metric.metric("After", f"{summary['After share (%)']:.1f}%")
+        change_metric.metric("Change", f"{summary['Change (pp)']:+.1f}")
+
+        st.markdown(f"### Gains and losses by {analysis_level.lower()}")
+        st.caption(
+            "Positive bars gained winning share; negative bars lost winning share. "
+            "Only changed rows are plotted. Hover for Before/After counts."
+        )
+        st.plotly_chart(st.session_state.decision_data.plot.lever_delta(distribution), key="simulation_delta")
+
+    with st.container(border=True):
+        st.subheader("Offer share changes")
+        st.dataframe(
+            distribution,
+            hide_index=True,
+            height=240,
+            column_config={
+                "Selected": st.column_config.CheckboxColumn("Contains selected target") if selected_target else None,
+                **{
+                    column: st.column_config.NumberColumn(
+                        label=column.replace(" (pp)", ""),
+                        format="%.1f",
+                    )
+                    for column in ("Before share (%)", "After share (%)", "Change (pp)")
+                },
+            },
+        )
+        decision_label = "decision" if summary["Re-evaluated decisions"] == 1 else "decisions"
+        st.caption(
+            f"Re-evaluated **{summary['Re-evaluated decisions']:,} {decision_label}** "
+            f"in **{summary['Elapsed (s)']:.3f} s** "
+            "(scoring and aggregation only)."
+        )
 
 
 def _apply_stage_level():

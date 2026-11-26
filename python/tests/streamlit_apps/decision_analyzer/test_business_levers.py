@@ -153,12 +153,12 @@ def test_analysis_granularity_keeps_adjustment_and_selected_action_coverage(leve
     at.selectbox(key="_lever_level").set_value("Action").run()
     at.selectbox(key="_lever_group").set_value("Loans").run()
     at.slider(key="_lever_percentage").set_value(10).run()
-    at.selectbox(key="_lever_analysis_level").set_value("Issue").run()
+    at.selectbox(key="_simulation_granularity").set_value("Issue").run()
     assert not at.exception
     assert _selected_counts(at) == [(1, 2)]
     assert at.metric[0].value == "0.0%"
     assert at.metric[1].value == "50.0%"
-    at.selectbox(key="_lever_analysis_level").set_value("Group").run()
+    at.selectbox(key="_simulation_granularity").set_value("Group").run()
     assert not at.exception
     data = pl.from_pandas(at.dataframe[0].value)
     assert data.select("Issue", "Group", "Before", "After").rows() == [
@@ -167,7 +167,7 @@ def test_analysis_granularity_keeps_adjustment_and_selected_action_coverage(leve
         ("Service", "Cards", 0, 0),
         ("Service", "Loans", 1, 0),
     ]
-    at.selectbox(key="_lever_analysis_level").set_value("Action").run()
+    at.selectbox(key="_simulation_granularity").set_value("Action").run()
     assert not at.exception
     assert _selected_counts(at) == [(0, 1)]
     assert at.session_state["lever_percentage"] == 10
@@ -181,6 +181,7 @@ def test_top_n_persists_between_pages(da_app_dir, seeded_decision_analyzer):
     at.switch_page("pages/13_Business_Levers.py").run()
     assert not at.exception
     at.number_input(key="_win_rank").set_value(3).run()
+    at.selectbox(key="_simulation_granularity").set_value("Group").run()
     at.switch_page("pages/5_Global_Sensitivity.py").run()
     assert not at.exception
     assert at.number_input(key="_win_rank").value == 3
@@ -192,6 +193,13 @@ def test_top_n_persists_between_pages(da_app_dir, seeded_decision_analyzer):
     assert not at.exception
     assert at.number_input(key="_win_rank").value == 2
     at.number_input(key="_win_rank").set_value(1).run()
-    at.switch_page("pages/13_Business_Levers.py").run()
+    at.switch_page("pages/9_Thresholding_Analysis.py").run()
     assert not at.exception
     assert at.number_input(key="_win_rank").value == 1
+    assert at.selectbox(key="_simulation_granularity").value == "Group"
+    at.number_input(key="_win_rank").set_value(2).run()
+    at.selectbox(key="_simulation_granularity").set_value("Issue").run()
+    at.switch_page("pages/13_Business_Levers.py").run()
+    assert not at.exception
+    assert at.number_input(key="_win_rank").value == 2
+    assert at.selectbox(key="_simulation_granularity").value == "Issue"

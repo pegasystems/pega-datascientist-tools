@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Literal, cast
-
 import polars as pl
 import streamlit as st
 
@@ -9,6 +7,8 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
     contextual_filters,
     ensure_data,
+    show_simulation_comparison,
+    simulation_granularity_selector,
     win_rank_selector,
 )
 from pdstools.utils.streamlit_utils import standard_page_config
@@ -87,7 +87,6 @@ if identities.is_empty():
 with controls:
     st.subheader("Lever adjustment")
     level = _selectbox("Adjust at", "lever_level", ["Issue", "Group", "Action"])
-    win_rank_selector()
     issue = _selectbox("Issue", "lever_issue", identities["Issue"].drop_nulls().unique().sort().to_list())
     condition = pl.col("Issue") == issue
     target = [issue]
@@ -114,11 +113,8 @@ with controls:
         help="Replace selected levers with 1 + percentage / 100; do not multiply their existing values.",
     )
     st.button("Reset", on_click=_reset, help="Remove the override and restore the original levers.")
-    st.session_state.setdefault("lever_analysis_level", "Action")
-    analysis_level = cast(
-        Literal["Issue", "Group", "Action"],
-        _selectbox("Analysis granularity", "lever_analysis_level", ["Issue", "Group", "Action"]),
-    )
+    win_rank_selector()
+    analysis_level = simulation_granularity_selector()
 
 lever = 1 + st.session_state.lever_percentage / 100 if st.session_state.lever_override_active else None
 target_label = " / ".join(target)
@@ -131,49 +127,14 @@ win_rank = st.session_state.win_rank
 distribution, summary_frame = da.scoring.lever_simulation(
     condition, lever, additional_filters=filters, win_rank=win_rank, by=analysis_level
 )
-summary = summary_frame.row(0, named=True)
-
-with st.container(border=True):
-    st.subheader(f"Winning share for selected {level.lower()}: {target_label}")
-    st.caption(
-        f"Share of **{summary['Interactions']:,} re-evaluated arbitration decisions** with "
-        f"**at least one selected offer in the Top-{win_rank}**. Competitors remain in the comparison."
-    )
-    before_metric, after_metric, change_metric = st.columns(3, gap="small")
-    before_metric.metric("Before", f"{summary['Before share (%)']:.1f}%")
-    after_metric.metric("After", f"{summary['After share (%)']:.1f}%")
-    change_metric.metric("Change", f"{summary['Change (pp)']:+.1f}")
-
-    st.markdown(f"### Gains and losses by {analysis_level.lower()}")
-    st.caption(
-        "Positive bars gained winning share; negative bars lost winning share. "
-        "Only changed rows are plotted. Hover for Before/After counts."
-    )
-    st.plotly_chart(da.plot.lever_delta(distribution), key="lever_delta")
-
-with st.container(border=True):
-    st.subheader("Offer share changes")
-    st.dataframe(
-        distribution,
-        hide_index=True,
-        height=240,
-        column_config={
-            "Selected": st.column_config.CheckboxColumn("Contains selected target"),
-            **{
-                column: st.column_config.NumberColumn(
-                    label=column.replace(" (pp)", ""),
-                    format="%.1f",
-                )
-                for column in ("Before share (%)", "After share (%)", "Change (pp)")
-            },
-        },
-    )
-    decision_label = "decision" if summary["Re-evaluated decisions"] == 1 else "decisions"
-    st.caption(
-        f"Re-evaluated **{summary['Re-evaluated decisions']:,} {decision_label}** "
-        f"in **{summary['Elapsed (s)']:.3f} s** "
-        "(scoring and aggregation only)."
-    )
+show_simulation_comparison(
+    distribution,
+    summary_frame,
+    title=f"Winning share for selected {level.lower()}: {target_label}",
+    win_rank=win_rank,
+    analysis_level=analysis_level,
+    selected_target=True,
+)
 
 with st.expander("Simulation assumptions"):
     st.markdown(

@@ -18,13 +18,13 @@ def lever_delta(self, df: pl.DataFrame, *, return_df: Literal[True]) -> pl.DataF
 
 
 def lever_delta(self, df: pl.DataFrame, *, return_df: bool = False) -> go.Figure | pl.DataFrame:
-    """Plot winning-share gains and losses from a lever simulation.
+    """Plot winning-share gains and losses from a what-if simulation.
 
     Parameters
     ----------
     df : pl.DataFrame
-        Distribution returned by ``scoring.lever_simulation()`` at the
-        desired Issue, Group, or Action granularity.
+        Distribution returned by ``scoring.lever_simulation()`` or
+        ``scoring.threshold_simulation()`` at the desired granularity.
     return_df : bool, default False
         Return changed rows with fully qualified labels instead of a figure.
 

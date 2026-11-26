@@ -15,6 +15,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   decision coverage, evaluated decision counts, and elapsed time.
   Reset restores the original levers; the same simulation is available through
   `DecisionAnalyzer.scoring.lever_simulation()` (#1033).
+- Thresholding Analysis shares the same delta comparison, Top-N and analysis
+  granularity controls, and timing footer. Global propensity/priority thresholds
+  filter offers before re-ranking survivors; notebook users can reproduce this
+  with `DecisionAnalyzer.scoring.threshold_simulation()` (#1033).
 - AGB category gain and split-share plots support `by_split_type=True`
   for independently normalized All splits, Numeric, and Symbolic rows,
   classified by actual conditions, with per-subset totals on hover.

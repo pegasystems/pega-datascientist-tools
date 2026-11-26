@@ -7,7 +7,14 @@ import plotly.express as px
 import polars as pl
 import streamlit as st
 
-from pdstools.app.decision_analyzer.da_streamlit_utils import collect_page_filters, contextual_filters, ensure_data
+from pdstools.app.decision_analyzer.da_streamlit_utils import (
+    collect_page_filters,
+    contextual_filters,
+    ensure_data,
+    show_simulation_comparison,
+    simulation_granularity_selector,
+    win_rank_selector,
+)
 from pdstools.decision_analyzer.utils import apply_filter
 from pdstools.utils.streamlit_utils import standard_page_config
 
@@ -61,9 +68,9 @@ arb_data = (
 
 total_action_appearances = arb_data["Decisions"].sum()
 
-if arb_data.height == 0:
+if arb_data.height == 0 or not arb_data["Priority"].is_not_null().any():
     st.warning(
-        "⚠️ No actions survive to the arbitration stage for the current filters. Please check your data or filters."
+        "⚠️ No rankable arbitration candidates are available for the current filters. Please check your data or filters."
     )
     st.stop()
 
@@ -121,6 +128,8 @@ with st.sidebar:
         step=prio_step,
         format=f"%.{prio_decimals}f",
     )
+    win_rank_selector()
+    analysis_level = simulation_granularity_selector()
     contextual_filters()
 
 # ---------------------------------------------------------------------------
@@ -149,7 +158,7 @@ with st.container(border=True):
     "## Impact Summary"
 
     st.caption(
-        "Shows how many offers meet your threshold criteria. **% Decisions without actions** "
+        "Candidate volume before selecting Top-N winners. **% Decisions without actions** "
         "indicates decisions where no offers qualify — these customers would "
         "receive nothing."
     )
@@ -224,39 +233,23 @@ with st.container(border=True):
 
 
 # ---------------------------------------------------------------------------
-# Section 3: Distribution of surviving actions above both thresholds
+# Section 3: Top-N delta after filtering and re-ranking surviving offers
 # ---------------------------------------------------------------------------
-with st.container(border=True):
-    "## Offers Meeting Quality Thresholds"
-
-    surviving = (
-        apply_filter(da.preaggregated_filter_view, channel_filter)
-        .filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
-        .select(
-            pl.col("Issue"),
-            pl.col("Group"),
-            pl.col("Propensity").explode(empty_as_null=True).alias("Propensity"),
-            pl.col("Priority").explode(empty_as_null=True).alias("Priority"),
-            pl.col("Decisions"),
-        )
-        .filter((pl.col("Propensity") >= propensity_threshold) & (pl.col("Priority") >= priority_threshold))
-        .group_by(["Issue", "Group"])
-        .agg(pl.sum("Decisions").alias("Actions"))
-        .sort("Actions", descending=True)
-        .filter(pl.col("Actions") > 0)
-        .collect()
-    )
-
-    if surviving.height == 0:
-        st.info("No actions survive at these thresholds.")
-    else:
-        fig = px.bar(
-            surviving,
-            x="Group",
-            y="Actions",
-            color="Issue",
-            template="pega",
-        )
-        fig.update_xaxes(tickangle=45, automargin=True, title="")
-        fig.update_layout(xaxis={"categoryorder": "total descending"})
-        st.plotly_chart(fig)
+distribution, summary = da.scoring.threshold_simulation(
+    min_propensity=propensity_threshold,
+    min_priority=priority_threshold,
+    additional_filters=collect_page_filters(),
+    win_rank=st.session_state.win_rank,
+    by=analysis_level,
+)
+st.caption(
+    "Both thresholds apply to all offers. After removes offers below either threshold, "
+    "then re-ranks the survivors. Decisions left without a qualifying offer remain in the denominator."
+)
+show_simulation_comparison(
+    distribution,
+    summary,
+    title="Winning coverage after thresholds",
+    win_rank=st.session_state.win_rank,
+    analysis_level=analysis_level,
+)

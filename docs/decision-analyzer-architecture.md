@@ -141,13 +141,15 @@ excluded from both scenarios, with no synthetic placeholder offers.
 The sidebar's "Define winning: rank in top N" control retains the top N
 highest-ranked offers per interaction (default 1, up to `da.max_win_rank`).
 Pass `win_rank=N` to the scoring API for the same behavior in a notebook.
-Business Levers, Global Sensitivity, and Win/Loss use the shared
+Business Levers, Thresholding, Global Sensitivity, and Win/Loss use the shared
 `win_rank_selector()` helper. It persists `win_rank` independently of the
 `_win_rank` widget, so the selected value survives visits to pages without a
 Top-N control and is restored on the next page that has one.
 Selected-target percentages are decision coverage: a decision counts once when
 at least one selected offer is in the top N. A separate "Analysis granularity"
 control selects Issue, Group, or Action for both the delta chart and table.
+Business Levers and Thresholding share this setting through
+`simulation_granularity_selector()`, independently of the widget's lifetime.
 Pass `by="Issue"` or `by="Group"` to the scoring API for the same aggregation.
 Each decision counts once per fully qualified issue, group, or action, even if
 multiple offers reach Top-N; percentages across rows may overlap. Changing
@@ -168,6 +170,25 @@ qualified labels and Before/After counts in hover details. The plot supports
 [Business Levers page](../python/pdstools/app/decision_analyzer/pages/13_Business_Levers.py)
 and [scoring API](../python/pdstools/decision_analyzer/_scoring.py) for the
 implementation and its limitations.
+
+### Threshold What-if Simulation
+
+Thresholding uses `da.scoring.threshold_simulation()` and the same
+`show_simulation_comparison()` renderer as Business Levers: identical bordered
+delta/chart sections, one-decimal table formatting, plain numeric changes,
+and an evaluation count/time footer.
+
+Minimum propensity and recorded-priority thresholds apply globally. The After
+scenario removes offers below either threshold, then re-ranks the survivors
+into Top-N. Both scenarios use reconstructed PVCL priority and a fixed
+population of original rankable arbitration decisions. Decisions left without
+a qualifying offer remain in the denominator and contribute real lost wins,
+not synthetic placeholder offers. The shared scoring implementation preserves
+these baseline rows even when no offers survive.
+
+The existing candidate-volume metrics, threshold sliders, and clickable
+histograms remain available. They describe filtering before Top-N selection;
+the delta comparison describes the resulting winning mix.
 
 ### Aggregate Summaries and Row Cohorts
 

@@ -1424,6 +1424,62 @@ class TestLeverSimulation:
             lever_analyzer.scoring.lever_simulation(pl.col("Issue") == "Absent")
 
 
+class TestThresholdSimulation:
+    def test_priority_threshold_reranks_survivors_and_keeps_population(self, lever_analyzer, monkeypatch):
+        source = lever_analyzer.decision_data.collect()
+        clock = iter([10.0, 10.125])
+        monkeypatch.setattr("pdstools.decision_analyzer._scoring.perf_counter", lambda: next(clock))
+        distribution, summary = lever_analyzer.scoring.threshold_simulation(min_priority=1.1)
+        assert summary.select("Interactions", "Before", "After", "Elapsed (s)").row(0) == (3, 3, 2, 0.125)
+        assert summary.select("Before share (%)", "After share (%)").row(0) == (100.0, 200 / 3)
+        assert distribution.select("Issue", "Group", "Action", "Before", "After").rows() == [
+            ("Sales", "Cards", "A", 1, 2),
+            ("Other", "Cards", "A", 1, 0),
+            ("Sales", "Loans", "B", 0, 0),
+            ("Service", "Cards", "A", 1, 0),
+        ]
+        assert lever_analyzer.decision_data.collect().equals(source)
+
+    def test_propensity_threshold_promotes_a_surviving_competitor(self, lever_analyzer):
+        raw = lever_analyzer.decision_data.filter(pl.col("Interaction ID") == "I1").with_columns(
+            Propensity=pl.when(pl.col("Issue") == "Sales").then(0.05).otherwise(0.2),
+            Value=pl.when(pl.col("Issue") == "Sales").then(100.0).otherwise(2.0),
+        )
+        analyzer = DecisionAnalyzer(raw, sample_size=10)
+        distribution, summary = analyzer.scoring.threshold_simulation(min_propensity=0.1, by="Issue")
+        assert distribution.select("Issue", "Before", "After", "Change (pp)").rows() == [
+            ("Other", 0, 1, 100.0),
+            ("Sales", 1, 0, -100.0),
+        ]
+        assert summary.select("Interactions", "Before", "After").row(0) == (1, 1, 1)
+
+    def test_all_offers_filtered_preserves_lost_wins(self, lever_analyzer):
+        distribution, summary = lever_analyzer.scoring.threshold_simulation(min_priority=100, win_rank=2, by="Issue")
+        assert distribution.select("Issue", "Before", "After").rows() == [
+            ("Other", 1, 0),
+            ("Sales", 3, 0),
+            ("Service", 1, 0),
+        ]
+        assert summary.select("Interactions", "Before", "After", "Change (pp)").row(0) == (3, 3, 0, -100.0)
+
+    def test_top_n_hierarchical_coverage(self, lever_analyzer):
+        distribution, summary = lever_analyzer.scoring.threshold_simulation(min_priority=1.1, win_rank=2, by="Issue")
+        assert distribution.select("Issue", "Before", "After").rows() == [
+            ("Sales", 3, 2),
+            ("Other", 1, 0),
+            ("Service", 1, 0),
+        ]
+        assert summary.select("Interactions", "Before", "After").row(0) == (3, 3, 2)
+
+    @pytest.mark.parametrize(
+        ("min_propensity", "min_priority"),
+        [(-0.1, 0), (1.1, 0), (float("nan"), 0), (0, -1), (0, float("inf"))],
+    )
+    def test_invalid_thresholds(self, lever_analyzer, min_propensity, min_priority):
+        with pytest.raises(ValueError, match="must be finite"):
+            lever_analyzer.scoring.threshold_simulation(min_propensity, min_priority)
+
+
 # ---------------------------------------------------------------------------
 # Optionality
 # ---------------------------------------------------------------------------
