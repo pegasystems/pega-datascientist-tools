@@ -531,9 +531,9 @@ No code change is required.
 ### `DecisionAnalyzer` — methods moved to sub-namespaces
 
 `DecisionAnalyzer` grew past 40 public methods and was refactored into a
-thin orchestrator with two sub-namespaces, matching the "Namespace facade
-for large analyzer classes" pattern already used by `ADMDatamart` (see
-`AGENTS.md`). Data-loading classmethods, properties and core state stay
+thin orchestrator with two sub-namespaces, matching the
+[namespace pattern](../AGENTS.md#library-architecture-and-data) already
+used by `ADMDatamart`. Data-loading classmethods, properties and core state stay
 on the top-level class; analysis methods moved to `da.aggregates` and
 `da.scoring`.
 

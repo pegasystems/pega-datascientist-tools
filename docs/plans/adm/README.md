@@ -48,9 +48,10 @@ removal of the file is the audit trail. No "Done" section to maintain.
 
 ## Cross-references
 
-- AGENTS.md → "Namespace facade for large analyzer classes"
-- AGENTS.md → "I/O lives in classmethods, not `__init__`"
-- AGENTS.md → "`return_df` parameter on plot methods"
-- AGENTS.md → "Surfacing follow-up work" — when to file an issue vs add
-  a plan-file entry.
+- [Library architecture and data](../../../AGENTS.md#library-architecture-and-data)
+  — namespace facades and shared I/O boundaries.
+- [Plots, reports, and notebooks](../../../AGENTS.md#plots-reports-and-notebooks)
+  — figure and `return_df` contracts.
+- [Git, collaboration, and follow-up work](../../../AGENTS.md#git-collaboration-and-follow-up-work)
+  — when to file an issue or a plan entry.
 - `docs/plans/decision-analyzer/` — DA module backlog (per-item layout).
