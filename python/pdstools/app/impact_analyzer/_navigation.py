@@ -98,4 +98,4 @@ def build_navigation():
 
     Always shows Home (default) plus every page in ``pages/``.
     """
-    return st.navigation(pages(), position="sidebar")
+    return st.navigation(pages(), position="sidebar", expanded=True)

@@ -129,4 +129,4 @@ sections: dict[str, list[Any]] = {
     ],
 }
 
-st.navigation(sections, position="sidebar").run()
+st.navigation(sections, position="sidebar", expanded=True).run()

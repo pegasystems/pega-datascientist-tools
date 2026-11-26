@@ -85,4 +85,4 @@ def pages(
 
 def build_navigation():
     """Return the configured ``st.navigation`` object for the DQ app."""
-    return st.navigation(pages(), position="sidebar")
+    return st.navigation(pages(), position="sidebar", expanded=True)

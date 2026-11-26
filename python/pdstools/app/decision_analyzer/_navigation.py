@@ -141,5 +141,6 @@ def build_navigation():
 
     Always shows Home (default) and About. Data-dependent pages are
     appended to the menu only when ``decision_data`` is loaded.
+    Keep all available pages visible above the sidebar controls.
     """
-    return st.navigation(pages(), position="sidebar")
+    return st.navigation(pages(), position="sidebar", expanded=True)

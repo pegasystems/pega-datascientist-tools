@@ -54,6 +54,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Sidebar navigation keeps all available pages visible in standalone tools and
+  the unified launcher, replacing the CSS workaround that hid the menu's
+  expansion button (#1033).
 - AGB tree depth now counts edges from the root, and all gain summaries
   include signed and zero split gains. Gain shares and entropy are
   unavailable when the relevant aggregated gains are negative or their total
