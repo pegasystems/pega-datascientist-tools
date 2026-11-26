@@ -137,6 +137,17 @@ which levers change; they do not remove competing offers. Mandatory precedence
 and existing tie-breaking are retained. Counts and shares include interactions
 without an eligible winner using the same population denominator.
 
+The sidebar's "Define winning: rank in top N" control retains the top N
+highest-ranked offers per interaction (default 1, up to `da.max_win_rank`).
+Pass `win_rank=N` to the scoring API for the same behavior in a notebook.
+Business Levers, Global Sensitivity, and Win/Loss use the shared
+`win_rank_selector()` helper. It persists `win_rank` independently of the
+`_win_rank` widget, so the selected value survives visits to pages without a
+Top-N control and is restored on the next page that has one.
+Selected-target percentages are decision coverage: a decision counts once when
+at least one selected offer is in the top N. The treemaps count Top-N offer
+appearances; table percentages are per-action coverage and may overlap.
+
 The method returns an action-level distribution and a one-row selected-scope
 summary, including the number of distinct re-evaluated arbitration decisions
 and measured scoring/aggregation time. These appear in one line beneath the
@@ -147,8 +158,9 @@ excludes plot construction and rendering.
 The page passes each scenario's winning counts as `Decisions` to
 `da.plot.distribution_as_treemap()`, preserving the Action Distribution page's
 hierarchy and colors. The source analyzer is not mutated. See the
-[business levers design](../python/pdstools/decision_analyzer/business-levers-design.md)
-for behavior, limitations, and acceptance tests.
+[Business Levers page](../python/pdstools/app/decision_analyzer/pages/13_Business_Levers.py)
+and [scoring API](../python/pdstools/decision_analyzer/_scoring.py) for the
+implementation and its limitations.
 
 ### Aggregate Summaries and Row Cohorts
 

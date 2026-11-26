@@ -10,7 +10,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - What-if: Business Levers in the Decision Analysis Tool: replace levers at
   Issue, Group, or Action level with a -50% to +50% slider and compare
-  reconstructed winning-offer distributions in the existing treemaps.
+  reconstructed Top-N offer distributions in the existing treemaps, with
+  selected-target decision coverage, evaluated decision counts, and elapsed time.
   Reset restores the original levers; the same simulation is available through
   `DecisionAnalyzer.scoring.lever_simulation()` (#1033).
 - AGB category gain and split-share plots support `by_split_type=True`
