@@ -158,21 +158,22 @@ def show_simulation_comparison(
     distribution: pl.DataFrame,
     summary_frame: pl.DataFrame,
     *,
-    title: str,
+    title: str | None,
     win_rank: int,
     analysis_level: Literal["Issue", "Group", "Action"],
     selected_target: bool = False,
 ) -> None:
     """Render shared distributions, delta comparison, table, and evaluation footer."""
     summary = summary_frame.row(0, named=True)
-    offer_label = "selected offer" if selected_target else "offer"
     with st.container(border=True):
-        st.subheader(title)
-        st.caption(
-            f"Share of **{summary['Interactions']:,} re-evaluated arbitration decisions** with "
-            f"**at least one {offer_label} in the Top-{win_rank}**."
-            + (" Competitors remain in the comparison." if selected_target else "")
-        )
+        if title is not None:
+            offer_label = "selected offer" if selected_target else "offer"
+            st.subheader(title)
+            st.caption(
+                f"Share of **{summary['Interactions']:,} re-evaluated arbitration decisions** with "
+                f"**at least one {offer_label} in the Top-{win_rank}**."
+                + (" Competitors remain in the comparison." if selected_target else "")
+            )
         if selected_target:
             before_metric, after_metric, change_metric = st.columns(3, gap="small")
             before_metric.metric("Before", f"{summary['Before share (%)']:.1f}%")

@@ -153,6 +153,9 @@ def test_delta_controls_preserve_threshold_and_rerank_survivors(da_app_dir):
         "% Actions Filtered",
         "% Decisions without Actions",
     }
+    assert "Winning coverage after thresholds" not in [heading.value for heading in at.subheader]
+    assert not any("at least one offer in the Top-" in caption.value for caption in at.caption)
+    assert "### Overall distribution by action" in [element.value for element in at.main.markdown]
     data = pl.from_pandas(at.dataframe[0].value)
     assert data.select("Action", "Before", "After").rows() == [("B", 0, 1), ("A", 1, 0), ("C", 1, 0)]
     spec = json.loads(at.get("plotly_chart")[-2].proto.spec)

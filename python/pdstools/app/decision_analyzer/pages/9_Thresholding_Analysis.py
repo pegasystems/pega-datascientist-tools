@@ -217,7 +217,7 @@ st.caption(
 show_simulation_comparison(
     distribution,
     summary,
-    title="Winning coverage after thresholds",
+    title=None,
     win_rank=st.session_state.win_rank,
     analysis_level=analysis_level,
 )
