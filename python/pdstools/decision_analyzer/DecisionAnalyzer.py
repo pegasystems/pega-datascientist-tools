@@ -339,8 +339,10 @@ class DecisionAnalyzer:
 
             When ``None`` (the default), mandatory rows are auto-detected from
             the ``Priority`` column using
-            ``pl.col("Priority") >= MANDATORY_PRIORITY_THRESHOLD`` — mirroring
-            how the arbitration engine treats high-priority actions.
+            finite ``Priority`` values at or above
+            ``MANDATORY_PRIORITY_THRESHOLD`` — mirroring how the arbitration
+            engine treats high-priority actions. Missing and non-finite
+            priorities are not auto-detected as mandatory.
         additional_columns : dict[str, type[pl.DataType]], optional
             Additional columns to include in processing beyond the standard table definition.
             Dictionary mapping column names to their polars data types.
@@ -418,7 +420,11 @@ class DecisionAnalyzer:
             raw_data = raw_data.with_columns(is_mandatory=mandatory_expr)
         elif "Priority" in raw_data.collect_schema().names():
             raw_data = raw_data.with_columns(
-                is_mandatory=(pl.col("Priority").fill_null(0) >= MANDATORY_PRIORITY_THRESHOLD).cast(pl.Int8)
+                is_mandatory=(
+                    (pl.col("Priority").is_finite() & (pl.col("Priority") >= MANDATORY_PRIORITY_THRESHOLD))
+                    .fill_null(False)
+                    .cast(pl.Int8)
+                )
             )
         else:
             raw_data = raw_data.with_columns(is_mandatory=pl.lit(0))

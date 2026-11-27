@@ -206,6 +206,51 @@ class TestConstruction:
         assert flags == [0]
         assert da.mandatory_actions == set()
 
+    @pytest.mark.parametrize("invalid_priority", [float("nan"), float("inf"), float("-inf"), None])
+    def test_auto_detect_ignores_non_finite_priority(self, invalid_priority):
+        raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv").with_columns(
+            pl.when(pl.col("pyName") == "ACTION1")
+            .then(pl.lit(invalid_priority, dtype=pl.Float64))
+            .when(pl.col("pyName") == "ACTION2")
+            .then(pl.lit(4_999_999.0))
+            .when(pl.col("pyName") == "ACTION3")
+            .then(pl.lit(4_999_998.0))
+            .otherwise(pl.col("Priority"))
+            .alias("Priority")
+        )
+        da = DecisionAnalyzer(raw, sample_size=1000)
+        flags = da.decision_data.group_by("Action").agg(pl.col("is_mandatory").max()).sort("Action").collect()
+        assert flags.rows() == [
+            ("ACTION1", 0),
+            ("ACTION2", 1),
+            ("ACTION3", 0),
+            ("ACTION4", 0),
+            ("ACTION5", 0),
+        ]
+        assert da.mandatory_actions == {"ACTION2"}
+
+    def test_bundled_data_has_no_mandatory_actions(self, da_v2):
+        assert da_v2.mandatory_actions == set()
+
+    def test_mandatory_action_detected_before_arbitration(self):
+        raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv").with_columns(
+            pl.when((pl.col("pyName") == "ACTION1") & (pl.col("Stage_pyStageGroup") == "Eligibility"))
+            .then(pl.lit(5_000_000.0))
+            .otherwise(pl.lit(1.0))
+            .alias("Priority")
+        )
+        da = DecisionAnalyzer(raw, sample_size=1000)
+        flagged_stages = (
+            da.decision_data.filter(pl.col("is_mandatory") > 0)
+            .select("Stage Group")
+            .unique()
+            .collect()
+            .get_column("Stage Group")
+            .to_list()
+        )
+        assert flagged_stages == ["Eligibility"]
+        assert da.mandatory_actions == {"ACTION1"}
+
     def test_explicit_mandatory_expr_overrides_auto_detect(self):
         """Explicit mandatory_expr wins even when Priority would auto-flag rows."""
         raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv").with_columns(

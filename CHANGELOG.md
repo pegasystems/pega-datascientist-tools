@@ -79,6 +79,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Decision Analyzer no longer marks missing or non-finite priority values as
+  mandatory, preventing false warnings and stars in the default sample.
 - Sidebar navigation keeps all available pages visible in standalone tools and
   the unified launcher, replacing the CSS workaround that hid the menu's
   expansion button (#1033).
