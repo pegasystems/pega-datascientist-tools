@@ -27,6 +27,8 @@ from pdstools.utils.streamlit_utils import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+ANALYSIS_GRANULARITY_LABEL = "Analysis granularity"
+
 
 def _is_upload_noise(name: str) -> bool:
     """Return True if this file entry is ZIP-internal or upload noise to skip.
@@ -144,7 +146,7 @@ def simulation_granularity_selector() -> Literal["Issue", "Group", "Action"]:
     return cast(
         Literal["Issue", "Group", "Action"],
         st.selectbox(
-            "Analysis granularity",
+            ANALYSIS_GRANULARITY_LABEL,
             ["Issue", "Group", "Action"],
             key="_simulation_granularity",
             on_change=_persist_simulation_granularity,

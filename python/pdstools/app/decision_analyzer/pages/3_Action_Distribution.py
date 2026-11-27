@@ -4,6 +4,7 @@ import polars as pl
 import streamlit as st
 
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
+    ANALYSIS_GRANULARITY_LABEL,
     collect_page_filters,
     contextual_filters,
     ensure_data,
@@ -103,7 +104,7 @@ with st.container(border=True):
 
     scope_index = get_current_index(scope_options, "scope")
     st.selectbox(
-        "Granularity:",
+        ANALYSIS_GRANULARITY_LABEL,
         options=scope_options,
         # column names are already friendly
         index=scope_index,

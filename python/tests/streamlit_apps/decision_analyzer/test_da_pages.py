@@ -84,3 +84,38 @@ def test_da_page_renders(
     for attr, minimum in widget_checks.items():
         actual = len(getattr(at, attr))
         assert actual >= minimum, f"{page} expected at least {minimum} {attr} widget(s), got {actual}"
+
+
+@pytest.mark.parametrize(
+    ("page", "scope_key", "has_win_rank"),
+    [
+        ("3_Action_Distribution.py", "scope", False),
+        ("4_Action_Funnel.py", "scope", False),
+        ("5_Global_Sensitivity.py", "glob_sensitivity_scope", True),
+        ("6_Win_Loss_Analysis.py", "scope", True),
+        ("9_Thresholding_Analysis.py", "_simulation_granularity", True),
+        ("10_Arbitration_Distribution.py", "scope", False),
+        ("13_Business_Levers.py", "_simulation_granularity", True),
+    ],
+)
+def test_analysis_controls_have_consistent_labels(
+    page: str,
+    scope_key: str,
+    has_win_rank: bool,
+    seeded_decision_analyzer: DecisionAnalyzer,
+    da_app_dir: Path,
+):
+    at = AppTest.from_file(str(da_app_dir / "pages" / page), default_timeout=60)
+    at.session_state["decision_data"] = seeded_decision_analyzer
+    at.run()
+    assert not at.exception
+    assert at.selectbox(key=scope_key).label == "Analysis granularity"
+    if has_win_rank:
+        assert at.number_input(key="_win_rank").label == "Define winning: rank in top N"
+
+    at.selectbox(key=scope_key).set_value("Group").run()
+    assert not at.exception
+    assert at.selectbox(key=scope_key).value == "Group"
+    at.selectbox(key=scope_key).set_value("Action").run()
+    assert not at.exception
+    assert at.selectbox(key=scope_key).value == "Action"
