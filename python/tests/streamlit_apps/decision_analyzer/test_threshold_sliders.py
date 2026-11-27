@@ -147,7 +147,12 @@ def test_delta_controls_preserve_threshold_and_rerank_survivors(da_app_dir):
     at.slider(key="propensity_threshold_pct").set_value(10.0).run()
     assert not at.exception
     metrics = {metric.label: metric.value for metric in at.metric}
-    assert (metrics["Before"], metrics["After"], metrics["Change"]) == ("100.0%", "50.0%", "-50.0")
+    assert set(metrics) == {
+        "Avg Actions per Decision",
+        "Avg Qualifying per Decision",
+        "% Actions Filtered",
+        "% Decisions without Actions",
+    }
     data = pl.from_pandas(at.dataframe[0].value)
     assert data.select("Action", "Before", "After").rows() == [("B", 0, 1), ("A", 1, 0), ("C", 1, 0)]
     spec = json.loads(at.get("plotly_chart")[-2].proto.spec)

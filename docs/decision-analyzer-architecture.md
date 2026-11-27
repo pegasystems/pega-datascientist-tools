@@ -205,7 +205,9 @@ implementation and its limitations.
 Thresholding uses `da.scoring.threshold_simulation()` and the same
 `show_simulation_comparison()` renderer as Business Levers: identical bordered
 delta/chart sections, one-decimal table formatting, plain numeric changes,
-and an evaluation count/time footer.
+and an evaluation count/time footer. Thresholding shows its overall impact
+metrics in the Impact Summary rather than repeating coverage metrics above the
+distribution; selected-target coverage metrics remain on Business Levers.
 
 Minimum propensity and recorded-priority thresholds apply globally. The After
 scenario removes offers below either threshold, then re-ranks the survivors

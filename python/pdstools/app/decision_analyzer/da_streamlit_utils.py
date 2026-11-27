@@ -171,10 +171,11 @@ def show_simulation_comparison(
             f"**at least one {offer_label} in the Top-{win_rank}**."
             + (" Competitors remain in the comparison." if selected_target else "")
         )
-        before_metric, after_metric, change_metric = st.columns(3, gap="small")
-        before_metric.metric("Before", f"{summary['Before share (%)']:.1f}%")
-        after_metric.metric("After", f"{summary['After share (%)']:.1f}%")
-        change_metric.metric("Change", f"{summary['Change (pp)']:+.1f}")
+        if selected_target:
+            before_metric, after_metric, change_metric = st.columns(3, gap="small")
+            before_metric.metric("Before", f"{summary['Before share (%)']:.1f}%")
+            after_metric.metric("After", f"{summary['After share (%)']:.1f}%")
+            change_metric.metric("Change", f"{summary['Change (pp)']:+.1f}")
 
         st.markdown(f"### Overall distribution by {analysis_level.lower()}")
         st.caption(
