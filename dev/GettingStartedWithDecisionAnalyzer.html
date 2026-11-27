@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/pegasystems-inc-vector-logo.svg" as="image">
 
     <link rel="shortcut icon" href="_static/pegasystems-inc-vector-logo.svg"><!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
-        <title>Getting Started with the Decision Analyzer Tool - pdstools</title>
+        <title>Getting started with the Decision Analysis Tool - pdstools</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
@@ -210,7 +210,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="GettingStarted.html">Getting Started for Data Scientists</a></li>
 <li class="toctree-l1"><a class="reference internal" href="GettingStartedWithTheStandAloneApplication.html">Getting Started with the ADM Health Check Tool</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Getting Started with the Decision Analyzer Tool</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Getting started with the Decision Analysis Tool</a></li>
 <li class="toctree-l1"><a class="reference internal" href="logging.html">Logging and Debugging</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
@@ -450,34 +450,53 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="getting-started-with-the-decision-analyzer-tool">
-<h1>Getting Started with the Decision Analyzer Tool<a class="headerlink" href="#getting-started-with-the-decision-analyzer-tool" title="Link to this heading">¶</a></h1>
-<section id="what-is-the-decision-analyzer-tool">
-<h2>What is the Decision Analyzer Tool?<a class="headerlink" href="#what-is-the-decision-analyzer-tool" title="Link to this heading">¶</a></h2>
-<p>The Decision Analyzer Tool is a stand-alone tool designed to analyze Explainability Extract datasets from Pega. V1 only includes arbitration stage data, V2 provides data from all stages in the decision funnel, enabling comprehensive analysis of the full decision-making process.</p>
-<p>Like the ADM Health Check Tool, you will need to have Python and install pdstools, but you do not need to run a (data science) environment, and there is no need to create a script - it is all configured from a user-friendly interface.</p>
-<p>The Decision Analysis Tool provides:</p>
+          <section id="getting-started-with-the-decision-analysis-tool">
+<h1>Getting started with the Decision Analysis Tool<a class="headerlink" href="#getting-started-with-the-decision-analysis-tool" title="Link to this heading">¶</a></h1>
+<p>The Decision Analysis Tool is a browser-based interface for exploring Pega
+decision data without writing code. It supports Explainability Extract v1
+(arbitration only) and Action Analysis / Explainability Extract v2 (the full
+decision pipeline).</p>
+<section id="explore-the-decision-pipeline">
+<h2>Explore the decision pipeline<a class="headerlink" href="#explore-the-decision-pipeline" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><strong>Overview</strong>: Key metrics and insights about your offer strategy at a glance</p></li>
-<li><p><strong>Action Funnel</strong>: Visualize how offers flow through the full decision pipeline and identify where they drop off</p></li>
-<li><p><strong>Action Distribution</strong>: Understand the distribution of actions at the arbitration stage using interactive treemaps</p></li>
-<li><p><strong>Optionality Analysis</strong>: Analyze the number of actions available per customer, personalization opportunities, and action exclusion before arbitration</p></li>
-<li><p><strong>Global Sensitivity Analysis</strong>: Understand how arbitration factors (propensity, value, levers, context weights) affect decision-making</p></li>
-<li><p><strong>Win/Loss Analysis</strong>: Examine which actions win or lose in arbitration and the factors behind these outcomes</p></li>
-<li><p><strong>Arbitration Component Distribution</strong>: Analyze the distribution of prioritization components to identify potential issues</p></li>
-<li><p><strong>No coding required</strong>: Everything is configured through a web-based UI</p></li>
-<li><p><strong>Interactive visualizations</strong>: Hover over charts for detailed information and insights</p></li>
+<li><p><strong>Overview</strong> summarizes the data and decision outcomes.</p></li>
+<li><p><strong>Action Distribution</strong> and <strong>Action Funnel</strong> show the offer mix at each
+stage and where actions are filtered out.</p></li>
+<li><p><strong>Optionality Analysis</strong> and <strong>Offer Quality Analysis</strong> highlight decisions
+with limited choice or low-quality offers.</p></li>
+<li><p><strong>Single Decision</strong> traces individual actions through the available stages
+and filtering components.</p></li>
 </ul>
+</section>
+<section id="understand-arbitration">
+<h2>Understand arbitration<a class="headerlink" href="#understand-arbitration" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Global Sensitivity</strong> explores the influence of propensity, value, context,
+and levers on ranking.</p></li>
+<li><p><strong>Win / Loss Analysis</strong> compares competing actions and their arbitration
+factors.</p></li>
+<li><p><strong>Arbitration Distribution</strong> shows the distributions of prioritization
+components.</p></li>
+</ul>
+</section>
+<section id="try-what-if-scenarios">
+<h2>Try what-if scenarios<a class="headerlink" href="#try-what-if-scenarios" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Thresholding Analysis</strong> explores the effect of minimum propensity and
+priority thresholds on offer volume and the winning mix.</p></li>
+<li><p><strong>What-if: Business Levers</strong> changes the lever for an issue, group, or action
+and compares the winning distribution before and after the change,
+including effects on competing offers.</p></li>
+</ul>
+<p>These simulations are an initial illustration, not a replay of the decision
+engine. They re-rank sampled arbitration candidates using reconstructed
+priorities and approximations for missing data. Use a full decision simulation
+or a small hold-out experiment to investigate promising changes further.</p>
 </section>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
-<p>Before installing the Python components, you need to install these external applications:</p>
-<ul class="simple">
-<li><p><strong>Quarto</strong>: Download from <a class="reference external" href="https://github.com/quarto-dev/quarto-cli/releases/tag/v1.3.450">Quarto releases</a> (v1.3.450 or later)</p></li>
-<li><p><strong>Pandoc</strong>: Download from <a class="reference external" href="https://pandoc.org">Pandoc.org</a></p></li>
-</ul>
-<p>These are standalone applications, not Python libraries, and must be installed separately on your system.</p>
-<p>To use the Decision Analyzer Tool, you need to install several Python components. Choose your preferred Python package manager:</p>
+<p>Install pdstools with the application dependencies using your preferred Python
+package manager. Quarto and Pandoc are not needed for Decision Analysis.</p>
 <div class="sphinx-tabs docutils container">
 <div aria-label="Tabbed content" role="tablist"><button aria-controls="panel-0-0-0" aria-selected="true" class="sphinx-tabs-tab" id="tab-0-0-0" name="0-0" role="tab" tabindex="0">uv tool (recommended)</button><button aria-controls="panel-0-0-1" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-1" name="0-1" role="tab" tabindex="-1">uv + venv</button><button aria-controls="panel-0-0-2" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-2" name="0-2" role="tab" tabindex="-1">pip + venv</button><button aria-controls="panel-0-0-3" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-3" name="0-3" role="tab" tabindex="-1">pip (global)</button></div><div aria-labelledby="tab-0-0-0" class="sphinx-tabs-panel" id="panel-0-0-0" name="0-0" role="tabpanel" tabindex="0"><p>We have a strong preference for <a class="reference external" href="https://github.com/astral-sh/uv">uv</a> as it’s fast, reliable, and handles Python versions automatically.</p>
 <p><strong>Step 1:</strong> Install uv</p>
@@ -566,6 +585,31 @@
 </pre></div>
 </div>
 </div></div>
+<p>The app opens in your browser. If it does not, copy the Local URL from the
+terminal. Stop the app with Ctrl+C in that terminal.</p>
+<section id="sharing-on-a-local-network">
+<h3>Sharing on a local network<a class="headerlink" href="#sharing-on-a-local-network" title="Link to this heading">¶</a></h3>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>A network-accessible app is not protected by authentication or HTTPS by
+default. The Decision Analysis launcher also disables Streamlit’s XSRF
+protection. Anyone who can reach the app may be able to access data loaded
+into it. Use only approved, non-sensitive data on a trusted network; for
+broader access, use an appropriately secured deployment.</p>
+</div>
+<p>To let colleagues on the same network connect, start the app listening on
+network interfaces:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pdstools<span class="w"> </span>decision_analyzer<span class="w"> </span>--server.address<span class="w"> </span><span class="m">0</span>.0.0.0<span class="w"> </span>--server.port<span class="w"> </span><span class="m">8521</span>
+</pre></div>
+</div>
+<p>If you installed into a uv-managed virtual environment, prefix the command
+with <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span></code>. Find your computer’s local IP address in its network settings
+and share <code class="docutils literal notranslate"><span class="pre">http://&lt;your-IP&gt;:8521</span></code>. Your computer must remain on, and your
+firewall and network must allow connections to that port.</p>
+<p>To restrict access to your own computer instead, use
+<code class="docutils literal notranslate"><span class="pre">--server.address</span> <span class="pre">127.0.0.1</span></code>. A URL beginning with <code class="docutils literal notranslate"><span class="pre">localhost</span></code> or
+<code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code> cannot be opened from a colleague’s computer.</p>
+</section>
 <section id="cli-options">
 <h3>CLI Options<a class="headerlink" href="#cli-options" title="Link to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">pdstools</span> <span class="pre">decision_analyzer</span></code> command accepts several options to control
@@ -653,56 +697,41 @@ pdstools<span class="w"> </span>decision_analyzer<span class="w"> </span>--data-
 pdstools<span class="w"> </span>decision_analyzer<span class="w"> </span>--data-path<span class="w"> </span>/path/to/data.zip<span class="w"> </span>--filter<span class="w"> </span><span class="s2">&quot;Channel=Web&quot;</span><span class="w"> </span>--filter<span class="w"> </span><span class="s2">&quot;ModelPositives&gt;=50&quot;</span><span class="w"> </span>--filter<span class="w"> </span><span class="s2">&quot;Decision Time=2024-06-01..2024-12-31&quot;</span>
 </pre></div>
 </div>
-<p>The app should open up in your system browser. On first run, you may get a promotional message from Streamlit asking for your email address - you can leave this empty if you want. If the app does not open automatically, simply copy the Local URL from your terminal and paste it into your browser.</p>
 </section>
 </section>
 <section id="using-the-decision-analysis-tool">
 <h2>Using the Decision Analysis Tool<a class="headerlink" href="#using-the-decision-analysis-tool" title="Link to this heading">¶</a></h2>
-<p><strong>Step 1: Import Your Decision Data</strong></p>
-<p>Start by upload your data through the data import section in the Home page.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The Decision Analysis Tool works with both <strong>Explainability Extract V1 and V2</strong> datasets from Pega. The application automatically detects which version you have by checking for the presence of the <code class="docutils literal notranslate"><span class="pre">pxStrategyName</span></code> column in your data. If this column is not present, the data is treated as V1. V1 only contains data from the arbitration stage.</p>
-<p><strong>V2 datasets</strong> include data from all decision stages (eligibility, applicability, suitability, and arbitration), enabling comprehensive analysis of the full decision funnel. <strong>V1 datasets</strong> only include arbitration stage data, so some analyses specific to the full decision funnel will be hidden when working with V1 data.</p>
-<p>For information about exporting this data from Pega, refer to your Pega documentation.</p>
-</div>
-<p><strong>Step 2: Focus Your Analysis</strong></p>
-<p>Use per-page filters in the sidebar (Channel/Direction, Stage, Scope) to focus
-on specific segments. For pre-ingestion data selection, use <code class="docutils literal notranslate"><span class="pre">--filter</span></code> CLI flags.</p>
-<p><strong>Step 3: Analyze the results</strong></p>
-<p>You can now analyze the results from various angles (optionality, funnel effects, win-loss etc.). There are separate analysis pages for each of the types of analysis.</p>
-<p>The analysis provided in this tool are similar but not necessarily identical to the ones that will be delivered in product.</p>
-<p><strong>Channel Filtering</strong></p>
-<p>Many analysis pages include a <strong>Channel / Direction</strong> filter in the sidebar
-that lets you focus on a specific channel combination:</p>
-<ul class="simple">
-<li><p><strong>Any</strong> (default): Shows aggregated data across all channels that pass global filters</p></li>
-<li><p><strong>Specific channel</strong>: Shows data only for that Channel/Direction combination
-(e.g., “Web/Inbound”, “Email/Outbound”)</p></li>
-</ul>
-<p>The channel filter is available on these pages:</p>
-<ul class="simple">
-<li><p>Action Distribution</p></li>
-<li><p>Action Funnel</p></li>
-<li><p>Global Sensitivity</p></li>
-<li><p>Win/Loss Analysis</p></li>
-<li><p>Optionality Analysis</p></li>
-<li><p>Offer Quality Analysis</p></li>
-<li><p>Thresholding Analysis</p></li>
-<li><p>Arbitration Component Distribution</p></li>
-</ul>
-<p>Your selection persists as you navigate between pages, allowing you to maintain
-the same channel focus across different analyses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The Overview page intentionally shows global metrics across all channels and
-does not have a channel filter.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>In the Action Funnel page, the Filter Impact table intentionally remains unfiltered
-to show all filter events across channels.</p>
-</div>
+<section id="load-data">
+<h3>Load data<a class="headerlink" href="#load-data" title="Link to this heading">¶</a></h3>
+<p>The Home page loads sample data automatically when no input is specified.
+Upload your own file to replace it, or use <code class="docutils literal notranslate"><span class="pre">--data-path</span></code> to load a file or
+directory at startup. See your Pega documentation for export instructions.</p>
+<p>The app detects v2 when both strategy and stage-group information are present;
+otherwise it treats the data as v1. V1 has synthetic Arbitration and Output
+stages, so it cannot show filtering at earlier pipeline stages.</p>
+</section>
+<section id="choose-a-focus">
+<h3>Choose a focus<a class="headerlink" href="#choose-a-focus" title="Link to this heading">¶</a></h3>
+<p>Use the sidebar controls to select a stage or analysis scope. Many pages also
+offer a shared <strong>Channel / Direction</strong> filter; the selection persists across
+pages that use it. Overview shows global metrics. Use <code class="docutils literal notranslate"><span class="pre">--filter</span></code> when you
+want to filter data before loading.</p>
+<p>The Home page’s sample-size setting controls the interaction sample used by
+some analyses. It is separate from <code class="docutils literal notranslate"><span class="pre">--sample</span></code>, which reduces the data before
+loading.</p>
+</section>
+<section id="compare-scenarios">
+<h3>Compare scenarios<a class="headerlink" href="#compare-scenarios" title="Link to this heading">¶</a></h3>
+<p>On <strong>What-if: Business Levers</strong>, select an issue, group, or action and move
+the slider to replace its levers. The percentage is relative to the selected
+offers’ median lever: all selected offers receive the same replacement value,
+not a per-offer multiplier. Reset restores their original levers.</p>
+<p>On <strong>Thresholding Analysis</strong>, set minimum propensity or recorded-priority
+thresholds and compare the resulting winning mix. Both pages support Top-N
+winners and Issue, Group, or Action analysis granularity. Counts at different
+categories can overlap when Top-N is greater than one. Mandatory offers retain
+precedence in re-ranking; changing their levers alone cannot change their order.</p>
+</section>
 </section>
 <section id="upgrading-pdstools">
 <h2>Upgrading pdstools<a class="headerlink" href="#upgrading-pdstools" title="Link to this heading">¶</a></h2>
@@ -727,14 +756,13 @@ to show all filter events across channels.</p>
 <h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading">¶</a></h2>
 <p><strong>Application doesn’t start</strong></p>
 <ul class="simple">
-<li><p>Ensure you have installed all dependencies (Quarto, Pandoc, pdstools with app dependencies)</p></li>
-<li><p>Check that you’re using a compatible Python version (3.10 or higher)</p></li>
+<li><p>Ensure you have installed pdstools with app dependencies</p></li>
+<li><p>Check that you’re using a compatible Python version</p></li>
 <li><p>If using virtual environments, make sure it’s activated</p></li>
 </ul>
 <p><strong>Analysis fails to run</strong></p>
 <ul class="simple">
 <li><p>Verify your decision data files are in the correct format</p></li>
-<li><p>Ensure Quarto and Pandoc are properly installed and accessible from the command line</p></li>
 <li><p>Check the application logs in the terminal for specific error messages</p></li>
 </ul>
 <p><strong>Large datasets crash or fail with capacity errors</strong></p>
@@ -823,14 +851,22 @@ pdstools<span class="w"> </span>decision_analyzer<span class="w"> </span>--filte
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Getting Started with the Decision Analyzer Tool</a><ul>
-<li><a class="reference internal" href="#what-is-the-decision-analyzer-tool">What is the Decision Analyzer Tool?</a></li>
+<li><a class="reference internal" href="#">Getting started with the Decision Analysis Tool</a><ul>
+<li><a class="reference internal" href="#explore-the-decision-pipeline">Explore the decision pipeline</a></li>
+<li><a class="reference internal" href="#understand-arbitration">Understand arbitration</a></li>
+<li><a class="reference internal" href="#try-what-if-scenarios">Try what-if scenarios</a></li>
 <li><a class="reference internal" href="#installation">Installation</a></li>
 <li><a class="reference internal" href="#launching-the-decision-analysis-tool">Launching the Decision Analysis Tool</a><ul>
+<li><a class="reference internal" href="#sharing-on-a-local-network">Sharing on a local network</a></li>
 <li><a class="reference internal" href="#cli-options">CLI Options</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#using-the-decision-analysis-tool">Using the Decision Analysis Tool</a></li>
+<li><a class="reference internal" href="#using-the-decision-analysis-tool">Using the Decision Analysis Tool</a><ul>
+<li><a class="reference internal" href="#load-data">Load data</a></li>
+<li><a class="reference internal" href="#choose-a-focus">Choose a focus</a></li>
+<li><a class="reference internal" href="#compare-scenarios">Compare scenarios</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#upgrading-pdstools">Upgrading pdstools</a></li>
 <li><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
 </ul>

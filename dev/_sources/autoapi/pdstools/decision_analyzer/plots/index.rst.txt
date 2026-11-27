@@ -70,6 +70,9 @@ Package Contents
    .. py:attribute:: threshold_deciles
 
 
+   .. py:attribute:: threshold_distribution
+
+
    .. py:attribute:: sensitivity
 
 
@@ -77,6 +80,12 @@ Package Contents
 
 
    .. py:attribute:: global_winloss_distribution
+
+
+   .. py:attribute:: lever_delta
+
+
+   .. py:attribute:: simulation_distribution
 
 
    .. py:attribute:: propensity_vs_optionality

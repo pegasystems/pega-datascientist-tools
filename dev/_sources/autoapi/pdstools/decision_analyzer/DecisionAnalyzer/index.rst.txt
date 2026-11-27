@@ -287,9 +287,12 @@ Module Contents
 
       Compute consistent color mappings for all categorical dimensions.
 
-      Color assignments are based on all unique values in the full dataset
-      (before sampling), sorted alphabetically. This ensures colors remain
-      consistent throughout the session regardless of filtering.
+      Assign colors from the full dataset, before sampling or page filters.
+      The ten actions present in the most decisions receive distinct colors;
+      all other actions are neutral gray. Stage colors follow their stage
+      group's family, with eligibility, applicability, and suitability stages
+      using their respective filter families. Components used in several
+      families are gray. Other dimensions are assigned alphabetically.
 
       :returns: Nested dictionary mapping dimension names to color dictionaries.
 
@@ -304,7 +307,8 @@ Module Contents
       .. rubric:: Notes
 
       Uses @cached_property so computation happens once on first access.
-      Colors are assigned from the Pega colorway using modulo indexing.
+      Action popularity uses distinct interaction counts, with alphabetical
+      tie-breaking. Filtering does not change which actions receive colors.
 
       .. seealso::
 

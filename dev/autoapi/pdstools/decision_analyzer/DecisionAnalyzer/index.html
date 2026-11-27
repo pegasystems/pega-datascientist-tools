@@ -209,7 +209,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../GettingStarted.html">Getting Started for Data Scientists</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../GettingStartedWithTheStandAloneApplication.html">Getting Started with the ADM Health Check Tool</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../GettingStartedWithDecisionAnalyzer.html">Getting Started with the Decision Analyzer Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GettingStartedWithDecisionAnalyzer.html">Getting started with the Decision Analysis Tool</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../logging.html">Logging and Debugging</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
@@ -763,9 +763,12 @@ column is available.</p>
 <dt class="sig sig-object py" id="pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.color_mappings">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">color_mappings</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pdstools.decision_analyzer.DecisionAnalyzer.DecisionAnalyzer.color_mappings" title="Link to this definition">¶</a></dt>
 <dd><p>Compute consistent color mappings for all categorical dimensions.</p>
-<p>Color assignments are based on all unique values in the full dataset
-(before sampling), sorted alphabetically. This ensures colors remain
-consistent throughout the session regardless of filtering.</p>
+<p>Assign colors from the full dataset, before sampling or page filters.
+The ten actions present in the most decisions receive distinct colors;
+all other actions are neutral gray. Stage colors follow their stage
+group’s family, with eligibility, applicability, and suitability stages
+using their respective filter families. Components used in several
+families are gray. Other dimensions are assigned alphabetically.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><p>Nested dictionary mapping dimension names to color dictionaries.</p>
@@ -784,7 +787,8 @@ consistent throughout the session regardless of filtering.</p>
 </dl>
 <p class="rubric">Notes</p>
 <p>Uses &#64;cached_property so computation happens once on first access.
-Colors are assigned from the Pega colorway using modulo indexing.</p>
+Action popularity uses distinct interaction counts, with alphabetical
+tie-breaking. Filtering does not change which actions receive colors.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
