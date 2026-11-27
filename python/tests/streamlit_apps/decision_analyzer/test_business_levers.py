@@ -70,6 +70,8 @@ def test_slider_replaces_action_lever(lever_page, percentage, expected_after):
     assert at.metric[1].value == f"{50 * expected_after:.1f}%"
     assert at.session_state["lever_percentage"] == percentage
     assert at.session_state["lever_override_active"] is True
+    assert any("Action colors are based on the baseline distribution" in c.value for c in at.main.caption)
+    assert any("Unchanged categories are omitted" in c.value for c in at.main.caption)
     assert len(at.get("plotly_chart")) == 2
 
 

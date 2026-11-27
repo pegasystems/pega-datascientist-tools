@@ -22,8 +22,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   filter offers before re-ranking survivors; notebook users can reproduce this
   with `DecisionAnalyzer.scoring.threshold_simulation()` (#1033).
 - Both simulation pages show overall Before/After horizontal stacked distributions
-  above the gains/losses chart, with shared scales, stable colors, all categories,
-  and decision counts on hover. Notebook users can call
+  above the gains/losses chart, with shared scales, all categories, and decision
+  counts on hover. Action colors follow the baseline distribution, stay fixed
+  across scenarios, and repeat as needed. Notebook users can call
   `DecisionAnalyzer.plot.simulation_distribution()` (#1033).
 - Simulation analysis granularity defaults to Group, with explicit choices
   preserved across both pages (#1033).
@@ -61,8 +62,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `propensity_th` to `propensity_threshold` on the offer-quality pie helpers.
   Update keyword callers; positional calls are unchanged (#1033).
 - Decision Analysis Tool charts share stable stage/filter-family and categorical
-  colors. The ten most frequent actions retain distinct colors, with other
-  actions in gray; Win/Loss bars stay fully opaque and outlined. Optionality
+  colors. Outside simulation distributions, the ten most frequent actions retain
+  distinct colors, with other actions in gray; Win/Loss bars stay fully opaque and outlined. Optionality
   adds persistent Issue/Group coloring without changing its counts or
   propensity line (#1033).
 - Thresholding distribution charts are reusable through

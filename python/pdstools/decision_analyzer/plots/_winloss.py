@@ -8,6 +8,8 @@ import plotly.graph_objects as go
 import polars as pl
 from plotly.subplots import make_subplots
 
+from ...utils.pega_template import colorway
+
 
 @overload
 def simulation_distribution(self, df: pl.DataFrame, *, return_df: Literal[False] = False) -> go.Figure: ...
@@ -35,6 +37,13 @@ def simulation_distribution(self, df: pl.DataFrame, *, return_df: bool = False) 
         Include unchanged and zero-share categories.
         Shares retain the simulation's baseline decision denominator; Top-N
         coverage may overlap across categories.
+
+    Notes
+    -----
+    Action colors are assigned in baseline winning-count order and repeat
+    when the palette is exhausted. They are shared between Before and After,
+    and remain stable as the scenario changes, but may change with population
+    filters. Issue and Group colors use the analyzer's shared mappings.
     """
     keys = [key for key in ("Issue", "Group", "Action") if key in df.columns]
     if not keys:
@@ -45,16 +54,31 @@ def simulation_distribution(self, df: pl.DataFrame, *, return_df: bool = False) 
     if return_df:
         return data
 
-    colors = self._decision_data.color_mappings.get(keys[-1], {})
+    action_colors = {}
+    if keys[-1] == "Action":
+        palette = list(dict.fromkeys(color for color in colorway if color not in {"#63666F", "#A7A9B4", "#D0D1DB"}))
+        ordered = data.sort(["Before", *keys], descending=[True, *[False] * len(keys)])
+        action_colors = {
+            tuple(row[key] for key in keys): palette[index % len(palette)]
+            for index, row in enumerate(ordered.iter_rows(named=True))
+        }
+        colors = {}
+    else:
+        colors = self._decision_data.color_mappings.get(keys[-1], {})
     fig = go.Figure()
     for row in data.iter_rows(named=True):
+        color = (
+            action_colors[tuple(row[key] for key in keys)]
+            if keys[-1] == "Action"
+            else colors.get(row[keys[-1]], "#cccccc")
+        )
         fig.add_trace(
             go.Bar(
                 name=row["Label"],
                 x=[row["Before share (%)"], row["After share (%)"]],
                 y=["Before", "After"],
                 orientation="h",
-                marker=dict(color=colors.get(row[keys[-1]], "#cccccc"), line=dict(color="white", width=1)),
+                marker=dict(color=color, line=dict(color="white", width=1)),
                 texttemplate="%{x:.1f}%",
                 textposition="inside",
                 customdata=[[row["Before"]], [row["After"]]],
@@ -78,7 +102,7 @@ def simulation_distribution(self, df: pl.DataFrame, *, return_df: bool = False) 
         height=280,
         margin=dict(l=0, r=8, t=8, b=40),
         uniformtext=dict(minsize=10, mode="hide"),
-        legend=dict(y=1, yanchor="top"),
+        legend=dict(y=1, yanchor="top", traceorder="normal"),
     )
     return fig
 

@@ -112,11 +112,15 @@ column (1 = winner) is derived in `cleanup_raw_data()`.
 
 ### Stable Colors and Optionality Breakdowns
 
-`DecisionAnalyzer.color_mappings` owns colors for all pages and notebook plots.
+`DecisionAnalyzer.color_mappings` owns shared colors for pages and notebook plots.
 The ten actions present in the most distinct decisions in the full dataset
 receive distinct colors (alphabetical tie-breaking); other actions remain
 individually represented in gray. Page filters and sampling do not recolor
-them. Stage and component colors follow pipeline/filter families; components
+them. The simulation distribution is an exception at Action granularity: it
+assigns distinct palette colors in baseline winning-count order and repeats
+the palette for additional actions. Colors are fixed between Before and After
+and across lever changes, but may change with population filters. Stage and
+component colors follow pipeline/filter families; components
 used across multiple families are gray.
 
 Issue/Group coloring of optionality changes only the composition of each bar.
@@ -199,7 +203,8 @@ and After, with shared segment order and a percentage scale at the selected
 analysis granularity.
 Group is the initial granularity; explicit choices persist across both pages.
 These show all categories, including competitors, unchanged rows, and zero shares,
-using stable dimension colors and absolute decision counts in hover details.
+using shared Issue/Group colors, baseline-ranked Action colors, and absolute
+decision counts in hover details.
 Shares retain the original decision denominator, including when thresholds leave
 decisions without offers; Top-N coverage can overlap across categories.
 

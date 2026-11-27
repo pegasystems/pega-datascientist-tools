@@ -92,9 +92,40 @@ def test_simulation_distributions_keep_all_categories_and_baseline_shares(sample
         [[1], [after[2]]],
         [[0], [after[1]]],
     ]
-    assert [trace.marker.color for trace in fig.data] == [da.color_mappings[level][value] for value in data[level]]
+    if level != "Action":
+        assert [trace.marker.color for trace in fig.data] == [da.color_mappings[level][value] for value in data[level]]
+    else:
+        assert len({trace.marker.color for trace in fig.data}) == 3
     assert fig.layout.barmode == "stack"
+    assert fig.layout.legend.traceorder == "normal"
     assert fig.layout.xaxis.range == (0, 100)
+
+
+def test_simulation_action_colors_distinguish_baseline_winners_and_survive_scenario_changes(sample_data):
+    da = DecisionAnalyzer(sample_data)
+    distribution = pl.DataFrame(
+        {
+            "Issue": ["Sales"] * 12,
+            "Group": ["Cards"] * 12,
+            "Action": [f"Action{i:02}" for i in range(12)],
+            "Before": [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 0, 0],
+            "After": [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 0, 0],
+        }
+    ).with_columns(
+        pl.col("Before").cast(pl.Float64).alias("Before share (%)"),
+        pl.col("After").cast(pl.Float64).alias("After share (%)"),
+    )
+    before = da.plot.simulation_distribution(distribution)
+    changed = distribution.with_columns(
+        pl.when(pl.col("Action") == "Action11").then(2).otherwise(pl.col("After")).alias("After"),
+    ).with_columns(pl.col("After").cast(pl.Float64).alias("After share (%)"))
+    after = da.plot.simulation_distribution(changed.reverse())
+    before_colors = {trace.name: trace.marker.color for trace in before.data}
+    after_colors = {trace.name: trace.marker.color for trace in after.data}
+
+    assert before_colors == after_colors
+    assert len({before_colors[f"Sales / Cards / Action{i:02}"] for i in range(10)}) == 10
+    assert not set(before_colors.values()) & {"#63666F", "#A7A9B4", "#D0D1DB", "#cccccc"}
 
 
 def test_color_mappings_includes_all_categorical_columns(sample_data):

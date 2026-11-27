@@ -212,7 +212,11 @@ def show_simulation_comparison(
             "All categories, including unchanged offers and competitors, on the same scale. "
             "Shares use the re-evaluated decision population; Top-N coverage can overlap across categories."
         )
-        show_action_color_notice(analysis_level)
+        if analysis_level == "Action":
+            st.caption(
+                "Action colors are based on the baseline distribution and repeat when needed. "
+                "They stay the same between Before and After, but may change with population filters."
+            )
         st.plotly_chart(
             st.session_state.decision_data.plot.simulation_distribution(distribution),
             key="simulation_distribution",
@@ -221,7 +225,8 @@ def show_simulation_comparison(
         st.markdown(f"### Gains and losses by {analysis_level.lower()}")
         st.caption(
             "Positive bars gained winning share; negative bars lost winning share. "
-            "Only changed rows are plotted. Hover for Before/After counts."
+            "Unchanged categories are omitted; one decision switching winners can produce one gain and one loss. "
+            "Hover for Before/After counts."
         )
         st.plotly_chart(st.session_state.decision_data.plot.lever_delta(distribution), key="simulation_delta")
 
