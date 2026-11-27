@@ -45,6 +45,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Decision Analysis Tool re-ranking treats a zero Value as neutral and keeps
+  mandatory-action ordering independent of reconstructed PVCL scores (#1033).
+- Business Levers marks all-mandatory selections with ★; Thresholding flags
+  all-mandatory populations and explains that thresholds can still filter them.
+- The affected Decision Analysis pages share a collapsed explanation of
+  prioritization and the app's reconstruction assumptions (#1033).
 - Decision Analysis Tool hover tooltips include absolute counts beside
   percentages, and stacked distribution bars show segment and whole-bar
   totals. Colored optionality labels fractional counts as weighted decisions.

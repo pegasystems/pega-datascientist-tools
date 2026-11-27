@@ -148,12 +148,23 @@ the selected arbitration offers' median baseline lever, computed by
 `da.aggregates.lever_summary()`. All selected offers receive the same absolute
 replacement, not an individual multiplier. The UI shows the original range
 and warns when some source levers decrease. Reset restores individual source
-values; 0% replaces them with their median.
+values; 0% replaces them with their median. A ★ marks an all-mandatory
+selection and explains why its levers cannot affect its order. Thresholding
+also marks an all-mandatory candidate population, while noting that its
+thresholds can still remove those offers.
 
 Both Before and After use reconstructed PVCL ranks on the same sampled,
 population-filtered arbitration candidates. Target selectors only identify
 which levers change; they do not remove competing offers. Mandatory precedence
-and existing tie-breaking are retained. Counts and shares use only decisions
+and tie-breaking independent of PVCL among mandatory offers are retained.
+Context Weight and Levers are treated as calculated factors, not raw percentage
+weights. A zero Value uses the neutral factor 1; nonzero values are used as
+recorded because value-weighting eligibility is not present in the extract.
+Missing components use 1 as an approximation. Experiment variants, clamping,
+and priority-threshold behavior may differ from the reconstruction.
+The Overview, Global Sensitivity, Win/Loss, Thresholding, and Business Levers
+pages share a collapsed explanation of these rules and assumptions.
+Counts and shares use only decisions
 with rankable arbitration candidates. Decisions without such candidates are
 excluded from both scenarios, with no synthetic placeholder offers.
 

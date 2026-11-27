@@ -119,3 +119,37 @@ def test_analysis_controls_have_consistent_labels(
     at.selectbox(key=scope_key).set_value("Action").run()
     assert not at.exception
     assert at.selectbox(key=scope_key).value == "Action"
+
+
+def test_prioritization_explanation_is_shared_and_collapsed(
+    seeded_decision_analyzer: DecisionAnalyzer,
+    da_app_dir: Path,
+):
+    pages = [
+        "2_Overview.py",
+        "5_Global_Sensitivity.py",
+        "6_Win_Loss_Analysis.py",
+        "9_Thresholding_Analysis.py",
+        "13_Business_Levers.py",
+    ]
+    explanations = []
+    for page in pages:
+        at = AppTest.from_file(str(da_app_dir / "pages" / page), default_timeout=60)
+        at.session_state["decision_data"] = seeded_decision_analyzer
+        at.run()
+        assert not at.exception, f"{page} raised: {at.exception}"
+        section = at.expander[-1]
+        assert section.label == "How Prioritization is Calculated"
+        assert not section.proto.expanded
+        assert list(at.main.children.values())[-1] is section
+        explanations.append(section.markdown[0].value)
+
+    assert len(set(explanations)) == 1
+    for expected in (
+        "Priority = P × C × V × L",
+        "A propensity of 0 makes the product 0",
+        "value weighting is enabled and the value is nonzero",
+        "Mandatory actions bypass this formula",
+        "Missing components are approximated as 1",
+    ):
+        assert expected in explanations[0]

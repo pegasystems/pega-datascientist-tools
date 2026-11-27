@@ -56,12 +56,20 @@ class Scoring:
         pl.LazyFrame
             Sample data augmented with ``prio_*`` and ``rank_*`` columns
             for each PVCL variant.
+
+        Notes
+        -----
+        Context Weight and Levers are expected to be calculated factors, not
+        raw percentage weights. A zero Value is neutral. Nonzero Value is
+        used as recorded; value-weighting eligibility is not available here.
+        Missing components use 1.0 as an approximation. Mandatory candidates
+        take precedence and tie with one another independently of PVCL.
         """
         rank_exprs = [
             pl.struct(
                 [
                     "is_mandatory",
-                    x,
+                    pl.when(pl.col("is_mandatory").cast(pl.Boolean)).then(0.0).otherwise(pl.col(x)),
                     "Stage Order",
                     pl.col("Issue").rank() * -1,
                     pl.col("Group").rank() * -1,
@@ -90,6 +98,7 @@ class Scoring:
             else:
                 fill_exprs.append(pl.lit(default).alias(col_name))
 
+        value_factor = pl.when(pl.col("Value") == 0).then(1.0).otherwise(pl.col("Value"))
         return (
             apply_filter(
                 self.da.sample.with_columns(fill_exprs),
@@ -98,11 +107,11 @@ class Scoring:
             .with_columns(overrides if overrides is not None else [])
             .filter(pl.col("Priority").is_not_null())
             .with_columns(
-                prio_PVCL=(pl.col("Propensity") * pl.col("Value") * pl.col("Context Weight") * pl.col("Levers")),
-                prio_VCL=(pl.col("Value") * pl.col("Context Weight") * pl.col("Levers")),
+                prio_PVCL=(pl.col("Propensity") * value_factor * pl.col("Context Weight") * pl.col("Levers")),
+                prio_VCL=(value_factor * pl.col("Context Weight") * pl.col("Levers")),
                 prio_PCL=(pl.col("Propensity") * pl.col("Context Weight") * pl.col("Levers")),
-                prio_PVL=(pl.col("Propensity") * pl.col("Value") * pl.col("Levers")),
-                prio_PVC=(pl.col("Propensity") * pl.col("Value") * pl.col("Context Weight")),
+                prio_PVL=(pl.col("Propensity") * value_factor * pl.col("Levers")),
+                prio_PVC=(pl.col("Propensity") * value_factor * pl.col("Context Weight")),
             )
             .with_columns(*rank_exprs)
         )
@@ -771,6 +780,8 @@ class Scoring:
             filtered sampled decisions with rankable arbitration candidates. For
             top-N rankings, action coverage percentages can overlap and need
             not sum to 100%; selected-scope coverage deduplicates interactions.
+            All mandatory indicates whether every selected rankable candidate
+            is mandatory.
 
         Raises
         ------
@@ -782,8 +793,8 @@ class Scoring:
         Notes
         -----
         Both scenarios reconstruct priority from components rather than using
-        recorded Rank. Missing PVCL components use the neutral defaults from
-        re_rank. The source data is never modified.
+        recorded Rank. See :meth:`re_rank` for factor and missing-value
+        assumptions. The source data is never modified.
         """
         if lever_value is not None and (not isfinite(lever_value) or lever_value <= 0):
             raise ValueError("Replacement lever must be positive and finite.")
@@ -896,6 +907,7 @@ class Scoring:
             .agg(
                 _before_interactions=pl.col("Interaction ID").filter(pl.col("rank_PVCL") <= win_rank).unique(),
                 _arbitration_decisions=(pl.col("rank_PVCL") == 1).sum(),
+                _all_mandatory=pl.col("is_mandatory").cast(pl.Boolean).fill_null(False).all(),
             )
         )
         if overrides is None and scenario_filter is None:
@@ -934,9 +946,12 @@ class Scoring:
             pl.lit(interactions).alias("Re-evaluated decisions"),
             Before=pl.col("_before_interactions").list.explode(keep_nulls=False, empty_as_null=False).n_unique(),
             After=pl.col("_after_interactions").list.explode(keep_nulls=False, empty_as_null=False).n_unique(),
+            **{"All mandatory": pl.col("_all_mandatory").all()},
         )
         if by == "Action":
-            distribution = distribution.drop("_before_interactions", "_after_interactions", "_arbitration_decisions")
+            distribution = distribution.drop(
+                "_before_interactions", "_after_interactions", "_arbitration_decisions", "_all_mandatory"
+            )
         else:
             distribution = distribution.group_by(group_keys).agg(
                 Selected=pl.col("Selected").any(),

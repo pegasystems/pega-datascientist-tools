@@ -154,6 +154,33 @@ def simulation_granularity_selector() -> Literal["Issue", "Group", "Action"]:
     )
 
 
+def show_prioritization_explanation() -> None:
+    """Explain product prioritization and the app's reconstruction assumptions."""
+    with st.expander("How Prioritization is Calculated", expanded=False):
+        st.markdown(
+            """
+For a standard action, arbitration calculates **Priority = P × C × V × L**:
+
+- **P — Propensity:** the selected adjusted propensity, typically treatment-level or a treatment/proxy blend.
+  A propensity of 0 makes the product 0.
+- **C — Context:** 1 + the raw context weight / 100. A raw weight of 0 gives a factor of 1.
+- **V — Value:** the recorded value when value weighting is enabled and the value is nonzero; otherwise 1.
+- **L — Levers:** 1 + the combined action, treatment, business-purpose, outcome, and journey weights / 100.
+  A combined raw weight of 0 gives a factor of 1; -100 gives a factor of 0.
+
+Mandatory actions bypass this formula and receive priority 499,999,999. Experiment variants may use
+different factors; standard calculated priorities may be clamped and filtered by a priority threshold.
+
+**In this app:** Re-ranking reconstructs priority using the exported Context Weight and Levers as
+already-calculated factors. It treats Value 0 as 1, but uses nonzero Value as recorded because
+value-weighting eligibility is unavailable. Missing components are approximated as 1, not inferred
+from raw weights. Mandatory offers take precedence independently of their reconstructed scores.
+Experiment variants, clamping, and product threshold behavior are not reconstructed, so results
+can differ from recorded priorities and rankings.
+"""
+        )
+
+
 def show_simulation_comparison(
     distribution: pl.DataFrame,
     summary_frame: pl.DataFrame,

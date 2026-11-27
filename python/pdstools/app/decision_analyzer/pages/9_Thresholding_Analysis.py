@@ -10,6 +10,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
     contextual_filters,
     ensure_data,
+    show_prioritization_explanation,
     show_simulation_comparison,
     simulation_granularity_selector,
     win_rank_selector,
@@ -47,6 +48,7 @@ if st.session_state.get("page_channel_filter", "Any") != "Any":
             f"No data available for {st.session_state.page_channel_filter}. "
             "Try selecting 'Any' or adjusting global filters."
         )
+        show_prioritization_explanation()
         st.stop()
 
 channel_filter = st.session_state.get("page_channel_expr")
@@ -71,6 +73,7 @@ if arb_data.height == 0 or not arb_data["Priority"].is_not_null().any():
     st.warning(
         "⚠️ No rankable arbitration candidates are available for the current filters. Please check your data or filters."
     )
+    show_prioritization_explanation()
     st.stop()
 
 # Slider upper bounds: use P75 of the filtered data so the slider has
@@ -210,6 +213,8 @@ distribution, summary = da.scoring.threshold_simulation(
     win_rank=st.session_state.win_rank,
     by=analysis_level,
 )
+if summary["All mandatory"].item():
+    st.info("★ All rankable offers in this population are mandatory. Thresholds can still filter them out.")
 st.caption(
     "Both thresholds apply to all offers. After removes offers below either threshold, "
     "then re-ranks the survivors. Decisions left without a qualifying offer remain in the denominator."
@@ -221,3 +226,5 @@ show_simulation_comparison(
     win_rank=st.session_state.win_rank,
     analysis_level=analysis_level,
 )
+
+show_prioritization_explanation()

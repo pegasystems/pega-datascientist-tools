@@ -1353,8 +1353,10 @@ class Aggregates:
         Returns
         -------
         pl.DataFrame
-            One row with Minimum, Median, Maximum, Replacement, and
-            Lowers existing levers. Missing levers use the neutral value 1.0.
+            One row with Minimum, Median, Maximum, Replacement,
+            Lowers existing levers, and All mandatory. Missing levers use the
+            neutral value 1.0. All mandatory is true only when every selected
+            candidate is mandatory.
             Replacement is median times ``1 + percentage / 100``; it is one
             shared value, not a multiplier applied to each offer.
 
@@ -1378,6 +1380,7 @@ class Aggregates:
                 Minimum=levers.min(),
                 Median=levers.median(),
                 Maximum=levers.max(),
+                **{"All mandatory": pl.col("is_mandatory").cast(pl.Boolean).fill_null(False).all()},
             )
             .collect()
         )

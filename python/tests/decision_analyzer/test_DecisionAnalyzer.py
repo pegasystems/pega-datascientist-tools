@@ -1266,6 +1266,30 @@ class TestReRank:
         ).collect()
         assert df.height == 7297
 
+    @pytest.mark.parametrize(
+        ("propensity", "value", "context", "lever", "expected"),
+        [
+            (0.6, 0.0, 1.0, 1.0, (0.6, 1.0, 0.6, 0.6, 0.6)),
+            (0.6, 2.0, 1.2, 1.5, (2.16, 3.6, 1.08, 1.8, 1.44)),
+            (0.0, 0.0, 1.0, 1.0, (0.0, 1.0, 0.0, 0.0, 0.0)),
+            (0.6, 0.0, 0.0, 1.0, (0.0, 0.0, 0.0, 0.6, 0.0)),
+            (0.6, 0.0, 1.0, 0.0, (0.0, 0.0, 0.0, 0.0, 0.6)),
+        ],
+    )
+    def test_priority_factors_preserve_zero_except_value(
+        self, lever_analyzer, propensity, value, context, lever, expected
+    ):
+        data = lever_analyzer.decision_data.filter(pl.col("Interaction ID") == "I1").with_columns(
+            Propensity=pl.lit(propensity),
+            Value=pl.lit(value),
+            **{"Context Weight": pl.lit(context), "Levers": pl.lit(lever)},
+        )
+        analyzer = DecisionAnalyzer(data, sample_size=10)
+        ranked = analyzer.scoring.re_rank().collect()
+        for row in ranked.select("prio_PVCL", "prio_VCL", "prio_PCL", "prio_PVL", "prio_PVC").rows():
+            assert row == pytest.approx(expected)
+        assert ranked["Value"].to_list() == [value, value]
+
 
 # ---------------------------------------------------------------------------
 # Win distribution (business lever analysis)
@@ -1318,6 +1342,33 @@ def lever_analyzer():
 
 
 class TestLeverSimulation:
+    def test_zero_value_is_neutral_for_lever_simulation(self, lever_analyzer):
+        data = lever_analyzer.decision_data.filter(pl.col("Interaction ID") == "I1").with_columns(
+            Value=pl.lit(0.0),
+            Propensity=pl.when(pl.col("Issue") == "Sales").then(0.6).otherwise(0.64),
+        )
+        analyzer = DecisionAnalyzer(data, sample_size=10)
+        distribution, summary = analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", 1.1)
+        assert summary.select("Before", "After").row(0) == (0, 1)
+        assert distribution.sort("Issue").select("Issue", "Before", "After").rows() == [
+            ("Other", 1, 0),
+            ("Sales", 0, 1),
+        ]
+
+    def test_mandatory_candidates_ignore_lever_changes_when_tied(self, lever_analyzer):
+        data = lever_analyzer.decision_data.filter(pl.col("Interaction ID") == "I1").with_columns(
+            Value=pl.lit(0.0),
+            Propensity=pl.when(pl.col("Issue") == "Sales").then(0.6).otherwise(0.64),
+        )
+        analyzer = DecisionAnalyzer(data, sample_size=10, mandatory_expr=pl.lit(True))
+        distribution, summary = analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", 2.0)
+        assert summary.select("Before", "After").row(0) == (0, 0)
+        assert summary["All mandatory"].item()
+        assert distribution.sort("Issue").select("Issue", "Before", "After").rows() == [
+            ("Other", 1, 1),
+            ("Sales", 0, 0),
+        ]
+
     @pytest.mark.parametrize(
         ("lever", "expected_after"),
         [(None, 1), (0.5, 0), (0.9, 0), (1.0, 0), (1.1, 2), (1.5, 2)],
@@ -1330,6 +1381,7 @@ class TestLeverSimulation:
             "Re-evaluated decisions": 3,
             "Before": 1,
             "After": expected_after,
+            "All mandatory": False,
             "Before share (%)": 100 / 3,
             "After share (%)": 100.0 * expected_after / 3,
             "Change (pp)": 100.0 * expected_after / 3 - 100 / 3,
@@ -1377,7 +1429,10 @@ class TestLeverSimulation:
             (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards"), 1.5
         )
         assert summary.select("Before", "After").row(0) == (1, 1)
+        assert not summary["All mandatory"].item()
         assert distribution.filter(pl.col("Issue") == "Service").select("Before", "After").row(0) == (1, 1)
+        _, mixed_summary = mandatory.scoring.lever_simulation(pl.col("Group") == "Cards", 1.5)
+        assert not mixed_summary["All mandatory"].item()
         assert mandatory.decision_data.collect().equals(source)
 
     def test_missing_levers_use_neutral_default(self, lever_analyzer):

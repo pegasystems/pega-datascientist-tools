@@ -7,6 +7,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
     ensure_data,
     polars_lazyframe_hashing,
+    show_prioritization_explanation,
 )
 from pdstools.decision_analyzer.plots import offer_quality_single_pie
 from pdstools.utils.streamlit_utils import standard_page_config
@@ -201,3 +202,5 @@ with col2:
         st.warning(
             "No actions survive to the arbitration stage in this data set. Offer quality analysis is not available."
         )
+
+show_prioritization_explanation()

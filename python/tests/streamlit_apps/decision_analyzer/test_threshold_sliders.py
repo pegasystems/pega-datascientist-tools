@@ -187,3 +187,42 @@ def test_no_rankable_candidates_shows_warning(da_app_dir, seeded_decision_analyz
     at = _load_page(da_app_dir, da)
     assert not at.exception
     assert any("No rankable arbitration candidates" in warning.value for warning in at.warning)
+    assert at.expander[-1].label == "How Prioritization is Calculated"
+    assert not at.expander[-1].proto.expanded
+
+
+def test_all_mandatory_notice_distinguishes_threshold_filtering(da_app_dir):
+    raw = pl.LazyFrame(
+        {
+            "Interaction ID": ["I1", "I1", "I1"],
+            "Subject ID": ["S1"] * 3,
+            "Decision Time": [datetime(2024, 1, 1)] * 3,
+            "Issue": ["Sales"] * 3,
+            "Group": ["Cards"] * 3,
+            "Action": ["A", "B", "Unrankable"],
+            "Channel": ["Web"] * 3,
+            "Direction": ["Inbound"] * 3,
+            "Propensity": [0.1, 0.2, 0.3],
+            "Value": [0.0] * 3,
+            "Context Weight": [1.0] * 3,
+            "Levers": [1.0] * 3,
+            "Priority": [5_000_100.0, 5_000_200.0, None],
+            "Stage Group": ["Arbitration"] * 3,
+            "Stage": ["Arbitration"] * 3,
+            "Stage Order": [3800] * 3,
+        }
+    )
+    at = _load_page(da_app_dir, DecisionAnalyzer(raw, sample_size=10))
+    assert not at.exception
+    assert any("★ All rankable offers" in info.value and "filter them out" in info.value for info in at.info)
+
+    at.selectbox(key="_simulation_granularity").set_value("Action").run()
+    at.slider(key="propensity_threshold_pct").set_value(15.0).run()
+    assert not at.exception
+    data = pl.from_pandas(at.dataframe[0].value)
+    assert data.select("Action", "Before", "After").rows() == [("B", 0, 1), ("A", 1, 0)]
+
+    at.session_state["decision_data"] = DecisionAnalyzer(raw, sample_size=10, mandatory_expr=pl.col("Action") == "A")
+    at.run()
+    assert not at.exception
+    assert not any("★ All rankable offers" in info.value for info in at.info)

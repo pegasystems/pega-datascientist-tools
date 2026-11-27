@@ -11,6 +11,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     get_data_filters,
     show_action_color_notice,
     show_filtered_counts,
+    show_prioritization_explanation,
     win_rank_selector,
 )
 from pdstools.decision_analyzer.utils import (
@@ -141,6 +142,7 @@ if st.session_state.get("page_channel_filter", "Any") != "Any":
             f"No data available for {st.session_state.page_channel_filter}. "
             "Try selecting 'Any' or adjusting global filters."
         )
+        show_prioritization_explanation()
         st.stop()
 
 channel_filter = st.session_state.get("page_channel_expr")
@@ -314,3 +316,5 @@ if st.session_state.local_filters != []:
     )
 else:
     st.warning("Please Define a Group to compare against the rest of the actions")
+
+show_prioritization_explanation()

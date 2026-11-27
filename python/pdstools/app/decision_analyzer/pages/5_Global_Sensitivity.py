@@ -9,6 +9,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     contextual_filters,
     ensure_data,
     show_action_color_notice,
+    show_prioritization_explanation,
     win_rank_selector,
 )
 from pdstools.decision_analyzer.utils import apply_filter
@@ -46,6 +47,7 @@ if st.session_state.get("page_channel_filter", "Any") != "Any":
             f"No data available for {st.session_state.page_channel_filter}. "
             "Try selecting 'Any' or adjusting global filters."
         )
+        show_prioritization_explanation()
         st.stop()
 
 channel_filter = st.session_state.get("page_channel_expr")
@@ -101,3 +103,5 @@ with st.container(border=True):
         key="glob_sensitivity_scope",
     )
     show_action_color_notice(st.session_state.glob_sensitivity_scope)
+
+show_prioritization_explanation()

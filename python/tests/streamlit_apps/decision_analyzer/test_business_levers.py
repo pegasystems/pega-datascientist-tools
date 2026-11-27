@@ -73,6 +73,42 @@ def test_slider_replaces_action_lever(lever_page, percentage, expected_after):
     assert len(at.get("plotly_chart")) == 2
 
 
+def test_slider_reorders_offers_with_zero_value(lever_page):
+    at = lever_page
+    data = (
+        at.session_state["decision_data"]
+        .decision_data.filter(pl.col("Interaction ID") == "I1")
+        .with_columns(
+            Value=pl.lit(0.0),
+            Propensity=pl.when(pl.col("Issue") == "Sales").then(0.3).otherwise(0.64),
+        )
+    )
+    at.session_state["decision_data"] = DecisionAnalyzer(data, sample_size=10)
+    at.run()
+    at.selectbox(key="_lever_level").set_value("Action").run()
+    assert _selected_counts(at) == [(0, 0)]
+    at.slider(key="_lever_percentage").set_value(10).run()
+    assert not at.exception
+    assert _selected_counts(at) == [(0, 1)]
+    assert at.metric[0].value == "0.0%"
+    assert at.metric[1].value == "100.0%"
+
+
+def test_mandatory_selection_explains_unchanged_lever(lever_page):
+    at = lever_page
+    data = at.session_state["decision_data"].decision_data
+    at.session_state["decision_data"] = DecisionAnalyzer(
+        data, sample_size=10, mandatory_expr=pl.col("Issue") == "Sales"
+    )
+    at.run()
+    at.selectbox(key="_lever_level").set_value("Action").run()
+    at.slider(key="_lever_percentage").set_value(50).run()
+    assert not at.exception
+    assert any("★ All selected offers are mandatory" in message.value for message in at.info)
+    assert at.main.subheader[0].value == "Winning share for selected action: ★ Sales / Cards / A"
+    assert _selected_counts(at) == [(1, 1)]
+
+
 def test_zero_is_replacement_and_reset_removes_override(lever_page):
     at = lever_page
     at.slider(key="_lever_percentage").set_value(10).run()

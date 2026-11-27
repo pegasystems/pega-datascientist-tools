@@ -7,6 +7,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
     contextual_filters,
     ensure_data,
+    show_prioritization_explanation,
     show_simulation_comparison,
     simulation_granularity_selector,
     win_rank_selector,
@@ -82,6 +83,7 @@ identities = (
 )
 if identities.is_empty():
     st.warning("No arbitration candidates are available. Adjust the population filters or load different data.")
+    show_prioritization_explanation()
     st.stop()
 
 with controls:
@@ -122,6 +124,8 @@ with controls:
         f"Source levers: **{lever_settings['Minimum']:.2f} to {lever_settings['Maximum']:.2f}**. "
         f"Slider baseline (median): **{lever_settings['Median']:.2f}**."
     )
+    if lever_settings["All mandatory"]:
+        st.info("★ All selected offers are mandatory, so changing their levers cannot change their priority or order.")
     if st.session_state.lever_override_active:
         st.caption(f"Replacement lever: **{lever_settings['Replacement']:.2f}**.")
         if lever_settings["Lowers existing levers"]:
@@ -130,7 +134,7 @@ with controls:
     analysis_level = simulation_granularity_selector()
 
 lever = lever_settings["Replacement"] if st.session_state.lever_override_active else None
-target_label = " / ".join(target)
+target_label = ("★ " if lever_settings["All mandatory"] else "") + " / ".join(target)
 if lever is None:
     st.caption("Original levers retained. Move the slider to apply a replacement.")
 else:
@@ -151,11 +155,9 @@ show_simulation_comparison(
 
 with st.expander("Simulation assumptions"):
     st.markdown(
-        "Before and After reconstruct priority as **Propensity × Value × Context Weight × Levers**, "
-        "so they may differ from recorded output. Missing component values use 1.0. "
         "The slider is centered on the selected offers' median baseline lever and replaces all selected levers "
         "with one shared value. For mixed source values, some individual levers can decrease even at a positive "
-        "percentage. Mandatory-action precedence is preserved. "
+        "percentage. "
         "**0% sets selected levers to their median; Reset restores each original lever.**\n\n"
         "The chart and table show decision coverage at the selected analysis granularity. "
         f"Each decision counts once per issue, group, or action with at least one Top-{win_rank} offer. "
@@ -165,3 +167,5 @@ with st.expander("Simulation assumptions"):
         "Results use the sampled, filtered population of recorded candidates. This illustration does not "
         "update product configuration or predict future customer responses."
     )
+
+show_prioritization_explanation()

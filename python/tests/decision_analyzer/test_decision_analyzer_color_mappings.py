@@ -414,6 +414,7 @@ def test_lever_summary_centers_replacement_on_selected_source_values(mixed_issue
         "Minimum": 1.0,
         "Median": 2.0,
         "Maximum": 2.0,
+        "All mandatory": False,
         "Replacement": pytest.approx(2.36),
         "Lowers existing levers": False,
     }
