@@ -81,6 +81,9 @@ def test_da_page_renders(
     assert any(heading in m.value for m in at.markdown), (
         f"{page} missing heading {heading!r} — page body did not render"
     )
+    callouts = [message for message in at.main.info if message.proto.title == "Key questions"]
+    assert len(callouts) == 1
+    assert 2 <= callouts[0].value.count("?") <= 3
     for attr, minimum in widget_checks.items():
         actual = len(getattr(at, attr))
         assert actual >= minimum, f"{page} expected at least {minimum} {attr} widget(s), got {actual}"

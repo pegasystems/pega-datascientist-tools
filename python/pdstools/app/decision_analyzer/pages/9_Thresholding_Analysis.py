@@ -26,12 +26,14 @@ standard_page_config(page_title="Thresholding · Decision Analysis")
 Explore how setting minimum thresholds for response likelihood (propensity) and priority
 affects which offers reach customers. Use this to fine-tune your offer quality standards
 and understand the trade-offs between offer volume and predicted performance.
-
-**Key questions:**
-* How many offers would be filtered if we raised quality thresholds?
-* What's the right balance between offer volume and customer relevance?
-* How do threshold changes affect specific offer categories?
 """
+
+st.info(
+    "- How many offers would be filtered by higher thresholds?\n"
+    "- What is the trade-off between offer volume and customer relevance?\n"
+    "- How do threshold changes affect offer categories?",
+    title="Key questions",
+)
 
 ensure_data()
 

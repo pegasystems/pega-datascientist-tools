@@ -57,6 +57,13 @@ def test_initial_analysis_granularity_is_group(da_app_dir, seeded_decision_analy
     assert "### Overall distribution by group" in [element.value for element in at.main.markdown]
 
 
+def test_lever_page_shows_key_questions(lever_page):
+    callouts = [message for message in lever_page.main.info if message.proto.title == "Key questions"]
+    assert len(callouts) == 1
+    assert "Which other issues, groups, or actions gain or lose winning share?" in callouts[0].value
+    assert "hold-out experiment" in callouts[0].value
+
+
 @pytest.mark.parametrize(("percentage", "expected_after"), [(-50, 0), (10, 1), (50, 1)])
 def test_slider_replaces_action_lever(lever_page, percentage, expected_after):
     at = lever_page
@@ -211,7 +218,7 @@ def test_slider_uses_selected_median_and_warns_for_mixed_source_values(lever_pag
     assert any("Slider baseline (median): **2.00**" in c.value for c in at.sidebar.caption)
     assert any("Replacement lever: **2.36**" in c.value for c in at.sidebar.caption)
     assert _selected_counts(at) == [(1, 1)]
-    assert not at.info
+    assert not any("lowers some recorded levers" in message.value for message in at.info)
 
 
 def test_analysis_granularity_keeps_adjustment_and_selected_action_coverage(lever_page):

@@ -19,9 +19,15 @@ standard_page_config(page_title="Optionality · Decision Analysis")
 "# Optionality Analysis"
 
 """
-Analysis of the number of actions per customer. Do we have enough options for people? Global filters can
-be applied like everywhere to look at e.g. a certain group of issues.
+Explore how many actions are available per decision and how options are reduced
+across stages. Use global filters to focus on a particular set of offers.
 """
+st.info(
+    "- How many actions are available for each decision?\n"
+    "- How does propensity vary with the number of available actions?\n"
+    "- How many actions are excluded between stages?",
+    title="Key questions",
+)
 ensure_data()
 st.session_state["sidebar"] = st.sidebar
 with st.session_state["sidebar"]:

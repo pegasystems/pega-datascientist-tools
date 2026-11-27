@@ -21,12 +21,13 @@ standard_page_config(page_title="Single Decision · Decision Analysis")
 """
 Debug a single decision by inspecting its full pipeline. The grid shows
 every action (or issue / group) as a row and every stage as a column.
-
-* **✅ N** — N actions passed this stage.
-* **❌ N** — N actions were filtered out, with the responsible
-  component(s) shown.
-* **∅** — no actions remaining (all filtered at earlier stages).
 """
+
+st.info(
+    "- Which actions passed or were filtered at each stage?\n- Which components filtered out the actions?",
+    title="Key questions",
+)
+st.caption("✅ N: actions passed · ❌ N: actions filtered, with responsible components · ∅: none remaining")
 
 ensure_data()
 

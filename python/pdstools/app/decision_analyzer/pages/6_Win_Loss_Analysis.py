@@ -64,10 +64,12 @@ def _describe_comparison_group() -> str:
 Understand competitive dynamics between your offers. When one offer wins the customer
 interaction, which other offers did it beat? Define a comparison group (e.g., upsell offers)
 to see what they typically win against and lose to.
-
-**Use this to:** Identify which offers compete most directly and understand why certain
-offers consistently win or lose.
 """
+st.info(
+    "- Which offers compete most directly with the comparison group?\n"
+    "- Which offers consistently win or lose against it?",
+    title="Key questions",
+)
 ensure_data()
 st.session_state["sidebar"] = st.sidebar
 

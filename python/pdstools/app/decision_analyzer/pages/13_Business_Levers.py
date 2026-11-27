@@ -59,7 +59,19 @@ def _reset() -> None:
 
 
 st.title("What-if: Business Levers")
-st.caption("Replace business levers and compare the winning-offer mix.")
+st.markdown(
+    """
+Explore how increasing or decreasing a business lever for an issue, group, or action
+changes which offers win. Use this what-if analysis for an initial view of the wider
+effects of a local change.
+"""
+)
+st.info(
+    "- How does a lever change affect the selected offers?\n"
+    "- Which other issues, groups, or actions gain or lose winning share?\n"
+    "- Which changes merit a full simulation or a small-scale hold-out experiment?",
+    title="Key questions",
+)
 
 da = st.session_state.decision_data
 if st.session_state.get("lever_data_id") != id(da):

@@ -31,6 +31,13 @@ reach customers, which factors drive decisions, and where opportunities exist to
 improve customer reach.
 """
 
+st.info(
+    "- How many offers reach customers?\n"
+    "- Which factors influence the winning offers?\n"
+    "- Where are customers underserved?",
+    title="Key questions",
+)
+
 # Display sample information if available
 sample_metadata = st.session_state.get("sample_metadata")
 if sample_metadata:

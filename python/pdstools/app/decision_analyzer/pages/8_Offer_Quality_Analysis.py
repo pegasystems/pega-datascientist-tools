@@ -25,12 +25,16 @@ standard_page_config(page_title="Offer Quality · Decision Analysis")
 Identify customer interactions where offer quality may be a concern. This analysis
 helps you spot situations where customers see too few offers, or where offers have
 low predicted response rates or priorities.
+"""
 
-**Key insights:**
-* Which customers are seeing limited choices?
-* Are there interactions with only low-quality offers?
-* Where might new or untested offers be impacting customer experience?
+st.info(
+    "- Which customer interactions have limited choices?\n"
+    "- Which interactions have only low-quality offers?\n"
+    "- Where might new or untested offers affect customer experience?",
+    title="Key questions",
+)
 
+"""
 **Note:** Propensity-based quality assessment (distinguishing between "relevant" and
 "irrelevant" offers) is only available from the arbitration stage onward. For earlier
 stages, the analysis shows whether customers received at least one action, without

@@ -23,11 +23,13 @@ standard_page_config(page_title="Global Sensitivity · Decision Analysis")
 Understand which factors have the biggest impact on which offers win. This shows
 how much each factor (customer response likelihood, business value, strategic levers)
 influences your final offer selections.
-
-**How to read this:** Each factor shows what percentage of winning offers would change
-if that factor were removed. Higher percentages mean that factor is more influential in
-driving offer selection.
 """
+
+st.info(
+    "- What percentage of winning offers would change if each factor were removed?\n"
+    "- Which factors have the greatest influence on offer selection?",
+    title="Key questions",
+)
 
 ensure_data()
 st.session_state["sidebar"] = st.sidebar

@@ -26,12 +26,14 @@ standard_page_config(page_title="Action Funnel · Decision Analysis")
 Understand how your offers flow through the decisioning pipeline and where they drop off.
 See which filtering rules are impacting your offer mix and identify opportunities to improve
 customer reach.
-
-**Key questions:**
-* Which offers are being filtered out too early?
-* Are high-value offers getting blocked by business rules?
-* Where in the pipeline do specific offer categories drop off?
 """
+
+st.info(
+    "- Which offers are filtered out too early?\n"
+    "- Are high-value offers blocked by business rules?\n"
+    "- Where do specific offer categories drop off?",
+    title="Key questions",
+)
 
 ensure_data()
 ensure_funnel()

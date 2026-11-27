@@ -26,14 +26,14 @@ standard_page_config(page_title="Arbitration Distribution · Decision Analysis")
 Analyze the distribution of prioritization components. Since prioritization
 uses a multiplicative formula (`Priority = Propensity × Value × Context
 Weight × Levers`), components with extreme value ranges can dominate.
-
-* **Distribution Shape**: Are components heavily skewed? Propensity often
-  clusters near zero; Value and Levers can span orders of magnitude.
-* **Component Ranges**: Which component has the widest spread and therefore
-  the most influence on the final Priority?
-* **Action Comparison**: Do certain actions have notably different component
-  values?
 """
+
+st.info(
+    "- Are component distributions skewed or widely spread?\n"
+    "- Which components have extreme values that may influence priority?\n"
+    "- Do component values differ between actions?",
+    title="Key questions",
+)
 
 ensure_data()
 
