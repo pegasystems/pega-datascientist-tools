@@ -407,7 +407,7 @@ The Lift chart is derived from this and shows the ratio of the cumulative gain a
 ::: {layout-ncol="2"}
 ```{python}
 
-# Tracked in docs/plans/health-check-TODO.md (P3: Move report-local plot
+# Tracked in docs/health-check-roadmap.md (P3: Move report-local plot
 # helpers into adm/Plots.py) — Cumulative Gains / Lift / base-propensity
 # overlay are defined inline below; lift to reusable plot functions.
 try:
@@ -441,7 +441,7 @@ except Exception as e:
 ```
 
 ```{python}
-# (See HC-TODO P3: Move report-local plot helpers into adm/Plots.py.)
+# See docs/health-check-roadmap.md: Move report-local plot helpers into adm/Plots.
 try:
     fig = (
         px.area(
@@ -786,7 +786,7 @@ def show_single_predictor(pred):
         fig.data[1].line.width = 3
         fig.data[1].marker.color = "black"
 
-        # Add line for base propensity. (See HC-TODO P3: Move report-local
+        # Add line for base propensity. (See docs/health-check-roadmap.md: Move report-local
         # plot helpers into adm/Plots.py — base propensity overlay belongs
         # in the library plot.)
         fig.add_hline(y=base_propensity, line_dash="dash", line_color="grey", yref="y2")

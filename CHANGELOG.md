@@ -8,6 +8,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- What-if: Business Levers in the Decision Analysis Tool: replace levers at
+  Issue, Group, or Action level with a -50% to +50% slider centered on the
+  selected offers' median recorded lever and compare
+  reconstructed Top-N winning-share changes in a delta chart, with independent
+  Issue/Group/Action analysis granularity, arbitration-only selected-target
+  decision coverage, evaluated decision counts, and elapsed time.
+  Reset restores the original levers; 0% replaces them with their median.
+  The same simulation is available through
+  `DecisionAnalyzer.scoring.lever_simulation()` (#1033).
+- Thresholding Analysis shares the same delta comparison, Top-N and analysis
+  granularity controls, and timing footer. Global propensity/priority thresholds
+  filter offers before re-ranking survivors; notebook users can reproduce this
+  with `DecisionAnalyzer.scoring.threshold_simulation()` (#1033).
+- Both simulation pages show overall Before/After horizontal stacked distributions
+  above the gains/losses chart, with shared scales, all categories, and decision
+  counts on hover. Action colors follow the baseline distribution, stay fixed
+  across scenarios, and repeat as needed. Notebook users can call
+  `DecisionAnalyzer.plot.simulation_distribution()` (#1033).
+- Simulation analysis granularity defaults to Group, with explicit choices
+  preserved across both pages (#1033).
 - AGB category gain and split-share plots support `by_split_type=True`
   for independently normalized All splits, Numeric, and Symbolic rows,
   classified by actual conditions, with per-subset totals on hover.
@@ -26,6 +46,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Decision Analysis Tool re-ranking treats a zero Value as neutral and keeps
+  mandatory-action ordering independent of reconstructed PVCL scores (#1033).
+- Business Levers marks all-mandatory selections with ★; Thresholding flags
+  all-mandatory populations and explains that thresholds can still filter them.
+- The affected Decision Analysis pages share a collapsed explanation of
+  prioritization and the app's reconstruction assumptions (#1033).
+- Decision Analysis Tool hover tooltips include absolute counts beside
+  percentages, and stacked distribution bars show segment and whole-bar
+  totals. Colored optionality labels fractional counts as weighted decisions.
+  Rank-based win/loss data now retains an additional `Count` column (#1033).
+- **Breaking:** Rename `propensity_th` / `priority_th` to
+  `propensity_threshold` / `priority_threshold` on
+  `DecisionAnalyzer.aggregates.filtered_action_counts()`, and rename
+  `propensity_th` to `propensity_threshold` on the offer-quality pie helpers.
+  Update keyword callers; positional calls are unchanged (#1033).
+- Decision Analysis Tool charts share stable stage/filter-family and categorical
+  colors. Outside simulation distributions, the ten most frequent actions retain
+  distinct colors, with other actions in gray; Win/Loss bars stay fully opaque and outlined. Optionality
+  adds persistent Issue/Group coloring without changing its counts or
+  propensity line (#1033).
+- Thresholding distribution charts are reusable through
+  `DecisionAnalyzer.plot.threshold_distribution()`; existing sliders and
+  chart-click selection behavior are unchanged (#1033).
 - `ADMTreesModel.from_file`, `from_url`, `from_dict` and `from_datamart_blob`
   now detect encoded AGB scoring-model JSON and decode it, so encoded
   exports load the same way as decoded ones (#1020). Decoding no longer
@@ -43,6 +86,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Decision Analyzer no longer marks missing or non-finite priority values as
+  mandatory, preventing false warnings and stars in the default sample.
+- Sidebar navigation keeps all available pages visible in standalone tools and
+  the unified launcher, replacing the CSS workaround that hid the menu's
+  expansion button (#1033).
 - AGB tree depth now counts edges from the root, and all gain summaries
   include signed and zero split gains. Gain shares and entropy are
   unavailable when the relevant aggregated gains are negative or their total

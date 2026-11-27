@@ -16,9 +16,13 @@ state transitions.
 
 from __future__ import annotations
 
+import json
+from datetime import datetime
 from typing import TYPE_CHECKING
 
+import polars as pl
 import pytest
+from pdstools.decision_analyzer.DecisionAnalyzer import DecisionAnalyzer
 from streamlit.testing.v1 import AppTest
 
 if TYPE_CHECKING:
@@ -114,3 +118,111 @@ def test_resetting_propensity_slider_to_zero(
         f"Resetting slider to 0 should clear propensity_threshold_pct, "
         f"got {at.session_state['propensity_threshold_pct']}"
     )
+
+
+def test_delta_controls_preserve_threshold_and_rerank_survivors(da_app_dir):
+    raw = pl.LazyFrame(
+        {
+            "Interaction ID": ["I1", "I1", "I2", "I3"],
+            "Subject ID": ["S1", "S1", "S2", "S3"],
+            "Decision Time": [datetime(2024, 1, 1)] * 4,
+            "Issue": ["Sales", "Service", "Sales", "Sales"],
+            "Group": ["Cards", "Cards", "Loans", "Loans"],
+            "Action": ["A", "B", "C", "Excluded"],
+            "Channel": ["Web"] * 4,
+            "Direction": ["Inbound"] * 4,
+            "Propensity": [0.05, 0.2, 0.05, 0.2],
+            "Value": [100.0, 2.0, 1.0, 1.0],
+            "Context Weight": [1.0] * 4,
+            "Levers": [1.0] * 4,
+            "Priority": [5.0, 0.4, 0.05, None],
+            "Stage Group": ["Arbitration"] * 3 + ["Eligibility"],
+            "Stage": ["Arbitration"] * 3 + ["Eligibility"],
+            "Stage Order": [3800] * 3 + [1500],
+        }
+    )
+    at = _load_page(da_app_dir, DecisionAnalyzer(raw, sample_size=10))
+    assert not at.exception
+    at.selectbox(key="_simulation_granularity").set_value("Action").run()
+    at.slider(key="propensity_threshold_pct").set_value(10.0).run()
+    assert not at.exception
+    metrics = {metric.label: metric.value for metric in at.metric}
+    assert set(metrics) == {
+        "Avg Actions per Decision",
+        "Avg Qualifying per Decision",
+        "% Actions Filtered",
+        "% Decisions without Actions",
+    }
+    assert "Winning coverage after thresholds" not in [heading.value for heading in at.subheader]
+    assert not any("at least one offer in the Top-" in caption.value for caption in at.caption)
+    assert "### Overall distribution by action" in [element.value for element in at.main.markdown]
+    data = pl.from_pandas(at.dataframe[0].value)
+    assert data.select("Action", "Before", "After").rows() == [("B", 0, 1), ("A", 1, 0), ("C", 1, 0)]
+    spec = json.loads(at.get("plotly_chart")[-2].proto.spec)
+    assert [trace["name"] for trace in spec["data"]] == [
+        "Sales / Cards / A",
+        "Sales / Loans / C",
+        "Service / Cards / B",
+    ]
+    assert [trace["x"] for trace in spec["data"]] == [[50.0, 0.0], [50.0, 0.0], [0.0, 50.0]]
+    assert spec["layout"]["barmode"] == "stack"
+
+    at.number_input(key="_win_rank").set_value(2).run()
+    at.selectbox(key="_simulation_granularity").set_value("Issue").run()
+    assert not at.exception
+    data = pl.from_pandas(at.dataframe[0].value)
+    assert data.select("Issue", "Before", "After").rows() == [("Service", 1, 1), ("Sales", 2, 0)]
+    spec = json.loads(at.get("plotly_chart")[-2].proto.spec)
+    assert [trace["name"] for trace in spec["data"]] == ["Sales", "Service"]
+    assert [trace["x"] for trace in spec["data"]] == [[100.0, 0.0], [50.0, 50.0]]
+    assert at.session_state["propensity_threshold_pct"] == 10.0
+    assert any("Re-evaluated **2 decisions**" in caption.value for caption in at.caption)
+
+
+def test_no_rankable_candidates_shows_warning(da_app_dir, seeded_decision_analyzer):
+    da = DecisionAnalyzer(
+        seeded_decision_analyzer.decision_data.with_columns(Priority=pl.lit(None, dtype=pl.Float32)),
+        sample_size=10,
+    )
+    at = _load_page(da_app_dir, da)
+    assert not at.exception
+    assert any("No rankable arbitration candidates" in warning.value for warning in at.warning)
+    assert at.expander[-1].label == "How Prioritization is Calculated"
+    assert not at.expander[-1].proto.expanded
+
+
+def test_all_mandatory_notice_distinguishes_threshold_filtering(da_app_dir):
+    raw = pl.LazyFrame(
+        {
+            "Interaction ID": ["I1", "I1", "I1"],
+            "Subject ID": ["S1"] * 3,
+            "Decision Time": [datetime(2024, 1, 1)] * 3,
+            "Issue": ["Sales"] * 3,
+            "Group": ["Cards"] * 3,
+            "Action": ["A", "B", "Unrankable"],
+            "Channel": ["Web"] * 3,
+            "Direction": ["Inbound"] * 3,
+            "Propensity": [0.1, 0.2, 0.3],
+            "Value": [0.0] * 3,
+            "Context Weight": [1.0] * 3,
+            "Levers": [1.0] * 3,
+            "Priority": [5_000_100.0, 5_000_200.0, None],
+            "Stage Group": ["Arbitration"] * 3,
+            "Stage": ["Arbitration"] * 3,
+            "Stage Order": [3800] * 3,
+        }
+    )
+    at = _load_page(da_app_dir, DecisionAnalyzer(raw, sample_size=10))
+    assert not at.exception
+    assert any("★ All rankable offers" in info.value and "filter them out" in info.value for info in at.info)
+
+    at.selectbox(key="_simulation_granularity").set_value("Action").run()
+    at.slider(key="propensity_threshold_pct").set_value(15.0).run()
+    assert not at.exception
+    data = pl.from_pandas(at.dataframe[0].value)
+    assert data.select("Action", "Before", "After").rows() == [("B", 0, 1), ("A", 1, 0)]
+
+    at.session_state["decision_data"] = DecisionAnalyzer(raw, sample_size=10, mandatory_expr=pl.col("Action") == "A")
+    at.run()
+    assert not at.exception
+    assert not any("★ All rankable offers" in info.value for info in at.info)

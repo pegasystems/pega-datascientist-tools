@@ -4,11 +4,15 @@ import polars as pl
 import streamlit as st
 
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
+    ANALYSIS_GRANULARITY_LABEL,
     collect_page_filters,
     contextual_filters,
     ensure_data,
     get_data_filters,
+    show_action_color_notice,
     show_filtered_counts,
+    show_prioritization_explanation,
+    win_rank_selector,
 )
 from pdstools.decision_analyzer.utils import (
     apply_filter,
@@ -51,8 +55,7 @@ def _describe_comparison_group() -> str:
     return label
 
 
-# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
-# (Streamlit Pages → Page 6 — Win/Loss Analysis).
+# Roadmap: docs/decision-analyzer-roadmap.md
 
 "# Win/Loss Analysis"
 
@@ -60,15 +63,15 @@ def _describe_comparison_group() -> str:
 Understand competitive dynamics between your offers. When one offer wins the customer
 interaction, which other offers did it beat? Define a comparison group (e.g., upsell offers)
 to see what they typically win against and lose to.
-
-**Use this to:** Identify which offers compete most directly and understand why certain
-offers consistently win or lose.
 """
+st.info(
+    "- Which offers compete most directly with the comparison group?\n"
+    "- Which offers consistently win or lose against it?",
+    title="Key questions",
+)
 ensure_data()
 st.session_state["sidebar"] = st.sidebar
 
-# (See docs/plans/decision-analyzer-TODO.md → Page 6 for the
-# many-channel handling backlog item.)
 facetting = "pyChannel/pyDirection"
 
 # st.session_state.df = st.session_state.df.with_columns(
@@ -110,21 +113,14 @@ with st.session_state["sidebar"]:
 
     scope_index = get_current_index(scope_options, "scope")
     st.selectbox(
-        "Select Scope",
+        ANALYSIS_GRANULARITY_LABEL,
         options=scope_options,
         # column names are already friendly
         index=scope_index,
         key="scope",
     )
 
-    st.number_input(
-        "Define winning: rank in top N",
-        min_value=1,
-        max_value=st.session_state.decision_data.max_win_rank,
-        value=st.session_state.win_rank if "win_rank" in st.session_state else 1,
-        key="win_rank",
-        help="A win means at least one offer from the comparison group ranks N or better.",
-    )
+    win_rank_selector()
 
     top_k = None
     if st.session_state.scope == "Action":
@@ -145,6 +141,7 @@ if st.session_state.get("page_channel_filter", "Any") != "Any":
             f"No data available for {st.session_state.page_channel_filter}. "
             "Try selecting 'Any' or adjusting global filters."
         )
+        show_prioritization_explanation()
         st.stop()
 
 channel_filter = st.session_state.get("page_channel_expr")
@@ -200,6 +197,7 @@ if st.session_state.local_filters != []:
     loss_pct = (loss_count / total * 100) if total > 0 else 0
 
     with st.container(border=True):
+        show_action_color_notice(groupby_cols[-1])
         col1, col2 = st.columns(2)
         with col1:
             """## Win Analysis"""
@@ -317,3 +315,5 @@ if st.session_state.local_filters != []:
     )
 else:
     st.warning("Please Define a Group to compare against the rest of the actions")
+
+show_prioritization_explanation()

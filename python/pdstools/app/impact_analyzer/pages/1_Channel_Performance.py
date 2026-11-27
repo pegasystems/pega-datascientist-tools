@@ -663,7 +663,7 @@ def _build_lift_chart_data(rows_data: list[dict]) -> list[dict]:
 _lift_chart_data = _build_lift_chart_data(rows)
 
 # Per-channel summary (short-term facet — see
-# docs/plans/impact-analyzer/overall-show-channel-in-tiles.md for the proper fix
+# docs/impact-analyzer-roadmap.md for the proper fix
 # that surfaces channel in the experiment cards too). We pre-compute once so
 # the same channel selector can drive the chart, the cards, and the summary
 # table; channels that yield no plottable rows are hidden from the dropdown.

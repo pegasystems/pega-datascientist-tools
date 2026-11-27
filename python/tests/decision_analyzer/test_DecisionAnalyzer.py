@@ -206,6 +206,51 @@ class TestConstruction:
         assert flags == [0]
         assert da.mandatory_actions == set()
 
+    @pytest.mark.parametrize("invalid_priority", [float("nan"), float("inf"), float("-inf"), None])
+    def test_auto_detect_ignores_non_finite_priority(self, invalid_priority):
+        raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv").with_columns(
+            pl.when(pl.col("pyName") == "ACTION1")
+            .then(pl.lit(invalid_priority, dtype=pl.Float64))
+            .when(pl.col("pyName") == "ACTION2")
+            .then(pl.lit(4_999_999.0))
+            .when(pl.col("pyName") == "ACTION3")
+            .then(pl.lit(4_999_998.0))
+            .otherwise(pl.col("Priority"))
+            .alias("Priority")
+        )
+        da = DecisionAnalyzer(raw, sample_size=1000)
+        flags = da.decision_data.group_by("Action").agg(pl.col("is_mandatory").max()).sort("Action").collect()
+        assert flags.rows() == [
+            ("ACTION1", 0),
+            ("ACTION2", 1),
+            ("ACTION3", 0),
+            ("ACTION4", 0),
+            ("ACTION5", 0),
+        ]
+        assert da.mandatory_actions == {"ACTION2"}
+
+    def test_bundled_data_has_no_mandatory_actions(self, da_v2):
+        assert da_v2.mandatory_actions == set()
+
+    def test_mandatory_action_detected_before_arbitration(self):
+        raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv").with_columns(
+            pl.when((pl.col("pyName") == "ACTION1") & (pl.col("Stage_pyStageGroup") == "Eligibility"))
+            .then(pl.lit(5_000_000.0))
+            .otherwise(pl.lit(1.0))
+            .alias("Priority")
+        )
+        da = DecisionAnalyzer(raw, sample_size=1000)
+        flagged_stages = (
+            da.decision_data.filter(pl.col("is_mandatory") > 0)
+            .select("Stage Group")
+            .unique()
+            .collect()
+            .get_column("Stage Group")
+            .to_list()
+        )
+        assert flagged_stages == ["Eligibility"]
+        assert da.mandatory_actions == {"ACTION1"}
+
     def test_explicit_mandatory_expr_overrides_auto_detect(self):
         """Explicit mandatory_expr wins even when Priority would auto-flag rows."""
         raw = pl.scan_csv(f"{basePath}/data/da/sample_eev2_minimal.csv").with_columns(
@@ -1221,6 +1266,30 @@ class TestReRank:
         ).collect()
         assert df.height == 7297
 
+    @pytest.mark.parametrize(
+        ("propensity", "value", "context", "lever", "expected"),
+        [
+            (0.6, 0.0, 1.0, 1.0, (0.6, 1.0, 0.6, 0.6, 0.6)),
+            (0.6, 2.0, 1.2, 1.5, (2.16, 3.6, 1.08, 1.8, 1.44)),
+            (0.0, 0.0, 1.0, 1.0, (0.0, 1.0, 0.0, 0.0, 0.0)),
+            (0.6, 0.0, 0.0, 1.0, (0.0, 0.0, 0.0, 0.6, 0.0)),
+            (0.6, 0.0, 1.0, 0.0, (0.0, 0.0, 0.0, 0.0, 0.6)),
+        ],
+    )
+    def test_priority_factors_preserve_zero_except_value(
+        self, lever_analyzer, propensity, value, context, lever, expected
+    ):
+        data = lever_analyzer.decision_data.filter(pl.col("Interaction ID") == "I1").with_columns(
+            Propensity=pl.lit(propensity),
+            Value=pl.lit(value),
+            **{"Context Weight": pl.lit(context), "Levers": pl.lit(lever)},
+        )
+        analyzer = DecisionAnalyzer(data, sample_size=10)
+        ranked = analyzer.scoring.re_rank().collect()
+        for row in ranked.select("prio_PVCL", "prio_VCL", "prio_PCL", "prio_PVL", "prio_PVC").rows():
+            assert row == pytest.approx(expected)
+        assert ranked["Value"].to_list() == [value, value]
+
 
 # ---------------------------------------------------------------------------
 # Win distribution (business lever analysis)
@@ -1244,6 +1313,271 @@ class TestWinDistribution:
         lever_cond = pl.col("Issue") == da_v1.decision_data.select(pl.col("Issue").first()).collect().item()
         result = da_v1.scoring.get_win_distribution_data(lever_condition=lever_cond, all_interactions=1000)
         assert "No Winner" in result["Action"].to_list()
+
+
+@pytest.fixture
+def lever_analyzer():
+    """Four interactions with competing offers and one pre-arbitration exit."""
+    raw = pl.LazyFrame(
+        {
+            "Interaction ID": ["I1", "I1", "I2", "I2", "I3", "I3", "I4"],
+            "Subject ID": ["S1", "S1", "S2", "S2", "S3", "S3", "S4"],
+            "Decision Time": [datetime(2024, 1, 1)] * 7,
+            "Issue": ["Sales", "Other", "Sales", "Sales", "Service", "Sales", "Sales"],
+            "Group": ["Cards", "Cards", "Cards", "Loans", "Cards", "Cards", "Cards"],
+            "Action": ["A", "A", "A", "B", "A", "A", "A"],
+            "Channel": ["Web", "Web", "Web", "Web", "Mobile", "Mobile", "Web"],
+            "Direction": ["Inbound"] * 7,
+            "Propensity": [1.0] * 7,
+            "Value": [1.0, 1.05, 1.0, 1.5, 1.0, 0.95, 1.0],
+            "Context Weight": [1.0] * 7,
+            "Levers": [1.0, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0],
+            "Priority": [9.0, 1.05, 2.0, 1.5, 1.0, 0.95, None],
+            "Stage_pyStageGroup": ["Arbitration"] * 6 + ["Eligibility"],
+            "Stage_pyName": ["Arbitration"] * 6 + ["Eligibility"],
+            "Stage_pyOrder": [3800] * 6 + [1500],
+        }
+    )
+    return DecisionAnalyzer(raw, sample_size=10)
+
+
+class TestLeverSimulation:
+    def test_zero_value_is_neutral_for_lever_simulation(self, lever_analyzer):
+        data = lever_analyzer.decision_data.filter(pl.col("Interaction ID") == "I1").with_columns(
+            Value=pl.lit(0.0),
+            Propensity=pl.when(pl.col("Issue") == "Sales").then(0.6).otherwise(0.64),
+        )
+        analyzer = DecisionAnalyzer(data, sample_size=10)
+        distribution, summary = analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", 1.1)
+        assert summary.select("Before", "After").row(0) == (0, 1)
+        assert distribution.sort("Issue").select("Issue", "Before", "After").rows() == [
+            ("Other", 1, 0),
+            ("Sales", 0, 1),
+        ]
+
+    def test_mandatory_candidates_ignore_lever_changes_when_tied(self, lever_analyzer):
+        data = lever_analyzer.decision_data.filter(pl.col("Interaction ID") == "I1").with_columns(
+            Value=pl.lit(0.0),
+            Propensity=pl.when(pl.col("Issue") == "Sales").then(0.6).otherwise(0.64),
+        )
+        analyzer = DecisionAnalyzer(data, sample_size=10, mandatory_expr=pl.lit(True))
+        distribution, summary = analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", 2.0)
+        assert summary.select("Before", "After").row(0) == (0, 0)
+        assert summary["All mandatory"].item()
+        assert distribution.sort("Issue").select("Issue", "Before", "After").rows() == [
+            ("Other", 1, 1),
+            ("Sales", 0, 0),
+        ]
+
+    @pytest.mark.parametrize(
+        ("lever", "expected_after"),
+        [(None, 1), (0.5, 0), (0.9, 0), (1.0, 0), (1.1, 2), (1.5, 2)],
+    )
+    def test_replacement_and_reset(self, lever_analyzer, lever, expected_after):
+        condition = (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards") & (pl.col("Action") == "A")
+        distribution, summary = lever_analyzer.scoring.lever_simulation(condition, lever)
+        assert summary.drop("Elapsed (s)").row(0, named=True) == {
+            "Interactions": 3,
+            "Re-evaluated decisions": 3,
+            "Before": 1,
+            "After": expected_after,
+            "All mandatory": False,
+            "Before share (%)": 100 / 3,
+            "After share (%)": 100.0 * expected_after / 3,
+            "Change (pp)": 100.0 * expected_after / 3 - 100 / 3,
+        }
+        assert distribution["Before"].sum() == distribution["After"].sum() == 3
+        assert (distribution["Before share (%)"].sum(), distribution["After share (%)"].sum()) == pytest.approx(
+            (100.0, 100.0)
+        )
+
+    def test_hierarchy_and_reconstructed_baseline(self, lever_analyzer):
+        condition = (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards")
+        distribution, _ = lever_analyzer.scoring.lever_simulation(condition, 1.1)
+        assert distribution.select("Issue", "Group", "Action", "Before", "After", "Selected").rows() == [
+            ("Sales", "Cards", "A", 1, 2, True),
+            ("Sales", "Loans", "B", 0, 1, False),
+            ("Other", "Cards", "A", 1, 0, False),
+            ("Service", "Cards", "A", 1, 0, False),
+        ]
+
+    def test_issue_scope_and_population_filters(self, lever_analyzer):
+        condition = pl.col("Issue") == "Sales"
+        distribution, summary = lever_analyzer.scoring.lever_simulation(
+            condition, 1.1, additional_filters=[pl.col("Channel") == "Web"]
+        )
+        assert summary.select("Interactions", "Before", "After").row(0) == (2, 1, 2)
+        assert summary["Change (pp)"].item() == 50.0
+        assert distribution.filter(pl.col("Selected"))["Group"].sort().to_list() == ["Cards", "Loans"]
+        assert distribution["Before"].sum() == distribution["After"].sum() == 2
+
+    def test_missing_priority_excluded_from_simulation_population(self, lever_analyzer):
+        unrankable = lever_analyzer.decision_data.head(1).with_columns(
+            pl.lit("I5").alias("Interaction ID"),
+            pl.lit(None, dtype=lever_analyzer.decision_data.collect_schema()["Priority"]).alias("Priority"),
+        )
+        analyzer = DecisionAnalyzer(pl.concat([lever_analyzer.decision_data, unrankable]), sample_size=10)
+        distribution, summary = analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", 1.1)
+        assert summary.select("Interactions", "Re-evaluated decisions", "Before", "After").row(0) == (3, 3, 1, 3)
+        assert distribution["Before"].sum() == distribution["After"].sum() == 3
+
+    def test_mandatory_precedence_and_source_unchanged(self, lever_analyzer):
+        source = lever_analyzer.decision_data.collect()
+        mandatory = DecisionAnalyzer(source.lazy(), mandatory_expr=pl.col("Issue") == "Service")
+        source = mandatory.decision_data.collect()
+        distribution, summary = mandatory.scoring.lever_simulation(
+            (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards"), 1.5
+        )
+        assert summary.select("Before", "After").row(0) == (1, 1)
+        assert not summary["All mandatory"].item()
+        assert distribution.filter(pl.col("Issue") == "Service").select("Before", "After").row(0) == (1, 1)
+        _, mixed_summary = mandatory.scoring.lever_simulation(pl.col("Group") == "Cards", 1.5)
+        assert not mixed_summary["All mandatory"].item()
+        assert mandatory.decision_data.collect().equals(source)
+
+    def test_missing_levers_use_neutral_default(self, lever_analyzer):
+        missing = DecisionAnalyzer(lever_analyzer.decision_data.drop("Levers"), sample_size=10)
+        _, summary = missing.scoring.lever_simulation(
+            (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards"),
+            1.1,
+            additional_filters=pl.col("Channel") == "Mobile",
+        )
+        assert summary.select("Interactions", "Before", "After", "Change (pp)").row(0) == (1, 0, 1, 100.0)
+
+    def test_evaluated_count_and_elapsed_time(self, lever_analyzer, monkeypatch):
+        clock = iter([10.0, 10.125])
+        monkeypatch.setattr("pdstools.decision_analyzer._scoring.perf_counter", lambda: next(clock))
+        _, summary = lever_analyzer.scoring.lever_simulation(
+            pl.col("Issue") == "Sales",
+            1.1,
+            additional_filters=pl.col("Channel") == "Web",
+        )
+        assert summary.select("Interactions", "Re-evaluated decisions", "Elapsed (s)").row(0) == (2, 2, 0.125)
+
+    def test_top_n_coverage_deduplicates_selected_issue(self, lever_analyzer):
+        distribution, summary = lever_analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", 1.1, win_rank=2)
+        assert summary.select("Interactions", "Re-evaluated decisions", "Before", "After").row(0) == (3, 3, 3, 3)
+        assert summary.select("Before share (%)", "After share (%)", "Change (pp)").row(0) == (100.0, 100.0, 0.0)
+        assert distribution.filter(pl.col("Selected")).select("Action", "Before", "After").rows() == [
+            ("A", 3, 3),
+            ("B", 1, 1),
+        ]
+
+    @pytest.mark.parametrize(
+        ("by", "expected"),
+        [
+            ("Issue", [("Sales", 3, 3), ("Other", 1, 1), ("Service", 1, 1)]),
+            (
+                "Group",
+                [
+                    ("Sales", "Cards", 3, 3),
+                    ("Other", "Cards", 1, 1),
+                    ("Sales", "Loans", 1, 1),
+                    ("Service", "Cards", 1, 1),
+                ],
+            ),
+        ],
+    )
+    def test_analysis_granularity_preserves_top_n_union_and_target_summary(self, lever_analyzer, by, expected):
+        condition = (pl.col("Issue") == "Sales") & (pl.col("Group") == "Loans")
+        distribution, summary = lever_analyzer.scoring.lever_simulation(condition, 1.1, win_rank=2, by=by)
+        keys = ["Issue"] if by == "Issue" else ["Issue", "Group"]
+        assert distribution.select(*keys, "Before", "After").rows() == expected
+        assert summary.select("Interactions", "Before", "After").row(0) == (3, 1, 1)
+        assert summary["Before share (%)"].item() == 100 / 3
+
+    def test_delta_plot_uses_share_changes_and_fully_qualified_labels(self, lever_analyzer):
+        condition = (pl.col("Issue") == "Sales") & (pl.col("Group") == "Cards")
+        distribution, _ = lever_analyzer.scoring.lever_simulation(condition, 1.1)
+        fig = lever_analyzer.plot.lever_delta(distribution)
+        expected = {
+            "Other / Cards / A": -100 / 3,
+            "Service / Cards / A": -100 / 3,
+            "Sales / Cards / A": 100 / 3,
+            "Sales / Loans / B": 100 / 3,
+        }
+        assert dict(zip(fig.data[0].y, fig.data[0].x, strict=True)) == pytest.approx(expected)
+        data = lever_analyzer.plot.lever_delta(distribution, return_df=True)
+        assert dict(data.select("Label", "Change (pp)").iter_rows()) == pytest.approx(expected)
+
+    @pytest.mark.parametrize("by", ["Subject ID", "Invalid"])
+    def test_invalid_analysis_granularity(self, lever_analyzer, by):
+        with pytest.raises(ValueError, match="Analysis granularity"):
+            lever_analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", by=by)
+
+    @pytest.mark.parametrize("win_rank", [0, 6, 1.5])
+    def test_invalid_winning_rank(self, lever_analyzer, win_rank):
+        with pytest.raises(ValueError, match="Winning rank must be an integer"):
+            lever_analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", win_rank=win_rank)
+
+    @pytest.mark.parametrize("lever", [0.0, -1.0, float("nan"), float("inf")])
+    def test_invalid_replacement(self, lever_analyzer, lever):
+        with pytest.raises(ValueError, match="positive and finite"):
+            lever_analyzer.scoring.lever_simulation(pl.col("Issue") == "Sales", lever)
+
+    def test_empty_population_and_missing_target(self, lever_analyzer):
+        with pytest.raises(ValueError, match="No arbitration candidates"):
+            lever_analyzer.scoring.lever_simulation(
+                pl.col("Issue") == "Sales", additional_filters=pl.col("Channel") == "Absent"
+            )
+        with pytest.raises(ValueError, match="scope has no arbitration candidates"):
+            lever_analyzer.scoring.lever_simulation(pl.col("Issue") == "Absent")
+
+
+class TestThresholdSimulation:
+    def test_priority_threshold_reranks_survivors_and_keeps_population(self, lever_analyzer, monkeypatch):
+        source = lever_analyzer.decision_data.collect()
+        clock = iter([10.0, 10.125])
+        monkeypatch.setattr("pdstools.decision_analyzer._scoring.perf_counter", lambda: next(clock))
+        distribution, summary = lever_analyzer.scoring.threshold_simulation(min_priority=1.1)
+        assert summary.select("Interactions", "Before", "After", "Elapsed (s)").row(0) == (3, 3, 2, 0.125)
+        assert summary.select("Before share (%)", "After share (%)").row(0) == (100.0, 200 / 3)
+        assert distribution.select("Issue", "Group", "Action", "Before", "After").rows() == [
+            ("Sales", "Cards", "A", 1, 2),
+            ("Other", "Cards", "A", 1, 0),
+            ("Sales", "Loans", "B", 0, 0),
+            ("Service", "Cards", "A", 1, 0),
+        ]
+        assert lever_analyzer.decision_data.collect().equals(source)
+
+    def test_propensity_threshold_promotes_a_surviving_competitor(self, lever_analyzer):
+        raw = lever_analyzer.decision_data.filter(pl.col("Interaction ID") == "I1").with_columns(
+            Propensity=pl.when(pl.col("Issue") == "Sales").then(0.05).otherwise(0.2),
+            Value=pl.when(pl.col("Issue") == "Sales").then(100.0).otherwise(2.0),
+        )
+        analyzer = DecisionAnalyzer(raw, sample_size=10)
+        distribution, summary = analyzer.scoring.threshold_simulation(min_propensity=0.1, by="Issue")
+        assert distribution.select("Issue", "Before", "After", "Change (pp)").rows() == [
+            ("Other", 0, 1, 100.0),
+            ("Sales", 1, 0, -100.0),
+        ]
+        assert summary.select("Interactions", "Before", "After").row(0) == (1, 1, 1)
+
+    def test_all_offers_filtered_preserves_lost_wins(self, lever_analyzer):
+        distribution, summary = lever_analyzer.scoring.threshold_simulation(min_priority=100, win_rank=2, by="Issue")
+        assert distribution.select("Issue", "Before", "After").rows() == [
+            ("Other", 1, 0),
+            ("Sales", 3, 0),
+            ("Service", 1, 0),
+        ]
+        assert summary.select("Interactions", "Before", "After", "Change (pp)").row(0) == (3, 3, 0, -100.0)
+
+    def test_top_n_hierarchical_coverage(self, lever_analyzer):
+        distribution, summary = lever_analyzer.scoring.threshold_simulation(min_priority=1.1, win_rank=2, by="Issue")
+        assert distribution.select("Issue", "Before", "After").rows() == [
+            ("Sales", 3, 2),
+            ("Other", 1, 0),
+            ("Service", 1, 0),
+        ]
+        assert summary.select("Interactions", "Before", "After").row(0) == (3, 3, 2)
+
+    @pytest.mark.parametrize(
+        ("min_propensity", "min_priority"),
+        [(-0.1, 0), (1.1, 0), (float("nan"), 0), (0, -1), (0, float("inf"))],
+    )
+    def test_invalid_thresholds(self, lever_analyzer, min_propensity, min_priority):
+        with pytest.raises(ValueError, match="must be finite"):
+            lever_analyzer.scoring.threshold_simulation(min_propensity, min_priority)
 
 
 # ---------------------------------------------------------------------------
@@ -1803,8 +2137,8 @@ class TestFilteringAndScoping:
     def test_filtered_action_counts_with_thresholds(self, da_v2):
         result = da_v2.aggregates.filtered_action_counts(
             groupby_cols=[da_v2.level],
-            propensity_th=0.5,
-            priority_th=0.5,
+            propensity_threshold=0.5,
+            priority_threshold=0.5,
         )
         df = result.collect()
         assert df.height == 5
@@ -1918,7 +2252,7 @@ class TestOfferQualityAnalysis:
         """Test get_offer_quality returns expected structure."""
         # get_offer_quality requires action_counts to have threshold columns
         action_counts = da_v2.aggregates.filtered_action_counts(
-            groupby_cols=[da_v2.level, "Interaction ID"], propensity_th=0.1, priority_th=10.0
+            groupby_cols=[da_v2.level, "Interaction ID"], propensity_threshold=0.1, priority_threshold=10.0
         )
         result = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()
@@ -1940,7 +2274,7 @@ class TestOfferQualityAnalysis:
     def test_get_offer_quality_with_thresholds(self, da_v2):
         """Test get_offer_quality respects propensity/priority thresholds."""
         action_counts = da_v2.aggregates.filtered_action_counts(
-            groupby_cols=[da_v2.level, "Interaction ID"], propensity_th=0.5, priority_th=50.0
+            groupby_cols=[da_v2.level, "Interaction ID"], propensity_threshold=0.5, priority_threshold=50.0
         )
         result = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()
@@ -1964,8 +2298,8 @@ class TestOfferQualityAnalysis:
         """Test that get_offer_quality includes customers even if they have no actions."""
         action_counts = da_v2.aggregates.filtered_action_counts(
             groupby_cols=[da_v2.level, "Interaction ID"],
-            propensity_th=0.99,  # High threshold to filter most
-            priority_th=999.0,  # High threshold to filter most
+            propensity_threshold=0.99,  # High threshold to filter most
+            priority_threshold=999.0,  # High threshold to filter most
         )
         result = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()
@@ -1989,7 +2323,7 @@ class TestOfferQualityAnalysis:
     def test_get_offer_quality_stage_without_propensity(self, da_v2):
         """Test offer quality for stages without propensity uses atleast_one_action category."""
         action_counts = da_v2.aggregates.filtered_action_counts(
-            groupby_cols=[da_v2.level, "Interaction ID"], propensity_th=0.1, priority_th=10.0
+            groupby_cols=[da_v2.level, "Interaction ID"], propensity_threshold=0.1, priority_threshold=10.0
         )
         result = da_v2.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
         df = result.collect()

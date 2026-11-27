@@ -8,6 +8,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
     contextual_filters,
     ensure_data,
+    optionality_color_selector,
     stage_level_selector,
     stage_selectbox,
 )
@@ -15,15 +16,18 @@ from pdstools.utils.streamlit_utils import standard_page_config
 
 standard_page_config(page_title="Optionality · Decision Analysis")
 
-# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
-# (Streamlit Pages → Page 7 — Optionality Analysis).
-
 "# Optionality Analysis"
 
 """
-Analysis of the number of actions per customer. Do we have enough options for people? Global filters can
-be applied like everywhere to look at e.g. a certain group of issues.
+Explore how many actions are available per decision and how options are reduced
+across stages. Use global filters to focus on a particular set of offers.
 """
+st.info(
+    "- How many actions are available for each decision?\n"
+    "- How does propensity vary with the number of available actions?\n"
+    "- How many actions are excluded between stages?",
+    title="Key questions",
+)
 ensure_data()
 st.session_state["sidebar"] = st.sidebar
 with st.session_state["sidebar"]:
@@ -56,12 +60,20 @@ with st.container(border=True):
         key="optionality_stage",
         default="Arbitration",
     )
+    color_by = optionality_color_selector()
+    if color_by is not None:
+        st.caption(
+            "Colors split each decision proportionally to its remaining actions. "
+            "Total optionality, decision percentages, and the propensity line are unchanged."
+        )
 
     st.plotly_chart(
         st.session_state.decision_data.plot.propensity_vs_optionality(
             stage=st.session_state.get("optionality_stage", "Arbitration"),
             df=filtered_data,
+            color_by=color_by,
         ),
+        key="optionality_distribution",
     )
 
     st.caption(

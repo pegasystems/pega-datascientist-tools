@@ -11,10 +11,12 @@ __all__ = ["Aggregates", "HeadToHeadResult"]
 
 from bisect import bisect_left
 from dataclasses import dataclass
+from math import isfinite
 from typing import TYPE_CHECKING, Literal
 
 import polars as pl
 
+from ..utils.cdh_utils import weighted_average_polars
 from .utils import apply_filter, gini_coefficient
 
 if TYPE_CHECKING:
@@ -888,7 +890,13 @@ class Aggregates:
             )
         )
 
-    def get_optionality_data(self, df: pl.LazyFrame | None = None, by_day: bool = False) -> pl.LazyFrame:
+    def get_optionality_data(
+        self,
+        df: pl.LazyFrame | None = None,
+        by_day: bool = False,
+        *,
+        color_by: Literal["Issue", "Group"] | None = None,
+    ) -> pl.LazyFrame:
         """Average number of actions per stage, optionally broken down by day.
 
         Computes per-interaction action counts at each stage using
@@ -902,6 +910,11 @@ class Aggregates:
             If True, include ``"day"`` in the grouping for trend analysis.
             When False, zero-action rows are injected for stages where some
             interactions have no remaining actions.
+        color_by : {"Issue", "Group"}, optional
+            Split each decision proportionally to its remaining actions in
+            each category, without changing its total optionality. The
+            ``Interactions`` column then contains fractional decision counts.
+            Zero-action rows have a null category.
 
         Returns
         -------
@@ -909,6 +922,8 @@ class Aggregates:
         """
         if df is None:
             df = self.da.sample
+        if color_by is not None and color_by not in ("Issue", "Group"):
+            raise ValueError("color_by must be 'Issue', 'Group', or None.")
         expr = [
             pl.len().alias("nOffers"),
             pl.col("Propensity").filter(pl.col("Propensity") < 0.5).max().alias("bestPropensity"),
@@ -917,15 +932,30 @@ class Aggregates:
         group_by_columns = ["Interaction ID", "day"] if by_day else ["Interaction ID"]
         outer_group = ["nOffers", self.da.level, "day"] if by_day else ["nOffers", self.da.level]
 
-        per_offer_count_and_stage = (
-            self.aggregate_remaining_per_stage(
-                df=df,
-                group_by_columns=group_by_columns,
-                aggregations=expr,
-            )
-            .group_by(outer_group)
-            .agg(Interactions=pl.len(), AverageBestPropensity=pl.mean("bestPropensity"))
+        per_decision = self.aggregate_remaining_per_stage(
+            df=df,
+            group_by_columns=group_by_columns,
+            aggregations=expr,
         )
+        if color_by is None:
+            per_offer_count_and_stage = per_decision.group_by(outer_group).agg(
+                Interactions=pl.len(), AverageBestPropensity=pl.mean("bestPropensity")
+            )
+        else:
+            category_counts = self.aggregate_remaining_per_stage(
+                df=df,
+                group_by_columns=[*group_by_columns, color_by],
+                aggregations=[pl.len().alias("category_offers")],
+            )
+            per_offer_count_and_stage = (
+                category_counts.join(per_decision, on=[*group_by_columns, self.da.level], nulls_equal=True)
+                .with_columns((pl.col("category_offers") / pl.col("nOffers")).alias("decision_weight"))
+                .group_by([*outer_group, color_by])
+                .agg(
+                    Interactions=pl.sum("decision_weight"),
+                    AverageBestPropensity=weighted_average_polars("bestPropensity", "decision_weight").fill_nan(None),
+                )
+            )
 
         if by_day:
             return per_offer_count_and_stage.sort("nOffers", descending=True)
@@ -937,12 +967,16 @@ class Aggregates:
             per_offer_count_and_stage.group_by(self.da.level)
             .agg(interaction_count=pl.sum("Interactions"))
             .with_columns(
-                Interactions=(total_interactions - pl.col("interaction_count")).cast(schema["Interactions"]),
+                Interactions=(total_interactions - pl.col("interaction_count"))
+                .clip(lower_bound=0)
+                .cast(schema["Interactions"]),
                 AverageBestPropensity=pl.lit(0.0).cast(schema["AverageBestPropensity"]),
                 nOffers=pl.lit(0).cast(schema["nOffers"]),
             )
             .drop("interaction_count")
         )
+        if color_by is not None:
+            zero_actions = zero_actions.with_columns(pl.lit(None, dtype=schema[color_by]).alias(color_by))
         return pl.concat(
             [
                 per_offer_count_and_stage,
@@ -1246,8 +1280,7 @@ class Aggregates:
         for i, stage in enumerate(self.da.AvailableNBADStages):
             # Get aggregated counts for this stage (only interactions WITH actions)
             stage_df = (
-                # Tracked in docs/plans/decision-analyzer-TODO.md (P2:
-                # Refactor get_offer_quality) — delegate to
+                # Tracked in docs/decision-analyzer-roadmap.md — delegate to
                 # aggregate_remaining_per_stage instead of this manual loop.
                 df.filter(pl.col(self.da.level).is_in(self.da.AvailableNBADStages[i:]))
                 .group_by(group_by)
@@ -1298,11 +1331,72 @@ class Aggregates:
             .otherwise(pl.lit(0)),
         )
 
+    def lever_summary(
+        self,
+        selection: pl.Expr,
+        *,
+        percentage: float = 0.0,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+    ) -> pl.DataFrame:
+        """Derive a shared replacement lever from selected arbitration offers.
+
+        Parameters
+        ----------
+        selection : pl.Expr
+            Expression selecting the issue, group, or action.
+        percentage : float, default 0.0
+            Adjustment from -50 to +50 percent around the median baseline lever.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Population filters applied before computing the baseline.
+
+        Returns
+        -------
+        pl.DataFrame
+            One row with Minimum, Median, Maximum, Replacement,
+            Lowers existing levers, and All mandatory. Missing levers use the
+            neutral value 1.0. All mandatory is true only when every selected
+            candidate is mandatory.
+            Replacement is median times ``1 + percentage / 100``; it is one
+            shared value, not a multiplier applied to each offer.
+
+        Raises
+        ------
+        ValueError
+            If the adjustment is outside the prototype range, no eligible
+            offers match, or their median is not positive and finite.
+        """
+        if not isfinite(percentage) or not -50 <= percentage <= 50:
+            raise ValueError("Lever adjustment must be finite and between -50% and +50%.")
+        levers = pl.col("Levers").fill_null(1.0)
+        summary = (
+            apply_filter(self.da.sample, additional_filters)
+            .filter(
+                selection.fill_null(False)
+                & pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down)
+                & pl.col("Priority").is_not_null()
+            )
+            .select(
+                Minimum=levers.min(),
+                Median=levers.median(),
+                Maximum=levers.max(),
+                **{"All mandatory": pl.col("is_mandatory").cast(pl.Boolean).fill_null(False).all()},
+            )
+            .collect()
+        )
+        median = summary["Median"].item()
+        if median is None or not isfinite(median) or median <= 0:
+            raise ValueError("Selected arbitration offers must have a positive, finite median lever.")
+        return summary.with_columns(
+            (pl.col("Median") * (1 + percentage / 100)).alias("Replacement"),
+        ).with_columns(
+            (pl.col("Replacement") < pl.col("Maximum")).alias("Lowers existing levers"),
+        )
+
     def filtered_action_counts(
         self,
         groupby_cols: list[str],
-        propensity_th: float | None = None,
-        priority_th: float | None = None,
+        propensity_threshold: float | None = None,
+        priority_threshold: float | None = None,
         additional_filters: pl.Expr | list[pl.Expr] | None = None,
     ) -> pl.LazyFrame:
         """Return action counts from the sample, optionally classified by propensity/priority thresholds.
@@ -1311,9 +1405,9 @@ class Aggregates:
         ----------
         groupby_cols : list of str
             Column names to group by.
-        propensity_th : float, optional
+        propensity_threshold : float, optional
             Propensity threshold for classifying offers.
-        priority_th : float, optional
+        priority_threshold : float, optional
             Priority threshold for classifying offers.
         additional_filters : pl.Expr or list[pl.Expr], optional
             Extra filters applied to the sample (e.g. channel filter).
@@ -1331,7 +1425,7 @@ class Aggregates:
             if col not in df.collect_schema().names():
                 raise ValueError(f"Column '{col}' not found in the dataframe.")
 
-        if propensity_th is None or priority_th is None:
+        if propensity_threshold is None or priority_threshold is None:
             return df.group_by(groupby_cols).agg(
                 no_of_offers=pl.count("Action"),
             )
@@ -1346,19 +1440,19 @@ class Aggregates:
             .count()
             .alias("new_models"),
             pl.col("Action")
-            .filter(has_propensity & (pl.col("Propensity") < propensity_th) & (pl.col("Propensity") != 0.5))
+            .filter(has_propensity & (pl.col("Propensity") < propensity_threshold) & (pl.col("Propensity") != 0.5))
             .count()
             .alias("poor_propensity_offers"),
             pl.col("Action")
-            .filter(has_propensity & (pl.col("Priority") < priority_th) & (pl.col("Propensity") != 0.5))
+            .filter(has_propensity & (pl.col("Priority") < priority_threshold) & (pl.col("Propensity") != 0.5))
             .count()
             .alias("poor_priority_offers"),
             pl.col("Action")
             .filter(
                 has_propensity
-                & (pl.col("Propensity") >= propensity_th)
+                & (pl.col("Propensity") >= propensity_threshold)
                 & (pl.col("Propensity") != 0.5)
-                & (pl.col("Priority") >= priority_th)
+                & (pl.col("Priority") >= priority_threshold)
             )
             .count()
             .alias("good_offers"),
@@ -1584,8 +1678,7 @@ class Aggregates:
         """
         tbl = (
             self.da.preaggregated_remaining_view.group_by(
-                # Tracked in docs/plans/decision-analyzer-TODO.md (P3: AB
-                # test: include IA properties) — IA properties not joined
+                # Tracked in docs/decision-analyzer-roadmap.md — IA properties not joined
                 # here when present.
                 [self.da.level, "Model Control Group"]
             )

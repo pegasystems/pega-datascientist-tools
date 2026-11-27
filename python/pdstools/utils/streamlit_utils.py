@@ -111,19 +111,6 @@ def _apply_sidebar_logo():
             "  padding: 0 1rem 0.75rem;"
             "}"
         )
-    # Streamlit auto-collapses sidebar nav past ~10 items into a
-    # "View N more" button. With three apps hosted side-by-side the
-    # launcher easily exceeds that, hiding entire tools by default.
-    # Force-expand by setting max-height on the nav list and hiding
-    # the toggle. Targets stable testid attributes only — no JS.
-    css_parts.append(
-        "[data-testid='stSidebarNav'] ul {"
-        "  max-height: none !important;"
-        "}"
-        "[data-testid='stSidebarNavViewButton'] {"
-        "  display: none !important;"
-        "}"
-    )
     css_parts.append("</style>")
     st.html("".join(css_parts))
 

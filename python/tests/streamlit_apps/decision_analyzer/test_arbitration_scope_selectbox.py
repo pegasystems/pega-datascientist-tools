@@ -1,6 +1,6 @@
 """Widget-interaction test: scope/granularity selectbox on Arbitration Distribution page.
 
-``10_Arbitration_Distribution.py`` renders a "Granularity:" selectbox
+``10_Arbitration_Distribution.py`` renders an "Analysis granularity" selectbox
 keyed ``scope`` in the sidebar.  The initial value defaults to
 ``get_possible_scope_values()[0]`` (typically "Action"); changing it
 controls whether downstream plots break results by Issue, Group, or

@@ -3,11 +3,18 @@ from __future__ import annotations
 # python/pdstools/app/decision_analyzer/pages/9_Thresholding_Analysis.py
 import math
 
-import plotly.express as px
 import polars as pl
 import streamlit as st
 
-from pdstools.app.decision_analyzer.da_streamlit_utils import collect_page_filters, contextual_filters, ensure_data
+from pdstools.app.decision_analyzer.da_streamlit_utils import (
+    collect_page_filters,
+    contextual_filters,
+    ensure_data,
+    show_prioritization_explanation,
+    show_simulation_comparison,
+    simulation_granularity_selector,
+    win_rank_selector,
+)
 from pdstools.decision_analyzer.utils import apply_filter
 from pdstools.utils.streamlit_utils import standard_page_config
 
@@ -19,12 +26,14 @@ standard_page_config(page_title="Thresholding · Decision Analysis")
 Explore how setting minimum thresholds for response likelihood (propensity) and priority
 affects which offers reach customers. Use this to fine-tune your offer quality standards
 and understand the trade-offs between offer volume and predicted performance.
-
-**Key questions:**
-* How many offers would be filtered if we raised quality thresholds?
-* What's the right balance between offer volume and customer relevance?
-* How do threshold changes affect specific offer categories?
 """
+
+st.info(
+    "- How many offers would be filtered by higher thresholds?\n"
+    "- What is the trade-off between offer volume and customer relevance?\n"
+    "- How do threshold changes affect offer categories?",
+    title="Key questions",
+)
 
 ensure_data()
 
@@ -41,6 +50,7 @@ if st.session_state.get("page_channel_filter", "Any") != "Any":
             f"No data available for {st.session_state.page_channel_filter}. "
             "Try selecting 'Any' or adjusting global filters."
         )
+        show_prioritization_explanation()
         st.stop()
 
 channel_filter = st.session_state.get("page_channel_expr")
@@ -61,10 +71,11 @@ arb_data = (
 
 total_action_appearances = arb_data["Decisions"].sum()
 
-if arb_data.height == 0:
+if arb_data.height == 0 or not arb_data["Priority"].is_not_null().any():
     st.warning(
-        "⚠️ No actions survive to the arbitration stage for the current filters. Please check your data or filters."
+        "⚠️ No rankable arbitration candidates are available for the current filters. Please check your data or filters."
     )
+    show_prioritization_explanation()
     st.stop()
 
 # Slider upper bounds: use P75 of the filtered data so the slider has
@@ -121,6 +132,8 @@ with st.sidebar:
         step=prio_step,
         format=f"%.{prio_decimals}f",
     )
+    win_rank_selector()
+    analysis_level = simulation_granularity_selector()
     contextual_filters()
 
 # ---------------------------------------------------------------------------
@@ -149,7 +162,7 @@ with st.container(border=True):
     "## Impact Summary"
 
     st.caption(
-        "Shows how many offers meet your threshold criteria. **% Decisions without actions** "
+        "Candidate volume before selecting Top-N winners. **% Decisions without actions** "
         "indicates decisions where no offers qualify — these customers would "
         "receive nothing."
     )
@@ -171,7 +184,7 @@ with st.container(border=True):
 # Section 2: Propensity and Priority distributions with threshold lines
 # ---------------------------------------------------------------------------
 with st.container(border=True):
-    "## Response Likelihood and Priority Distributions"
+    "## Propensity and Priority Distributions"
 
     st.caption(
         "See how your offers are distributed across response likelihood (propensity) and "
@@ -184,79 +197,36 @@ with st.container(border=True):
 
     col1, col2 = st.columns(2)
     with col1:
-        propensity_hist = px.histogram(
-            plot_data,
-            x="Propensity",
-            y="Decisions",
-            nbins=50,
-        )
-        propensity_hist.update_yaxes(title_text="Actions")
-        propensity_hist.add_vline(
-            x=propensity_threshold,
-            line_dash="dash",
-            line_color="red",
-            line_width=2,
-            annotation_text=f"Threshold: {propensity_threshold:.2%}",
-            annotation_position="top right",
-            annotation_font_color="red",
-        )
+        propensity_hist = da.plot.threshold_distribution(plot_data, "Propensity", propensity_threshold)
         prop_event = st.plotly_chart(propensity_hist, on_select="rerun", key="prop_chart")
 
     with col2:
-        priority_hist = px.histogram(
-            plot_data,
-            x="Priority",
-            y="Decisions",
-            nbins=50,
-            log_y=True,
-        )
-        priority_hist.update_yaxes(title_text="Actions")
-        priority_hist.add_vline(
-            x=priority_threshold,
-            line_dash="dash",
-            line_color="red",
-            line_width=2,
-            annotation_text=f"Threshold: {priority_threshold:.4f}",
-            annotation_position="top right",
-            annotation_font_color="red",
-        )
+        priority_hist = da.plot.threshold_distribution(plot_data, "Priority", priority_threshold)
         prio_event = st.plotly_chart(priority_hist, on_select="rerun", key="prio_chart")
 
 
 # ---------------------------------------------------------------------------
-# Section 3: Distribution of surviving actions above both thresholds
+# Section 3: Top-N delta after filtering and re-ranking surviving offers
 # ---------------------------------------------------------------------------
-with st.container(border=True):
-    "## Offers Meeting Quality Thresholds"
+distribution, summary = da.scoring.threshold_simulation(
+    min_propensity=propensity_threshold,
+    min_priority=priority_threshold,
+    additional_filters=collect_page_filters(),
+    win_rank=st.session_state.win_rank,
+    by=analysis_level,
+)
+if summary["All mandatory"].item():
+    st.info("★ All rankable offers in this population are mandatory. Thresholds can still filter them out.")
+st.caption(
+    "Both thresholds apply to all offers. After removes offers below either threshold, "
+    "then re-ranks the survivors. Decisions left without a qualifying offer remain in the denominator."
+)
+show_simulation_comparison(
+    distribution,
+    summary,
+    title=None,
+    win_rank=st.session_state.win_rank,
+    analysis_level=analysis_level,
+)
 
-    surviving = (
-        apply_filter(da.preaggregated_filter_view, channel_filter)
-        .filter(pl.col(da.level).is_in(da.stages_from_arbitration_down))
-        .select(
-            pl.col("Issue"),
-            pl.col("Group"),
-            pl.col("Propensity").explode(empty_as_null=True).alias("Propensity"),
-            pl.col("Priority").explode(empty_as_null=True).alias("Priority"),
-            pl.col("Decisions"),
-        )
-        .filter((pl.col("Propensity") >= propensity_threshold) & (pl.col("Priority") >= priority_threshold))
-        .group_by(["Issue", "Group"])
-        .agg(pl.sum("Decisions").alias("Actions"))
-        .sort("Actions", descending=True)
-        .filter(pl.col("Actions") > 0)
-        .collect()
-    )
-
-    if surviving.height == 0:
-        st.info("No actions survive at these thresholds.")
-    else:
-        fig = px.bar(
-            surviving,
-            x="Group",
-            y="Actions",
-            color="Issue",
-            template="pega",
-        )
-        fig.update_xaxes(tickangle=45, automargin=True, title="")
-        fig.update_layout(xaxis={"categoryorder": "total descending"})
-        st.plotly_chart(fig)
+show_prioritization_explanation()

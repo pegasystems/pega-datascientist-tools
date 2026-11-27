@@ -3,14 +3,19 @@ from __future__ import annotations
 import polars as pl
 import streamlit as st
 
-from pdstools.app.decision_analyzer.da_streamlit_utils import collect_page_filters, contextual_filters, ensure_data
+from pdstools.app.decision_analyzer.da_streamlit_utils import (
+    ANALYSIS_GRANULARITY_LABEL,
+    collect_page_filters,
+    contextual_filters,
+    ensure_data,
+    show_action_color_notice,
+    show_prioritization_explanation,
+    win_rank_selector,
+)
 from pdstools.decision_analyzer.utils import apply_filter
 from pdstools.utils.streamlit_utils import get_current_index, standard_page_config
 
 standard_page_config(page_title="Global Sensitivity · Decision Analysis")
-
-# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
-# (Streamlit Pages → Page 5 — Global Sensitivity).
 
 "# Global Sensitivity Analysis"
 
@@ -18,24 +23,19 @@ standard_page_config(page_title="Global Sensitivity · Decision Analysis")
 Understand which factors have the biggest impact on which offers win. This shows
 how much each factor (customer response likelihood, business value, strategic levers)
 influences your final offer selections.
-
-**How to read this:** Each factor shows what percentage of winning offers would change
-if that factor were removed. Higher percentages mean that factor is more influential in
-driving offer selection.
 """
+
+st.info(
+    "- What percentage of winning offers would change if each factor were removed?\n"
+    "- Which factors have the greatest influence on offer selection?",
+    title="Key questions",
+)
 
 ensure_data()
 st.session_state["sidebar"] = st.sidebar
 
 with st.session_state["sidebar"]:
-    st.number_input(
-        "Define winning: rank in top N",
-        min_value=1,
-        max_value=st.session_state.decision_data.max_win_rank,
-        value=st.session_state.win_rank if "win_rank" in st.session_state else 1,
-        key="win_rank",
-        help="A win means at least one offer ranks N or better.",
-    )
+    win_rank_selector()
     contextual_filters()
 
 # Apply channel filter to sample data
@@ -49,6 +49,7 @@ if st.session_state.get("page_channel_filter", "Any") != "Any":
             f"No data available for {st.session_state.page_channel_filter}. "
             "Try selecting 'Any' or adjusting global filters."
         )
+        show_prioritization_explanation()
         st.stop()
 
 channel_filter = st.session_state.get("page_channel_expr")
@@ -97,9 +98,12 @@ with st.container(border=True):
 
     scope_index = get_current_index(scope_options, "glob_sensitivity_scope")
     st.selectbox(
-        "Granularity:",
+        ANALYSIS_GRANULARITY_LABEL,
         options=scope_options,
         # column names are already friendly
         index=scope_index,
         key="glob_sensitivity_scope",
     )
+    show_action_color_notice(st.session_state.glob_sensitivity_scope)
+
+show_prioritization_explanation()

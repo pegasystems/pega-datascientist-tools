@@ -2,11 +2,190 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Literal, cast, overload
 
 import plotly.graph_objects as go
 import polars as pl
 from plotly.subplots import make_subplots
+
+from ...utils.pega_template import colorway
+
+
+@overload
+def simulation_distribution(self, df: pl.DataFrame, *, return_df: Literal[False] = False) -> go.Figure: ...
+
+
+@overload
+def simulation_distribution(self, df: pl.DataFrame, *, return_df: Literal[True]) -> pl.DataFrame: ...
+
+
+def simulation_distribution(self, df: pl.DataFrame, *, return_df: bool = False) -> go.Figure | pl.DataFrame:
+    """Compare overall Before and After winning-share distributions.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        Distribution returned by ``scoring.lever_simulation()`` or
+        ``scoring.threshold_simulation()`` at the desired granularity.
+    return_df : bool, default False
+        Return all rows with fully qualified labels in display order.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure or pl.DataFrame
+        Horizontal stacked Before and After bars, or their underlying data.
+        Include unchanged and zero-share categories.
+        Shares retain the simulation's baseline decision denominator; Top-N
+        coverage may overlap across categories.
+
+    Notes
+    -----
+    Action colors are assigned in baseline winning-count order and repeat
+    when the palette is exhausted. They are shared between Before and After,
+    and remain stable as the scenario changes, but may change with population
+    filters. Issue and Group colors use the analyzer's shared mappings.
+    """
+    keys = [key for key in ("Issue", "Group", "Action") if key in df.columns]
+    if not keys:
+        raise ValueError("Simulation distribution data must contain Issue, Group, or Action columns.")
+    data = df.with_columns(
+        Label=pl.concat_str([pl.col(key).fill_null("(missing)") for key in keys], separator=" / "),
+    ).sort(["Before", "After", *keys], descending=[True, True, *[False] * len(keys)])
+    if return_df:
+        return data
+
+    action_colors = {}
+    if keys[-1] == "Action":
+        palette = list(dict.fromkeys(color for color in colorway if color not in {"#63666F", "#A7A9B4", "#D0D1DB"}))
+        ordered = data.sort(["Before", *keys], descending=[True, *[False] * len(keys)])
+        action_colors = {
+            tuple(row[key] for key in keys): palette[index % len(palette)]
+            for index, row in enumerate(ordered.iter_rows(named=True))
+        }
+        colors = {}
+    else:
+        colors = self._decision_data.color_mappings.get(keys[-1], {})
+    fig = go.Figure()
+    for row in data.iter_rows(named=True):
+        color = (
+            action_colors[tuple(row[key] for key in keys)]
+            if keys[-1] == "Action"
+            else colors.get(row[keys[-1]], "#cccccc")
+        )
+        fig.add_trace(
+            go.Bar(
+                name=row["Label"],
+                x=[row["Before share (%)"], row["After share (%)"]],
+                y=["Before", "After"],
+                orientation="h",
+                marker=dict(color=color, line=dict(color="white", width=1)),
+                texttemplate="%{x:.1f}%",
+                textposition="inside",
+                customdata=[[row["Before"]], [row["After"]]],
+                hovertemplate=(
+                    "<b>%{fullData.name}</b><br>%{y}: %{x:.1f}% (%{customdata[0]:,} decisions)<extra></extra>"
+                ),
+            ),
+        )
+    maximum_total = max(data["Before share (%)"].sum(), data["After share (%)"].sum())
+    fig.update_xaxes(title_text="Winning share", ticksuffix="%", range=[0, max(100.0, maximum_total)])
+    fig.update_yaxes(
+        autorange="reversed",
+        automargin=True,
+        title_text=None,
+        categoryorder="array",
+        categoryarray=["Before", "After"],
+    )
+    fig.update_layout(
+        template="pega",
+        barmode="stack",
+        height=280,
+        margin=dict(l=0, r=8, t=8, b=40),
+        uniformtext=dict(minsize=10, mode="hide"),
+        legend=dict(y=1, yanchor="top", traceorder="normal"),
+    )
+    return fig
+
+
+@overload
+def lever_delta(self, df: pl.DataFrame, *, return_df: Literal[False] = False) -> go.Figure: ...
+
+
+@overload
+def lever_delta(self, df: pl.DataFrame, *, return_df: Literal[True]) -> pl.DataFrame: ...
+
+
+def lever_delta(self, df: pl.DataFrame, *, return_df: bool = False) -> go.Figure | pl.DataFrame:
+    """Plot winning-share gains and losses from a what-if simulation.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        Distribution returned by ``scoring.lever_simulation()`` or
+        ``scoring.threshold_simulation()`` at the desired granularity.
+    return_df : bool, default False
+        Return changed rows with fully qualified labels instead of a figure.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure or pl.DataFrame
+        Horizontal delta bars, or their underlying data. Positive values
+        indicate gains and negative values indicate losses. Changes are
+        absolute differences in winning share, not relative percent changes.
+    """
+    keys = [key for key in ("Issue", "Group", "Action") if key in df.columns]
+    if not keys:
+        raise ValueError("Lever delta data must contain Issue, Group, or Action columns.")
+    data = (
+        df.filter(pl.col("Change (pp)") != 0)
+        .with_columns(
+            Label=pl.concat_str([pl.col(key).fill_null("(missing)") for key in keys], separator=" / "),
+        )
+        .sort("Change (pp)")
+    )
+    if return_df:
+        return data
+
+    changes = data["Change (pp)"].to_list()
+    fig = go.Figure(
+        go.Bar(
+            x=changes,
+            y=data["Label"].to_list(),
+            orientation="h",
+            marker_color=["#00A6A6" if change > 0 else "#E45756" if change < 0 else "#999999" for change in changes],
+            text=changes,
+            texttemplate="%{text:+.1f}",
+            textposition="outside",
+            cliponaxis=False,
+            customdata=data.select("Before", "After", "Before share (%)", "After share (%)").rows(),
+            hovertemplate=(
+                "<b>%{y}</b><br>"
+                "Before: %{customdata[0]:,} decisions (%{customdata[2]:.1f}%)<br>"
+                "After: %{customdata[1]:,} decisions (%{customdata[3]:.1f}%)<br>"
+                "Change: %{x:+.1f}<extra></extra>"
+            ),
+        )
+    )
+    fig.update_layout(
+        template="pega",
+        height=max(240, 26 * data.height + 80),
+        margin=dict(l=0, r=48, t=8, b=40),
+        xaxis_title="Change in winning share",
+        yaxis_title=None,
+        yaxis_automargin=True,
+        showlegend=False,
+    )
+    fig.add_vline(x=0, line_width=1, line_color="#999999")
+    if data.is_empty():
+        fig.add_annotation(
+            text="No change in winning share.",
+            x=0.5,
+            y=0.5,
+            xref="paper",
+            yref="paper",
+            showarrow=False,
+        )
+    return fig
 
 
 def global_winloss_distribution(self, level, win_rank, return_df=False, additional_filters=None):
@@ -40,11 +219,11 @@ def global_winloss_distribution(self, level, win_rank, return_df=False, addition
         fig.add_trace(
             go.Pie(
                 labels=[_label(v) for v in wins_values],
-                values=wins_df["Percentage"],
-                marker=dict(colors=colors_wins),
+                values=wins_df["Count"],
+                marker=dict(colors=colors_wins, line=dict(color="white", width=1)),
                 textposition="auto",
                 textinfo="label+percent",
-                hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>",
+                hovertemplate="<b>%{label}</b><br>%{percent} (%{value:,} wins)<extra></extra>",
             ),
             row=1,
             col=1,
@@ -56,11 +235,11 @@ def global_winloss_distribution(self, level, win_rank, return_df=False, addition
         fig.add_trace(
             go.Pie(
                 labels=[_label(v) for v in losses_values],
-                values=losses_df["Percentage"],
-                marker=dict(colors=colors_losses),
+                values=losses_df["Count"],
+                marker=dict(colors=colors_losses, line=dict(color="white", width=1)),
                 textposition="auto",
                 textinfo="label+percent",
-                hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>",
+                hovertemplate="<b>%{label}</b><br>%{percent} (%{value:,} losses)<extra></extra>",
             ),
             row=1,
             col=2,

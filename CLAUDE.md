@@ -1,11 +1,4 @@
-# Claude Code
+# Development guidance
 
-See [AGENTS.md](AGENTS.md) for all coding conventions and project guidelines.
-
-## Permissions
-
-Use `uv` for all Python execution (`uv run`, `uv sync`, `uv pip`).
-
-## MCP Servers
-
-Databricks MCP is configured in `.claude/settings.json` for workspace access.
+Read and follow [AGENTS.md](AGENTS.md), the canonical repository-wide guide.
+Keep shared guidance there rather than duplicating it in this entry file.

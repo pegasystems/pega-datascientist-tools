@@ -27,13 +27,6 @@ def filtering_components(
             df.filter(pl.col(self._decision_data.level) == stage).get_column("Component Name").to_list()
         )
 
-    color_kwargs = {}
-    if "Component Type" in df.columns:
-        color_kwargs["color"] = "Component Type"
-    else:
-        color_kwargs["color"] = "Filtered Decisions"
-        color_kwargs["color_continuous_scale"] = "reds"
-
     fig = px.bar(
         df.with_columns(pl.col("Filtered Decisions").cast(pl.Float32)),
         x="Filtered Decisions",
@@ -43,7 +36,8 @@ def filtering_components(
         facet_col_wrap=2,
         template="pega",
         category_orders={self._decision_data.level: AvailableNBADStages},
-        **color_kwargs,
+        color="Component Name",
+        color_discrete_map=self._decision_data.color_mappings["Component Name"],
     )
 
     fig.add_annotation(
@@ -88,6 +82,7 @@ def component_action_impact(
     One facet per component (top components by total filtering), bars show
     items sorted by filtered decision count. The scope controls whether the
     breakdown is at Issue, Group, or Action level.
+    Component colors follow their pipeline stage family.
 
     Parameters
     ----------
@@ -122,8 +117,6 @@ def component_action_impact(
         return fig
 
     y_col = scope if scope in plot_df.columns else "Action"
-    color_discrete_map = self._decision_data.color_mappings.get(y_col)
-
     fig = px.bar(
         plot_df,
         x="Filtered Decisions",
@@ -131,8 +124,8 @@ def component_action_impact(
         orientation="h",
         facet_col="Component Name",
         facet_col_wrap=2,
-        color=y_col,
-        color_discrete_map=color_discrete_map,
+        color="Component Name",
+        color_discrete_map=self._decision_data.color_mappings["Component Name"],
         template="pega",
     )
     fig.update_yaxes(matches=None, automargin=True, title="")

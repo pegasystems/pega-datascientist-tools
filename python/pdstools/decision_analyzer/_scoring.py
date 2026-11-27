@@ -9,6 +9,8 @@ from __future__ import annotations
 
 __all__ = ["Scoring"]
 
+from math import isfinite
+from time import perf_counter
 from typing import TYPE_CHECKING, Literal
 
 import polars as pl
@@ -54,12 +56,20 @@ class Scoring:
         pl.LazyFrame
             Sample data augmented with ``prio_*`` and ``rank_*`` columns
             for each PVCL variant.
+
+        Notes
+        -----
+        Context Weight and Levers are expected to be calculated factors, not
+        raw percentage weights. A zero Value is neutral. Nonzero Value is
+        used as recorded; value-weighting eligibility is not available here.
+        Missing components use 1.0 as an approximation. Mandatory candidates
+        take precedence and tie with one another independently of PVCL.
         """
         rank_exprs = [
             pl.struct(
                 [
                     "is_mandatory",
-                    x,
+                    pl.when(pl.col("is_mandatory").cast(pl.Boolean)).then(0.0).otherwise(pl.col(x)),
                     "Stage Order",
                     pl.col("Issue").rank() * -1,
                     pl.col("Group").rank() * -1,
@@ -88,6 +98,7 @@ class Scoring:
             else:
                 fill_exprs.append(pl.lit(default).alias(col_name))
 
+        value_factor = pl.when(pl.col("Value") == 0).then(1.0).otherwise(pl.col("Value"))
         return (
             apply_filter(
                 self.da.sample.with_columns(fill_exprs),
@@ -96,11 +107,11 @@ class Scoring:
             .with_columns(overrides if overrides is not None else [])
             .filter(pl.col("Priority").is_not_null())
             .with_columns(
-                prio_PVCL=(pl.col("Propensity") * pl.col("Value") * pl.col("Context Weight") * pl.col("Levers")),
-                prio_VCL=(pl.col("Value") * pl.col("Context Weight") * pl.col("Levers")),
+                prio_PVCL=(pl.col("Propensity") * value_factor * pl.col("Context Weight") * pl.col("Levers")),
+                prio_VCL=(value_factor * pl.col("Context Weight") * pl.col("Levers")),
                 prio_PCL=(pl.col("Propensity") * pl.col("Context Weight") * pl.col("Levers")),
-                prio_PVL=(pl.col("Propensity") * pl.col("Value") * pl.col("Levers")),
-                prio_PVC=(pl.col("Propensity") * pl.col("Value") * pl.col("Context Weight")),
+                prio_PVL=(pl.col("Propensity") * value_factor * pl.col("Levers")),
+                prio_PVC=(pl.col("Propensity") * value_factor * pl.col("Context Weight")),
             )
             .with_columns(*rank_exprs)
         )
@@ -386,6 +397,8 @@ class Scoring:
         Returns
         -------
         pl.LazyFrame
+            In rank-based mode, scope columns, ``Status``, ``Percentage``
+            (a fraction), and the absolute win/loss ``Count``.
         """
         if group_filter is None:
             if win_rank is None:
@@ -397,18 +410,21 @@ class Scoring:
                 .group_by(level)
                 .agg(Wins=pl.sum(win_col), Decisions=pl.sum("Decisions"))
                 .with_columns(Losses=pl.col("Decisions") - pl.col("Wins"))
-                .with_columns(
-                    Wins=pl.col("Wins") / pl.sum("Wins"),
-                    Losses=pl.col("Losses") / pl.sum("Losses"),
-                )
             )
 
-            return group_level_win_losses.unpivot(
-                index=level,
-                on=["Wins", "Losses"],
-                variable_name="Status",
-                value_name="Percentage",
-            ).sort(["Status", "Percentage"], descending=True)
+            return (
+                group_level_win_losses.unpivot(
+                    index=level,
+                    on=["Wins", "Losses"],
+                    variable_name="Status",
+                    value_name="Count",
+                )
+                .with_columns(
+                    (pl.col("Count") / pl.col("Count").sum().over("Status")).alias("Percentage"),
+                )
+                .select(pl.exclude("Count"), "Count")
+                .sort(["Status", "Percentage"], descending=True)
+            )
 
         if status not in {"Wins", "Losses"}:
             raise ValueError("When group_filter is provided, status must be either 'Wins' or 'Losses'.")
@@ -713,6 +729,250 @@ class Scoring:
             )
 
         return _aggregate(win_rows, interactions_win), _aggregate(loss_rows, interactions_loss)
+
+    def lever_simulation(
+        self,
+        lever_condition: pl.Expr,
+        lever_value: float | None = None,
+        *,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        win_rank: int = 1,
+        by: Literal["Issue", "Group", "Action"] = "Action",
+    ) -> tuple[pl.DataFrame, pl.DataFrame]:
+        """Compare reconstructed offer distributions after replacing levers.
+
+        Rank arbitration-eligible candidates using the original PVCL components
+        for the baseline and an absolute lever replacement for the scenario.
+        Unselected competitors remain in the same sampled interaction population.
+        Mandatory precedence and tie-breaking follow :meth:`re_rank`.
+
+        Parameters
+        ----------
+        lever_condition : pl.Expr
+            Boolean expression selecting an issue, group, or action. Include
+            parent hierarchy columns when selecting groups or actions.
+        lever_value : float, optional
+            Positive, finite replacement lever. This is not a
+            multiplier of existing levers. None removes the override; 1.0
+            replaces selected levers with the neutral value.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Population filters applied equally to both scenarios.
+        win_rank : int, default 1
+            Count offers ranked in the top N, up to the analyzer's max_win_rank.
+            Selected-scope coverage counts each interaction once if at least one
+            selected offer reaches the top N.
+        by : {"Issue", "Group", "Action"}, default "Action"
+            Distribution granularity, retaining parent hierarchy columns.
+            Each decision counts once per issue, group, or action. This does
+            not change the selected-target summary.
+
+        Returns
+        -------
+        tuple of pl.DataFrame and pl.DataFrame
+            Distribution with hierarchy columns through ``by``, Selected,
+            Before, After, Before share (%), After share (%), and Change (pp).
+            Selected indicates that a row contains the adjusted target.
+            The second frame is a one-row selected-scope summary containing Interactions,
+            Re-evaluated decisions, Elapsed (s), and the same count/share
+            columns. Re-evaluated decisions counts interactions with rankable
+            arbitration candidates. Elapsed (s) measures scoring and aggregation,
+            excluding plot construction. Interactions and shares use only
+            filtered sampled decisions with rankable arbitration candidates. For
+            top-N rankings, action coverage percentages can overlap and need
+            not sum to 100%; selected-scope coverage deduplicates interactions.
+            All mandatory indicates whether every selected rankable candidate
+            is mandatory.
+
+        Raises
+        ------
+        ValueError
+            If the winning rank is invalid, the replacement is non-finite or non-positive,
+            the population has no arbitration candidates, or the target does
+            not match an eligible candidate.
+
+        Notes
+        -----
+        Both scenarios reconstruct priority from components rather than using
+        recorded Rank. See :meth:`re_rank` for factor and missing-value
+        assumptions. The source data is never modified.
+        """
+        if lever_value is not None and (not isfinite(lever_value) or lever_value <= 0):
+            raise ValueError("Replacement lever must be positive and finite.")
+        overrides = (
+            [
+                pl.when(lever_condition.fill_null(False))
+                .then(pl.lit(lever_value))
+                .otherwise(pl.col("Levers"))
+                .alias("Levers")
+            ]
+            if lever_value is not None
+            else None
+        )
+        return self._simulation(
+            lever_condition,
+            overrides=overrides,
+            additional_filters=additional_filters,
+            win_rank=win_rank,
+            by=by,
+        )
+
+    def threshold_simulation(
+        self,
+        min_propensity: float = 0.0,
+        min_priority: float = 0.0,
+        *,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        win_rank: int = 1,
+        by: Literal["Issue", "Group", "Action"] = "Action",
+    ) -> tuple[pl.DataFrame, pl.DataFrame]:
+        """Compare Top-N coverage before and after applying global thresholds.
+
+        Remove offers below either threshold and re-rank the survivors using
+        the same PVCL reconstruction as the lever simulation. The population
+        remains the original rankable arbitration decisions, including those
+        left without a qualifying offer after thresholding.
+
+        Parameters
+        ----------
+        min_propensity : float, default 0.0
+            Minimum propensity, between 0 and 1 inclusive. Missing propensity
+            uses the neutral default from ``re_rank()``.
+        min_priority : float, default 0.0
+            Minimum recorded priority, finite and non-negative.
+        additional_filters : pl.Expr or list of pl.Expr, optional
+            Population filters applied equally to both scenarios.
+        win_rank : int, default 1
+            Number of highest-ranked surviving offers retained per decision.
+        by : {"Issue", "Group", "Action"}, default "Action"
+            Distribution granularity, retaining parent hierarchy columns.
+
+        Returns
+        -------
+        tuple of pl.DataFrame and pl.DataFrame
+            Per-scope coverage and a whole-population summary, with the same
+            columns as ``lever_simulation()``. After counts can be zero; no
+            synthetic placeholder offers are added.
+
+        Raises
+        ------
+        ValueError
+            If thresholds, winning rank, or granularity are invalid, or the
+            filtered population has no rankable arbitration candidates.
+        """
+        if not isfinite(min_propensity) or not 0 <= min_propensity <= 1:
+            raise ValueError("Minimum propensity must be finite and between 0 and 1.")
+        if not isfinite(min_priority) or min_priority < 0:
+            raise ValueError("Minimum priority must be finite and non-negative.")
+        return self._simulation(
+            pl.lit(True),
+            scenario_filter=(pl.col("Propensity") >= min_propensity) & (pl.col("Priority") >= min_priority),
+            additional_filters=additional_filters,
+            win_rank=win_rank,
+            by=by,
+        )
+
+    def _simulation(
+        self,
+        selection: pl.Expr,
+        *,
+        overrides: list[pl.Expr] | None = None,
+        scenario_filter: pl.Expr | None = None,
+        additional_filters: pl.Expr | list[pl.Expr] | None = None,
+        win_rank: int = 1,
+        by: Literal["Issue", "Group", "Action"] = "Action",
+    ) -> tuple[pl.DataFrame, pl.DataFrame]:
+        """Compare scenarios over a fixed population of arbitration decisions.
+
+        Scenario filters affect only After. Retain baseline offer identities
+        when their After winners disappear, and aggregate unique interaction
+        sets without changing the selected-target summary.
+        """
+        if isinstance(win_rank, bool) or not isinstance(win_rank, int) or not 1 <= win_rank <= self.da.max_win_rank:
+            raise ValueError(f"Winning rank must be an integer between 1 and {self.da.max_win_rank}.")
+        keys = ["Issue", "Group", "Action"]
+        if by not in keys:
+            raise ValueError("Analysis granularity must be Issue, Group, or Action.")
+        group_keys = keys[: keys.index(by) + 1]
+
+        started = perf_counter()
+        filters = [pl.col(self.da.level).is_in(self.da.stages_from_arbitration_down)]
+        if isinstance(additional_filters, list):
+            filters.extend(additional_filters)
+        elif additional_filters is not None:
+            filters.append(additional_filters)
+
+        before = (
+            self.re_rank(additional_filters=filters)
+            .group_by(keys)
+            .agg(
+                _before_interactions=pl.col("Interaction ID").filter(pl.col("rank_PVCL") <= win_rank).unique(),
+                _arbitration_decisions=(pl.col("rank_PVCL") == 1).sum(),
+                _all_mandatory=pl.col("is_mandatory").cast(pl.Boolean).fill_null(False).all(),
+            )
+        )
+        if overrides is None and scenario_filter is None:
+            distribution = before.with_columns(pl.col("_before_interactions").alias("_after_interactions")).collect()
+        else:
+            after_filters = filters if scenario_filter is None else [*filters, scenario_filter]
+            after = (
+                self.re_rank(
+                    additional_filters=after_filters,
+                    overrides=overrides,
+                )
+                .group_by(keys)
+                .agg(
+                    _after_interactions=pl.col("Interaction ID").filter(pl.col("rank_PVCL") <= win_rank).unique(),
+                )
+            )
+            distribution = (
+                before.join(after, on=keys, how="left", nulls_equal=True)
+                .with_columns(pl.col("_after_interactions").fill_null([]))
+                .collect()
+            )
+
+        if distribution.is_empty():
+            raise ValueError("No arbitration candidates are available in the selected population.")
+        distribution = distribution.with_columns(
+            Selected=selection.fill_null(False),
+            Before=pl.col("_before_interactions").list.len(),
+            After=pl.col("_after_interactions").list.len(),
+        )
+        if not distribution["Selected"].any():
+            raise ValueError("The selected lever scope has no arbitration candidates.")
+
+        interactions = distribution["_arbitration_decisions"].sum()
+        summary = distribution.filter(pl.col("Selected")).select(
+            pl.lit(interactions).alias("Interactions"),
+            pl.lit(interactions).alias("Re-evaluated decisions"),
+            Before=pl.col("_before_interactions").list.explode(keep_nulls=False, empty_as_null=False).n_unique(),
+            After=pl.col("_after_interactions").list.explode(keep_nulls=False, empty_as_null=False).n_unique(),
+            **{"All mandatory": pl.col("_all_mandatory").all()},
+        )
+        if by == "Action":
+            distribution = distribution.drop(
+                "_before_interactions", "_after_interactions", "_arbitration_decisions", "_all_mandatory"
+            )
+        else:
+            distribution = distribution.group_by(group_keys).agg(
+                Selected=pl.col("Selected").any(),
+                Before=pl.col("_before_interactions").list.explode(keep_nulls=False, empty_as_null=False).n_unique(),
+                After=pl.col("_after_interactions").list.explode(keep_nulls=False, empty_as_null=False).n_unique(),
+            )
+        distribution = distribution.with_columns(
+            (100.0 * pl.col("Before") / interactions).alias("Before share (%)"),
+            (100.0 * pl.col("After") / interactions).alias("After share (%)"),
+        ).with_columns(
+            (pl.col("After share (%)") - pl.col("Before share (%)")).alias("Change (pp)"),
+        )
+        summary = summary.with_columns(
+            (100.0 * pl.col("Before") / interactions).alias("Before share (%)"),
+            (100.0 * pl.col("After") / interactions).alias("After share (%)"),
+        ).with_columns(
+            (pl.col("After share (%)") - pl.col("Before share (%)")).alias("Change (pp)"),
+        )
+        distribution = distribution.sort(["After", *group_keys], descending=[True, *[False] * len(group_keys)])
+        summary = summary.with_columns(pl.lit(perf_counter() - started).alias("Elapsed (s)"))
+        return distribution, summary
 
     def get_win_distribution_data(
         self,

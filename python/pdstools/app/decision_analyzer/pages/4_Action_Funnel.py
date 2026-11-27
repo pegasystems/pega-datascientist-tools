@@ -7,6 +7,7 @@ import polars as pl
 import streamlit as st
 
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
+    ANALYSIS_GRANULARITY_LABEL,
     collect_page_filters,
     contextual_filters,
     ensure_data,
@@ -25,12 +26,14 @@ standard_page_config(page_title="Action Funnel · Decision Analysis")
 Understand how your offers flow through the decisioning pipeline and where they drop off.
 See which filtering rules are impacting your offer mix and identify opportunities to improve
 customer reach.
-
-**Key questions:**
-* Which offers are being filtered out too early?
-* Are high-value offers getting blocked by business rules?
-* Where in the pipeline do specific offer categories drop off?
 """
+
+st.info(
+    "- Which offers are filtered out too early?\n"
+    "- Are high-value offers blocked by business rules?\n"
+    "- Where do specific offer categories drop off?",
+    title="Key questions",
+)
 
 ensure_data()
 ensure_funnel()
@@ -72,7 +75,7 @@ with st.session_state["sidebar"]:
         st.session_state.scope = scope_options[0]
     scope_index = get_current_index(scope_options, "scope")
     st.selectbox(
-        "Granularity:",
+        ANALYSIS_GRANULARITY_LABEL,
         options=scope_options,
         index=scope_index,
         key="scope",
@@ -228,6 +231,10 @@ if has_components:
                 additional_filters=combined_filters,
             )
             st.plotly_chart(impact_fig)
+            st.caption(
+                "Colors identify filter families such as eligibility, suitability, and applicability. "
+                "Components spanning multiple families are gray."
+            )
 
             drilldown_df = da.aggregates.get_component_drilldown(
                 component_name=selected_component,

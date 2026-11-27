@@ -21,11 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 LAUNCHER_HOME = REPO_ROOT / "python" / "pdstools" / "app" / "launcher" / "Home.py"
 HC_HOME = REPO_ROOT / "python" / "pdstools" / "app" / "health_check" / "Home.py"
 
-# The collapse-at-N threshold Streamlit applies to ``stSidebarNav``.
-# Anything beyond this gets hidden behind a "View N more" button by
-# default. The launcher injects CSS to override this, but we still
-# keep the structural sidebar at or below the threshold pre-DA-load
-# so the CSS hack is belt-and-braces, not load-bearing.
+# Keep the landing sidebar short even though navigation is always expanded.
 _NAV_COLLAPSE_THRESHOLD = 10
 
 
@@ -125,12 +121,8 @@ def test_launcher_pre_app_sidebar_stays_under_collapse_threshold(launcher_mode):
 def test_launcher_subpage_sidebar_growth_is_documented(launcher_mode):
     """Document where each app's worst-case sidebar size lands.
 
-    HC and IA stay tiny (2 sub-pages each → 7 total). DA's data-pages
-    (10) push the total to 15 *only after a dataset is loaded* —
-    that's intentional and beyond the collapse threshold, so the
-    launcher injects CSS to keep all entries visible. This test
-    pins the numbers so future page additions trip a clear failure
-    rather than silently re-introducing the collapse problem.
+    Native expanded navigation keeps all available entries visible.
+    These counts guard active-app page gating before DA data is loaded.
     """
     base = 1 + 1 + 1 + 1 + 1 + 1  # picker + 4 home links + About
 

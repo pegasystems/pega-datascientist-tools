@@ -16,8 +16,7 @@ from pdstools.utils.streamlit_utils import standard_page_config
 
 standard_page_config(page_title="Offer Quality · Decision Analysis")
 
-# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
-# (Streamlit Pages → Page 8 — Offer Quality Analysis).
+# Roadmap: docs/decision-analyzer-roadmap.md
 
 "# Offer Quality Analysis"
 
@@ -25,12 +24,16 @@ standard_page_config(page_title="Offer Quality · Decision Analysis")
 Identify customer interactions where offer quality may be a concern. This analysis
 helps you spot situations where customers see too few offers, or where offers have
 low predicted response rates or priorities.
+"""
 
-**Key insights:**
-* Which customers are seeing limited choices?
-* Are there interactions with only low-quality offers?
-* Where might new or untested offers be impacting customer experience?
+st.info(
+    "- Which customer interactions have limited choices?\n"
+    "- Which interactions have only low-quality offers?\n"
+    "- Where might new or untested offers affect customer experience?",
+    title="Key questions",
+)
 
+"""
 **Note:** Propensity-based quality assessment (distinguishing between "relevant" and
 "irrelevant" offers) is only available from the arbitration stage onward. For earlier
 stages, the analysis shows whether customers received at least one action, without
@@ -49,12 +52,14 @@ def _safe_thresholds(thresholding_data):
     return [round(v, 4) if v is not None else 0.0 for v in values]
 
 
-propensity_th = _safe_thresholds(
+propensity_threshold = _safe_thresholds(
     st.session_state.decision_data.scoring.get_thresholding_data("Propensity", [0, 10, 100])
 )
-priority_th = _safe_thresholds(st.session_state.decision_data.scoring.get_thresholding_data("Priority", [0, 10, 100]))
+priority_threshold = _safe_thresholds(
+    st.session_state.decision_data.scoring.get_thresholding_data("Priority", [0, 10, 100])
+)
 
-if propensity_th is None or priority_th is None:
+if propensity_threshold is None or priority_threshold is None:
     st.warning(
         "⚠️ No actions survive to the arbitration stage in this data set. "
         "Offer Quality Analysis requires actions at or after arbitration. "
@@ -66,23 +71,23 @@ if propensity_th is None or priority_th is None:
 with st.session_state["sidebar"]:
     stage_level_selector()
 
-    propensity_th = (
+    propensity_threshold = (
         st.slider(
             "Minimum propensity for relevance",
-            propensity_th[0] * 100,
-            propensity_th[2] * 100,
-            propensity_th[1] * 100,
+            propensity_threshold[0] * 100,
+            propensity_threshold[2] * 100,
+            propensity_threshold[1] * 100,
             format="%.2f%%",
             help="Offers with propensity below this value are considered irrelevant (low quality)",
         )
         / 100
     )
-    priority_th = st.slider(
+    priority_threshold = st.slider(
         "Minimum priority for relevance",
-        priority_th[0],
-        priority_th[2],
-        priority_th[0],  # Default to minimum (0)
-        # step=(priority_th[2]-priority_th[0])/10,
+        priority_threshold[0],
+        priority_threshold[2],
+        priority_threshold[0],  # Default to minimum (0)
+        # step=(priority_threshold[2]-priority_threshold[0])/10,
         format="%.4f",
         help="Offers with priority below this value are considered irrelevant (low quality)",
     )
@@ -106,8 +111,8 @@ channel_filter = st.session_state.get("page_channel_expr")
 
 action_counts = st.session_state.decision_data.aggregates.filtered_action_counts(
     groupby_cols=[st.session_state.decision_data.level, "Interaction ID", "day"],
-    priority_th=priority_th,
-    propensity_th=propensity_th,
+    priority_threshold=priority_threshold,
+    propensity_threshold=propensity_threshold,
     additional_filters=channel_filter,
 )
 
@@ -119,7 +124,7 @@ with st.container(border=True):
     st.plotly_chart(
         offer_quality_piecharts(
             vf,
-            propensity_th=propensity_th,
+            propensity_threshold=propensity_threshold,
             AvailableNBADStages=st.session_state.decision_data.AvailableNBADStages,
             level=st.session_state.decision_data.level,
         ),

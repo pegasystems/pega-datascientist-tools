@@ -81,6 +81,78 @@ def test_da_page_renders(
     assert any(heading in m.value for m in at.markdown), (
         f"{page} missing heading {heading!r} — page body did not render"
     )
+    callouts = [message for message in at.main.info if message.proto.title == "Key questions"]
+    assert len(callouts) == 1
+    assert 2 <= callouts[0].value.count("?") <= 3
     for attr, minimum in widget_checks.items():
         actual = len(getattr(at, attr))
         assert actual >= minimum, f"{page} expected at least {minimum} {attr} widget(s), got {actual}"
+
+
+@pytest.mark.parametrize(
+    ("page", "scope_key", "has_win_rank"),
+    [
+        ("3_Action_Distribution.py", "scope", False),
+        ("4_Action_Funnel.py", "scope", False),
+        ("5_Global_Sensitivity.py", "glob_sensitivity_scope", True),
+        ("6_Win_Loss_Analysis.py", "scope", True),
+        ("9_Thresholding_Analysis.py", "_simulation_granularity", True),
+        ("10_Arbitration_Distribution.py", "scope", False),
+        ("13_Business_Levers.py", "_simulation_granularity", True),
+    ],
+)
+def test_analysis_controls_have_consistent_labels(
+    page: str,
+    scope_key: str,
+    has_win_rank: bool,
+    seeded_decision_analyzer: DecisionAnalyzer,
+    da_app_dir: Path,
+):
+    at = AppTest.from_file(str(da_app_dir / "pages" / page), default_timeout=60)
+    at.session_state["decision_data"] = seeded_decision_analyzer
+    at.run()
+    assert not at.exception
+    assert at.selectbox(key=scope_key).label == "Analysis granularity"
+    if has_win_rank:
+        assert at.number_input(key="_win_rank").label == "Define winning: rank in top N"
+
+    at.selectbox(key=scope_key).set_value("Group").run()
+    assert not at.exception
+    assert at.selectbox(key=scope_key).value == "Group"
+    at.selectbox(key=scope_key).set_value("Action").run()
+    assert not at.exception
+    assert at.selectbox(key=scope_key).value == "Action"
+
+
+def test_prioritization_explanation_is_shared_and_collapsed(
+    seeded_decision_analyzer: DecisionAnalyzer,
+    da_app_dir: Path,
+):
+    pages = [
+        "2_Overview.py",
+        "5_Global_Sensitivity.py",
+        "6_Win_Loss_Analysis.py",
+        "9_Thresholding_Analysis.py",
+        "13_Business_Levers.py",
+    ]
+    explanations = []
+    for page in pages:
+        at = AppTest.from_file(str(da_app_dir / "pages" / page), default_timeout=60)
+        at.session_state["decision_data"] = seeded_decision_analyzer
+        at.run()
+        assert not at.exception, f"{page} raised: {at.exception}"
+        section = at.expander[-1]
+        assert section.label == "How Prioritization is Calculated"
+        assert not section.proto.expanded
+        assert list(at.main.children.values())[-1] is section
+        explanations.append(section.markdown[0].value)
+
+    assert len(set(explanations)) == 1
+    for expected in (
+        "Priority = P × C × V × L",
+        "A propensity of 0 makes the product 0",
+        "value weighting is enabled and the value is nonzero",
+        "Mandatory actions bypass this formula",
+        "Missing components are approximated as 1",
+    ):
+        assert expected in explanations[0]

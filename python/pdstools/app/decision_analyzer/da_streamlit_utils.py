@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import polars as pl
 import streamlit as st
 
+from pdstools.decision_analyzer._constants import ACTION_COLOR_LIMIT
 from pdstools.decision_analyzer.plots import (
     plot_component_overview,
     plot_priority_component_distribution,
@@ -25,6 +26,8 @@ from pdstools.utils.streamlit_utils import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+ANALYSIS_GRANULARITY_LABEL = "Analysis granularity"
 
 
 def _is_upload_noise(name: str) -> bool:
@@ -86,6 +89,170 @@ def ensure_data():
     _apply_sidebar_logo()
     ensure_session_data("decision_data", "Please upload your data in the Home page.")
     show_cli_filter_banner()
+
+
+def show_action_color_notice(dimension: str | None) -> None:
+    """Explain the stable Action color cap when it applies to a chart."""
+    if dimension == "Action" and len(st.session_state.decision_data.color_mappings["Action"]) > ACTION_COLOR_LIMIT:
+        st.caption(
+            f"The {ACTION_COLOR_LIMIT} actions present in the most decisions in the full dataset "
+            "have distinct colors; other actions are gray. Colors stay fixed when filtering."
+        )
+
+
+def _persist_optionality_color() -> None:
+    st.session_state.optionality_color_by = st.session_state._optionality_color_by
+
+
+def optionality_color_selector() -> Literal["Issue", "Group"] | None:
+    """Select a persistent color breakdown for the optionality histogram."""
+    st.session_state._optionality_color_by = st.session_state.get("optionality_color_by", "None")
+    selected = st.selectbox(
+        "Color by",
+        ["None", "Issue", "Group"],
+        key="_optionality_color_by",
+        on_change=_persist_optionality_color,
+    )
+    return None if selected == "None" else cast(Literal["Issue", "Group"], selected)
+
+
+def _persist_win_rank() -> None:
+    st.session_state.win_rank = st.session_state._win_rank
+
+
+def win_rank_selector() -> None:
+    """Render the shared Top-N selector without losing it on page navigation."""
+    st.session_state.win_rank = st.session_state.get("win_rank", 1)
+    st.session_state._win_rank = st.session_state.win_rank
+    st.number_input(
+        "Define winning: rank in top N",
+        min_value=1,
+        max_value=st.session_state.decision_data.max_win_rank,
+        step=1,
+        key="_win_rank",
+        on_change=_persist_win_rank,
+        help="Keep the top N highest-ranked offers per interaction.",
+    )
+
+
+def _persist_simulation_granularity() -> None:
+    st.session_state.simulation_granularity = st.session_state._simulation_granularity
+
+
+def simulation_granularity_selector() -> Literal["Issue", "Group", "Action"]:
+    """Render shared simulation granularity that survives page navigation."""
+    st.session_state.simulation_granularity = st.session_state.get("simulation_granularity", "Group")
+    st.session_state._simulation_granularity = st.session_state.simulation_granularity
+    return cast(
+        Literal["Issue", "Group", "Action"],
+        st.selectbox(
+            ANALYSIS_GRANULARITY_LABEL,
+            ["Issue", "Group", "Action"],
+            key="_simulation_granularity",
+            on_change=_persist_simulation_granularity,
+        ),
+    )
+
+
+def show_prioritization_explanation() -> None:
+    """Explain product prioritization and the app's reconstruction assumptions."""
+    with st.expander("How Prioritization is Calculated", expanded=False):
+        st.markdown(
+            """
+For a standard action, arbitration calculates **Priority = P × C × V × L**:
+
+- **P — Propensity:** the selected adjusted propensity, typically treatment-level or a treatment/proxy blend.
+  A propensity of 0 makes the product 0.
+- **C — Context:** 1 + the raw context weight / 100. A raw weight of 0 gives a factor of 1.
+- **V — Value:** the recorded value when value weighting is enabled and the value is nonzero; otherwise 1.
+- **L — Levers:** 1 + the combined action, treatment, business-purpose, outcome, and journey weights / 100.
+  A combined raw weight of 0 gives a factor of 1; -100 gives a factor of 0.
+
+Mandatory actions bypass this formula and receive priority 499,999,999. Experiment variants may use
+different factors; standard calculated priorities may be clamped and filtered by a priority threshold.
+
+**In this app:** Re-ranking reconstructs priority using the exported Context Weight and Levers as
+already-calculated factors. It treats Value 0 as 1, but uses nonzero Value as recorded because
+value-weighting eligibility is unavailable. Missing components are approximated as 1, not inferred
+from raw weights. Mandatory offers take precedence independently of their reconstructed scores.
+Experiment variants, clamping, and product threshold behavior are not reconstructed, so results
+can differ from recorded priorities and rankings.
+"""
+        )
+
+
+def show_simulation_comparison(
+    distribution: pl.DataFrame,
+    summary_frame: pl.DataFrame,
+    *,
+    title: str | None,
+    win_rank: int,
+    analysis_level: Literal["Issue", "Group", "Action"],
+    selected_target: bool = False,
+) -> None:
+    """Render shared distributions, delta comparison, table, and evaluation footer."""
+    summary = summary_frame.row(0, named=True)
+    with st.container(border=True):
+        if title is not None:
+            offer_label = "selected offer" if selected_target else "offer"
+            st.subheader(title)
+            st.caption(
+                f"Share of **{summary['Interactions']:,} re-evaluated arbitration decisions** with "
+                f"**at least one {offer_label} in the Top-{win_rank}**."
+                + (" Competitors remain in the comparison." if selected_target else "")
+            )
+        if selected_target:
+            before_metric, after_metric, change_metric = st.columns(3, gap="small")
+            before_metric.metric("Before", f"{summary['Before share (%)']:.1f}%")
+            after_metric.metric("After", f"{summary['After share (%)']:.1f}%")
+            change_metric.metric("Change", f"{summary['Change (pp)']:+.1f}")
+
+        st.markdown(f"### Overall distribution by {analysis_level.lower()}")
+        st.caption(
+            "All categories, including unchanged offers and competitors, on the same scale. "
+            "Shares use the re-evaluated decision population; Top-N coverage can overlap across categories."
+        )
+        if analysis_level == "Action":
+            st.caption(
+                "Action colors are based on the baseline distribution and repeat when needed. "
+                "They stay the same between Before and After, but may change with population filters."
+            )
+        st.plotly_chart(
+            st.session_state.decision_data.plot.simulation_distribution(distribution),
+            key="simulation_distribution",
+        )
+
+        st.markdown(f"### Gains and losses by {analysis_level.lower()}")
+        st.caption(
+            "Positive bars gained winning share; negative bars lost winning share. "
+            "Unchanged categories are omitted; one decision switching winners can produce one gain and one loss. "
+            "Hover for Before/After counts."
+        )
+        st.plotly_chart(st.session_state.decision_data.plot.lever_delta(distribution), key="simulation_delta")
+
+    with st.container(border=True):
+        st.subheader("Offer share changes")
+        st.dataframe(
+            distribution,
+            hide_index=True,
+            height=240,
+            column_config={
+                "Selected": st.column_config.CheckboxColumn("Contains selected target") if selected_target else None,
+                **{
+                    column: st.column_config.NumberColumn(
+                        label=column.replace(" (pp)", ""),
+                        format="%.1f",
+                    )
+                    for column in ("Before share (%)", "After share (%)", "Change (pp)")
+                },
+            },
+        )
+        decision_label = "decision" if summary["Re-evaluated decisions"] == 1 else "decisions"
+        st.caption(
+            f"Re-evaluated **{summary['Re-evaluated decisions']:,} {decision_label}** "
+            f"in **{summary['Elapsed (s)']:.3f} s** "
+            "(scoring and aggregation only)."
+        )
 
 
 def _apply_stage_level():

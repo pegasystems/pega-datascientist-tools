@@ -4,6 +4,7 @@ import polars as pl
 import streamlit as st
 
 from pdstools.app.decision_analyzer.da_streamlit_utils import (
+    ANALYSIS_GRANULARITY_LABEL,
     collect_page_filters,
     contextual_filters,
     ensure_data,
@@ -21,12 +22,14 @@ standard_page_config(page_title="Action Distribution · Decision Analysis")
 Understand which offers are being presented to customers at each stage of your decisioning pipeline.
 Use the **Stage Granularity** toggle in the sidebar to switch between high-level stage groups
 and individual stages, then select a stage to analyze.
-
-**Key questions:**
-* Which offers dominate your mix? Are they the right ones?
-* How does filtering change which offers reach customers?
-* Is your offer portfolio balanced or concentrated in a few actions?
 """
+
+st.info(
+    "- Which offers dominate your mix?\n"
+    "- How does filtering change which offers reach customers?\n"
+    "- Is your portfolio balanced or concentrated in a few actions?",
+    title="Key questions",
+)
 
 ensure_data()
 
@@ -103,7 +106,7 @@ with st.container(border=True):
 
     scope_index = get_current_index(scope_options, "scope")
     st.selectbox(
-        "Granularity:",
+        ANALYSIS_GRANULARITY_LABEL,
         options=scope_options,
         # column names are already friendly
         index=scope_index,

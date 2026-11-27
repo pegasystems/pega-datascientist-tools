@@ -28,7 +28,7 @@ def test_da_garbage_parquet_upload_handled_gracefully(da_app_dir: Path) -> None:
     Currently ``xfail``ed because ``raw_data.explain(...)`` is called
     outside the try/except in ``_home_page.py``, so polars
     ``ComputeError`` escapes as an unhandled exception. Tracked in
-    ``docs/plans/decision-analyzer/garbage-upload-crashes-home.md``.
+    ``docs/decision-analyzer-roadmap.md``.
     """
     at = AppTest.from_file(str(da_app_dir / "Home.py"), default_timeout=120)
     at.run()
@@ -53,7 +53,7 @@ def test_da_garbage_parquet_upload_handled_gracefully(da_app_dir: Path) -> None:
 test_da_garbage_parquet_upload_handled_gracefully = pytest.mark.xfail(
     reason=(
         "DA Home does not catch polars ComputeError from a corrupt parquet upload — "
-        "see docs/plans/decision-analyzer/garbage-upload-crashes-home.md"
+        "see docs/decision-analyzer-roadmap.md"
     ),
     strict=False,
 )(test_da_garbage_parquet_upload_handled_gracefully)

@@ -7,6 +7,7 @@ from pdstools.app.decision_analyzer.da_streamlit_utils import (
     collect_page_filters,
     ensure_data,
     polars_lazyframe_hashing,
+    show_prioritization_explanation,
 )
 from pdstools.decision_analyzer.plots import offer_quality_single_pie
 from pdstools.utils.streamlit_utils import standard_page_config
@@ -29,6 +30,13 @@ Key metrics and insights about your offer strategy at a glance. See how many off
 reach customers, which factors drive decisions, and where opportunities exist to
 improve customer reach.
 """
+
+st.info(
+    "- How many offers reach customers?\n"
+    "- Which factors influence the winning offers?\n"
+    "- Where are customers underserved?",
+    title="Key questions",
+)
 
 # Display sample information if available
 sample_metadata = st.session_state.get("sample_metadata")
@@ -91,28 +99,28 @@ def _offer_quality_pie(best_stage: str, level: str):
     """Compute thresholds, action counts, quality breakdown and pie chart in one cached call."""
     _da = st.session_state.decision_data
     # Use 10th percentile thresholds (same defaults as Offer Quality page)
-    propensity_th = _da.scoring.get_thresholding_data("Propensity", [0, 10, 100])
-    priority_th = _da.scoring.get_thresholding_data("Priority", [0, 10, 100])
+    propensity_threshold = _da.scoring.get_thresholding_data("Propensity", [0, 10, 100])
+    priority_threshold = _da.scoring.get_thresholding_data("Priority", [0, 10, 100])
 
-    prop_values = propensity_th["Threshold"].to_list()
-    prio_values = priority_th["Threshold"].to_list()
+    prop_values = propensity_threshold["Threshold"].to_list()
+    prio_values = priority_threshold["Threshold"].to_list()
 
     if all(v is None for v in prop_values) or all(v is None for v in prio_values):
         return None
 
-    propensity_th = prop_values[1] if prop_values[1] is not None else 0.10
-    priority_th = prio_values[0] if prio_values[0] is not None else 0.0
+    propensity_threshold = prop_values[1] if prop_values[1] is not None else 0.10
+    priority_threshold = prio_values[0] if prio_values[0] is not None else 0.0
 
     action_counts = _da.aggregates.filtered_action_counts(
         groupby_cols=["Stage Group", "Interaction ID"],
-        priority_th=priority_th,
-        propensity_th=propensity_th,
+        priority_threshold=priority_threshold,
+        propensity_threshold=propensity_threshold,
     )
     quality_data = _da.aggregates.get_offer_quality(action_counts, group_by="Interaction ID")
     return offer_quality_single_pie(
         quality_data,
         stage=best_stage,
-        propensity_th=propensity_th,
+        propensity_threshold=propensity_threshold,
         level="Stage Group",
     )
 
@@ -201,3 +209,5 @@ with col2:
         st.warning(
             "No actions survive to the arbitration stage in this data set. Offer quality analysis is not available."
         )
+
+show_prioritization_explanation()

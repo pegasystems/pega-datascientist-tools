@@ -711,7 +711,7 @@ The recommended [Service and data health limits for Pega Customer Decision Hub o
 
 ```{python}
 from pdstools.utils.metric_limits import MetricLimits
-# Tracked in docs/plans/health-check-TODO.md (P2: Consistent active model
+# Tracked in docs/health-check-roadmap.md (P2: Consistent active model
 # filtering) — these counts currently do not apply the active-models
 # filter.
 df_action_overview = pl.DataFrame(
