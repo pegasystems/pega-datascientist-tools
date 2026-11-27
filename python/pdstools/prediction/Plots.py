@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # template (and friends) as a side effect. Several plot methods across
 # pdstools — including some in adm/Plots.py — pass `template="pega"`
 # without importing pega_template themselves and rely on this side effect.
-# Tracked in docs/plans/adm/plots-pega-template-registration.md.
+# Tracked in docs/adm-roadmap.md.
 try:
     from ..utils import pega_template as _pega_template  # noqa: F401
 except ImportError:  # pragma: no cover

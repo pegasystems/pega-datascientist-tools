@@ -26,7 +26,7 @@ instructions, assume particular integrations, or add generic programming tutoria
 
 [CONTRIBUTING.md](CONTRIBUTING.md) covers contribution entry points, notebook
 inputs, and adding documentation. Read the relevant architecture and
-[feature plans](docs/plans/) before changing an area. For generated sample data,
+[feature roadmaps](docs/) before changing an area. For generated sample data,
 read [its architecture and invariants](docs/sample-data-architecture.md) first.
 
 ## Working approach
@@ -230,8 +230,8 @@ never hand-edit the lockfile.
   not commit titles. Summarize compatibility effects and validation in the PR.
 - Capture out-of-scope findings in the handoff. File issues or plan entries when
   appropriate and authorized; avoid unrelated fixes or unsolicited planning files.
-  Feature plans use one short kebab-case Markdown file per open item under
-  `docs/plans/<feature>/`, with P1/P2/P3 priority, affected files, and proposed approach.
+  Track feature follow-ups in the corresponding `docs/<feature>-roadmap.md`,
+  with priorities and concise context.
 - Resolve existing plan items in the change that implements them. Keep small
   code-local TODOs inline, linking a plan when one exists. Do not make a
   plan-files-only PR unless that is explicitly the requested deliverable.

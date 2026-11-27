@@ -16,8 +16,7 @@ from pdstools.utils.streamlit_utils import standard_page_config
 
 standard_page_config(page_title="Offer Quality · Decision Analysis")
 
-# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
-# (Streamlit Pages → Page 8 — Offer Quality Analysis).
+# Roadmap: docs/decision-analyzer-roadmap.md
 
 "# Offer Quality Analysis"
 

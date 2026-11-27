@@ -1280,8 +1280,7 @@ class Aggregates:
         for i, stage in enumerate(self.da.AvailableNBADStages):
             # Get aggregated counts for this stage (only interactions WITH actions)
             stage_df = (
-                # Tracked in docs/plans/decision-analyzer-TODO.md (P2:
-                # Refactor get_offer_quality) — delegate to
+                # Tracked in docs/decision-analyzer-roadmap.md — delegate to
                 # aggregate_remaining_per_stage instead of this manual loop.
                 df.filter(pl.col(self.da.level).is_in(self.da.AvailableNBADStages[i:]))
                 .group_by(group_by)
@@ -1679,8 +1678,7 @@ class Aggregates:
         """
         tbl = (
             self.da.preaggregated_remaining_view.group_by(
-                # Tracked in docs/plans/decision-analyzer-TODO.md (P3: AB
-                # test: include IA properties) — IA properties not joined
+                # Tracked in docs/decision-analyzer-roadmap.md — IA properties not joined
                 # here when present.
                 [self.da.level, "Model Control Group"]
             )

@@ -55,8 +55,7 @@ def _describe_comparison_group() -> str:
     return label
 
 
-# Backlog for this page is tracked in docs/plans/decision-analyzer-TODO.md
-# (Streamlit Pages → Page 6 — Win/Loss Analysis).
+# Roadmap: docs/decision-analyzer-roadmap.md
 
 "# Win/Loss Analysis"
 
@@ -73,8 +72,6 @@ st.info(
 ensure_data()
 st.session_state["sidebar"] = st.sidebar
 
-# (See docs/plans/decision-analyzer-TODO.md → Page 6 for the
-# many-channel handling backlog item.)
 facetting = "pyChannel/pyDirection"
 
 # st.session_state.df = st.session_state.df.with_columns(

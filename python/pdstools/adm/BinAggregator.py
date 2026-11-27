@@ -868,7 +868,7 @@ class BinAggregator(LazyNamespace):
         return fig.update_xaxes(title="")
 
     # "Philip Mann" plot with simple red/green lift bars relative to base
-    # propensity. Tracked in docs/plans/health-check-TODO.md (P3: Move
+    # propensity. Tracked in docs/health-check-roadmap.md (P3: Move
     # report-local plot helpers into adm/Plots.py) — currently duplicated
     # between ModelReport.qmd and BinAggregator.py.
 
@@ -925,9 +925,9 @@ class BinAggregator(LazyNamespace):
         )
 
         # Abbreviate possibly very long bin labels. Tracked in
-        # docs/plans/health-check-TODO.md (P3: Standardize long axis label
-        # abbreviation) — extract to a shared helper and ensure resulting
-        # labels are unique (truncation alone may not be).
+        # docs/health-check-roadmap.md (P3: Standardize long axis label
+        # abbreviation) — ensure labels are unique; the shared helper may
+        # produce duplicates.
         pm_plot_binning_table = pm_plot_binning_table.with_columns(
             pl.Series(
                 "BinSymbolAbbreviated",
