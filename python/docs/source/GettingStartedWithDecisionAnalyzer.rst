@@ -1,36 +1,51 @@
-Getting Started with the Decision Analyzer Tool
+Getting started with the Decision Analysis Tool
 ===============================================
 
-What is the Decision Analyzer Tool?
------------------------------------
+The Decision Analysis Tool is a browser-based interface for exploring Pega
+decision data without writing code. It supports Explainability Extract v1
+(arbitration only) and Action Analysis / Explainability Extract v2 (the full
+decision pipeline).
 
-The Decision Analyzer Tool is a stand-alone tool designed to analyze Explainability Extract datasets from Pega. V1 only includes arbitration stage data, V2 provides data from all stages in the decision funnel, enabling comprehensive analysis of the full decision-making process.
+Explore the decision pipeline
+-----------------------------
 
-Like the ADM Health Check Tool, you will need to have Python and install pdstools, but you do not need to run a (data science) environment, and there is no need to create a script - it is all configured from a user-friendly interface.
+- **Overview** summarizes the data and decision outcomes.
+- **Action Distribution** and **Action Funnel** show the offer mix at each
+  stage and where actions are filtered out.
+- **Optionality Analysis** and **Offer Quality Analysis** highlight decisions
+  with limited choice or low-quality offers.
+- **Single Decision** traces individual actions through the available stages
+  and filtering components.
 
-The Decision Analysis Tool provides:
+Understand arbitration
+----------------------
 
-- **Overview**: Key metrics and insights about your offer strategy at a glance
-- **Action Funnel**: Visualize how offers flow through the full decision pipeline and identify where they drop off
-- **Action Distribution**: Understand the distribution of actions at the arbitration stage using interactive treemaps
-- **Optionality Analysis**: Analyze the number of actions available per customer, personalization opportunities, and action exclusion before arbitration
-- **Global Sensitivity Analysis**: Understand how arbitration factors (propensity, value, levers, context weights) affect decision-making
-- **Win/Loss Analysis**: Examine which actions win or lose in arbitration and the factors behind these outcomes
-- **Arbitration Component Distribution**: Analyze the distribution of prioritization components to identify potential issues
-- **No coding required**: Everything is configured through a web-based UI
-- **Interactive visualizations**: Hover over charts for detailed information and insights
+- **Global Sensitivity** explores the influence of propensity, value, context,
+  and levers on ranking.
+- **Win / Loss Analysis** compares competing actions and their arbitration
+  factors.
+- **Arbitration Distribution** shows the distributions of prioritization
+  components.
+
+Try what-if scenarios
+---------------------
+
+- **Thresholding Analysis** explores the effect of minimum propensity and
+  priority thresholds on offer volume and the winning mix.
+- **What-if: Business Levers** changes the lever for an issue, group, or action
+  and compares the winning distribution before and after the change,
+  including effects on competing offers.
+
+These simulations are an initial illustration, not a replay of the decision
+engine. They re-rank sampled arbitration candidates using reconstructed
+priorities and approximations for missing data. Use a full decision simulation
+or a small hold-out experiment to investigate promising changes further.
 
 Installation
 ------------
 
-Before installing the Python components, you need to install these external applications:
-
-- **Quarto**: Download from `Quarto releases <https://github.com/quarto-dev/quarto-cli/releases/tag/v1.3.450>`_ (v1.3.450 or later)
-- **Pandoc**: Download from `Pandoc.org <https://pandoc.org>`_
-
-These are standalone applications, not Python libraries, and must be installed separately on your system.
-
-To use the Decision Analyzer Tool, you need to install several Python components. Choose your preferred Python package manager:
+Install pdstools with the application dependencies using your preferred Python
+package manager. Quarto and Pandoc are not needed for Decision Analysis.
 
 .. tabs::
    .. tab:: uv tool (recommended)
@@ -171,6 +186,35 @@ Once everything is installed, you can launch the Decision Analysis Tool:
 
          pdstools decision_analyzer
 
+The app opens in your browser. If it does not, copy the Local URL from the
+terminal. Stop the app with Ctrl+C in that terminal.
+
+Sharing on a local network
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. warning::
+   A network-accessible app is not protected by authentication or HTTPS by
+   default. The Decision Analysis launcher also disables Streamlit's XSRF
+   protection. Anyone who can reach the app may be able to access data loaded
+   into it. Use only approved, non-sensitive data on a trusted network; for
+   broader access, use an appropriately secured deployment.
+
+To let colleagues on the same network connect, start the app listening on
+network interfaces:
+
+.. code-block:: bash
+
+   pdstools decision_analyzer --server.address 0.0.0.0 --server.port 8521
+
+If you installed into a uv-managed virtual environment, prefix the command
+with ``uv run``. Find your computer's local IP address in its network settings
+and share ``http://<your-IP>:8521``. Your computer must remain on, and your
+firewall and network must allow connections to that port.
+
+To restrict access to your own computer instead, use
+``--server.address 127.0.0.1``. A URL beginning with ``localhost`` or
+``127.0.0.1`` cannot be opened from a colleague's computer.
+
 CLI Options
 ^^^^^^^^^^^
 
@@ -263,63 +307,45 @@ data loading and sampling. All options can also be set via environment variables
    # Combine all filter types
    pdstools decision_analyzer --data-path /path/to/data.zip --filter "Channel=Web" --filter "ModelPositives>=50" --filter "Decision Time=2024-06-01..2024-12-31"
 
-The app should open up in your system browser. On first run, you may get a promotional message from Streamlit asking for your email address - you can leave this empty if you want. If the app does not open automatically, simply copy the Local URL from your terminal and paste it into your browser.
-
 Using the Decision Analysis Tool
 --------------------------------
 
-**Step 1: Import Your Decision Data**
+Load data
+^^^^^^^^^
 
-Start by upload your data through the data import section in the Home page.
+The Home page loads sample data automatically when no input is specified.
+Upload your own file to replace it, or use ``--data-path`` to load a file or
+directory at startup. See your Pega documentation for export instructions.
 
-.. note::
-   The Decision Analysis Tool works with both **Explainability Extract V1 and V2** datasets from Pega. The application automatically detects which version you have by checking for the presence of the ``pxStrategyName`` column in your data. If this column is not present, the data is treated as V1. V1 only contains data from the arbitration stage.
+The app detects v2 when both strategy and stage-group information are present;
+otherwise it treats the data as v1. V1 has synthetic Arbitration and Output
+stages, so it cannot show filtering at earlier pipeline stages.
 
-   **V2 datasets** include data from all decision stages (eligibility, applicability, suitability, and arbitration), enabling comprehensive analysis of the full decision funnel. **V1 datasets** only include arbitration stage data, so some analyses specific to the full decision funnel will be hidden when working with V1 data.
+Choose a focus
+^^^^^^^^^^^^^^
 
-   For information about exporting this data from Pega, refer to your Pega documentation.
+Use the sidebar controls to select a stage or analysis scope. Many pages also
+offer a shared **Channel / Direction** filter; the selection persists across
+pages that use it. Overview shows global metrics. Use ``--filter`` when you
+want to filter data before loading.
 
-**Step 2: Focus Your Analysis**
+The Home page's sample-size setting controls the interaction sample used by
+some analyses. It is separate from ``--sample``, which reduces the data before
+loading.
 
-Use per-page filters in the sidebar (Channel/Direction, Stage, Scope) to focus
-on specific segments. For pre-ingestion data selection, use ``--filter`` CLI flags.
+Compare scenarios
+^^^^^^^^^^^^^^^^^
 
-**Step 3: Analyze the results**
+On **What-if: Business Levers**, select an issue, group, or action and move
+the slider to replace its levers. The percentage is relative to the selected
+offers' median lever: all selected offers receive the same replacement value,
+not a per-offer multiplier. Reset restores their original levers.
 
-You can now analyze the results from various angles (optionality, funnel effects, win-loss etc.). There are separate analysis pages for each of the types of analysis.
-
-The analysis provided in this tool are similar but not necessarily identical to the ones that will be delivered in product.
-
-**Channel Filtering**
-
-Many analysis pages include a **Channel / Direction** filter in the sidebar
-that lets you focus on a specific channel combination:
-
-- **Any** (default): Shows aggregated data across all channels that pass global filters
-- **Specific channel**: Shows data only for that Channel/Direction combination
-  (e.g., "Web/Inbound", "Email/Outbound")
-
-The channel filter is available on these pages:
-
-- Action Distribution
-- Action Funnel
-- Global Sensitivity
-- Win/Loss Analysis
-- Optionality Analysis
-- Offer Quality Analysis
-- Thresholding Analysis
-- Arbitration Component Distribution
-
-Your selection persists as you navigate between pages, allowing you to maintain
-the same channel focus across different analyses.
-
-.. note::
-   The Overview page intentionally shows global metrics across all channels and
-   does not have a channel filter.
-
-.. note::
-   In the Action Funnel page, the Filter Impact table intentionally remains unfiltered
-   to show all filter events across channels.
+On **Thresholding Analysis**, set minimum propensity or recorded-priority
+thresholds and compare the resulting winning mix. Both pages support Top-N
+winners and Issue, Group, or Action analysis granularity. Counts at different
+categories can overlap when Top-N is greater than one. Mandatory offers retain
+precedence in re-ranking; changing their levers alone cannot change their order.
 
 Upgrading pdstools
 ------------------
@@ -358,14 +384,13 @@ Troubleshooting
 
 **Application doesn't start**
 
-- Ensure you have installed all dependencies (Quarto, Pandoc, pdstools with app dependencies)
-- Check that you're using a compatible Python version (3.10 or higher)
+- Ensure you have installed pdstools with app dependencies
+- Check that you're using a compatible Python version
 - If using virtual environments, make sure it's activated
 
 **Analysis fails to run**
 
 - Verify your decision data files are in the correct format
-- Ensure Quarto and Pandoc are properly installed and accessible from the command line
 - Check the application logs in the terminal for specific error messages
 
 **Large datasets crash or fail with capacity errors**
