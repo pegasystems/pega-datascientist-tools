@@ -62,6 +62,10 @@ test_consolidation.py
 # Claude / Copilot local settings (machine-specific, may contain tokens)
 .claude/settings.json
 
+# Environment-specific Streamlit skill symlinks
+/.agents/skills/developing-with-streamlit
+/.claude/skills/developing-with-streamlit
+
 # SpecKit local state and generated specifications
 /.specify/
 /.github/agents/speckit*.agent.md
